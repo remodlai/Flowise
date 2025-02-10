@@ -136,7 +136,8 @@ export const buildAgentGraph = async ({
                     overrideConfig: incomingInput?.overrideConfig,
                     threadId: sessionId || chatId,
                     summarization: seqAgentNodes.some((node) => node.data.inputs?.summarization),
-                    uploadedFilesContent
+                    uploadedFilesContent,
+                    action: incomingInput.action
                 })
             } else {
                 isSequential = true
@@ -416,6 +417,7 @@ type MultiAgentsGraphParams = {
     threadId?: string
     summarization?: boolean
     uploadedFilesContent?: string
+    action?: IAction
 }
 
 const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
@@ -432,7 +434,8 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
         overrideConfig = {},
         threadId,
         summarization = false,
-        uploadedFilesContent
+        uploadedFilesContent,
+        action
     } = params
 
     let question = params.question
@@ -449,7 +452,7 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
 
     if (summarization) channels.summarization = 'summarize'
 
-    const workflowGraph = new StateGraph<ITeamState>({
+    const workflowGraph = new StateGraph({
         //@ts-ignore
         channels
     })
@@ -592,16 +595,30 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
 
             // Return stream result as we should only have 1 supervisor
             const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
-            return await graph.stream(
-                {
-                    messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
-                },
-                {
-                    recursionLimit: supervisorResult?.recursionLimit ?? 100,
-                    callbacks: [loggerHandler, ...callbacks],
-                    configurable: config
+            let humanMsg: { messages: (BaseMessage)[] } = {
+                messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
+            }
+
+            if (action && action.mapping && question === action.mapping.approve) {
+                humanMsg = {
+                    messages: []
                 }
-            )
+            } else if (action && action.mapping && question === action.mapping.reject) {
+                humanMsg = {
+                    messages: action.mapping.toolCalls.map((toolCall: any) => {
+                        return new ToolMessage({
+                            name: toolCall.name,
+                            content: `Tool ${toolCall.name} call denied by user. Acknowledge that, and DONT perform further actions. Only ask if user have other questions`,
+                            tool_call_id: toolCall.id!,
+                            additional_kwargs: { toolCallsDenied: true }
+                        })
+                    })
+                }
+            }
+            return await graph.stream(humanMsg, {
+                callbacks: [loggerHandler, ...callbacks],
+                configurable: config
+            })
         } catch (e) {
             throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error initialize supervisor nodes - ${getErrorMessage(e)}`)
         }
@@ -1021,15 +1038,17 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         }
 
         const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
-        let humanMsg: { messages: HumanMessage[] | ToolMessage[] } | null = {
+        let humanMsg: { messages: (BaseMessage)[] } = {
             messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
         }
 
         if (action && action.mapping && question === action.mapping.approve) {
-            humanMsg = null
+            humanMsg = {
+                messages: []
+            }
         } else if (action && action.mapping && question === action.mapping.reject) {
             humanMsg = {
-                messages: action.mapping.toolCalls.map((toolCall) => {
+                messages: action.mapping.toolCalls.map((toolCall: any) => {
                     return new ToolMessage({
                         name: toolCall.name,
                         content: `Tool ${toolCall.name} call denied by user. Acknowledge that, and DONT perform further actions. Only ask if user have other questions`,

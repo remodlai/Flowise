@@ -25,6 +25,14 @@ Specify the Key, Operation Type, and Default Value for the state object. The Ope
 `
 const TAB_IDENTIFIER = 'selectedStateTab'
 
+interface StateObject {
+    messages: {
+        value: (x: any[], y: any[]) => any[]
+        default: () => any[]
+    }
+    [key: string]: any
+}
+
 class State_SeqAgents implements INode {
     label: string
     name: string
@@ -105,6 +113,35 @@ class State_SeqAgents implements INode {
         const selectedTab = tabIdentifier ? tabIdentifier.split(`_${nodeData.id}`)[0] : 'stateMemoryUI'
         const stateMemory = nodeData.inputs?.stateMemory as string
 
+        const createCheckpointer = (obj: ICommonObject) => {
+            // Create the initial state with messages channel
+            const initialState: StateObject = {
+                messages: {
+                    value: (x: any[], y: any[]) => x.concat(y),
+                    default: () => []
+                }
+            }
+
+            // Add user-defined channels from obj
+            for (const [key, value] of Object.entries(obj)) {
+                if (key !== 'messages') {
+                    initialState[key] = value
+                }
+            }
+
+            let currentState = { ...initialState }
+
+            return {
+                getTuple: async () => currentState,
+                putTuple: async (tuple: any) => {
+                    currentState = { ...currentState, ...tuple }
+                },
+                deleteTuple: async () => {
+                    currentState = { ...initialState }
+                }
+            }
+        }
+
         if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
             try {
                 const parsedSchema = typeof stateMemory === 'string' ? JSON.parse(stateMemory) : stateMemory
@@ -133,24 +170,13 @@ class State_SeqAgents implements INode {
                     name: 'state',
                     label: 'state',
                     type: 'state',
-                    output: START
+                    output: START,
+                    checkpointMemory: createCheckpointer(obj)
                 }
                 return returnOutput
             } catch (e) {
                 throw new Error(e)
             }
-        }
-
-        if (!stateMemoryUI && !stateMemoryCode) {
-            const returnOutput: ISeqAgentNode = {
-                id: nodeData.id,
-                node: {},
-                name: 'state',
-                label: 'state',
-                type: 'state',
-                output: START
-            }
-            return returnOutput
         }
 
         if (selectedTab === 'stateMemoryUI' && stateMemoryUI) {
@@ -181,7 +207,8 @@ class State_SeqAgents implements INode {
                     name: 'state',
                     label: 'state',
                     type: 'state',
-                    output: START
+                    output: START,
+                    checkpointMemory: createCheckpointer(obj)
                 }
                 return returnOutput
             } catch (e) {
@@ -234,13 +261,25 @@ class State_SeqAgents implements INode {
                     name: 'state',
                     label: 'state',
                     type: 'state',
-                    output: START
+                    output: START,
+                    checkpointMemory: createCheckpointer(response)
                 }
                 return returnOutput
             } catch (e) {
                 throw new Error(e)
             }
         }
+
+        const returnOutput: ISeqAgentNode = {
+            id: nodeData.id,
+            node: {},
+            name: 'state',
+            label: 'state',
+            type: 'state',
+            output: START,
+            checkpointMemory: createCheckpointer({})
+        }
+        return returnOutput
     }
 }
 

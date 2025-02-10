@@ -201,9 +201,13 @@ export interface ISeqAgentNode {
     recursionLimit?: number
     moderations?: Moderation[]
     multiModalMessageContent?: MessageContentImageUrl[]
-    checkpointMemory?: any
     agentInterruptToolNode?: any
     agentInterruptToolFunc?: any
+    checkpointMemory?: {
+        getTuple: () => Promise<any>
+        putTuple: (tuple: any) => Promise<void>
+        deleteTuple: () => Promise<void>
+    } | any
 }
 
 export interface ITeamState {

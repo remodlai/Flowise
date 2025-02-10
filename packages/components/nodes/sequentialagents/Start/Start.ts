@@ -62,6 +62,19 @@ class Start_SeqAgents implements INode {
     async init(nodeData: INodeData): Promise<any> {
         const moderations = (nodeData.inputs?.inputModeration as Moderation[]) ?? []
         const model = nodeData.inputs?.model as BaseChatModel
+        const agentMemory = nodeData.inputs?.agentMemory
+
+        // Create a default checkpointer if none provided
+        const checkpointMemory = agentMemory ?? {
+            getTuple: async () => ({ 
+                messages: {
+                    value: (x: any[], y: any[]) => x.concat(y),
+                    default: () => []
+                }
+            }),
+            putTuple: async (tuple: any) => {},
+            deleteTuple: async () => {}
+        }
 
         const returnOutput: ISeqAgentNode = {
             id: nodeData.id,
@@ -73,7 +86,7 @@ class Start_SeqAgents implements INode {
             llm: model,
             startLLM: model,
             moderations,
-            checkpointMemory: nodeData.inputs?.agentMemory
+            checkpointMemory
         }
 
         return returnOutput
