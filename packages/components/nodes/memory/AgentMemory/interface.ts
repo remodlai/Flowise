@@ -1,4 +1,4 @@
-import { Checkpoint, CheckpointMetadata } from '@langchain/langgraph'
+import { Checkpoint, CheckpointMetadata, CheckpointTuple as LangGraphCheckpointTuple, CheckpointListOptions as LangGraphCheckpointListOptions } from '@langchain/langgraph-checkpoint'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { IDatabaseEntity } from '../../../src'
 import { DataSource } from 'typeorm'
@@ -11,14 +11,10 @@ export type SaverOptions = {
     chatflowid: string
 }
 
-export interface CheckpointTuple {
-    config: RunnableConfig
-    checkpoint: Checkpoint
-    metadata?: CheckpointMetadata
-    parentConfig?: RunnableConfig
-}
+// Re-export the types from langgraph-checkpoint
+export type { LangGraphCheckpointTuple as CheckpointTuple, LangGraphCheckpointListOptions as CheckpointListOptions }
 
 export interface SerializerProtocol<D> {
-    stringify(obj: D): string
-    parse(data: string): Promise<D>
+    dumpsTyped(obj: D): Promise<string>
+    loadsTyped(data: string): Promise<D>
 }

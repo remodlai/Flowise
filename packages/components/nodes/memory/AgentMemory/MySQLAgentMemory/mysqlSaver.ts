@@ -1,20 +1,28 @@
-import { BaseCheckpointSaver, Checkpoint, CheckpointMetadata } from '@langchain/langgraph'
+import { BaseCheckpointSaver, ChannelVersions, PendingWrite, SendProtocol, Checkpoint, CheckpointMetadata } from '@langchain/langgraph-checkpoint'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { BaseMessage } from '@langchain/core/messages'
 import { DataSource } from 'typeorm'
-import { CheckpointTuple, SaverOptions, SerializerProtocol } from '../interface'
+import { CheckpointTuple, SaverOptions, SerializerProtocol, CheckpointListOptions } from '../interface'
 import { IMessage, MemoryMethods } from '../../../../src/Interface'
 import { mapChatMessageToBaseMessage } from '../../../../src/utils'
 
-export class MySQLSaver extends BaseCheckpointSaver implements MemoryMethods {
+export class MySQLSaver extends BaseCheckpointSaver<string> implements MemoryMethods {
     protected isSetup: boolean
     config: SaverOptions
     threadId: string
     tableName = 'checkpoints'
+    protected checkpointSerializer: SerializerProtocol<Checkpoint>
+    protected metadataSerializer: SerializerProtocol<CheckpointMetadata>
 
     constructor(config: SaverOptions, serde?: SerializerProtocol<Checkpoint>) {
-        super(serde)
+        super()
         this.config = config
+        const defaultSerializer = {
+            dumpsTyped: async <T>(obj: T): Promise<string> => JSON.stringify(obj),
+            loadsTyped: async <T>(data: string): Promise<T> => JSON.parse(data)
+        }
+        this.checkpointSerializer = serde || defaultSerializer
+        this.metadataSerializer = defaultSerializer
         const { threadId } = config
         this.threadId = threadId
     }
@@ -77,65 +85,102 @@ export class MySQLSaver extends BaseCheckpointSaver implements MemoryMethods {
         const checkpoint_id = config.configurable?.checkpoint_id
         const tableName = this.sanitizeTableName(this.tableName)
 
-        try {
-            const queryRunner = dataSource.createQueryRunner()
-            const sql = checkpoint_id
-                ? `SELECT checkpoint, parent_id, metadata FROM ${tableName} WHERE thread_id = ? AND checkpoint_id = ?`
-                : `SELECT thread_id, checkpoint_id, parent_id, checkpoint, metadata FROM ${tableName} WHERE thread_id = ? ORDER BY checkpoint_id DESC LIMIT 1`
+        if (checkpoint_id) {
+            try {
+                const queryRunner = dataSource.createQueryRunner()
+                const keys = [thread_id, checkpoint_id]
+                const sql = `SELECT checkpoint, parent_id, metadata FROM ${tableName} WHERE thread_id = ? AND checkpoint_id = ?`
 
-            const rows = await queryRunner.manager.query(sql, checkpoint_id ? [thread_id, checkpoint_id] : [thread_id])
-            await queryRunner.release()
+                const rows = await queryRunner.manager.query(sql, [...keys])
+                await queryRunner.release()
 
-            if (rows && rows.length > 0) {
-                const row = rows[0]
-                return {
-                    config: {
-                        configurable: {
-                            thread_id: row.thread_id || thread_id,
-                            checkpoint_id: row.checkpoint_id || checkpoint_id
-                        }
-                    },
-                    checkpoint: (await this.serde.parse(row.checkpoint.toString())) as Checkpoint,
-                    metadata: (await this.serde.parse(row.metadata.toString())) as CheckpointMetadata,
-                    parentConfig: row.parent_id
-                        ? {
-                              configurable: {
-                                  thread_id,
-                                  checkpoint_id: row.parent_id
+                if (rows && rows.length > 0) {
+                    const checkpoint = await this.checkpointSerializer.loadsTyped(rows[0].checkpoint)
+                    const metadata = await this.metadataSerializer.loadsTyped(rows[0].metadata)
+                    return {
+                        config,
+                        checkpoint,
+                        metadata,
+                        parentConfig: rows[0].parent_id
+                            ? {
+                                  configurable: {
+                                      thread_id,
+                                      checkpoint_id: rows[0].parent_id
+                                  }
                               }
-                          }
-                        : undefined
+                            : undefined
+                    }
                 }
+            } catch (error) {
+                console.error(`Error retrieving ${tableName}`, error)
+                throw new Error(`Error retrieving ${tableName}`)
+            } finally {
+                await dataSource.destroy()
             }
-        } catch (error) {
-            console.error(`Error retrieving ${this.tableName}`, error)
-            throw new Error(`Error retrieving ${this.tableName}`)
-        } finally {
-            await dataSource.destroy()
         }
         return undefined
     }
 
-    async *list(config: RunnableConfig, limit?: number, before?: RunnableConfig): AsyncGenerator<CheckpointTuple, void, unknown> {
+    async putWrites(config: RunnableConfig, writes: PendingWrite[], taskId: string): Promise<void> {
         const dataSource = await this.getDataSource()
         await this.setup(dataSource)
-        const queryRunner = dataSource.createQueryRunner()
+        
         try {
-            const threadId = config.configurable?.thread_id || this.threadId
-            const tableName = this.sanitizeTableName(this.tableName)
-            let sql = `SELECT thread_id, checkpoint_id, parent_id, checkpoint, metadata FROM ${tableName} WHERE thread_id = ? ${
-                before ? 'AND checkpoint_id < ?' : ''
-            } ORDER BY checkpoint_id DESC`
-            if (limit) {
-                sql += ` LIMIT ${limit}`
+            for (const write of writes) {
+                const checkpoint: Checkpoint = {
+                    v: 1,
+                    id: taskId,
+                    ts: new Date().toISOString(),
+                    channel_values: {},
+                    channel_versions: {},
+                    versions_seen: {},
+                    pending_sends: [write as unknown as SendProtocol]
+                }
+                const metadata: CheckpointMetadata = {
+                    source: 'input',
+                    step: 0,
+                    writes: null,
+                    parents: {}
+                }
+                await this.put(
+                    { configurable: { checkpoint_id: taskId } },
+                    checkpoint,
+                    metadata,
+                    {}
+                )
             }
-            const args = [threadId, before?.configurable?.checkpoint_id].filter(Boolean)
+        } finally {
+            await dataSource.destroy()
+        }
+    }
 
-            const rows = await queryRunner.manager.query(sql, args)
+    async *list(
+        config: RunnableConfig,
+        options?: CheckpointListOptions
+    ): AsyncGenerator<CheckpointTuple> {
+        const dataSource = await this.getDataSource()
+        await this.setup(dataSource)
+
+        const queryRunner = dataSource.createQueryRunner()
+        const thread_id = config.configurable?.thread_id || this.threadId
+        const tableName = this.sanitizeTableName(this.tableName)
+        let sql = `SELECT thread_id, checkpoint_id, parent_id, checkpoint, metadata 
+                   FROM ${tableName} 
+                   WHERE thread_id = ? ${options?.before ? 'AND checkpoint_id < ?' : ''} 
+                   ORDER BY checkpoint_id DESC`
+        if (options?.limit) {
+            sql += ` LIMIT ${options.limit}`
+        }
+        const args = [thread_id, options?.before?.configurable?.checkpoint_id].filter(Boolean)
+
+        try {
+            const rows = await queryRunner.manager.query(sql, [...args])
             await queryRunner.release()
 
             if (rows && rows.length > 0) {
                 for (const row of rows) {
+                    const checkpoint = await this.checkpointSerializer.loadsTyped(row.checkpoint)
+                    const metadata = await this.metadataSerializer.loadsTyped(row.metadata)
                     yield {
                         config: {
                             configurable: {
@@ -143,8 +188,8 @@ export class MySQLSaver extends BaseCheckpointSaver implements MemoryMethods {
                                 checkpoint_id: row.checkpoint_id
                             }
                         },
-                        checkpoint: (await this.serde.parse(row.checkpoint.toString())) as Checkpoint,
-                        metadata: (await this.serde.parse(row.metadata.toString())) as CheckpointMetadata,
+                        checkpoint,
+                        metadata,
                         parentConfig: row.parent_id
                             ? {
                                   configurable: {
@@ -157,32 +202,36 @@ export class MySQLSaver extends BaseCheckpointSaver implements MemoryMethods {
                 }
             }
         } catch (error) {
-            console.error(`Error listing checkpoints`, error)
-            throw new Error(`Error listing checkpoints`)
+            console.error(`Error listing ${tableName}`, error)
+            throw new Error(`Error listing ${tableName}`)
         } finally {
             await dataSource.destroy()
         }
     }
 
-    async put(config: RunnableConfig, checkpoint: Checkpoint, metadata: CheckpointMetadata): Promise<RunnableConfig> {
+    async put(
+        config: RunnableConfig,
+        checkpoint: Checkpoint,
+        metadata: CheckpointMetadata,
+        newVersions: ChannelVersions
+    ): Promise<RunnableConfig> {
         const dataSource = await this.getDataSource()
         await this.setup(dataSource)
 
         if (!config.configurable?.checkpoint_id) return {}
         try {
             const queryRunner = dataSource.createQueryRunner()
+            // Update channel versions with new versions
+            checkpoint.channel_versions = { ...checkpoint.channel_versions, ...newVersions }
             const row = [
                 config.configurable?.thread_id || this.threadId,
                 checkpoint.id,
                 config.configurable?.checkpoint_id,
-                Buffer.from(this.serde.stringify(checkpoint)), // Encode to binary
-                Buffer.from(this.serde.stringify(metadata)) // Encode to binary
+                await this.checkpointSerializer.dumpsTyped(checkpoint),
+                await this.metadataSerializer.dumpsTyped(metadata)
             ]
             const tableName = this.sanitizeTableName(this.tableName)
-
-            const query = `INSERT INTO ${tableName} (thread_id, checkpoint_id, parent_id, checkpoint, metadata)
-                           VALUES (?, ?, ?, ?, ?)
-                           ON DUPLICATE KEY UPDATE checkpoint = VALUES(checkpoint), metadata = VALUES(metadata)`
+            const query = `INSERT INTO ${tableName} (thread_id, checkpoint_id, parent_id, checkpoint, metadata) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE checkpoint = VALUES(checkpoint), metadata = VALUES(metadata)`
 
             await queryRunner.manager.query(query, row)
             await queryRunner.release()
