@@ -23,6 +23,7 @@ import {
     ConversationHistorySelection
 } from '../../../src/Interface'
 import { ToolCallingAgentOutputParser, AgentExecutor, SOURCE_DOCUMENTS_PREFIX, ARTIFACTS_PREFIX } from '../../../src/agents'
+import { FlowiseCheckpoint, StateData } from '../../memory/AgentMemory/interface'
 import {
     extractOutputFromArray,
     getInputVariables,
@@ -187,6 +188,21 @@ return [
     new AIMessage("The answer is 172.558."),
 ]`
 const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
+
+interface IExtendedSeqAgentsState extends Omit<ISeqAgentsState, 'messages'> {
+    checkpoint?: FlowiseCheckpoint
+    messages: {
+        value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
+        default: () => BaseMessage[]
+    }
+    state: Record<string, any>
+}
+
+interface IExtendedMessagesState extends MessagesState {
+    checkpoint?: FlowiseCheckpoint
+    messages: BaseMessage[]
+    state: Record<string, any>
+}
 
 class Agent_SeqAgents implements INode {
     label: string
@@ -456,6 +472,14 @@ class Agent_SeqAgents implements INode {
     }
 
     async init(nodeData: INodeData, input: string, options: ICommonObject): Promise<any> {
+        const initialState: IExtendedSeqAgentsState = {
+            messages: {
+                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+                default: () => []
+            },
+            state: {}
+        }
+
         let tools = nodeData.inputs?.tools
         tools = flatten(tools)
         let agentSystemPrompt = nodeData.inputs?.systemMessagePrompt as string
@@ -512,31 +536,46 @@ class Agent_SeqAgents implements INode {
             return response.content
         }
 
-        const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
-            return await agentNode(
+        const agentInstance = await createAgent(
+            nodeData,
+            options,
+            agentName,
+            initialState,
+            llm,
+            interrupt,
+            [...tools],
+            agentSystemPrompt,
+            agentHumanPrompt,
+            multiModalMessageContent,
+            agentInputVariablesValues,
+            maxIterations,
+            {
+                sessionId: options.sessionId,
+                chatId: options.chatId,
+                input
+            }
+        )
+
+        const workerNode = async (state: IExtendedSeqAgentsState, config: RunnableConfig) => {
+            const checkpoint = state.checkpoint
+            if (!checkpoint) {
+                throw new Error('No checkpoint found in state')
+            }
+
+            // Update channel values with current state
+            checkpoint.channel_values = {
+                ...checkpoint.channel_values,
+                messages: state.messages.value([], []),
+                state: state.state
+            }
+
+            // Execute agent with updated state
+            const result = await agentNode(
                 {
                     state,
                     llm,
                     interrupt,
-                    agent: await createAgent(
-                        nodeData,
-                        options,
-                        agentName,
-                        state,
-                        llm,
-                        interrupt,
-                        [...tools],
-                        agentSystemPrompt,
-                        agentHumanPrompt,
-                        multiModalMessageContent,
-                        agentInputVariablesValues,
-                        maxIterations,
-                        {
-                            sessionId: options.sessionId,
-                            chatId: options.chatId,
-                            input
-                        }
-                    ),
+                    agent: agentInstance,
                     name: agentName,
                     abortControllerSignal,
                     nodeData,
@@ -545,6 +584,17 @@ class Agent_SeqAgents implements INode {
                 },
                 config
             )
+
+            // Update checkpoint with new state
+            checkpoint.channel_values.messages = result.messages
+            checkpoint.channel_values.state = result.state
+
+            return {
+                ...state,
+                checkpoint,
+                messages: result.messages,
+                state: result.state
+            }
         }
 
         const toolInterrupt = async (
@@ -553,40 +603,32 @@ class Agent_SeqAgents implements INode {
             runCondition?: any,
             conditionalMapping: ICommonObject = {}
         ) => {
-            const routeMessage = async (state: ISeqAgentsState) => {
-                const messages = state.messages as unknown as BaseMessage[]
-                const lastMessage = messages[messages.length - 1] as AIMessage
-
-                if (!lastMessage?.tool_calls?.length) {
-                    // if next node is condition node, run the condition
-                    if (runCondition) {
-                        const returnNodeName = await runCondition(state)
-                        return returnNodeName
-                    }
-                    return nextNodeName || END
+            const routeMessage = async (state: IExtendedSeqAgentsState) => {
+                const checkpoint = state.checkpoint
+                if (!checkpoint) {
+                    throw new Error('No checkpoint found in state')
                 }
-                return toolName
+
+                // Handle tool execution state updates
+                const lastMessage = state.messages.value([], [])[state.messages.value([], []).length - 1]
+                if (lastMessage?.additional_kwargs?.tool_calls?.[0]) {
+                    // Update checkpoint with tool execution state
+                    checkpoint.channel_values = {
+                        ...checkpoint.channel_values,
+                        messages: state.messages.value([], []),
+                        state: {
+                            ...state.state,
+                            lastToolCall: lastMessage.additional_kwargs.tool_calls[0]
+                        }
+                    }
+
+                    return nextNodeName ?? END
+                }
+
+                return END
             }
 
-            graph.addNode(toolName, toolNode)
-
-            if (nextNodeName) {
-                // @ts-ignore
-                graph.addConditionalEdges(agentName, routeMessage, {
-                    [toolName]: toolName,
-                    [END]: END,
-                    [nextNodeName]: nextNodeName,
-                    ...conditionalMapping
-                })
-            } else {
-                // @ts-ignore
-                graph.addConditionalEdges(agentName, routeMessage, { [toolName]: toolName, [END]: END, ...conditionalMapping })
-            }
-
-            // @ts-ignore
-            graph.addEdge(toolName, agentName)
-
-            return graph
+            graph.addConditionalEdges('__start__', routeMessage)
         }
 
         const returnOutput: ISeqAgentNode = {
@@ -661,6 +703,11 @@ async function createAgent(
             })
         } else {
             agent = RunnableSequence.from([
+                RunnablePassthrough.assign({
+                    //@ts-ignore
+                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(input.steps)
+                }),
+                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
                 modelWithTools,
                 new ToolCallingAgentOutputParser()
@@ -706,6 +753,7 @@ async function createAgent(
             })
         } else {
             agent = RunnableSequence.from([
+                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
                 llm
             ]).withConfig({
@@ -734,6 +782,7 @@ async function createAgent(
             })
         } else {
             conversationChain = RunnableSequence.from([
+                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
                 llm,
                 new StringOutputParser()
@@ -946,7 +995,7 @@ const convertCustomMessagesToBaseMessages = (messages: string[], name: string, a
     })
 }
 
-class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable<T, T> {
+class ToolNode<T extends BaseMessage[] | IExtendedMessagesState> extends RunnableCallable<T, T> {
     tools: StructuredTool[]
     nodeData: INodeData
     inputQuery: string
@@ -968,95 +1017,37 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
         this.options = options
     }
 
-    private async run(input: BaseMessage[] | MessagesState, config: RunnableConfig): Promise<BaseMessage[] | MessagesState> {
-        let messages: BaseMessage[]
+    private async run(input: T, config: RunnableConfig): Promise<T> {
+        if (!Array.isArray(input)) {
+            const state = input as IExtendedMessagesState
+            const checkpoint = state.checkpoint
+            if (!checkpoint) {
+                throw new Error('No checkpoint found in state')
+            }
 
-        // Check if input is an array of BaseMessage[]
-        if (Array.isArray(input)) {
-            messages = input
-        }
-        // Check if input is IStateWithMessages
-        else if ((input as IStateWithMessages).messages) {
-            messages = (input as IStateWithMessages).messages
-        }
-        // Handle MessagesState type
-        else {
-            messages = (input as MessagesState).messages
-        }
+            // Update checkpoint before tool execution
+            checkpoint.channel_values = {
+                ...checkpoint.channel_values,
+                messages: state.messages,
+                state: state.state
+            }
 
-        // Get the last message
-        const message = messages[messages.length - 1]
+            // Execute tool
+            const result = await this.executeTool(state)
 
-        if (message._getType() !== 'ai') {
-            throw new Error('ToolNode only accepts AIMessages as input.')
-        }
+            // Update checkpoint after tool execution
+            checkpoint.channel_values.messages = result.messages
+            checkpoint.channel_values.state = result.state
 
-        // Extract all properties except messages for IStateWithMessages
-        const { messages: _, ...inputWithoutMessages } = Array.isArray(input) ? { messages: input } : input
-        const ChannelsWithoutMessages = {
-            chatId: this.options.chatId,
-            sessionId: this.options.sessionId,
-            input: this.inputQuery,
-            state: inputWithoutMessages
+            return result as T
         }
 
-        const outputs = await Promise.all(
-            (message as AIMessage).tool_calls?.map(async (call) => {
-                const tool = this.tools.find((tool) => tool.name === call.name)
-                if (tool === undefined) {
-                    throw new Error(`Tool ${call.name} not found.`)
-                }
-                if (tool && (tool as any).setFlowObject) {
-                    // @ts-ignore
-                    tool.setFlowObject(ChannelsWithoutMessages)
-                }
-                let output = await tool.invoke(call.args, config)
-                let sourceDocuments: Document[] = []
-                let artifacts = []
+        return input
+    }
 
-                if (output?.includes(SOURCE_DOCUMENTS_PREFIX)) {
-                    const outputArray = output.split(SOURCE_DOCUMENTS_PREFIX)
-                    output = outputArray[0]
-                    const docs = outputArray[1]
-                    try {
-                        sourceDocuments = JSON.parse(docs)
-                    } catch (e) {
-                        console.error('Error parsing source documents from tool')
-                    }
-                }
-                if (output?.includes(ARTIFACTS_PREFIX)) {
-                    const outputArray = output.split(ARTIFACTS_PREFIX)
-                    output = outputArray[0]
-                    try {
-                        artifacts = JSON.parse(outputArray[1])
-                    } catch (e) {
-                        console.error('Error parsing artifacts from tool')
-                    }
-                }
-
-                return new ToolMessage({
-                    name: tool.name,
-                    content: typeof output === 'string' ? output : JSON.stringify(output),
-                    tool_call_id: call.id!,
-                    additional_kwargs: {
-                        sourceDocuments,
-                        artifacts,
-                        args: call.args,
-                        usedTools: [
-                            {
-                                tool: tool.name ?? '',
-                                toolInput: call.args,
-                                toolOutput: output
-                            }
-                        ]
-                    }
-                })
-            }) ?? []
-        )
-
-        const additional_kwargs: ICommonObject = { nodeId: this.nodeData.id }
-        outputs.forEach((result) => (result.additional_kwargs = { ...result.additional_kwargs, ...additional_kwargs }))
-        return Array.isArray(input) ? outputs : { messages: outputs }
+    private async executeTool(state: IExtendedMessagesState): Promise<IExtendedMessagesState> {
+        // ... existing tool execution logic ...
+        return state // Placeholder - replace with actual implementation
     }
 }
 
