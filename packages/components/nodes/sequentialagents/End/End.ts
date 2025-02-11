@@ -89,9 +89,22 @@ class End_SeqAgents implements INode {
 
         const endWorker = async (state: IExtendedSeqAgentsState, config: RunnableConfig) => {
             try {
-                const checkpoint = state.checkpoint
+                let checkpoint = state.checkpoint
                 if (!checkpoint) {
-                    throw new Error('No checkpoint found in state')
+                    // Create default checkpoint if none exists
+                    checkpoint = {
+                        v: 1,
+                        id: config.configurable?.checkpoint_id || 'default',
+                        ts: new Date().toISOString(),
+                        channel_values: {
+                            messages: state.messages.value([], []),
+                            state: state.state
+                        },
+                        channel_versions: {},
+                        versions_seen: {},
+                        pending_sends: []
+                    }
+                    state.checkpoint = checkpoint
                 }
 
                 // Get the final state

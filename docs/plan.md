@@ -13,35 +13,52 @@ This document outlines the plan to properly implement LangGraph's AgentMemory sy
    - Added proper message serialization support
    - Defined comprehensive memory methods interface
 
-2. **SQLite Implementation**
-   - Updated SQLite saver to use new interfaces
-   - Implemented proper message serialization/deserialization
-   - Added robust error handling
-   - Improved state consistency checks
-   - Added proper type safety throughout
+2. **Core Node Implementation**
+   - **Start Node**: 
+     - Updated to initialize state with proper checkpoint structure
+     - Added proper message handling
+     - Implemented state initialization with type safety
+   - **Agent Node**:
+     - Updated to handle state updates via UI and code methods
+     - Added checkpoint integration in worker node
+     - Implemented proper tool state management
+   - **End Node**:
+     - Added state finalization handling
+     - Implemented checkpoint completion marking
+     - Added proper cleanup and error handling
 
-3. **PostgreSQL Implementation**
-   - Updated to use FlowiseCheckpoint interface
-   - Implemented proper BYTEA storage for JSON data
-   - Added proper parameter placeholders ($1, $2, etc.)
-   - Improved error handling with detailed messages
-   - Added state consistency checks
-
-4. **MySQL Implementation**
-   - Created new MySQL saver implementation
-   - Used LONGTEXT for JSON storage
-   - Implemented MySQL-specific upsert syntax
-   - Added proper error handling
-   - Included MySQL-specific table options
+3. **Database Implementations**
+   - **SQLite Implementation**
+     - Updated to use new interfaces
+     - Added proper message serialization/deserialization
+     - Improved state consistency checks
+   - **PostgreSQL Implementation**
+     - Updated to use FlowiseCheckpoint interface
+     - Implemented proper BYTEA storage for JSON data
+     - Added proper parameter placeholders
+   - **MySQL Implementation**
+     - Created new MySQL saver implementation
+     - Used LONGTEXT for JSON storage
+     - Added proper error handling
 
 ## Remaining Tasks
 
-1. **Integration Testing**
+1. **Node Implementation**
+   - Implement state handling in Condition node
+   - Update LLM node for state compatibility
+   - Review Tool node implementation
+   - Update Custom Function node
+
+2. **Integration Testing**
+   - Test basic flow (Start -> Agent -> End)
    - Test state persistence across different databases
-   - Verify message serialization/deserialization
-   - Test error handling scenarios
-   - Verify state consistency
-   - Test cross-database compatibility
+   - Test branching with Condition node
+   - Test error handling and recovery
+
+3. **Documentation**
+   - Update node documentation with state examples
+   - Add migration guide for existing flows
+   - Document new state management features
 
 ## Technical Details
 
@@ -57,23 +74,21 @@ interface FlowiseCheckpoint extends Checkpoint {
 }
 ```
 
-### Database-Specific Features
+### Core Node Features
+1. **Start Node**
+   - Initializes state with proper structure
+   - Sets up checkpoint system
+   - Handles message history initialization
 
-1. **PostgreSQL**
-   - Uses BYTEA for binary data
-   - Uses $1, $2 style parameters
-   - ON CONFLICT DO UPDATE for upserts
+2. **Agent Node**
+   - Supports UI-based state updates
+   - Supports code-based state updates
+   - Integrates with tool execution state
 
-2. **MySQL**
-   - Uses LONGTEXT for JSON
-   - Uses ? style parameters
-   - ON DUPLICATE KEY UPDATE for upserts
-   - InnoDB engine with utf8mb4 encoding
-
-3. **SQLite**
-   - Uses BLOB for binary data
-   - Uses ? style parameters
-   - INSERT OR REPLACE for upserts
+3. **End Node**
+   - Handles state finalization
+   - Updates checkpoint completion
+   - Ensures proper cleanup
 
 ### Message Handling
 - Proper serialization of BaseMessage objects
