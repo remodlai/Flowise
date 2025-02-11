@@ -162,6 +162,50 @@ This section outlines the necessary changes to improve the robustness of agent m
 - **Phase 3 (1 day):** Integrate, document, and perform final testing.
 - **Risk Mitigation:** Maintain a backup of the previous implementation and enable a fallback to the original behavior if critical issues are encountered.
 
+## 9. Agent Node State Update Refactoring
+
+### 9.1 Overview
+
+This plan focuses on refining the state update logic within the Agent node to ensure that all state mutations are centralized in the State module. The goal is to remove direct state mutations in Agent.ts and delegate merging and updating responsibilities to the checkpointMemory API provided in the State node, aligning with our overall architecture and LangGraphJS best practices.
+
+### 9.2 Current Issues
+
+- **Direct State Mutation:**
+  Agent.ts currently updates the state directly (e.g. assigning to `state.messages` via `filterConversationHistory` and `restructureMessages`), which can inadvertently overwrite persisted state.
+
+- **Duplication of Logic:**
+  The Agent node is handling state filtering and merging in addition to its core role of orchestrating agent execution.
+
+### 9.3 Proposed Changes
+
+1. **Local Filtering of Conversation History:**
+   - Instead of mutating the global state, Agent.ts should create a local copy of the relevant state (e.g., a subset of messages) using `filterConversationHistory` and `restructureMessages` to prepare the prompt for the LLM.
+
+2. **Delegate State Updates to the State Node:**
+   - Remove direct assignments and mutations on the global state within Agent.ts.
+   - When new outputs or tool results are generated, package them as state updates and delegate merging to the checkpointMemory API by calling its `putTuple` method. This ensures that append operations (e.g., for messages) and replace operations are handled according to the per-channel logic defined in the State node.
+
+3. **Centralize Update Logic in getReturnOutput:**
+   - Ensure that the getReturnOutput function is the single point of truth for formatting and applying state updates. Agent.ts should use this function to get a clean, merged state based on agent outputs, and then pass it to the State node for persistence.
+
+4. **Maintain Separation of Concerns:**
+   - Agent.ts should solely focus on orchestrating agent execution and creating a suitable input for the LLM. All state persistence and merging details should be confined to the State node and its checkpointMemory interface.
+
+### 9.4 Checkpoints and Testing
+
+- **Checkpoint 1:** Validate that after an agent run, the global state remains intact and only the intended updates (e.g., appended messages) are applied.
+
+- **Checkpoint 2:** Confirm via local testing that filtering the conversation history for prompt generation does not affect the persistent state used by subsequent nodes.
+
+- **Checkpoint 3:** Test that the state updates (e.g., tool outputs) are correctly processed via getReturnOutput and merged using checkpointMemory.putTuple, without overwriting historical messages.
+
+### 9.5 Timeline and Risk Mitigation
+
+- **Phase 1 (1 day):** Refactor the agentNode function in Agent.ts to remove direct state mutations and use local copies for LLM input filtering.
+- **Phase 2 (1 day):** Integrate state updates through getReturnOutput and checkpointMemory.putTuple.
+- **Phase 3 (0.5 day):** Conduct comprehensive local tests and ensure that the global state remains stable across multiple runs.
+- **Risk Mitigation:** Maintain backups of the original Agent.ts code, and ensure fallback to legacy behavior if unexpected issues arise.
+
 ---
 
 This document will serve as a guide for the developers undertaking the migration to ensure that the advanced features of the new LangGraph API are enabled while maintaining core Flowise functionality. 
