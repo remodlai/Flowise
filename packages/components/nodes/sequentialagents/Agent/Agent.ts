@@ -188,6 +188,22 @@ return [
 ]`
 const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
 
+interface StateValue<T> {
+    value: (x: T[], y: T[]) => T[]
+    default: () => T[]
+    current: T[]
+}
+
+interface ISeqAgentsStateWithCheckpoint extends ISeqAgentsState {
+    messages: BaseMessage[]
+    [key: string]: any
+    checkpointMemory?: {
+        getTuple: () => Promise<any>
+        putTuple: (tuple: any) => Promise<void>
+        deleteTuple: () => Promise<void>
+    }
+}
+
 class Agent_SeqAgents implements INode {
     label: string
     name: string
@@ -512,7 +528,7 @@ class Agent_SeqAgents implements INode {
             return response.content
         }
 
-        const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
+        const workerNode = async (state: ISeqAgentsStateWithCheckpoint, config: RunnableConfig) => {
             return await agentNode(
                 {
                     state,
@@ -522,7 +538,7 @@ class Agent_SeqAgents implements INode {
                         nodeData,
                         options,
                         agentName,
-                        state,
+                        state as ISeqAgentsStateWithCheckpoint,
                         llm,
                         interrupt,
                         [...tools],
@@ -553,7 +569,7 @@ class Agent_SeqAgents implements INode {
             runCondition?: any,
             conditionalMapping: ICommonObject = {}
         ) => {
-            const routeMessage = async (state: ISeqAgentsState) => {
+            const routeMessage = async (state: ISeqAgentsStateWithCheckpoint) => {
                 const messages = state.messages as unknown as BaseMessage[]
                 const lastMessage = messages[messages.length - 1] as AIMessage
 
@@ -613,7 +629,7 @@ async function createAgent(
     nodeData: INodeData,
     options: ICommonObject,
     agentName: string,
-    state: ISeqAgentsState,
+    state: ISeqAgentsStateWithCheckpoint,
     llm: BaseChatModel,
     interrupt: boolean,
     tools: any[],
@@ -753,6 +769,18 @@ async function createAgent(
     }
 }
 
+const safeStringify = (obj: any): string => {
+    const seen = new WeakSet();
+    return JSON.stringify(obj, (key, value) => {
+        if (key === 'appDataSource' || key === 'databaseEntities') return '[Circular]';
+        if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) return '[Circular]';
+            seen.add(value);
+        }
+        return value;
+    }, 2);
+};
+
 async function agentNode(
     {
         state,
@@ -765,7 +793,7 @@ async function agentNode(
         input,
         options
     }: {
-        state: ISeqAgentsState
+        state: ISeqAgentsStateWithCheckpoint
         llm: BaseChatModel
         interrupt: boolean
         agent: AgentExecutor | RunnableSequence
@@ -778,97 +806,85 @@ async function agentNode(
     config: RunnableConfig
 ) {
     try {
+        console.log('\n[DEBUG] Initial State:', safeStringify(state))
+
         if (abortControllerSignal.signal.aborted) {
             throw new Error('Aborted!')
         }
 
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        // @ts-ignore
-        state.messages = filterConversationHistory(historySelection, input, state)
-        // @ts-ignore
-        state.messages = restructureMessages(llm, state)
 
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+        const currentMessages = Array.isArray(state.messages) ? state.messages : []
+        const messagesWithInput = [...currentMessages, new HumanMessage({ content: input })]
 
-        if (interrupt) {
-            const messages = state.messages as unknown as BaseMessage[]
-            const lastMessage = messages.length ? messages[messages.length - 1] : null
+        const filteredMessages = filterConversationHistory(historySelection, input, { ...state, messages: currentMessages })
+        const restructuredMessages = restructureMessages(llm, { ...state, messages: filteredMessages })
 
-            // If the last message is a tool message and is an interrupted message, format output into standard agent output
-            if (lastMessage && lastMessage._getType() === 'tool' && lastMessage.additional_kwargs?.nodeId === nodeData.id) {
-                let formattedAgentResult: {
-                    output?: string
-                    usedTools?: IUsedTool[]
-                    sourceDocuments?: IDocument[]
-                    artifacts?: ICommonObject[]
-                } = {}
-                formattedAgentResult.output = result.content
-                if (lastMessage.additional_kwargs?.usedTools) {
-                    formattedAgentResult.usedTools = lastMessage.additional_kwargs.usedTools as IUsedTool[]
-                }
-                if (lastMessage.additional_kwargs?.sourceDocuments) {
-                    formattedAgentResult.sourceDocuments = lastMessage.additional_kwargs.sourceDocuments as IDocument[]
-                }
-                if (lastMessage.additional_kwargs?.artifacts) {
-                    formattedAgentResult.artifacts = lastMessage.additional_kwargs.artifacts as ICommonObject[]
-                }
-                result = formattedAgentResult
-            } else {
-                result.name = name
-                result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true }
-                return {
-                    messages: [result]
-                }
+        // Create LLM state with filtered messages
+        const llmState: ISeqAgentsStateWithCheckpoint = {
+            ...state,
+            messages: restructuredMessages
+        }
+
+        // Get LLM response
+        let result = await agent.invoke({ ...llmState, signal: abortControllerSignal.signal }, config)
+
+        // Create AI message from result
+        const aiMessage = new AIMessage({
+            content: typeof result === 'object' ? result.content || result.output || '' : result,
+            name,
+            additional_kwargs: { 
+                nodeId: nodeData.id,
+                ...(result.usedTools && { usedTools: result.usedTools }),
+                ...(result.sourceDocuments && { sourceDocuments: result.sourceDocuments }),
+                ...(result.artifacts && { artifacts: result.artifacts })
             }
+        })
+
+        // Update full conversation history with AI response
+        const updatedMessages = [...messagesWithInput, aiMessage]
+
+        // Create new state with full conversation history
+        const newState: ISeqAgentsStateWithCheckpoint = {
+            ...state,
+            messages: updatedMessages
         }
 
-        const additional_kwargs: ICommonObject = { nodeId: nodeData.id }
-
-        if (result.usedTools) {
-            additional_kwargs.usedTools = result.usedTools
-        }
-        if (result.sourceDocuments) {
-            additional_kwargs.sourceDocuments = result.sourceDocuments
-        }
-        if (result.artifacts) {
-            additional_kwargs.artifacts = result.artifacts
-        }
-        if (result.output) {
-            result.content = result.output
-            delete result.output
-        }
-
-        let outputContent = typeof result === 'string' ? result : result.content || result.output
-        outputContent = extractOutputFromArray(outputContent)
-        outputContent = removeInvalidImageMarkdown(outputContent)
-
+        // Handle any state updates from updateStateMemory
         if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
-            let formattedOutput = {
-                ...result,
-                content: outputContent
-            }
-            const returnedOutput = await getReturnOutput(nodeData, input, options, formattedOutput, state)
-            return {
-                ...returnedOutput,
-                messages: convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
-            }
-        } else {
-            return {
-                messages: [
-                    new HumanMessage({
-                        content: outputContent,
-                        name,
-                        additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
-                    })
-                ]
+            const returnedOutput = await getReturnOutput(nodeData, input, options, result, newState)
+            
+            if (Object.keys(returnedOutput).length > 0) {
+                // Merge state updates with new state
+                Object.entries(returnedOutput).forEach(([key, value]) => {
+                    if (key !== 'messages') {
+                        newState[key] = value
+                    }
+                })
             }
         }
+
+        // Always checkpoint the new state with full history
+        if (state.checkpointMemory?.putTuple) {
+            await state.checkpointMemory.putTuple(newState)
+        }
+
+        return newState
     } catch (error) {
         throw new Error(error)
     }
 }
 
-const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: ISeqAgentsState) => {
+const getReturnOutput = async (
+    nodeData: INodeData,
+    input: string,
+    options: ICommonObject,
+    output: any,
+    state: ISeqAgentsStateWithCheckpoint
+) => {
+    console.log('\n[DEBUG] getReturnOutput - Initial State:', safeStringify(state))
+    console.log('\n[DEBUG] getReturnOutput - NodeData:', safeStringify(nodeData.inputs))
+
     const appDataSource = options.appDataSource as DataSource
     const databaseEntities = options.databaseEntities as IDatabaseEntity
     const tabIdentifier = nodeData.inputs?.[`${TAB_IDENTIFIER}_${nodeData.id}`] as string
@@ -877,6 +893,9 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
     const updateStateMemory = nodeData.inputs?.updateStateMemory as string
 
     const selectedTab = tabIdentifier ? tabIdentifier.split(`_${nodeData.id}`)[0] : 'updateStateMemoryUI'
+    console.log('\n[DEBUG] getReturnOutput - Selected Tab:', selectedTab)
+    console.log('\n[DEBUG] getReturnOutput - Update State Memory UI:', updateStateMemoryUI)
+
     const variables = await getVars(appDataSource, databaseEntities, nodeData)
 
     const flow = {
@@ -888,11 +907,14 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
         state,
         vars: prepareSandboxVars(variables)
     }
+    console.log('\n[DEBUG] getReturnOutput - Flow Object:', safeStringify(flow))
+
+    let stateUpdates: Record<string, any> = {}
 
     if (updateStateMemory && updateStateMemory !== 'updateStateMemoryUI' && updateStateMemory !== 'updateStateMemoryCode') {
         try {
             const parsedSchema = typeof updateStateMemory === 'string' ? JSON.parse(updateStateMemory) : updateStateMemory
-            const obj: ICommonObject = {}
+            console.log('\n[DEBUG] getReturnOutput - Parsed Schema:', safeStringify(parsedSchema))
             for (const sch of parsedSchema) {
                 const key = sch.Key
                 if (!key) throw new Error(`Key is required`)
@@ -902,18 +924,17 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
                 } else if (value.startsWith('$vars')) {
                     value = customGet(flow, sch.Value.replace('$', ''))
                 }
-                obj[key] = value
+                stateUpdates[key] = value
+                console.log(`\n[DEBUG] getReturnOutput - Setting state key "${key}" to:`, value)
             }
-            return obj
         } catch (e) {
+            console.error('\n[DEBUG] getReturnOutput - Error parsing updateStateMemory:', e)
             throw new Error(e)
         }
-    }
-
-    if (selectedTab === 'updateStateMemoryUI' && updateStateMemoryUI) {
+    } else if (selectedTab === 'updateStateMemoryUI' && updateStateMemoryUI) {
         try {
             const parsedSchema = typeof updateStateMemoryUI === 'string' ? JSON.parse(updateStateMemoryUI) : updateStateMemoryUI
-            const obj: ICommonObject = {}
+            console.log('\n[DEBUG] getReturnOutput - Parsed UI Schema:', safeStringify(parsedSchema))
             for (const sch of parsedSchema) {
                 const key = sch.key
                 if (!key) throw new Error(`Key is required`)
@@ -923,24 +944,51 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
                 } else if (value.startsWith('$vars')) {
                     value = customGet(flow, sch.value.replace('$', ''))
                 }
-                obj[key] = value
+                stateUpdates[key] = value
+                console.log(`\n[DEBUG] getReturnOutput - Setting state key "${key}" to:`, value)
             }
-            return obj
         } catch (e) {
+            console.error('\n[DEBUG] getReturnOutput - Error parsing updateStateMemoryUI:', e)
             throw new Error(e)
         }
     } else if (selectedTab === 'updateStateMemoryCode' && updateStateMemoryCode) {
         const vm = await getVM(appDataSource, databaseEntities, nodeData, flow)
         try {
-            const response = await vm.run(`module.exports = async function() {${updateStateMemoryCode}}()`, __dirname)
-            if (typeof response !== 'object') throw new Error('Return output must be an object')
-            return response
+            stateUpdates = await vm.run(`module.exports = async function() {${updateStateMemoryCode}}()`, __dirname)
+            console.log('\n[DEBUG] getReturnOutput - Code Updates:', safeStringify(stateUpdates))
+            if (typeof stateUpdates !== 'object') throw new Error('Return output must be an object')
         } catch (e) {
+            console.error('\n[DEBUG] getReturnOutput - Error in code execution:', e)
             throw new Error(e)
         }
     }
 
-    return {}
+    // Apply state updates through the checkpointer if available
+    if (Object.keys(stateUpdates).length > 0) {
+        console.log('\n[DEBUG] getReturnOutput - State Updates to Apply:', safeStringify(stateUpdates))
+        
+        // First update the state object with new values
+        for (const [key, value] of Object.entries(stateUpdates)) {
+            state[key] = value
+            console.log(`\n[DEBUG] getReturnOutput - Updated state["${key}"] to:`, value)
+        }
+
+        // Then if we have checkpoint memory, save the entire updated state
+        if (state.checkpointMemory?.putTuple) {
+            const currentState = await state.checkpointMemory.getTuple()
+            console.log('\n[DEBUG] getReturnOutput - Current Checkpoint State:', safeStringify(currentState))
+            const updatedState = {
+                ...currentState,
+                ...stateUpdates
+            }
+            console.log('\n[DEBUG] getReturnOutput - Final State to Save:', safeStringify(updatedState))
+            await state.checkpointMemory.putTuple(updatedState)
+        }
+    } else {
+        console.log('\n[DEBUG] getReturnOutput - No state updates to apply')
+    }
+
+    return stateUpdates
 }
 
 const convertCustomMessagesToBaseMessages = (messages: string[], name: string, additional_kwargs: ICommonObject) => {

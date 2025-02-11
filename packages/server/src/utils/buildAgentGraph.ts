@@ -442,7 +442,7 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
 
     const channels: ITeamState = {
         messages: {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+            value: (x: BaseMessage[], y: BaseMessage[]) => (Array.isArray(x) ? x : []).concat(Array.isArray(y) ? y : []),
             default: () => []
         },
         next: 'initialState',
@@ -662,10 +662,7 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
     let question = params.question
 
     let channels: ISeqAgentsState = {
-        messages: {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-            default: () => []
-        }
+        messages: []
     }
 
     // Get state

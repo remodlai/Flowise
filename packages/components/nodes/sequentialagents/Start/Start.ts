@@ -1,7 +1,14 @@
 import { START } from '@langchain/langgraph'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
+import { BaseMessage } from '@langchain/core/messages'
+import { ICommonObject, INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
 import { Moderation } from '../../moderation/Moderation'
+
+interface StateConfig {
+    Key: string
+    Operation: 'Replace' | 'Append'
+    'Default Value': any
+}
 
 class Start_SeqAgents implements INode {
     label: string
@@ -13,7 +20,6 @@ class Start_SeqAgents implements INode {
     category: string
     baseClasses: string[]
     documentation?: string
-    credential: INodeParams
     inputs: INodeParams[]
 
     constructor() {
@@ -59,21 +65,128 @@ class Start_SeqAgents implements INode {
         ]
     }
 
-    async init(nodeData: INodeData): Promise<any> {
+    async init(nodeData: INodeData, input: string, options: ICommonObject): Promise<any> {
         const moderations = (nodeData.inputs?.inputModeration as Moderation[]) ?? []
         const model = nodeData.inputs?.model as BaseChatModel
         const agentMemory = nodeData.inputs?.agentMemory
+        const overrideConfig = options.overrideConfig || {}
+        const sessionId = overrideConfig.sessionId || options.sessionId
 
-        // Create a default checkpointer if none provided
-        const checkpointMemory = agentMemory ?? {
-            getTuple: async () => ({ 
-                messages: {
-                    value: (x: any[], y: any[]) => x.concat(y),
-                    default: () => []
+        // Initialize base state with messages array
+        const baseState: ICommonObject = {
+            messages: [] as BaseMessage[]
+        }
+
+        // Track operation types for state updates
+        const operationTypes: Record<string, 'Replace' | 'Append'> = {
+            messages: 'Append' // messages always uses Append
+        }
+
+        // Get existing state from memory if available
+        let checkpointMemory
+        const memoryConfig = {
+            configurable: {
+                thread_id: sessionId,
+                checkpoint_id: sessionId
+            }
+        }
+
+        if (agentMemory) {
+            if (typeof agentMemory.createCheckpointer === 'function') {
+                // Get existing state first
+                const existingCheckpoint = await agentMemory.getTuple?.(memoryConfig)
+                const initialState = existingCheckpoint?.channel_values ?? baseState
+                checkpointMemory = await agentMemory.createCheckpointer(initialState)
+            } else if (typeof agentMemory.put === 'function' && typeof agentMemory.getTuple === 'function') {
+                checkpointMemory = agentMemory
+                
+                // Get existing state
+                const existingState = await checkpointMemory.getTuple(memoryConfig)
+                
+                if (!existingState) {
+                    // Only create initial checkpoint if no state exists
+                    const checkpoint = {
+                        v: 1,
+                        id: sessionId,
+                        ts: new Date().toISOString(),
+                        channel_values: baseState,
+                        channel_versions: {},
+                        versions_seen: {},
+                        pending_sends: []
+                    }
+                    const metadata = {
+                        source: 'input',
+                        step: 0,
+                        writes: null,
+                        parents: {}
+                    }
+                    await checkpointMemory.put(memoryConfig, checkpoint, metadata, {})
                 }
-            }),
-            putTuple: async (tuple: any) => {},
-            deleteTuple: async () => {}
+            }
+        } else {
+            // Create default memory with state persistence
+            checkpointMemory = {
+                getTuple: async () => {
+                    // Apply override config if present
+                    if (overrideConfig.stateMemory) {
+                        const overrides = overrideConfig.stateMemory as StateConfig[]
+                        for (const override of overrides) {
+                            const key = override.Key
+                            if (!key) continue
+                            
+                            let value = override['Default Value']
+                            // Try to parse value if it's a stringified JSON
+                            if (typeof value === 'string' && value.trim().startsWith('{')) {
+                                try {
+                                    value = JSON.parse(value)
+                                } catch (e) {
+                                    // Keep as string if parsing fails
+                                }
+                            }
+
+                            // Initialize as array if operation is Append
+                            baseState[key] = override.Operation === 'Append' ? 
+                                (Array.isArray(value) ? value : [value]) : value
+                            operationTypes[key] = override.Operation
+                        }
+                    }
+                    return {
+                        channel_values: baseState,
+                        channel_versions: {},
+                        versions_seen: {}
+                    }
+                },
+                putTuple: async (tuple: any) => {
+                    const state = tuple.channel_values || tuple
+                    Object.entries(state).forEach(([key, value]) => {
+                        const operation = operationTypes[key] || 'Replace'
+                        
+                        if (operation === 'Append') {
+                            // Ensure baseState[key] is an array
+                            if (!Array.isArray(baseState[key])) {
+                                baseState[key] = baseState[key] !== undefined ? [baseState[key]] : []
+                            }
+                            
+                            // Handle array or single value for appending
+                            if (Array.isArray(value)) {
+                                baseState[key] = baseState[key].concat(value)
+                            } else if (value !== undefined && value !== null) {
+                                baseState[key].push(value)
+                            }
+                        } else {
+                            // Replace operation
+                            if (value !== undefined && value !== null) {
+                                baseState[key] = value
+                            }
+                        }
+                    })
+                    return {
+                        channel_values: baseState,
+                        channel_versions: tuple.channel_versions || {},
+                        versions_seen: tuple.versions_seen || {}
+                    }
+                }
+            }
         }
 
         const returnOutput: ISeqAgentNode = {
@@ -94,3 +207,4 @@ class Start_SeqAgents implements INode {
 }
 
 module.exports = { nodeClass: Start_SeqAgents }
+

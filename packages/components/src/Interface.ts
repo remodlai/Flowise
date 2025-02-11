@@ -222,10 +222,13 @@ export interface ITeamState {
 }
 
 export interface ISeqAgentsState {
-    messages: {
-        value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
-        default: () => BaseMessage[]
-    }
+    messages: BaseMessage[]
+    [key: string]: any
+}
+
+export interface ISeqAgentsStateWithCheckpoint extends ISeqAgentsState {
+    checkpointMemory?: MemoryMethods
+    [key: string]: any
 }
 
 export interface IAgentReasoning {

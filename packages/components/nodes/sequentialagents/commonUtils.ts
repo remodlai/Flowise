@@ -15,9 +15,12 @@ import {
     INodeData,
     ISeqAgentsState,
     IVisionChatModal,
-    ConversationHistorySelection
+    ConversationHistorySelection,
+    ISeqAgentsStateWithCheckpoint,
+    MemoryMethods,
+    IMessage
 } from '../../src/Interface'
-import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
+import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars, convertBaseMessagetoIMessage } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 
 export const checkCondition = (input: string | number | undefined, condition: string, value: string | number = ''): boolean => {
@@ -254,17 +257,17 @@ export function filterConversationHistory(
     input: string,
     state: ISeqAgentsState
 ): BaseMessage[] {
+    const messages = Array.isArray(state.messages) ? state.messages : []
+
     switch (historySelection) {
         case 'user_question':
             return [new HumanMessage(input)]
         case 'last_message':
-            // @ts-ignore
-            return state.messages?.length ? [state.messages[state.messages.length - 1] as BaseMessage] : []
+            return messages.length ? [messages[messages.length - 1] as BaseMessage] : []
         case 'empty':
             return []
         case 'all_messages':
-            // @ts-ignore
-            return (state.messages as BaseMessage[]) ?? []
+            return messages
         default:
             throw new Error(`Unhandled conversationHistorySelection: ${historySelection}`)
     }
@@ -272,7 +275,9 @@ export function filterConversationHistory(
 
 export const restructureMessages = (llm: BaseChatModel, state: ISeqAgentsState) => {
     const messages: BaseMessage[] = []
-    for (const message of state.messages as unknown as BaseMessage[]) {
+    const stateMessages = Array.isArray(state.messages) ? state.messages : []
+    
+    for (const message of stateMessages) {
         // Sometimes Anthropic can return a message with content types of array, ignore that EXECEPT when tool calls are present
         if ((message as any).tool_calls?.length && message.content !== '') {
             message.content = JSON.stringify(message.content)
@@ -437,4 +442,22 @@ export const checkMessageHistory = async (
     }
 
     return prompt
+}
+
+export function createDefaultCheckpointer(
+    initialState: ISeqAgentsState,
+    currentState: ISeqAgentsState
+): ISeqAgentsStateWithCheckpoint {
+    const messages = Array.isArray(currentState.messages) ? currentState.messages : []
+    return {
+        ...currentState,
+        messages,
+        checkpointMemory: {
+            getChatMessages: async (overrideSessionId = '', returnBaseMessages = false, prependMessages?: IMessage[]): Promise<BaseMessage[] | IMessage[]> => {
+                return returnBaseMessages ? messages : convertBaseMessagetoIMessage(messages)
+            },
+            addChatMessages: async () => {},
+            clearChatMessages: async () => {}
+        }
+    }
 }
