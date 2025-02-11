@@ -123,9 +123,36 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISe
             // do nothing
         }
         // get state value
-        if (value.startsWith('$flow.state')) {
-            value = customGet(state, value.replace('$flow.state.', ''))
-            if (typeof value === 'object') value = JSON.stringify(value)
+        if (typeof value === 'string' && value.startsWith('$flow.state')) {
+            // Handle array index access for messages array
+            if (value.includes('messages[') && value.includes('].content')) {
+                const matches = value.match(/messages\[(.*?)\]\.content/)
+                if (matches && matches[1]) {
+                    const index = matches[1]
+                    const messages = (state.messages as unknown as BaseMessage[]) ?? []
+                    if (messages.length) {
+                        const targetIndex = index === '-1' ? messages.length - 1 : parseInt(index)
+                        const message = messages[targetIndex]
+                        if (message && message.content) {
+                            value = message.content
+                        }
+                    }
+                }
+            } else if (value === '$flow.state.<replace-with-key>') {
+                // This is the template pattern - leave it as is for UI display
+                value = value
+            } else {
+                // Handle regular state variable access
+                const stateKey = value.replace('$flow.state.', '')
+                value = customGet(state, stateKey)
+                if (value === undefined) {
+                    console.warn(`State variable '${stateKey}' not found in state:`, state)
+                    value = ''
+                }
+                if (typeof value === 'object' && value !== null) {
+                    value = JSON.stringify(value)
+                }
+            }
         }
         transformedObject[key] = () => value
     }
@@ -247,39 +274,37 @@ export const convertStructuredSchemaToZod = (schema: string | object): ICommonOb
  *
  * @param historySelection - The selected history option.
  * @param input - The user input.
- * @param state - The current state of the sequential llm or agent node.
+ * @param messages - The current conversation messages.
  */
 export function filterConversationHistory(
     historySelection: ConversationHistorySelection,
     input: string,
-    state: ISeqAgentsState
+    messages: BaseMessage[]
 ): BaseMessage[] {
     switch (historySelection) {
         case 'user_question':
             return [new HumanMessage(input)]
         case 'last_message':
-            // @ts-ignore
-            return state.messages?.length ? [state.messages[state.messages.length - 1] as BaseMessage] : []
+            return messages?.length ? [messages[messages.length - 1]] : []
         case 'empty':
             return []
         case 'all_messages':
-            // @ts-ignore
-            return (state.messages as BaseMessage[]) ?? []
+            return messages ?? []
         default:
             throw new Error(`Unhandled conversationHistorySelection: ${historySelection}`)
     }
 }
 
-export const restructureMessages = (llm: BaseChatModel, state: ISeqAgentsState) => {
-    const messages: BaseMessage[] = []
-    for (const message of state.messages as unknown as BaseMessage[]) {
+export const restructureMessages = (llm: BaseChatModel, messages: BaseMessage[]): BaseMessage[] => {
+    const restructuredMessages: BaseMessage[] = []
+    for (const message of messages) {
         // Sometimes Anthropic can return a message with content types of array, ignore that EXECEPT when tool calls are present
         if ((message as any).tool_calls?.length && message.content !== '') {
             message.content = JSON.stringify(message.content)
         }
 
         if (typeof message.content === 'string') {
-            messages.push(message)
+            restructuredMessages.push(message)
         }
     }
 
@@ -293,25 +318,25 @@ export const restructureMessages = (llm: BaseChatModel, state: ISeqAgentsState) 
      * 2.) Tool Message followed by Human Message
      */
     if (llm instanceof ChatMistralAI) {
-        if (messages.length > 1) {
-            for (let i = 0; i < messages.length; i++) {
-                const message = messages[i]
+        if (restructuredMessages.length > 1) {
+            for (let i = 0; i < restructuredMessages.length; i++) {
+                const message = restructuredMessages[i]
 
                 // If last message is denied Tool Message, add a new Human Message
-                if (isToolMessage(message) && i === messages.length - 1 && message.additional_kwargs?.toolCallsDenied) {
-                    messages.push(new AIMessage({ content: `Tool calls got denied. Do you have other questions?` }))
-                } else if (i + 1 < messages.length) {
-                    const nextMessage = messages[i + 1]
+                if (isToolMessage(message) && i === restructuredMessages.length - 1 && message.additional_kwargs?.toolCallsDenied) {
+                    restructuredMessages.push(new AIMessage({ content: `Tool calls got denied. Do you have other questions?` }))
+                } else if (i + 1 < restructuredMessages.length) {
+                    const nextMessage = restructuredMessages[i + 1]
                     const currentMessage = message
 
                     // If current message is Tool Message and next message is Human Message, add AI Message between Tool and Human Message
                     if (isToolMessage(currentMessage) && isHumanMessage(nextMessage)) {
-                        messages.splice(i + 1, 0, new AIMessage({ content: 'Tool calls executed' }))
+                        restructuredMessages.splice(i + 1, 0, new AIMessage({ content: 'Tool calls executed' }))
                     }
 
                     // If last message is AI Message or Tool Message, add Human Message
-                    if (i + 1 === messages.length - 1 && (isAIMessage(nextMessage) || isToolMessage(nextMessage))) {
-                        messages.push(new HumanMessage({ content: nextMessage.content || 'Given the user question, answer user query' }))
+                    if (i + 1 === restructuredMessages.length - 1 && (isAIMessage(nextMessage) || isToolMessage(nextMessage))) {
+                        restructuredMessages.push(new HumanMessage({ content: nextMessage.content || 'Given the user question, answer user query' }))
                     }
                 }
             }
@@ -320,16 +345,16 @@ export const restructureMessages = (llm: BaseChatModel, state: ISeqAgentsState) 
         /*
          * Anthropic does not support first message as AI Message
          */
-        if (messages.length) {
-            const firstMessage = messages[0]
+        if (restructuredMessages.length) {
+            const firstMessage = restructuredMessages[0]
             if (isAIMessage(firstMessage)) {
-                messages.shift()
-                messages.unshift(new HumanMessage({ ...firstMessage }))
+                restructuredMessages.shift()
+                restructuredMessages.unshift(new HumanMessage({ ...firstMessage }))
             }
         }
     }
 
-    return messages
+    return restructuredMessages
 }
 
 export class ExtractTool extends StructuredTool {

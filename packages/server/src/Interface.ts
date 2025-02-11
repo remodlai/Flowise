@@ -7,6 +7,7 @@ import {
     INodeParams,
     IServerSideEventStreamer
 } from 'flowise-components'
+import { FlowiseCheckpoint } from 'flowise-components/dist/nodes/memory/AgentMemory/interface'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'
@@ -354,3 +355,12 @@ export interface IVariableOverride {
 
 // DocumentStore related
 export * from './Interface.DocumentStore'
+
+export interface ISeqAgentsState {
+    messages: {
+        value: (x: any[], y: any[]) => any[]
+        default: () => any[]
+    }
+    checkpoint?: FlowiseCheckpoint
+    [key: string]: any
+}

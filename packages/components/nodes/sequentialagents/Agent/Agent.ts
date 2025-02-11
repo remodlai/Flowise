@@ -46,6 +46,7 @@ import {
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
+import { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
@@ -190,12 +191,13 @@ return [
 const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
 
 interface IExtendedSeqAgentsState extends Omit<ISeqAgentsState, 'messages'> {
-    checkpoint?: FlowiseCheckpoint
     messages: {
         value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
         default: () => BaseMessage[]
     }
     state: Record<string, any>
+    checkpoint?: FlowiseCheckpoint
+    checkpointMemory?: BaseCheckpointSaver
 }
 
 interface IExtendedMessagesState extends MessagesState {
@@ -472,12 +474,40 @@ class Agent_SeqAgents implements INode {
     }
 
     async init(nodeData: INodeData, input: string, options: ICommonObject): Promise<any> {
+        if (!nodeData.inputs?.sequentialNode || !nodeData.inputs.sequentialNode[0]) {
+            throw new Error('Agent must have a predecessor node with initialized state!')
+        }
+
+        const predecessorNode = nodeData.inputs.sequentialNode[0]
+        const checkpointMemory = predecessorNode.checkpointMemory as BaseCheckpointSaver
+
+        if (!checkpointMemory) {
+            throw new Error('Agent requires access to checkpoint memory from State node!')
+        }
+        
+        // Initialize a proper checkpoint
+        const initialCheckpoint: FlowiseCheckpoint = {
+            v: 1,
+            id: nodeData.id,
+            ts: new Date().toISOString(),
+            channel_values: {
+                messages: [],
+                state: {}
+            },
+            channel_versions: {},
+            versions_seen: {},
+            pending_sends: []
+        }
+
+        // Get the checkpoint from the established state management
         const initialState: IExtendedSeqAgentsState = {
             messages: {
                 value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
                 default: () => []
             },
-            state: {}
+            state: {},
+            checkpointMemory,
+            checkpoint: initialCheckpoint
         }
 
         let tools = nodeData.inputs?.tools
@@ -503,9 +533,12 @@ class Agent_SeqAgents implements INode {
         if (promptValuesStr) {
             try {
                 agentInputVariablesValues = typeof promptValuesStr === 'object' ? promptValuesStr : JSON.parse(promptValuesStr)
+
             } catch (exception) {
                 throw new Error("Invalid JSON in the Agent's Prompt Input Values: " + exception)
-            }
+                }
+               
+           
         }
         agentInputVariablesValues = handleEscapeCharacters(agentInputVariablesValues, true)
 
@@ -536,46 +569,33 @@ class Agent_SeqAgents implements INode {
             return response.content
         }
 
-        const agentInstance = await createAgent(
-            nodeData,
-            options,
-            agentName,
-            initialState,
-            llm,
-            interrupt,
-            [...tools],
-            agentSystemPrompt,
-            agentHumanPrompt,
-            multiModalMessageContent,
-            agentInputVariablesValues,
-            maxIterations,
-            {
-                sessionId: options.sessionId,
-                chatId: options.chatId,
-                input
-            }
-        )
-
         const workerNode = async (state: IExtendedSeqAgentsState, config: RunnableConfig) => {
-            const checkpoint = state.checkpoint
-            if (!checkpoint) {
-                throw new Error('No checkpoint found in state')
-            }
-
-            // Update channel values with current state
-            checkpoint.channel_values = {
-                ...checkpoint.channel_values,
-                messages: state.messages.value([], []),
-                state: state.state
-            }
-
-            // Execute agent with updated state
+            // Execute agent with current state
             const result = await agentNode(
                 {
                     state,
                     llm,
                     interrupt,
-                    agent: agentInstance,
+                    agent: await createAgent(
+                        nodeData,
+                        options,
+                        agentName,
+                        state,
+                        llm,
+                        interrupt,
+                        [...tools],
+                        agentSystemPrompt,
+                        agentHumanPrompt,
+                        multiModalMessageContent,
+                        agentInputVariablesValues,
+                        maxIterations,
+                        {
+                            sessionId: options.sessionId,
+                            chatId: options.chatId,
+                            input,
+                            state: state.state
+                        }
+                    ),
                     name: agentName,
                     abortControllerSignal,
                     nodeData,
@@ -585,16 +605,58 @@ class Agent_SeqAgents implements INode {
                 config
             )
 
-            // Update checkpoint with new state
-            checkpoint.channel_values.messages = result.messages
-            checkpoint.channel_values.state = result.state
-
-            return {
-                ...state,
-                checkpoint,
-                messages: result.messages,
-                state: result.state
+            // Process any configured state updates from UI/Code
+            let updatedStateValues = result.state
+            if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
+                const formattedOutput = {
+                    ...result,
+                    content: typeof result === 'string' ? result : result.content || result.output
+                }
+                const stateUpdates = await getReturnOutput(nodeData, input, options, formattedOutput, state)
+                updatedStateValues = {
+                    ...result.state,
+                    ...stateUpdates
+                }
             }
+
+            // Create new checkpoint for this node's state
+            const newCheckpoint: FlowiseCheckpoint = {
+                v: 1,
+                id: nodeData.id,
+                ts: new Date().toISOString(),
+                channel_values: {
+                    messages: state.messages.value(state.messages.default(), result.messages),
+                    state: updatedStateValues
+                },
+                channel_versions: state.checkpoint?.channel_versions ?? {},
+                versions_seen: state.checkpoint?.versions_seen ?? {},
+                pending_sends: []
+            }
+
+            // Update state with new checkpoint
+            const updatedState = {
+                ...state,
+                messages: state.messages.value(state.messages.default(), result.messages),
+                state: updatedStateValues,
+                checkpoint: newCheckpoint
+            }
+
+            // Persist checkpoint through memory system
+            if (state.checkpointMemory) {
+                await state.checkpointMemory.put(
+                    config,
+                    newCheckpoint,
+                    {
+                        source: 'input',
+                        step: config.runName ? parseInt(config.runName.split(':')[1]) : 0,
+                        writes: null,
+                        parents: state.checkpoint ? { [state.checkpoint.id]: state.checkpoint.id } : {}
+                    },
+                    {}
+                )
+            }
+
+            return updatedState
         }
 
         const toolInterrupt = async (
@@ -604,27 +666,32 @@ class Agent_SeqAgents implements INode {
             conditionalMapping: ICommonObject = {}
         ) => {
             const routeMessage = async (state: IExtendedSeqAgentsState) => {
-                const checkpoint = state.checkpoint
-                if (!checkpoint) {
-                    throw new Error('No checkpoint found in state')
-                }
-
                 // Handle tool execution state updates
                 const lastMessage = state.messages.value([], [])[state.messages.value([], []).length - 1]
                 if (lastMessage?.additional_kwargs?.tool_calls?.[0]) {
-                    // Update checkpoint with tool execution state
-                    checkpoint.channel_values = {
-                        ...checkpoint.channel_values,
-                        messages: state.messages.value([], []),
-                        state: {
-                            ...state.state,
-                            lastToolCall: lastMessage.additional_kwargs.tool_calls[0]
+                    // Process any configured state updates from UI/Code
+                    let updatedStateValues = {
+                        ...state.state,
+                        lastToolCall: lastMessage.additional_kwargs.tool_calls[0]
+                    }
+
+                    if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
+                        const formattedOutput = {
+                            content: lastMessage.content,
+                            toolCalls: lastMessage.additional_kwargs.tool_calls
+                        }
+                        const stateUpdates = await getReturnOutput(nodeData, input, options, formattedOutput, state)
+                        updatedStateValues = {
+                            ...updatedStateValues,
+                            ...stateUpdates
                         }
                     }
 
+                    // Update state
+                    state.state = updatedStateValues
+
                     return nextNodeName ?? END
                 }
-
                 return END
             }
 
@@ -664,7 +731,7 @@ async function createAgent(
     multiModalMessageContent: MessageContentImageUrl[],
     agentInputVariablesValues: ICommonObject,
     maxIterations?: string,
-    flowObj?: { sessionId?: string; chatId?: string; input?: string }
+    flowObj?: { sessionId?: string; chatId?: string; input?: string; state: Record<string, any> }
 ): Promise<any> {
     if (tools.length && !interrupt) {
         const promptArrays = [
@@ -702,12 +769,22 @@ async function createAgent(
                 metadata: { sequentialNodeName: agentName }
             })
         } else {
+            // Transform prompt values to handle state variables
+            const transformedPromptValues: ICommonObject = {}
+            for (const key in agentInputVariablesValues) {
+                let value = agentInputVariablesValues[key]
+                if (typeof value === 'string' && value.startsWith('$flow.state.')) {
+                    value = customGet(state, value.replace('$flow.state.', ''))
+                }
+                transformedPromptValues[key] = value
+            }
+
             agent = RunnableSequence.from([
                 RunnablePassthrough.assign({
                     //@ts-ignore
                     agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(input.steps)
                 }),
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
+                RunnablePassthrough.assign(transformObjectPropertyToFunction(transformedPromptValues, state)),
                 prompt,
                 modelWithTools,
                 new ToolCallingAgentOutputParser()
@@ -825,12 +902,22 @@ async function agentNode(
         }
 
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        // @ts-ignore
-        state.messages = filterConversationHistory(historySelection, input, state)
-        // @ts-ignore
-        state.messages = restructureMessages(llm, state)
 
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+        // Get current messages from state
+        const currentMessages = state.messages.value(state.messages.default(), [])
+
+        // Filter and restructure messages
+        const filteredMessages = filterConversationHistory(historySelection, input, currentMessages)
+        const restructuredMessages = restructureMessages(llm, filteredMessages)
+
+        // Update state with new messages using the value function
+        state.messages.value(state.messages.default(), restructuredMessages)
+
+        let result = await agent.invoke({ 
+            ...state, 
+            messages: restructuredMessages,
+            signal: abortControllerSignal.signal 
+        }, config)
 
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
@@ -858,6 +945,12 @@ async function agentNode(
             } else {
                 result.name = name
                 result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true }
+                
+                // Ensure messages are added to state
+                if (state.messages && typeof state.messages.value === 'function') {
+                    state.messages.value(state.messages.default(), [result])
+                }
+                
                 return {
                     messages: [result]
                 }
@@ -890,19 +983,33 @@ async function agentNode(
                 content: outputContent
             }
             const returnedOutput = await getReturnOutput(nodeData, input, options, formattedOutput, state)
+            const messages = convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
+            
+            // Ensure messages are added to state
+            if (state.messages && typeof state.messages.value === 'function') {
+                state.messages.value(state.messages.default(), messages)
+            }
+            
             return {
                 ...returnedOutput,
-                messages: convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
+                messages
             }
         } else {
+            const messages = [
+                new AIMessage({
+                    content: outputContent,
+                    name,
+                    additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
+                })
+            ]
+            
+            // Ensure messages are added to state
+            if (state.messages && typeof state.messages.value === 'function') {
+                state.messages.value(state.messages.default(), messages)
+            }
+            
             return {
-                messages: [
-                    new HumanMessage({
-                        content: outputContent,
-                        name,
-                        additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
-                    })
-                ]
+                messages
             }
         }
     } catch (error) {
@@ -987,7 +1094,7 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
 
 const convertCustomMessagesToBaseMessages = (messages: string[], name: string, additional_kwargs: ICommonObject) => {
     return messages.map((message) => {
-        return new HumanMessage({
+        return new AIMessage({
             content: message,
             name,
             additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
@@ -1052,3 +1159,4 @@ class ToolNode<T extends BaseMessage[] | IExtendedMessagesState> extends Runnabl
 }
 
 module.exports = { nodeClass: Agent_SeqAgents }
+

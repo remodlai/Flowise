@@ -668,12 +668,52 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         }
     }
 
-    // Get state
+    // Get state and checkpoint from State node
     const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
     if (seqStateNode) {
+        const stateInstance = seqStateNode.data.instance
         channels = {
-            ...seqStateNode.data.instance.node,
+            ...stateInstance.node,
             ...channels
+        }
+        // Ensure checkpoint is properly initialized
+        if (stateInstance.checkpointMemory) {
+            try {
+                const tuple = await stateInstance.checkpointMemory.getTuple({
+                    configurable: {
+                        thread_id: threadId,
+                        checkpoint_id: seqStateNode.id
+                    }
+                })
+                // Create default checkpoint if none exists
+                channels.checkpoint = tuple?.checkpoint ?? {
+                    v: 1,
+                    id: seqStateNode.id,
+                    ts: new Date().toISOString(),
+                    channel_values: {
+                        messages: [] as BaseMessage[],
+                        state: {}
+                    },
+                    channel_versions: {},
+                    versions_seen: {},
+                    pending_sends: []
+                }
+            } catch (error) {
+                console.error('Error getting checkpoint:', error)
+                // Set default checkpoint
+                channels.checkpoint = {
+                    v: 1,
+                    id: seqStateNode.id,
+                    ts: new Date().toISOString(),
+                    channel_values: {
+                        messages: [] as BaseMessage[],
+                        state: {}
+                    },
+                    channel_versions: {},
+                    versions_seen: {},
+                    pending_sends: []
+                }
+            }
         }
     }
 

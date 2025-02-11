@@ -6,12 +6,12 @@ import { FlowiseCheckpoint, StateData } from '../../memory/AgentMemory/interface
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 interface IExtendedSeqAgentsState extends Omit<ISeqAgentsState, 'messages'> {
-    checkpoint?: FlowiseCheckpoint
     messages: {
         value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
         default: () => BaseMessage[]
     }
     state: Record<string, any>
+    checkpoint?: FlowiseCheckpoint
 }
 
 class End_SeqAgents implements INode {
@@ -92,9 +92,11 @@ class End_SeqAgents implements INode {
                 let checkpoint = state.checkpoint
                 if (!checkpoint) {
                     // Create default checkpoint if none exists
+                    const checkpointId = config?.configurable?.checkpoint_id || nodeData.id
+                    const threadId = config?.configurable?.thread_id || 'default'
                     checkpoint = {
                         v: 1,
-                        id: config.configurable?.checkpoint_id || 'default',
+                        id: checkpointId,
                         ts: new Date().toISOString(),
                         channel_values: {
                             messages: state.messages.value([], []),

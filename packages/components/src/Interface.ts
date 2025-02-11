@@ -221,11 +221,28 @@ export interface ITeamState {
     summarization?: string
 }
 
+export interface StateData {
+    messages: BaseMessage[]
+    [key: string]: any
+}
+
+export interface FlowiseCheckpoint {
+    v: number
+    id: string
+    ts: string
+    channel_values: StateData
+    channel_versions: Record<string, any>
+    versions_seen: Record<string, any>
+    pending_sends: any[]
+}
+
 export interface ISeqAgentsState {
     messages: {
         value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
         default: () => BaseMessage[]
     }
+    state?: Record<string, any>
+    checkpoint?: FlowiseCheckpoint
 }
 
 export interface IAgentReasoning {

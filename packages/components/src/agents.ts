@@ -349,6 +349,15 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
     async _call(inputs: ChainValues, runManager?: CallbackManagerForChainRun, config?: RunnableConfig): Promise<AgentExecutorOutput> {
         const toolsByName = Object.fromEntries(this.tools.map((t) => [t.name?.toLowerCase(), t]))
 
+        // Ensure checkpoint is properly passed through config
+        const configWithCheckpoint = {
+            ...config,
+            configurable: {
+                ...config?.configurable,
+                thread_id: this.sessionId || this.chatId
+            }
+        }
+
         const steps: AgentStep[] = []
         let iterations = 0
         let sourceDocuments: Array<Document> = []
@@ -371,7 +380,7 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         while (this.shouldContinue(iterations)) {
             let output
             try {
-                output = await this.agent.plan(steps, inputs, runManager?.getChild(), config)
+                output = await this.agent.plan(steps, inputs, runManager?.getChild(), configWithCheckpoint)
             } catch (e) {
                 if (e instanceof OutputParserException) {
                     let observation
