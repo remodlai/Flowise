@@ -661,11 +661,6 @@ async function createAgent(
             })
         } else {
             agent = RunnableSequence.from([
-                RunnablePassthrough.assign({
-                    //@ts-ignore
-                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(input.steps)
-                }),
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
                 modelWithTools,
                 new ToolCallingAgentOutputParser()
@@ -711,7 +706,6 @@ async function createAgent(
             })
         } else {
             agent = RunnableSequence.from([
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
                 llm
             ]).withConfig({
@@ -740,7 +734,6 @@ async function createAgent(
             })
         } else {
             conversationChain = RunnableSequence.from([
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
                 llm,
                 new StringOutputParser()
