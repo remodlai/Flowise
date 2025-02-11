@@ -1,8 +1,9 @@
 import { START } from '@langchain/langgraph'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { INode, INodeData, INodeParams, ISeqAgentNode, ICommonObject } from '../../../src/Interface'
+import { INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
 import { Moderation } from '../../moderation/Moderation'
-import { SaverOptions } from '../../memory/AgentMemory/interface'
+import { FlowiseCheckpoint, StateData } from '../../memory/AgentMemory/interface'
+import { BaseMessage } from '@langchain/core/messages'
 
 class Start_SeqAgents implements INode {
     label: string
@@ -14,7 +15,6 @@ class Start_SeqAgents implements INode {
     category: string
     baseClasses: string[]
     documentation?: string
-    credential: INodeParams
     inputs: INodeParams[]
 
     constructor() {
@@ -60,93 +60,43 @@ class Start_SeqAgents implements INode {
         ]
     }
 
-    private async initializeAgentMemory(options: ICommonObject) {
-        const { appDataSource, databaseEntities, sessionId, chatId, chatflowid } = options
-
-        const saverOptions: SaverOptions = {
-            datasourceOptions: appDataSource.options,
-            threadId: sessionId,
-            appDataSource,
-            databaseEntities,
-            chatflowid
-        }
-
-        // Initialize AgentMemory using dynamic import with type assertion
-        const AgentMemoryModule = await import('../../memory/AgentMemory/AgentMemory') as { nodeClass: new () => INode }
-        const agentMemory = new AgentMemoryModule.nodeClass()
-        
-        // Create proper INodeData object for initialization
-        const nodeData: INodeData = {
-            id: `agentMemory_${sessionId}`,
-            type: 'AgentMemory',
-            category: 'Memory',
-            name: 'agentMemory',
-            label: 'Agent Memory',
-            version: 2.0,
-            icon: 'agentmemory.svg',
-            baseClasses: ['AgentMemory'],
-            inputs: {}
-        }
-
-        if (!agentMemory.init) {
-            throw new Error('AgentMemory initialization method not found')
-        }
-
-        return agentMemory.init(nodeData, '', { ...options, saverOptions })
-    }
-
-    async init(nodeData: INodeData, input: string, options: ICommonObject): Promise<any> {
+    async init(nodeData: INodeData): Promise<any> {
         const moderations = (nodeData.inputs?.inputModeration as Moderation[]) ?? []
         const model = nodeData.inputs?.model as BaseChatModel
-        const providedAgentMemory = nodeData.inputs?.agentMemory
-        const initialState = nodeData.inputs?.state ?? {}
+        const agentMemory = nodeData.inputs?.agentMemory
 
-        // Initialize AgentMemory if not provided
-        const agentMemory = providedAgentMemory ?? await this.initializeAgentMemory(options)
-
-        // Create checkpoint system
-        const checkpointMemory = await agentMemory.createCheckpointer({
-            configurable: { 
-                thread_id: options.sessionId,
-                checkpoint_id: options.chatId 
-            }
-        })
-
-        // Initialize state with overrideConfig if present
-        if (options.overrideConfig) {
-            const mergedState = {
-                messages: [], // Base message state
-                ...initialState,
-                ...(options.overrideConfig?.state || {}) // Merge overrideConfig state
-            }
-
-            await checkpointMemory.putTuple({
-                configurable: { 
-                    thread_id: options.sessionId,
-                    checkpoint_id: options.chatId 
+        // Create a default checkpointer if none provided
+        const checkpointMemory = agentMemory ?? {
+            getTuple: async () => {
+                const checkpoint: FlowiseCheckpoint = {
+                    v: 1,
+                    id: 'default',
+                    ts: new Date().toISOString(),
+                    channel_values: {
+                        messages: [] as BaseMessage[],
+                        state: {}
+                    },
+                    channel_versions: {},
+                    versions_seen: {},
+                    pending_sends: []
                 }
-            }, {
-                channel_values: mergedState,
-                channel_versions: {},
-                versions_seen: {},
-                pending_sends: []
-            })
-        } else {
-            // Initialize with default state if no overrideConfig
-            await checkpointMemory.putTuple({
-                configurable: { 
-                    thread_id: options.sessionId,
-                    checkpoint_id: options.chatId 
+                return {
+                    checkpoint,
+                    metadata: {
+                        source: 'input',
+                        step: 0,
+                        writes: null,
+                        parents: {}
+                    }
                 }
-            }, {
-                channel_values: {
-                    messages: [],
-                    ...initialState
-                },
-                channel_versions: {},
-                versions_seen: {},
-                pending_sends: []
-            })
+            },
+            putTuple: async (tuple: any) => {},
+            deleteTuple: async () => {},
+            putWrites: async () => {},
+            list: async function* () {
+                yield* []
+            },
+            delete: async () => {}
         }
 
         const returnOutput: ISeqAgentNode = {
