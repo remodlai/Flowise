@@ -2,199 +2,135 @@
 
 ## Overview
 
-This document outlines the plan to fix state management in Flowise's sequential agents implementation to properly work with the latest LangGraph API while maintaining Flowise's functionality.
+This document outlines the plan to properly implement LangGraph's AgentMemory system in Flowise's sequential agents, ensuring proper state management and persistence with the latest LangGraph API.
 
-## Core Requirements
+## Implementation Status
 
-1. **Handle overrideConfig (Start Node)**
-   - Initialize state with overrideConfig at entry point
-   - Set up proper database-backed checkpoint system via AgentMemory
-   - Ensure state persistence through entire flow
-   - Maintain compatibility with existing database backends (SQLite/PostgreSQL/MySQL)
+### Completed
+1. **Core Interface Definition**
+   - Defined `FlowiseCheckpoint` interface extending LangGraph's `Checkpoint`
+   - Implemented proper state structure with `StateData`
+   - Added proper message serialization support
+   - Defined comprehensive memory methods interface
 
-2. **State Updates (All Nodes)**
-   - Allow nodes to update state values through AgentMemory interface
-   - Maintain state consistency across flow using proper checkpoint system
-   - Properly merge state updates without losing data
-   - Handle message filtering and transformation via commonUtils
+2. **SQLite Implementation**
+   - Updated SQLite saver to use new interfaces
+   - Implemented proper message serialization/deserialization
+   - Added robust error handling
+   - Improved state consistency checks
+   - Added proper type safety throughout
 
-3. **Conversation History (Messages)**
-   - Manage message history consistently through AgentMemory
-   - Preserve messages through state updates
-   - Support multiple history selection modes (user_question, last_message, all_messages)
-   - Set foundation for future LangGraph conversation features
+3. **PostgreSQL Implementation**
+   - Updated to use FlowiseCheckpoint interface
+   - Implemented proper BYTEA storage for JSON data
+   - Added proper parameter placeholders ($1, $2, etc.)
+   - Improved error handling with detailed messages
+   - Added state consistency checks
 
-## Implementation Plan
+4. **MySQL Implementation**
+   - Created new MySQL saver implementation
+   - Used LONGTEXT for JSON storage
+   - Implemented MySQL-specific upsert syntax
+   - Added proper error handling
+   - Included MySQL-specific table options
 
-### 1. Start Node Updates
+## Remaining Tasks
 
+1. **Integration Testing**
+   - Test state persistence across different databases
+   - Verify message serialization/deserialization
+   - Test error handling scenarios
+   - Verify state consistency
+   - Test cross-database compatibility
+
+## Technical Details
+
+### State Management
 ```typescript
-// Start.ts
-async init(nodeData: INodeData, input: string, options: ICommonObject): Promise<any> {
-    // Get AgentMemory instance based on database type
-    const agentMemory = await this.initializeAgentMemory(options);
+interface StateData {
+    messages: BaseMessage[]
+    [key: string]: any
+}
 
-    // Initialize checkpoint system with database backend
-    const checkpointMemory = await agentMemory.createCheckpointer({
-        datasourceOptions: options.appDataSource.options,
-        threadId: options.sessionId,
-        appDataSource: options.appDataSource,
-        databaseEntities: options.databaseEntities,
-        chatflowid: options.chatflowid
-    });
-
-    // Handle overrideConfig
-    if (options.overrideConfig) {
-        const initialState = {
-            messages: [], // Base message state
-            ...(options.overrideConfig?.state || {}) // Merge overrideConfig state
-        };
-
-        await checkpointMemory.putTuple({
-            configurable: { 
-                thread_id: options.sessionId,
-                checkpoint_id: options.chatId 
-            }
-        }, {
-            channel_values: initialState,
-            channel_versions: {},
-            versions_seen: {},
-            pending_sends: []
-        });
-    }
-
-    return {
-        checkpointMemory,
-        agentMemory
-    };
+interface FlowiseCheckpoint extends Checkpoint {
+    channel_values: StateData
 }
 ```
 
-### 2. State Update Implementation
+### Database-Specific Features
 
-```typescript
-// commonUtils.ts
-export async function updateState(
-    checkpointMemory: BaseCheckpointSaver,
-    config: RunnableConfig, 
-    newStateValues: any
-) {
-    const currentState = await checkpointMemory.getTuple(config);
-    
-    // Transform state objects using existing utilities
-    const transformedState = transformObjectPropertyToFunction(newStateValues, currentState.checkpoint.channel_values);
-    
-    // Proper merge of new state values
-    const updatedState = {
-        ...currentState.checkpoint.channel_values,
-        ...transformedState,
-        // Preserve messages array with proper filtering
-        messages: filterConversationHistory(
-            'all_messages',
-            '',
-            currentState.checkpoint.channel_values
-        )
-    };
+1. **PostgreSQL**
+   - Uses BYTEA for binary data
+   - Uses $1, $2 style parameters
+   - ON CONFLICT DO UPDATE for upserts
 
-    await checkpointMemory.put(
-        config,
-        {
-            ...currentState.checkpoint,
-            channel_values: updatedState
-        },
-        currentState.metadata,
-        {}
-    );
-}
-```
+2. **MySQL**
+   - Uses LONGTEXT for JSON
+   - Uses ? style parameters
+   - ON DUPLICATE KEY UPDATE for upserts
+   - InnoDB engine with utf8mb4 encoding
 
-### 3. Message History Management
+3. **SQLite**
+   - Uses BLOB for binary data
+   - Uses ? style parameters
+   - INSERT OR REPLACE for upserts
 
-```typescript
-// commonUtils.ts
-export async function updateMessages(
-    checkpointMemory: BaseCheckpointSaver,
-    config: RunnableConfig,
-    newMessages: BaseMessage[]
-) {
-    const currentState = await checkpointMemory.getTuple(config);
-    
-    // Use existing message restructuring
-    const restructuredMessages = restructureMessages(
-        config.llm,
-        currentState.checkpoint.channel_values
-    );
+### Message Handling
+- Proper serialization of BaseMessage objects
+- Type-safe message conversion
+- Maintains message history integrity
 
-    await checkpointMemory.put(
-        config,
-        {
-            ...currentState.checkpoint,
-            channel_values: {
-                ...currentState.checkpoint.channel_values,
-                messages: restructuredMessages.concat(newMessages)
-            }
-        },
-        currentState.metadata,
-        {}
-    );
-}
-```
-
-## Implementation Order
-
-1. Update Start Node
-   - Implement proper AgentMemory initialization
-   - Add overrideConfig handling with database support
-   - Test state persistence across different database backends
-
-2. Update Common Utils
-   - Integrate existing transformation utilities
-   - Add state update utilities with proper message handling
-   - Ensure proper error handling and state validation
-
-3. Update Sequential Nodes
-   - Modify nodes to use AgentMemory interface
-   - Test state updates in each node
-   - Verify message persistence and history selection
+### Database Operations
+- Consistent error handling across all databases
+- Proper connection management
+- State consistency checks
+- Type-safe operations
 
 ## Testing Strategy
 
-1. **Start Node Tests**
-   - Verify overrideConfig is properly applied
-   - Test database persistence across all supported backends
-   - Validate state initialization with AgentMemory
+1. **Unit Tests**
+   - Test message serialization
+   - Test state persistence
+   - Test error handling
+   - Test connection management
 
-2. **State Management Tests**
-   - Test state updates from different nodes
-   - Verify state persistence across flow
-   - Test state transformations and filtering
+2. **Integration Tests**
+   - Test cross-database compatibility
+   - Test state consistency
+   - Test message history
+   - Test error recovery
 
-3. **Message History Tests**
-   - Test all history selection modes
-   - Verify message persistence and ordering
-   - Validate message restructuring for different LLMs
+3. **Performance Tests**
+   - Test connection pooling
+   - Test large state handling
+   - Test message history scaling
 
 ## Future Enhancements
 
-1. **Advanced Message Management**
-   - Implement message summarization
-   - Enhance message filtering options
-   - Support rich message metadata
+1. **Performance Optimization**
+   - Connection pooling
+   - State compression
+   - Message batching
+   - Query optimization
 
-2. **State Optimization**
-   - Add state compression
-   - Implement state cleanup
-   - Add state versioning
+2. **Monitoring & Debugging**
+   - Add state monitoring
+   - Improve error tracking
+   - Add debugging tools
+   - Add performance metrics
 
-3. **Database Optimizations**
-   - Add connection pooling
-   - Implement caching
-   - Add query optimization
+3. **Advanced Features**
+   - State versioning
+   - State rollback
+   - State migration
+   - Advanced message filtering
 
 ## Notes
 
-- All sequential nodes must flow from Start to End
-- State management is initialized at Start node through AgentMemory
-- Database backend (SQLite/PostgreSQL/MySQL) handled through AgentMemory abstraction
-- Maintain compatibility with existing Flowise functionality
-- Leverage existing utilities in commonUtils for state transformation
+- All database implementations follow consistent patterns
+- Each implementation respects database-specific best practices
+- Focus on maintaining state consistency across operations
+- Ensure proper error handling and recovery
+- Keep implementation simple and maintainable
+- Follow LangGraph's checkpoint system patterns
+- Maintain Flowise compatibility throughout

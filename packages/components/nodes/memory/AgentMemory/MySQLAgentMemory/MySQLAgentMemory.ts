@@ -1,7 +1,4 @@
-import { getBaseClasses, getCredentialData, getCredentialParam } from '../../../../src/utils'
-import { SaverOptions } from '../interface'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../../src/Interface'
-import { DataSource } from 'typeorm'
+import { INode, INodeData, INodeParams, ICommonObject } from '../../../../src/Interface'
 import { MySQLSaver } from './mysqlSaver'
 
 class MySQLAgentMemory_Memory implements INode {
@@ -12,32 +9,30 @@ class MySQLAgentMemory_Memory implements INode {
     type: string
     icon: string
     category: string
-    badge: string
     baseClasses: string[]
     inputs: INodeParams[]
-    credential: INodeParams
 
     constructor() {
         this.label = 'MySQL Agent Memory'
-        this.name = 'mySQLAgentMemory'
+        this.name = 'mysqlAgentMemory'
         this.version = 1.0
-        this.type = 'AgentMemory'
-        this.icon = 'mysql.png'
+        this.type = 'MySQLAgentMemory'
+        this.icon = 'mysql.svg'
         this.category = 'Memory'
-        this.description = 'Memory for agentflow to remember the state of the conversation using MySQL database'
-        this.baseClasses = [this.type, ...getBaseClasses(MySQLSaver)]
-        this.credential = {
-            label: 'Connect Credential',
-            name: 'credential',
-            type: 'credential',
-            credentialNames: ['MySQLApi'],
-            optional: true
-        }
+        this.description = 'Store agent state and conversation history in MySQL'
+        this.baseClasses = ['BaseCheckpointSaver']
         this.inputs = [
             {
-                label: 'Host',
+                label: 'Connection Host',
                 name: 'host',
-                type: 'string'
+                type: 'string',
+                placeholder: 'localhost'
+            },
+            {
+                label: 'Connection Port',
+                name: 'port',
+                type: 'number',
+                placeholder: '3306'
             },
             {
                 label: 'Database',
@@ -45,67 +40,50 @@ class MySQLAgentMemory_Memory implements INode {
                 type: 'string'
             },
             {
-                label: 'Port',
-                name: 'port',
-                type: 'number',
-                default: '3306'
+                label: 'Username',
+                name: 'username',
+                type: 'string'
             },
             {
-                label: 'Additional Connection Configuration',
-                name: 'additionalConfig',
-                type: 'json',
-                additionalParams: true,
-                optional: true
+                label: 'Password',
+                name: 'password',
+                type: 'password'
+            },
+            {
+                label: 'Thread ID',
+                name: 'threadId',
+                type: 'string',
+                description: 'Thread ID to store memory',
+                placeholder: 'thread-id'
             }
         ]
     }
 
-    async init(nodeData: INodeData, _: string, options: ICommonObject): Promise<any> {
-        const additionalConfig = nodeData.inputs?.additionalConfig as string
-        const databaseEntities = options.databaseEntities as IDatabaseEntity
-        const chatflowid = options.chatflowid as string
-        const appDataSource = options.appDataSource as DataSource
+    async init(nodeData: INodeData, input: string, options?: ICommonObject): Promise<any> {
+        const host = nodeData.inputs?.host as string
+        const port = nodeData.inputs?.port as number
+        const database = nodeData.inputs?.database as string
+        const username = nodeData.inputs?.username as string
+        const password = nodeData.inputs?.password as string
+        const threadId = nodeData.inputs?.threadId as string || options?.sessionId || options?.chatId
 
-        let additionalConfiguration = {}
-        if (additionalConfig) {
-            try {
-                additionalConfiguration = typeof additionalConfig === 'object' ? additionalConfig : JSON.parse(additionalConfig)
-            } catch (exception) {
-                throw new Error('Invalid JSON in the Additional Configuration: ' + exception)
-            }
-        }
-
-        const threadId = options.sessionId || options.chatId
-
-        let datasourceOptions: ICommonObject = {
-            ...additionalConfiguration,
-            type: 'mysql'
-        }
-
-        const credentialData = await getCredentialData(nodeData.credential ?? '', options)
-        const user = getCredentialParam('user', credentialData, nodeData)
-        const password = getCredentialParam('password', credentialData, nodeData)
-        const _port = (nodeData.inputs?.port as string) || '3306'
-        const port = parseInt(_port)
-        datasourceOptions = {
-            ...datasourceOptions,
-            host: nodeData.inputs?.host as string,
+        const datasourceOptions = {
+            type: 'mysql',
+            host,
             port,
-            database: nodeData.inputs?.database as string,
-            username: user,
-            user: user,
-            password: password,
-            charset: 'utf8mb4'
+            username,
+            password,
+            database,
+            synchronize: true
         }
-        const args: SaverOptions = {
+
+        return new MySQLSaver({
             datasourceOptions,
             threadId,
-            appDataSource,
-            databaseEntities,
-            chatflowid
-        }
-        const recordManager = new MySQLSaver(args)
-        return recordManager
+            appDataSource: options?.appDataSource as any,
+            databaseEntities: options?.databaseEntities as any,
+            chatflowid: options?.chatflowid as string
+        })
     }
 }
 
