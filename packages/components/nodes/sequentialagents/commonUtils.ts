@@ -19,6 +19,7 @@ import {
 } from '../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
+import { SendProtocol } from '@langchain/langgraph-checkpoint'
 
 export const checkCondition = (input: string | number | undefined, condition: string, value: string | number = ''): boolean => {
     if (!input && condition === 'Is Empty') return true
@@ -86,7 +87,79 @@ export const checkCondition = (input: string | number | undefined, condition: st
     }
 }
 
-export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISeqAgentsState) => {
+export interface MessagesState {
+    messages: BaseMessage[]
+    state: Record<string, any>
+    checkpoint: FlowiseCheckpoint
+}
+
+export interface FlowiseCheckpoint {
+    v: number
+    id: string
+    ts: string
+    channel_values: {
+        messages: BaseMessage[]
+        state: Record<string, any>
+    }
+    channel_versions: Record<string, number>
+    versions_seen: Record<string, number>
+    pending_sends: SendProtocol[]
+}
+
+export const createInitialState = (nodeId: string): MessagesState => {
+    return {
+        messages: [],
+        state: {},
+        checkpoint: {
+            v: 1,
+            id: nodeId,
+            ts: new Date().toISOString(),
+            channel_values: {
+                messages: [],
+                state: {}
+            },
+            channel_versions: {},
+            versions_seen: {},
+            pending_sends: []
+        }
+    }
+}
+
+export const updateStateMessages = (state: MessagesState, newMessages: BaseMessage[]): MessagesState => {
+    return {
+        ...state,
+        messages: [...state.messages, ...newMessages],
+        checkpoint: {
+            ...state.checkpoint,
+            channel_values: {
+                ...state.checkpoint.channel_values,
+                messages: [...state.checkpoint.channel_values.messages, ...newMessages]
+            }
+        }
+    }
+}
+
+export const updateStateValue = (state: MessagesState, key: string, value: any): MessagesState => {
+    return {
+        ...state,
+        state: {
+            ...state.state,
+            [key]: value
+        },
+        checkpoint: {
+            ...state.checkpoint,
+            channel_values: {
+                ...state.checkpoint.channel_values,
+                state: {
+                    ...state.checkpoint.channel_values.state,
+                    [key]: value
+                }
+            }
+        }
+    }
+}
+
+export const transformObjectPropertyToFunction = (obj: ICommonObject, state: MessagesState) => {
     const transformedObject: ICommonObject = {}
 
     for (const key in obj) {
@@ -95,7 +168,8 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISe
         try {
             const parsedValue = JSON.parse(value)
             if (typeof parsedValue === 'object' && parsedValue.id) {
-                const messageOutputs = ((state.messages as unknown as BaseMessage[]) ?? []).filter(
+                const messages = state.checkpoint.channel_values.messages ?? []
+                const messageOutputs = messages.filter(
                     (message) => message.additional_kwargs && message.additional_kwargs?.nodeId === parsedValue.id
                 )
                 const messageOutput = messageOutputs[messageOutputs.length - 1]
@@ -129,7 +203,7 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISe
                 const matches = value.match(/messages\[(.*?)\]\.content/)
                 if (matches && matches[1]) {
                     const index = matches[1]
-                    const messages = (state.messages as unknown as BaseMessage[]) ?? []
+                    const messages = state.checkpoint.channel_values.messages ?? []
                     if (messages.length) {
                         const targetIndex = index === '-1' ? messages.length - 1 : parseInt(index)
                         const message = messages[targetIndex]
@@ -144,9 +218,9 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISe
             } else {
                 // Handle regular state variable access
                 const stateKey = value.replace('$flow.state.', '')
-                value = customGet(state, stateKey)
+                value = customGet(state.checkpoint.channel_values.state, stateKey)
                 if (value === undefined) {
-                    console.warn(`State variable '${stateKey}' not found in state:`, state)
+                    console.warn(`State variable '${stateKey}' not found in state:`, state.checkpoint.channel_values.state)
                     value = ''
                 }
                 if (typeof value === 'object' && value !== null) {
@@ -380,10 +454,6 @@ export interface RunnableCallableArgs extends Partial<any> {
     tags?: string[]
     trace?: boolean
     recurse?: boolean
-}
-
-export interface MessagesState {
-    messages: BaseMessage[]
 }
 
 export class RunnableCallable<I = unknown, O = unknown> extends Runnable<I, O> {
