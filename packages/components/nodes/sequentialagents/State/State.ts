@@ -114,32 +114,65 @@ class State_SeqAgents implements INode {
         const stateMemory = nodeData.inputs?.stateMemory as string
 
         const createCheckpointer = (obj: ICommonObject) => {
-            // Create the initial state with messages channel
-            const initialState: StateObject = {
+            // Build the channel configuration with a default 'messages' channel
+            const config: ICommonObject = {
                 messages: {
-                    value: (x: any[], y: any[]) => x.concat(y),
+                    value: (x: any[], y: any[]) => x.concat(y), // Append behavior for messages
                     default: () => []
                 }
-            }
+            };
 
-            // Add user-defined channels from obj
+            // Add user-defined channels from obj (exclude 'messages' if already defined)
             for (const [key, value] of Object.entries(obj)) {
                 if (key !== 'messages') {
-                    initialState[key] = value
+                    config[key] = value;
                 }
             }
 
-            let currentState = { ...initialState }
+            // Initialize the actual state using each channel's default value
+            const state: ICommonObject = {};
+            for (const key in config) {
+                const channel = config[key];
+                if (channel && typeof channel.default === 'function') {
+                    state[key] = channel.default();
+                } else {
+                    state[key] = undefined;
+                }
+            }
 
             return {
-                getTuple: async () => currentState,
+                getTuple: async () => state,
                 putTuple: async (tuple: any) => {
-                    currentState = { ...currentState, ...tuple }
+                    for (const key in tuple) {
+                        if (config.hasOwnProperty(key)) {
+                            const channel = config[key];
+                            if (channel && typeof channel.value === 'function') {
+                                // Use the merging function from the channel configuration
+                                state[key] = channel.value(state[key], tuple[key]);
+                            } else {
+                                // For channels without a merging function, replace if value is non-null
+                                if (tuple[key] !== null && tuple[key] !== undefined) {
+                                    state[key] = tuple[key];
+                                }
+                            }
+                        } else {
+                            // For keys not in our configuration, simply add/replace them
+                            state[key] = tuple[key];
+                        }
+                    }
                 },
                 deleteTuple: async () => {
-                    currentState = { ...initialState }
+                    // Reset state to each channel's default value
+                    for (const key in config) {
+                        const channel = config[key];
+                        if (channel && typeof channel.default === 'function') {
+                            state[key] = channel.default();
+                        } else {
+                            state[key] = undefined;
+                        }
+                    }
                 }
-            }
+            };
         }
 
         if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
