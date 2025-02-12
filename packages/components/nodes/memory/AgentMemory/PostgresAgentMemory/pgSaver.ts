@@ -352,4 +352,62 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
             throw error
         }
     }
+
+    async putTuple(tuple: LangGraphCheckpointTuple): Promise<void> {
+        const config = { configurable: { thread_id: this.threadId } };
+        const currentState = await this.getTuple(config);
+
+        if (!currentState) {
+            // Initialize state if it doesn't exist
+            await this.put(
+                config,
+                tuple.checkpoint,
+                tuple.metadata || {
+                    source: 'input',
+                    step: 0,
+                    writes: null,
+                    parents: {}
+                },
+                {}
+            );
+            return;
+        }
+
+        // Update channel versions
+        for (const key in tuple.checkpoint.channel_versions) {
+            if (!(key in currentState.checkpoint.channel_versions)) {
+                currentState.checkpoint.channel_versions[key] = 0;
+            }
+            const currentVersion = Number(currentState.checkpoint.channel_versions[key] || 0);
+            currentState.checkpoint.channel_versions[key] = currentVersion + 1;
+
+            // Update versions seen
+            if (!(key in currentState.checkpoint.versions_seen)) {
+                currentState.checkpoint.versions_seen[key] = {};
+            }
+            currentState.checkpoint.versions_seen[key][currentState.checkpoint.id] = currentVersion + 1;
+        }
+
+        // Merge channel_values
+        currentState.checkpoint.channel_values = {
+            ...currentState.checkpoint.channel_values,
+            ...tuple.checkpoint.channel_values
+        };
+
+        // Update metadata and timestamp
+        currentState.checkpoint.ts = new Date().toISOString();
+        const metadata = tuple.metadata || {
+            source: 'input',
+            step: 0,
+            writes: null,
+            parents: {}
+        };
+
+        await this.put(
+            config,
+            currentState.checkpoint,
+            metadata,
+            currentState.checkpoint.channel_versions
+        );
+    }
 }

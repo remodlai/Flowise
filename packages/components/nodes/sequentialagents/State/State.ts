@@ -193,12 +193,27 @@ class State_SeqAgents implements INode {
                             ...currentState.checkpoint.channel_values,
                             [key]: Array.isArray(currentValue) ? [...currentValue, ...valueToAppend] : valueToAppend
                         }
+                        // Update channel versions for append operation
+                        if (!(key in currentState.checkpoint.channel_versions)) {
+                            currentState.checkpoint.channel_versions[key] = 0;
+                        }
+                        const currentVersion = typeof currentState.checkpoint.channel_versions[key] === 'string' 
+                            ? parseInt(currentState.checkpoint.channel_versions[key] as string) 
+                            : (currentState.checkpoint.channel_versions[key] as number);
+                        currentState.checkpoint.channel_versions[key] = currentVersion + 1;
                     } else {
                         currentState.checkpoint.channel_values = {
                             ...currentState.checkpoint.channel_values,
                             [key]: operation.value
                         }
+                        // Update channel versions for replace operation
+                        currentState.checkpoint.channel_versions[key] = 1;
                     }
+                    // Initialize versions_seen for this key
+                    if (!(key in currentState.checkpoint.versions_seen)) {
+                        currentState.checkpoint.versions_seen[key] = {}
+                    }
+                    currentState.checkpoint.versions_seen[key][nodeData.id] = currentState.checkpoint.channel_versions[key]
                 })
             }
 
@@ -215,18 +230,48 @@ class State_SeqAgents implements INode {
                                     ...currentState.checkpoint.channel_values,
                                     [key]: Array.isArray(currentValue) ? [...currentValue, ...valueToAppend] : valueToAppend
                                 }
+                                // Update channel versions for append operation
+                                if (!(key in currentState.checkpoint.channel_versions)) {
+                                    currentState.checkpoint.channel_versions[key] = 0;
+                                }
+                                const currentVersion = typeof currentState.checkpoint.channel_versions[key] === 'string' 
+                                    ? parseInt(currentState.checkpoint.channel_versions[key] as string) 
+                                    : (currentState.checkpoint.channel_versions[key] as number);
+                                currentState.checkpoint.channel_versions[key] = currentVersion + 1;
                             } else {
                                 currentState.checkpoint.channel_values = {
                                     ...currentState.checkpoint.channel_values,
                                     [key]: operation.value
                                 }
+                                // Update channel versions for replace operation
+                                currentState.checkpoint.channel_versions[key] = 1;
                             }
+                            // Update versions_seen for this key
+                            if (!(key in currentState.checkpoint.versions_seen)) {
+                                currentState.checkpoint.versions_seen[key] = {}
+                            }
+                            currentState.checkpoint.versions_seen[key][nodeData.id] = currentState.checkpoint.channel_versions[key]
                         })
                     }
                     return currentState
                 },
                 putTuple: async (tuple: MessagesState) => {
-                    currentState = { ...currentState, ...tuple }
+                    // Preserve version information when updating state
+                    currentState = {
+                        ...currentState,
+                        checkpoint: {
+                            ...currentState.checkpoint,
+                            channel_values: tuple.checkpoint.channel_values,
+                            channel_versions: {
+                                ...currentState.checkpoint.channel_versions,
+                                ...tuple.checkpoint.channel_versions
+                            },
+                            versions_seen: {
+                                ...currentState.checkpoint.versions_seen,
+                                ...tuple.checkpoint.versions_seen
+                            }
+                        }
+                    }
                 },
                 deleteTuple: async () => {
                     currentState = createInitialState(nodeData.id)
