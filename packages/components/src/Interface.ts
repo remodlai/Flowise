@@ -2,11 +2,67 @@ import { BaseMessage } from '@langchain/core/messages'
 import { BufferMemory, BufferWindowMemory, ConversationSummaryMemory, ConversationSummaryBufferMemory } from 'langchain/memory'
 import { Moderation } from '../nodes/moderation/Moderation'
 import { SendProtocol, Checkpoint, ChannelVersions } from '@langchain/langgraph-checkpoint'
+import { Annotation } from '@langchain/langgraph'
 
 /**
  * Types
  */
 
+/**
+ * Graph State
+ */
+
+// Define reducer types
+type MessageReducer = (current: BaseMessage[], next: BaseMessage[]) => BaseMessage[]
+type StateOperation = 'append' | 'replace'
+
+// Message reducer function (always appends)
+const messageReducer: MessageReducer = (current, next) => {
+    return [...current, ...next]
+}
+
+// Dynamic channel value reducer that handles both append and replace
+const channelValueReducer = (current: any, next: any, operation: StateOperation = 'replace') => {
+    if (operation === 'append') {
+        if (Array.isArray(current)) {
+            return [...current, ...(Array.isArray(next) ? next : [next])]
+        }
+        return Array.isArray(next) ? next : [next]
+    }
+    return next // Default to replace
+}
+
+export const GraphState = {
+    messages: Annotation<BaseMessage[]>({
+        value: messageReducer,
+        default: () => []
+    }),
+    channel_values: Annotation<Record<string, any>>({
+        value: (current, next) => {
+            const result: Record<string, any> = {}
+            // Handle each key based on its operation type
+            for (const [key, value] of Object.entries(next)) {
+                const operation = value?.__stateOperation || 'replace'
+                const currentValue = current[key]
+                result[key] = channelValueReducer(currentValue, value?.value ?? value, operation as StateOperation)
+            }
+            return result
+        },
+        default: () => ({})
+    })
+}
+
+export type StateType = {
+    messages: BaseMessage[]
+    channel_values: {
+        [key: string]: any
+    }
+    checkpoint?: Checkpoint<string, string>
+}
+
+/**
+ * Checkpoint Types
+ */
 export interface StateData {
     messages: BaseMessage[]
     [key: string]: any
@@ -16,7 +72,10 @@ export interface FlowiseCheckpoint extends Checkpoint<string, string> {
     v: number
     id: string
     ts: string
-    channel_values: StateData
+    channel_values: {
+        messages: BaseMessage[]
+        [key: string]: any
+    }
     channel_versions: ChannelVersions
     versions_seen: Record<string, Record<string, number>>
     pending_sends: SendProtocol[]
@@ -235,12 +294,6 @@ export interface ITeamState {
     next: string
     instructions: string
     summarization?: string
-}
-
-export interface ISeqAgentsState {
-    messages: BaseMessage[]
-    state: Record<string, any>
-    checkpoint: FlowiseCheckpoint
 }
 
 export interface IAgentReasoning {

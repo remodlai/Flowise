@@ -13,3 +13,15 @@ You unserstand that we are working within the Flowise Platform, not just LangCha
 **CRITICAL** Ensure that you ask questions or ask for code examples if available, when not sure. NEVER USE PLACEHOLDERS.
 
 We are solving for ALL node types in @sequentialagents
+
+Our graph is managed in @buildAgentGraph.ts
+
+We are using @langchain/langgraph-checkpoint for checkpointing.
+
+Current tasks:
+Replacing usage of FlowiseCheckpoint with Checkpoint from @langchain/langgraph-checkpoint
+Replacing usage of ISeqAgentsState with StateType from @langchain/langgraph
+Exploring how we can leverage langgraph native functionality to replace existing flowise functionality within sequentialagents
+    - Graph.get_state()
+    - Graph.get_messages()
+    - Graph.stream() etc.

@@ -43,8 +43,8 @@ import {
     MessagesState,
     RunnableCallable,
     checkMessageHistory,
-    updateStateMessages,
-    createInitialState
+    
+   
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
@@ -790,13 +790,13 @@ async function agentNode(
             throw new Error('Aborted!')
         }
 
-        // Initialize state if null or missing
-        const currentState = state 
-            ? createInitialState(config?.configurable?.checkpoint_id || nodeData.id, state)
-            : createInitialState(config?.configurable?.checkpoint_id || nodeData.id)
+        // Validate that we received properly initialized state
+        if (!state?.checkpoint) {
+            throw new Error('Agent received uninitialized state. Ensure State node is properly configured and connected.')
+        }
 
         // Get current messages for LLM context
-        const currentMessages = currentState.messages || []
+        const currentMessages = state.messages || []
 
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
         // Create filtered messages for LLM context without modifying state
@@ -806,7 +806,7 @@ async function agentNode(
         // Pass filtered messages to LLM while preserving original state structure
         let result = await agent.invoke({ 
             messages: llmMessages,
-            checkpoint: currentState.checkpoint,
+            checkpoint: state.checkpoint,
             signal: abortControllerSignal.signal 
         }, config)
 
@@ -836,7 +836,7 @@ async function agentNode(
                 result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true }
                 
                 // Update state while maintaining proper structure
-                const updatedState = updateStateMessages(currentState, [result])
+                const updatedState = updateStateMessages(state, [result])
                 return updatedState
             }
         }
@@ -866,11 +866,11 @@ async function agentNode(
                 ...result,
                 content: outputContent
             }
-            const returnedStateValues = await getReturnOutput(nodeData, input, options, formattedOutput, currentState)
+            const returnedStateValues = await getReturnOutput(nodeData, input, options, formattedOutput, state)
             const newMessages = convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
             
             // Update state while maintaining proper structure
-            const updatedState = updateStateMessages(currentState, newMessages)
+            const updatedState = updateStateMessages(state, newMessages)
 
             // Add returned values to channel_values
             if (returnedStateValues) {
@@ -890,7 +890,7 @@ async function agentNode(
         })
         
         // Update state while maintaining proper structure
-        const updatedState = updateStateMessages(currentState, [newMessage])
+        const updatedState = updateStateMessages(state, [newMessage])
         return updatedState
 
     } catch (error) {
@@ -1018,6 +1018,10 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
         }
         // Handle MessagesState type
         else {
+            // Validate that we received properly initialized state
+            if (!(input as MessagesState).checkpoint) {
+                throw new Error('Tool received uninitialized state. Ensure State node is properly configured and connected.')
+            }
             messages = (input as MessagesState).messages
         }
 
@@ -1100,7 +1104,7 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
             return {
                 ...currentState,  // Preserve root level state
                 messages: outputs,
-                checkpoint: currentState.checkpoint || createInitialState(this.nodeData.id).checkpoint
+                checkpoint: currentState.checkpoint
             } as MessagesState
         }
         

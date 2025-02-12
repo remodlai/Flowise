@@ -13,14 +13,12 @@ import {
     ICommonObject,
     IDatabaseEntity,
     INodeData,
-    ISeqAgentsState,
+    StateType,
     IVisionChatModal,
     ConversationHistorySelection
 } from '../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
-import { SendProtocol } from '@langchain/langgraph-checkpoint'
-import { FlowiseCheckpoint } from '../../src/Interface'
 
 export const checkCondition = (input: string | number | undefined, condition: string, value: string | number = ''): boolean => {
     if (!input && condition === 'Is Empty') return true
@@ -88,104 +86,8 @@ export const checkCondition = (input: string | number | undefined, condition: st
     }
 }
 
-export interface MessagesState {
-    messages: BaseMessage[]
-    checkpoint: FlowiseCheckpoint
-    //[key: string]: any  state values are not longer supported at root level
-}
-
-export const createInitialState = (nodeId: string, existingState: Partial<MessagesState> = {}): MessagesState => {
-    const initialState = {
-        messages: [],
-        checkpoint: {
-            v: 1,
-            id: nodeId,
-            ts: new Date().toISOString(),
-            channel_values: {
-                messages: []
-            },
-            channel_versions: {},
-            versions_seen: {},
-            pending_sends: []
-        }
-    }
-
-    // Preserve any existing values including root level state
-    return {
-        ...initialState,
-        ...existingState,
-        checkpoint: {
-            ...initialState.checkpoint,
-            ...existingState.checkpoint,
-            channel_values: {
-                ...initialState.checkpoint.channel_values,
-                ...existingState.checkpoint?.channel_values,
-                messages: existingState.messages || initialState.messages
-            }
-        }
-    }
-}
-
-export const updateStateMessages = (state: MessagesState, newMessages: BaseMessage[]): MessagesState => {
-    return {
-        ...state,  // Preserve root level state values
-        messages: [...state.messages, ...newMessages],
-        checkpoint: {
-            ...state.checkpoint,
-            channel_values: {
-                ...state.checkpoint.channel_values,
-                messages: [...(state.checkpoint.channel_values.messages || []), ...newMessages]
-            }
-        }
-    }
-}
-
-export const updateStateValue = (
-    state: MessagesState, 
-    key: string, 
-    value: any, 
-    options: { 
-        isAppend?: boolean,
-        isReplace?: boolean 
-    } = { isAppend: false, isReplace: true }
-): MessagesState => {
-    const currentValue = state.checkpoint.channel_values[key]
-    let newValue = value
-
-    if (options.isAppend && (Array.isArray(currentValue) || !currentValue)) {
-        // Handle append operation
-        const currentArray = Array.isArray(currentValue) ? currentValue : []
-        const valueToAppend = Array.isArray(value) ? value : [value]
-        newValue = [...currentArray, ...valueToAppend]
-    } else if (!options.isReplace && value === null) {
-        // Keep existing value if replace is false and new value is null
-        newValue = currentValue
-    }
-
-    return {
-        ...state,
-        checkpoint: {
-            ...state.checkpoint,
-            channel_values: {
-                ...state.checkpoint.channel_values,
-                [key]: newValue
-            }
-        }
-    }
-}
-
-export const transformObjectPropertyToFunction = (obj: ICommonObject, state: MessagesState) => {
+export const transformObjectPropertyToFunction = (obj: ICommonObject, state: StateType) => {
     const transformedObject: ICommonObject = {}
-
-    // If state is null or undefined, create initial state
-    if (!state) {
-        state = createInitialState('default', {})
-    }
-
-    // Ensure checkpoint exists and preserve any top-level values
-    if (!state.checkpoint) {
-        state = createInitialState('default', state)
-    }
 
     for (const key in obj) {
         let value = obj[key]
@@ -193,8 +95,7 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: Mes
         try {
             const parsedValue = JSON.parse(value)
             if (typeof parsedValue === 'object' && parsedValue.id) {
-                const messages = state.messages ?? []
-                const messageOutputs = messages.filter(
+                const messageOutputs = (state.messages ?? []).filter(
                     (message) => message.additional_kwargs && message.additional_kwargs?.nodeId === parsedValue.id
                 )
                 const messageOutput = messageOutputs[messageOutputs.length - 1]
@@ -222,52 +123,9 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: Mes
             // do nothing
         }
         // get state value
-        if (typeof value === 'string' && value.startsWith('$flow.state')) {
-            // Handle array index access for messages array
-            if (value.includes('messages[') && value.includes('].content')) {
-                const matches = value.match(/messages\[(.*?)\]\.content/)
-                if (matches && matches[1]) {
-                    const index = matches[1]
-                    const messages = state.messages ?? []
-                    if (messages.length) {
-                        const targetIndex = index === '-1' ? messages.length - 1 : parseInt(index)
-                        const message = messages[targetIndex]
-                        if (message && message.content) {
-                            value = message.content
-                        }
-                    }
-                }
-            } else if (value === '$flow.state.<replace-with-key>') {
-                // This is the template pattern - leave it as is for UI display
-                value = value
-            } else {
-                // Handle regular state variable access
-                const stateKey = value.replace('$flow.state.', '')
-                
-                // First try to get value from channel_values
-                let stateValue = state.checkpoint?.channel_values?.[stateKey]
-
-                // If not found in channel_values, try root level state (deprecated)
-                //if (stateValue === undefined) {
-                //    stateValue = state[stateKey]
-                //}
-
-                // If not found and it's 'messages', use messages array
-                if (stateValue === undefined && stateKey === 'messages') {
-                    stateValue = state.messages
-                }
-
-                // If not found anywhere, return empty string but don't warn
-                // This is expected behavior when accessing optional state variables
-                if (stateValue === undefined) {
-                    value = ''
-                } else {
-                    value = stateValue
-                    if (typeof value === 'object' && value !== null) {
-                        value = JSON.stringify(value)
-                    }
-                }
-            }
+        if (value.startsWith('$flow.state')) {
+            value = customGet(state, value.replace('$flow.state.', ''))
+            if (typeof value === 'object') value = JSON.stringify(value)
         }
         transformedObject[key] = () => value
     }
@@ -389,37 +247,37 @@ export const convertStructuredSchemaToZod = (schema: string | object): ICommonOb
  *
  * @param historySelection - The selected history option.
  * @param input - The user input.
- * @param messages - The current conversation messages.
+ * @param state - The current state of the sequential llm or agent node.
  */
 export function filterConversationHistory(
     historySelection: ConversationHistorySelection,
     input: string,
-    messages: BaseMessage[]
+    state: StateType
 ): BaseMessage[] {
     switch (historySelection) {
         case 'user_question':
             return [new HumanMessage(input)]
         case 'last_message':
-            return messages?.length ? [messages[messages.length - 1]] : []
+            return state.messages?.length ? [state.messages[state.messages.length - 1]] : []
         case 'empty':
             return []
         case 'all_messages':
-            return messages ?? []
+            return state.messages ?? []
         default:
             throw new Error(`Unhandled conversationHistorySelection: ${historySelection}`)
     }
 }
 
-export const restructureMessages = (llm: BaseChatModel, messages: BaseMessage[]): BaseMessage[] => {
-    const restructuredMessages: BaseMessage[] = []
-    for (const message of messages) {
+export const restructureMessages = (llm: BaseChatModel, state: StateType) => {
+    const messages: BaseMessage[] = []
+    for (const message of state.messages) {
         // Sometimes Anthropic can return a message with content types of array, ignore that EXECEPT when tool calls are present
         if ((message as any).tool_calls?.length && message.content !== '') {
             message.content = JSON.stringify(message.content)
         }
 
         if (typeof message.content === 'string') {
-            restructuredMessages.push(message)
+            messages.push(message)
         }
     }
 
@@ -433,25 +291,25 @@ export const restructureMessages = (llm: BaseChatModel, messages: BaseMessage[])
      * 2.) Tool Message followed by Human Message
      */
     if (llm instanceof ChatMistralAI) {
-        if (restructuredMessages.length > 1) {
-            for (let i = 0; i < restructuredMessages.length; i++) {
-                const message = restructuredMessages[i]
+        if (messages.length > 1) {
+            for (let i = 0; i < messages.length; i++) {
+                const message = messages[i]
 
                 // If last message is denied Tool Message, add a new Human Message
-                if (isToolMessage(message) && i === restructuredMessages.length - 1 && message.additional_kwargs?.toolCallsDenied) {
-                    restructuredMessages.push(new AIMessage({ content: `Tool calls got denied. Do you have other questions?` }))
-                } else if (i + 1 < restructuredMessages.length) {
-                    const nextMessage = restructuredMessages[i + 1]
+                if (isToolMessage(message) && i === messages.length - 1 && message.additional_kwargs?.toolCallsDenied) {
+                    messages.push(new AIMessage({ content: `Tool calls got denied. Do you have other questions?` }))
+                } else if (i + 1 < messages.length) {
+                    const nextMessage = messages[i + 1]
                     const currentMessage = message
 
                     // If current message is Tool Message and next message is Human Message, add AI Message between Tool and Human Message
                     if (isToolMessage(currentMessage) && isHumanMessage(nextMessage)) {
-                        restructuredMessages.splice(i + 1, 0, new AIMessage({ content: 'Tool calls executed' }))
+                        messages.splice(i + 1, 0, new AIMessage({ content: 'Tool calls executed' }))
                     }
 
                     // If last message is AI Message or Tool Message, add Human Message
-                    if (i + 1 === restructuredMessages.length - 1 && (isAIMessage(nextMessage) || isToolMessage(nextMessage))) {
-                        restructuredMessages.push(new HumanMessage({ content: nextMessage.content || 'Given the user question, answer user query' }))
+                    if (i + 1 === messages.length - 1 && (isAIMessage(nextMessage) || isToolMessage(nextMessage))) {
+                        messages.push(new HumanMessage({ content: nextMessage.content || 'Given the user question, answer user query' }))
                     }
                 }
             }
@@ -460,16 +318,16 @@ export const restructureMessages = (llm: BaseChatModel, messages: BaseMessage[])
         /*
          * Anthropic does not support first message as AI Message
          */
-        if (restructuredMessages.length) {
-            const firstMessage = restructuredMessages[0]
+        if (messages.length) {
+            const firstMessage = messages[0]
             if (isAIMessage(firstMessage)) {
-                restructuredMessages.shift()
-                restructuredMessages.unshift(new HumanMessage({ ...firstMessage }))
+                messages.shift()
+                messages.unshift(new HumanMessage({ ...firstMessage }))
             }
         }
     }
 
-    return restructuredMessages
+    return messages
 }
 
 export class ExtractTool extends StructuredTool {
@@ -495,6 +353,10 @@ export interface RunnableCallableArgs extends Partial<any> {
     tags?: string[]
     trace?: boolean
     recurse?: boolean
+}
+
+export interface MessagesState {
+    messages: BaseMessage[]
 }
 
 export class RunnableCallable<I = unknown, O = unknown> extends Runnable<I, O> {

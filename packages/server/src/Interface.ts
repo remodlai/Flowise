@@ -5,12 +5,15 @@ import {
     INode,
     INodeData as INodeDataFromComponent,
     INodeParams,
-    IServerSideEventStreamer,
-    FlowiseCheckpoint
+    IServerSideEventStreamer
 } from 'flowise-components'
+import { GraphState, StateType } from '../../components/src/Interface'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'
+import { Annotation } from '@langchain/langgraph'
+import { BaseMessage } from '@langchain/core/messages'
+import { Checkpoint } from '@langchain/langgraph-checkpoint'
 
 export type MessageType = 'apiMessage' | 'userMessage'
 
@@ -356,11 +359,5 @@ export interface IVariableOverride {
 // DocumentStore related
 export * from './Interface.DocumentStore'
 
-export interface ISeqAgentsState {
-    messages: {
-        value: (x: any[], y: any[]) => any[]
-        default: () => any[]
-    }
-    checkpoint?: FlowiseCheckpoint
-    [key: string]: any
-}
+// Re-export for convenience
+export { GraphState, StateType }
