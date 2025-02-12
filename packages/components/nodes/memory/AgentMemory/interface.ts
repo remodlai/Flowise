@@ -9,7 +9,7 @@ import {
     SendProtocol
 } from '@langchain/langgraph-checkpoint'
 import { RunnableConfig } from '@langchain/core/runnables'
-import { IDatabaseEntity } from '../../../src'
+import { IDatabaseEntity } from '../../../src/Interface'
 import { DataSource } from 'typeorm'
 import { BaseMessage } from '@langchain/core/messages'
 
@@ -24,18 +24,7 @@ export type SaverOptions = {
 // Re-export the types from langgraph-checkpoint
 export type { 
     LangGraphCheckpointTuple as CheckpointTuple, 
-    LangGraphCheckpointListOptions as CheckpointListOptions 
-}
-
-// Define our state structure
-export interface StateData {
-    messages: BaseMessage[]
-    [key: string]: any
-}
-
-// Define our checkpoint structure
-export interface FlowiseCheckpoint extends Checkpoint {
-    channel_values: StateData
+    LangGraphCheckpointListOptions as CheckpointListOptions
 }
 
 // Define our serializer protocol

@@ -15,7 +15,7 @@ import { RunnableConfig } from '@langchain/core/runnables'
 import { ARTIFACTS_PREFIX, SOURCE_DOCUMENTS_PREFIX } from '../../../src/agents'
 import { Document } from '@langchain/core/documents'
 import { DataSource } from 'typeorm'
-import { MessagesState, RunnableCallable, customGet, getVM } from '../commonUtils'
+import { MessagesState, RunnableCallable, customGet, getVM, createInitialState, updateStateMessages } from '../commonUtils'
 import { getVars, prepareSandboxVars } from '../../../src/utils'
 import { ChatPromptTemplate } from '@langchain/core/prompts'
 
@@ -361,7 +361,7 @@ class ToolNode_SeqAgents implements INode {
     }
 }
 
-class ToolNode<T extends IStateWithMessages | BaseMessage[] | MessagesState> extends RunnableCallable<T, BaseMessage[] | MessagesState> {
+class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable<T, BaseMessage[] | MessagesState> {
     tools: StructuredTool[]
     nodeData: INodeData
     inputQuery: string
@@ -384,20 +384,12 @@ class ToolNode<T extends IStateWithMessages | BaseMessage[] | MessagesState> ext
     }
 
     private async run(input: T, config: RunnableConfig): Promise<BaseMessage[] | MessagesState> {
-        let messages: BaseMessage[]
+        // Ensure proper state handling
+        const currentState = !Array.isArray(input) 
+            ? input as MessagesState 
+            : createInitialState(this.nodeData.id)
 
-        // Check if input is an array of BaseMessage[]
-        if (Array.isArray(input)) {
-            messages = input
-        }
-        // Check if input is IStateWithMessages
-        else if ((input as IStateWithMessages).messages) {
-            messages = (input as IStateWithMessages).messages
-        }
-        // Handle MessagesState type
-        else {
-            messages = (input as MessagesState).messages
-        }
+        const messages = Array.isArray(input) ? input : input.messages
 
         // Get the last message
         const message = messages[messages.length - 1]
@@ -406,13 +398,12 @@ class ToolNode<T extends IStateWithMessages | BaseMessage[] | MessagesState> ext
             throw new Error('ToolNode only accepts AIMessages as input.')
         }
 
-        // Extract all properties except messages for IStateWithMessages
-        const { messages: _, ...inputWithoutMessages } = Array.isArray(input) ? { messages: input } : input
+        // Extract all properties except messages for state handling
         const ChannelsWithoutMessages = {
             chatId: this.options.chatId,
             sessionId: this.options.sessionId,
             input: this.inputQuery,
-            state: inputWithoutMessages
+            checkpoint: currentState.checkpoint
         }
 
         const outputs = await Promise.all(
@@ -428,6 +419,7 @@ class ToolNode<T extends IStateWithMessages | BaseMessage[] | MessagesState> ext
                 let output = await tool.invoke(call.args, config)
                 let sourceDocuments: Document[] = []
                 let artifacts = []
+
                 if (output?.includes(SOURCE_DOCUMENTS_PREFIX)) {
                     const outputArray = output.split(SOURCE_DOCUMENTS_PREFIX)
                     output = outputArray[0]
@@ -472,13 +464,29 @@ class ToolNode<T extends IStateWithMessages | BaseMessage[] | MessagesState> ext
         outputs.forEach((result) => (result.additional_kwargs = { ...result.additional_kwargs, ...additional_kwargs }))
 
         if (this.nodeData.inputs?.updateStateMemoryUI || this.nodeData.inputs?.updateStateMemoryCode) {
-            const returnedOutput = await getReturnOutput(this.nodeData, this.inputQuery, this.options, outputs, input)
-            return {
-                ...returnedOutput,
-                messages: outputs
-            }
+            // Get state updates from UI/Code
+            const stateUpdates = await getReturnOutput(this.nodeData, this.inputQuery, this.options, outputs, currentState)
+            
+            // Update state with new messages and state updates
+            const updatedState = updateStateMessages({
+                messages: currentState.messages,
+                checkpoint: {
+                    ...currentState.checkpoint,
+                    channel_values: {
+                        ...currentState.checkpoint.channel_values,
+                        ...stateUpdates
+                    }
+                }
+            }, outputs)
+
+            return updatedState
         } else {
-            return Array.isArray(input) ? outputs : { messages: outputs }
+            // If input was a MessagesState, update state with new messages
+            if (!Array.isArray(input)) {
+                return updateStateMessages(currentState, outputs)
+            }
+            // Otherwise return just the messages array
+            return outputs
         }
     }
 }
@@ -488,7 +496,7 @@ const getReturnOutput = async (
     input: string,
     options: ICommonObject,
     outputs: ToolMessage[],
-    state: ICommonObject
+    state: MessagesState
 ) => {
     const appDataSource = options.appDataSource as DataSource
     const databaseEntities = options.databaseEntities as IDatabaseEntity

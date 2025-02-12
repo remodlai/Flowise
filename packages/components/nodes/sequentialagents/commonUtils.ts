@@ -20,6 +20,7 @@ import {
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { SendProtocol } from '@langchain/langgraph-checkpoint'
+import { FlowiseCheckpoint } from '../../src/Interface'
 
 export const checkCondition = (input: string | number | undefined, condition: string, value: string | number = ''): boolean => {
     if (!input && condition === 'Is Empty') return true
@@ -89,71 +90,85 @@ export const checkCondition = (input: string | number | undefined, condition: st
 
 export interface MessagesState {
     messages: BaseMessage[]
-    state: Record<string, any>
     checkpoint: FlowiseCheckpoint
+    //[key: string]: any  state values are not longer supported at root level
 }
 
-export interface FlowiseCheckpoint {
-    v: number
-    id: string
-    ts: string
-    channel_values: {
-        messages: BaseMessage[]
-        state: Record<string, any>
-    }
-    channel_versions: Record<string, number>
-    versions_seen: Record<string, number>
-    pending_sends: SendProtocol[]
-}
-
-export const createInitialState = (nodeId: string): MessagesState => {
-    return {
+export const createInitialState = (nodeId: string, existingState: Partial<MessagesState> = {}): MessagesState => {
+    const initialState = {
         messages: [],
-        state: {},
         checkpoint: {
             v: 1,
             id: nodeId,
             ts: new Date().toISOString(),
             channel_values: {
-                messages: [],
-                state: {}
+                messages: []
             },
             channel_versions: {},
             versions_seen: {},
             pending_sends: []
         }
     }
-}
 
-export const updateStateMessages = (state: MessagesState, newMessages: BaseMessage[]): MessagesState => {
+    // Preserve any existing values including root level state
     return {
-        ...state,
-        messages: [...state.messages, ...newMessages],
+        ...initialState,
+        ...existingState,
         checkpoint: {
-            ...state.checkpoint,
+            ...initialState.checkpoint,
+            ...existingState.checkpoint,
             channel_values: {
-                ...state.checkpoint.channel_values,
-                messages: [...state.checkpoint.channel_values.messages, ...newMessages]
+                ...initialState.checkpoint.channel_values,
+                ...existingState.checkpoint?.channel_values,
+                messages: existingState.messages || initialState.messages
             }
         }
     }
 }
 
-export const updateStateValue = (state: MessagesState, key: string, value: any): MessagesState => {
+export const updateStateMessages = (state: MessagesState, newMessages: BaseMessage[]): MessagesState => {
     return {
-        ...state,
-        state: {
-            ...state.state,
-            [key]: value
-        },
+        ...state,  // Preserve root level state values
+        messages: [...state.messages, ...newMessages],
         checkpoint: {
             ...state.checkpoint,
             channel_values: {
                 ...state.checkpoint.channel_values,
-                state: {
-                    ...state.checkpoint.channel_values.state,
-                    [key]: value
-                }
+                messages: [...(state.checkpoint.channel_values.messages || []), ...newMessages]
+            }
+        }
+    }
+}
+
+export const updateStateValue = (
+    state: MessagesState, 
+    key: string, 
+    value: any, 
+    options: { 
+        isAppend?: boolean,
+        isReplace?: boolean 
+    } = { isAppend: false, isReplace: true }
+): MessagesState => {
+    const currentValue = state.checkpoint.channel_values[key]
+    let newValue = value
+
+    if (options.isAppend && (Array.isArray(currentValue) || !currentValue)) {
+        // Handle append operation
+        const currentArray = Array.isArray(currentValue) ? currentValue : []
+        const valueToAppend = Array.isArray(value) ? value : [value]
+        newValue = [...currentArray, ...valueToAppend]
+    } else if (!options.isReplace && value === null) {
+        // Keep existing value if replace is false and new value is null
+        newValue = currentValue
+    }
+
+    return {
+        ...state,
+        checkpoint: {
+            ...state.checkpoint,
+            channel_values: {
+                ...state.checkpoint.channel_values,
+                [key]: newValue
             }
         }
     }
@@ -162,13 +177,23 @@ export const updateStateValue = (state: MessagesState, key: string, value: any):
 export const transformObjectPropertyToFunction = (obj: ICommonObject, state: MessagesState) => {
     const transformedObject: ICommonObject = {}
 
+    // If state is null or undefined, create initial state
+    if (!state) {
+        state = createInitialState('default', {})
+    }
+
+    // Ensure checkpoint exists and preserve any top-level values
+    if (!state.checkpoint) {
+        state = createInitialState('default', state)
+    }
+
     for (const key in obj) {
         let value = obj[key]
         // get message from agent
         try {
             const parsedValue = JSON.parse(value)
             if (typeof parsedValue === 'object' && parsedValue.id) {
-                const messages = state.checkpoint.channel_values.messages ?? []
+                const messages = state.messages ?? []
                 const messageOutputs = messages.filter(
                     (message) => message.additional_kwargs && message.additional_kwargs?.nodeId === parsedValue.id
                 )
@@ -203,7 +228,7 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: Mes
                 const matches = value.match(/messages\[(.*?)\]\.content/)
                 if (matches && matches[1]) {
                     const index = matches[1]
-                    const messages = state.checkpoint.channel_values.messages ?? []
+                    const messages = state.messages ?? []
                     if (messages.length) {
                         const targetIndex = index === '-1' ? messages.length - 1 : parseInt(index)
                         const message = messages[targetIndex]
@@ -218,13 +243,29 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: Mes
             } else {
                 // Handle regular state variable access
                 const stateKey = value.replace('$flow.state.', '')
-                value = customGet(state.checkpoint.channel_values.state, stateKey)
-                if (value === undefined) {
-                    console.warn(`State variable '${stateKey}' not found in state:`, state.checkpoint.channel_values.state)
-                    value = ''
+                
+                // First try to get value from channel_values
+                let stateValue = state.checkpoint?.channel_values?.[stateKey]
+
+                // If not found in channel_values, try root level state (deprecated)
+                //if (stateValue === undefined) {
+                //    stateValue = state[stateKey]
+                //}
+
+                // If not found and it's 'messages', use messages array
+                if (stateValue === undefined && stateKey === 'messages') {
+                    stateValue = state.messages
                 }
-                if (typeof value === 'object' && value !== null) {
-                    value = JSON.stringify(value)
+
+                // If not found anywhere, return empty string but don't warn
+                // This is expected behavior when accessing optional state variables
+                if (stateValue === undefined) {
+                    value = ''
+                } else {
+                    value = stateValue
+                    if (typeof value === 'object' && value !== null) {
+                        value = JSON.stringify(value)
+                    }
                 }
             }
         }

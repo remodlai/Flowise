@@ -1,12 +1,12 @@
-import { BaseCheckpointSaver, ChannelVersions, PendingWrite, SendProtocol, Checkpoint, CheckpointMetadata } from '@langchain/langgraph-checkpoint'
+import { BaseCheckpointSaver, ChannelVersions, PendingWrite, SendProtocol, Checkpoint, CheckpointMetadata, CheckpointTuple as LangGraphCheckpointTuple, CheckpointListOptions as LangGraphCheckpointListOptions } from '@langchain/langgraph-checkpoint'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { BaseMessage } from '@langchain/core/messages'
 import { DataSource } from 'typeorm'
-import { CheckpointTuple, SaverOptions, SerializerProtocol, CheckpointListOptions, FlowiseCheckpoint, StateData } from '../interface'
-import { IMessage, MemoryMethods } from '../../../../src/Interface'
+import { SaverOptions, SerializerProtocol } from '../interface'
+import { IMessage, MemoryMethods, FlowiseCheckpoint, StateData } from '../../../../src/Interface'
 import { mapChatMessageToBaseMessage } from '../../../../src/utils'
 
-export class SqliteSaver extends BaseCheckpointSaver<string> implements MemoryMethods {
+export class SQLiteSaver extends BaseCheckpointSaver<string> implements MemoryMethods {
     protected isSetup: boolean
     config: SaverOptions
     threadId: string
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS ${tableName} (
         this.isSetup = true
     }
 
-    async getTuple(config: RunnableConfig): Promise<CheckpointTuple | undefined> {
+    async getTuple(config: RunnableConfig): Promise<LangGraphCheckpointTuple | undefined> {
         const dataSource = await this.getDataSource()
         await this.setup(dataSource)
 
@@ -210,8 +210,8 @@ CREATE TABLE IF NOT EXISTS ${tableName} (
 
     async *list(
         config: RunnableConfig,
-        options?: CheckpointListOptions
-    ): AsyncGenerator<CheckpointTuple> {
+        options?: LangGraphCheckpointListOptions
+    ): AsyncGenerator<LangGraphCheckpointTuple> {
         const dataSource = await this.getDataSource()
         await this.setup(dataSource)
 

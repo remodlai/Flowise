@@ -1,13 +1,33 @@
 import { START } from '@langchain/langgraph'
 import { NodeVM } from '@flowiseai/nodevm'
 import { DataSource } from 'typeorm'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
+import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode, FlowiseCheckpoint } from '../../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../../src/utils'
+import { createInitialState, updateStateValue, MessagesState } from '../commonUtils'
+
+interface StateOperation {
+    __stateOperation: 'append' | 'replace'
+    value: any
+}
+
+interface StateValues {
+    [key: string]: StateOperation
+}
 
 const defaultFunc = `{
-    aggregate: {
-        value: (x, y) => x.concat(y), // here we append the new message to the existing messages
-        default: () => []
+    // Define initial state values
+    state: {
+        // Simple key-value pairs
+        myKey: "myValue",
+        
+        // Array that can be appended to
+        myArray: ["item1", "item2"],
+        
+        // Complex state example
+        userPreferences: {
+            theme: "dark",
+            notifications: true
+        }
     }
 }`
 
@@ -25,14 +45,6 @@ Specify the Key, Operation Type, and Default Value for the state object. The Ope
 `
 const TAB_IDENTIFIER = 'selectedStateTab'
 
-interface StateObject {
-    messages: {
-        value: (x: any[], y: any[]) => any[]
-        default: () => any[]
-    }
-    [key: string]: any
-}
-
 class State_SeqAgents implements INode {
     label: string
     name: string
@@ -49,7 +61,7 @@ class State_SeqAgents implements INode {
     constructor() {
         this.label = 'State'
         this.name = 'seqState'
-        this.version = 2.0
+        this.version = 3.0
         this.type = 'State'
         this.icon = 'state.svg'
         this.category = 'Sequential Agents'
@@ -113,173 +125,179 @@ class State_SeqAgents implements INode {
         const selectedTab = tabIdentifier ? tabIdentifier.split(`_${nodeData.id}`)[0] : 'stateMemoryUI'
         const stateMemory = nodeData.inputs?.stateMemory as string
 
-        const createCheckpointer = (obj: ICommonObject) => {
-            // Create the initial state with messages channel
-            const initialState: StateObject = {
-                messages: {
-                    value: (x: any[], y: any[]) => x.concat(y),
-                    default: () => []
+        const processStateInput = (input: any): StateValues => {
+            const stateValues: StateValues = {}
+            
+            if (Array.isArray(input)) {
+                // Handle UI table input
+                for (const item of input) {
+                    const key = item.key || item.Key
+                    if (!key) throw new Error('Key is required')
+                    const type = item.type || item.Operation
+                    const defaultValue = item.defaultValue || item['Default Value']
+
+                    try {
+                        if (type === 'Append') {
+                            // For append operations, store the initial value and operation type
+                            stateValues[key] = {
+                                __stateOperation: 'append',
+                                value: defaultValue ? JSON.parse(defaultValue) : []
+                            }
+                        } else {
+                            // For replace operations, store the value directly
+                            stateValues[key] = {
+                                __stateOperation: 'replace',
+                                value: defaultValue
+                            }
+                        }
+                    } catch (e) {
+                        throw new Error(`Invalid default value for key ${key}: ${e.message}`)
+                    }
+                }
+            } else if (typeof input === 'object' && input !== null) {
+                // Handle code input (direct object)
+                if (input.state && typeof input.state === 'object') {
+                    // New format with explicit state object
+                    Object.entries(input.state).forEach(([key, value]) => {
+                        stateValues[key] = {
+                            __stateOperation: 'replace',
+                            value: value
+                        }
+                    })
+                } else {
+                    // Legacy format or direct state object
+                    Object.entries(input).forEach(([key, value]) => {
+                        stateValues[key] = {
+                            __stateOperation: 'replace',
+                            value: value
+                        }
+                    })
                 }
             }
 
-            // Add user-defined channels from obj
-            for (const [key, value] of Object.entries(obj)) {
-                if (key !== 'messages') {
-                    initialState[key] = value
-                }
-            }
+            return stateValues
+        }
 
-            let currentState = { ...initialState }
+        const createCheckpointer = (initialStateValues: StateValues) => {
+            // Create initial state with proper structure
+            let currentState = createInitialState(nodeData.id)
+
+            // Apply initial values to channel_values
+            if (initialStateValues) {
+                Object.entries(initialStateValues).forEach(([key, stateOp]) => {
+                    const operation = stateOp as StateOperation
+                    if (operation.__stateOperation === 'append') {
+                        const currentValue = currentState.checkpoint.channel_values[key]
+                        const valueToAppend = Array.isArray(operation.value) ? operation.value : [operation.value]
+                        currentState.checkpoint.channel_values = {
+                            ...currentState.checkpoint.channel_values,
+                            [key]: Array.isArray(currentValue) ? [...currentValue, ...valueToAppend] : valueToAppend
+                        }
+                    } else {
+                        currentState.checkpoint.channel_values = {
+                            ...currentState.checkpoint.channel_values,
+                            [key]: operation.value
+                        }
+                    }
+                })
+            }
 
             return {
-                getTuple: async () => currentState,
-                putTuple: async (tuple: any) => {
+                getTuple: async (config?: any) => {
+                    // Handle overrideConfig from API calls
+                    if (config?.configurable?.state) {
+                        Object.entries(config.configurable.state).forEach(([key, stateOp]) => {
+                            const operation = stateOp as StateOperation
+                            if (operation.__stateOperation === 'append') {
+                                const currentValue = currentState.checkpoint.channel_values[key]
+                                const valueToAppend = Array.isArray(operation.value) ? operation.value : [operation.value]
+                                currentState.checkpoint.channel_values = {
+                                    ...currentState.checkpoint.channel_values,
+                                    [key]: Array.isArray(currentValue) ? [...currentValue, ...valueToAppend] : valueToAppend
+                                }
+                            } else {
+                                currentState.checkpoint.channel_values = {
+                                    ...currentState.checkpoint.channel_values,
+                                    [key]: operation.value
+                                }
+                            }
+                        })
+                    }
+                    return currentState
+                },
+                putTuple: async (tuple: MessagesState) => {
                     currentState = { ...currentState, ...tuple }
                 },
                 deleteTuple: async () => {
-                    currentState = { ...initialState }
+                    currentState = createInitialState(nodeData.id)
                 }
             }
         }
 
-        if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
-            try {
+        try {
+            let stateValues: StateValues = {}
+
+            if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
                 const parsedSchema = typeof stateMemory === 'string' ? JSON.parse(stateMemory) : stateMemory
-                const obj: ICommonObject = {}
-                for (const sch of parsedSchema) {
-                    const key = sch.Key
-                    if (!key) throw new Error(`Key is required`)
-                    const type = sch.Operation
-                    const defaultValue = sch['Default Value']
-
-                    if (type === 'Append') {
-                        obj[key] = {
-                            value: (x: any, y: any) => (Array.isArray(y) ? x.concat(y) : x.concat([y])),
-                            default: () => (defaultValue ? JSON.parse(defaultValue) : [])
-                        }
-                    } else {
-                        obj[key] = {
-                            value: (x: any, y: any) => y ?? x,
-                            default: () => defaultValue
-                        }
-                    }
-                }
-                const returnOutput: ISeqAgentNode = {
-                    id: nodeData.id,
-                    node: obj,
-                    name: 'state',
-                    label: 'state',
-                    type: 'state',
-                    output: START,
-                    checkpointMemory: createCheckpointer(obj)
-                }
-                return returnOutput
-            } catch (e) {
-                throw new Error(e)
-            }
-        }
-
-        if (selectedTab === 'stateMemoryUI' && stateMemoryUI) {
-            try {
+                stateValues = processStateInput(parsedSchema)
+            } else if (selectedTab === 'stateMemoryUI' && stateMemoryUI) {
                 const parsedSchema = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
-                const obj: ICommonObject = {}
-                for (const sch of parsedSchema) {
-                    const key = sch.key
-                    if (!key) throw new Error(`Key is required`)
-                    const type = sch.type
-                    const defaultValue = sch.defaultValue
-
-                    if (type === 'Append') {
-                        obj[key] = {
-                            value: (x: any, y: any) => (Array.isArray(y) ? x.concat(y) : x.concat([y])),
-                            default: () => (defaultValue ? JSON.parse(defaultValue) : [])
-                        }
-                    } else {
-                        obj[key] = {
-                            value: (x: any, y: any) => y ?? x,
-                            default: () => defaultValue
-                        }
-                    }
+                stateValues = processStateInput(parsedSchema)
+            } else if (selectedTab === 'stateMemoryCode' && stateMemoryCode) {
+                const variables = await getVars(appDataSource, databaseEntities, nodeData)
+                const flow = {
+                    chatflowId: options.chatflowid,
+                    sessionId: options.sessionId,
+                    chatId: options.chatId,
+                    input
                 }
-                const returnOutput: ISeqAgentNode = {
-                    id: nodeData.id,
-                    node: obj,
-                    name: 'state',
-                    label: 'state',
-                    type: 'state',
-                    output: START,
-                    checkpointMemory: createCheckpointer(obj)
+
+                const sandbox = {
+                    util: undefined,
+                    Symbol: undefined,
+                    child_process: undefined,
+                    fs: undefined,
+                    process: undefined,
+                    '$vars': prepareSandboxVars(variables),
+                    '$flow': flow
                 }
-                return returnOutput
-            } catch (e) {
-                throw new Error(e)
-            }
-        } else if (selectedTab === 'stateMemoryCode' && stateMemoryCode) {
-            const variables = await getVars(appDataSource, databaseEntities, nodeData)
-            const flow = {
-                chatflowId: options.chatflowid,
-                sessionId: options.sessionId,
-                chatId: options.chatId,
-                input
-            }
 
-            let sandbox: any = {
-                util: undefined,
-                Symbol: undefined,
-                child_process: undefined,
-                fs: undefined,
-                process: undefined
-            }
-            sandbox['$vars'] = prepareSandboxVars(variables)
-            sandbox['$flow'] = flow
+                const builtinDeps = process.env.TOOL_FUNCTION_BUILTIN_DEP
+                    ? defaultAllowBuiltInDep.concat(process.env.TOOL_FUNCTION_BUILTIN_DEP.split(','))
+                    : defaultAllowBuiltInDep
+                const externalDeps = process.env.TOOL_FUNCTION_EXTERNAL_DEP ? process.env.TOOL_FUNCTION_EXTERNAL_DEP.split(',') : []
+                const deps = availableDependencies.concat(externalDeps)
 
-            const builtinDeps = process.env.TOOL_FUNCTION_BUILTIN_DEP
-                ? defaultAllowBuiltInDep.concat(process.env.TOOL_FUNCTION_BUILTIN_DEP.split(','))
-                : defaultAllowBuiltInDep
-            const externalDeps = process.env.TOOL_FUNCTION_EXTERNAL_DEP ? process.env.TOOL_FUNCTION_EXTERNAL_DEP.split(',') : []
-            const deps = availableDependencies.concat(externalDeps)
+                const vm = new NodeVM({
+                    console: 'inherit',
+                    sandbox,
+                    require: {
+                        external: { modules: deps },
+                        builtin: builtinDeps
+                    },
+                    eval: false,
+                    wasm: false,
+                    timeout: 10000
+                })
 
-            const nodeVMOptions = {
-                console: 'inherit',
-                sandbox,
-                require: {
-                    external: { modules: deps },
-                    builtin: builtinDeps
-                },
-                eval: false,
-                wasm: false,
-                timeout: 10000
-            } as any
-
-            const vm = new NodeVM(nodeVMOptions)
-            try {
                 const response = await vm.run(`module.exports = async function() {return ${stateMemoryCode}}()`, __dirname)
                 if (typeof response !== 'object') throw new Error('State must be an object')
-                const returnOutput: ISeqAgentNode = {
-                    id: nodeData.id,
-                    node: response,
-                    name: 'state',
-                    label: 'state',
-                    type: 'state',
-                    output: START,
-                    checkpointMemory: createCheckpointer(response)
-                }
-                return returnOutput
-            } catch (e) {
-                throw new Error(e)
+                stateValues = response
             }
-        }
 
-        const returnOutput: ISeqAgentNode = {
-            id: nodeData.id,
-            node: {},
-            name: 'state',
-            label: 'state',
-            type: 'state',
-            output: START,
-            checkpointMemory: createCheckpointer({})
+            const returnOutput: ISeqAgentNode = {
+                id: nodeData.id,
+                node: stateValues,
+                name: 'state',
+                label: 'state',
+                type: 'state',
+                output: START,
+                checkpointMemory: createCheckpointer(stateValues)
+            }
+            return returnOutput
+        } catch (e) {
+            throw new Error(`Error initializing state: ${e.message}`)
         }
-        return returnOutput
     }
 }
 

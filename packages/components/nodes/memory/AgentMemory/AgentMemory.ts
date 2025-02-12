@@ -2,7 +2,7 @@ import path from 'path'
 import { getBaseClasses, getCredentialData, getCredentialParam, getUserHome } from '../../../src/utils'
 import { SaverOptions } from './interface'
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../src/Interface'
-import { SqliteSaver } from './SQLiteAgentMemory/sqliteSaver'
+import { SQLiteSaver } from './SQLiteAgentMemory/sqliteSaver'
 import { DataSource } from 'typeorm'
 import { PostgresSaver } from './PostgresAgentMemory/pgSaver'
 import { MySQLSaver } from './MySQLAgentMemory/mysqlSaver'
@@ -28,7 +28,7 @@ class AgentMemory_Memory implements INode {
         this.icon = 'agentmemory.svg'
         this.category = 'Memory'
         this.description = 'Memory for agentflow to remember the state of the conversation'
-        this.baseClasses = [this.type, ...getBaseClasses(SqliteSaver)]
+        this.baseClasses = [this.type, ...getBaseClasses(SQLiteSaver)]
         this.badge = 'DEPRECATING'
         this.credential = {
             label: 'Connect Credential',
@@ -137,7 +137,7 @@ class AgentMemory_Memory implements INode {
                 databaseEntities,
                 chatflowid
             }
-            const recordManager = new SqliteSaver(args)
+            const recordManager = new SQLiteSaver(args)
             return recordManager
         } else if (databaseType === 'postgres') {
             const credentialData = await getCredentialData(nodeData.credential ?? '', options)

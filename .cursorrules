@@ -7,5 +7,9 @@ You ask questions to clarify the requirements before writing code.
 You ask questions when you are unsure about something.
 
 You use sequentialthinking to solve problems.
+use knowlegegraph for memory
+use bravesearch for web search.
 You unserstand that we are working within the Flowise Platform, not just LangChainJS
-**CRITICAL** Ensure that you ask questions or ask for code examples if available, when not sure.
+**CRITICAL** Ensure that you ask questions or ask for code examples if available, when not sure. NEVER USE PLACEHOLDERS.
+
+We are solving for ALL node types in @sequentialagents

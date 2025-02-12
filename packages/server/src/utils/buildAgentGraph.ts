@@ -10,7 +10,8 @@ import {
     ISeqAgentNode,
     IUsedTool,
     IDocument,
-    IServerSideEventStreamer
+    IServerSideEventStreamer,
+    FlowiseCheckpoint
 } from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
@@ -465,6 +466,20 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
 
     let supervisorWorkers: { [key: string]: IMultiAgentNode[] } = {}
 
+    // Initial checkpoint structure
+    const initialCheckpoint: FlowiseCheckpoint = {
+        v: 1,
+        id: 'default',
+        ts: new Date().toISOString(),
+        channel_values: {
+            messages: [],
+            state: {}
+        },
+        channel_versions: {},
+        versions_seen: {},
+        pending_sends: []
+    }
+
     // Init worker nodes
     for (const workerNode of workerNodes) {
         const nodeInstanceFilePath = componentNodes[workerNode.data.name].filePath as string
@@ -662,9 +677,19 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
     let question = params.question
 
     let channels: ISeqAgentsState = {
-        messages: {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-            default: () => []
+        messages: [],
+        state: {},
+        checkpoint: {
+            v: 1,
+            id: 'default',
+            ts: new Date().toISOString(),
+            channel_values: {
+                messages: [],
+                state: {}
+            },
+            channel_versions: {},
+            versions_seen: {},
+            pending_sends: []
         }
     }
 
@@ -691,7 +716,7 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                     id: seqStateNode.id,
                     ts: new Date().toISOString(),
                     channel_values: {
-                        messages: [] as BaseMessage[],
+                        messages: [],
                         state: {}
                     },
                     channel_versions: {},
@@ -706,7 +731,7 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                     id: seqStateNode.id,
                     ts: new Date().toISOString(),
                     channel_values: {
-                        messages: [] as BaseMessage[],
+                        messages: [],
                         state: {}
                     },
                     channel_versions: {},

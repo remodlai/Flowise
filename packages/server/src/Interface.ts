@@ -5,9 +5,9 @@ import {
     INode,
     INodeData as INodeDataFromComponent,
     INodeParams,
-    IServerSideEventStreamer
+    IServerSideEventStreamer,
+    FlowiseCheckpoint
 } from 'flowise-components'
-import { FlowiseCheckpoint } from 'flowise-components/dist/nodes/memory/AgentMemory/interface'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'

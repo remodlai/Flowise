@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the plan to properly implement LangGraph's AgentMemory system in Flowise's sequential agents, ensuring proper state management and persistence with the latest LangGraph API.
+This document outlines the plan to properly implement LangGraph's AgentMemory system in Flowise's sequential agents, ensuring proper state management and persistence with LangGraph 0.2.45 and LangGraph Checkpoint 0.0.15.
 
 ## Implementation Status
 
@@ -104,70 +104,180 @@ interface FlowiseCheckpoint extends Checkpoint {
 ## Testing Strategy
 
 1. **Unit Tests**
-   - Test message serialization
-   - Test state persistence
-   - Test error handling
-   - Test connection management
-   - Test prompt variable resolution:
-     * Variable interpolation accuracy
-     * Nested object access
-     * Array index handling
-     * Error cases (undefined, null)
-     * Type coercion
-     * Template syntax validation
-     * Special character handling
-     * Multi-variable resolution
-     * Circular reference detection
+   - **State Management Tests**
+     * Test new state initialization patterns
+     * Test message accumulation
+     * Test checkpoint creation and updates
+     * Test state transitions between nodes
+
+   - **Node-Specific Tests**
+     * Test State node initialization
+     * Test Start node message handling
+     * Test Agent node state updates
+     * Test each node's state interaction
+
+   - **Utility Tests**
+     * Test updated MessagesState interface
+     * Test RunnableCallable implementation
+     * Test state transformation functions
+     * Test state validation utilities
 
 2. **Integration Tests**
-   - Test cross-database compatibility
-   - Test state consistency
-   - Test message history
-   - Test error recovery
-   - Test prompt-level integration:
-     * System prompt variable resolution
-     * Human prompt variable resolution
-     * Tool configuration variable resolution
-     * Dynamic input resolution
-     * Memory context integration
-     * Agent configuration resolution
-     * Error handling in prompts
-     * State updates from prompt execution
+   - **Flow Tests**
+     * Test Start -> Agent -> End basic flow
+     * Test complex flows with multiple nodes
+     * Test conditional branching with state
+     * Test loop handling with state persistence
 
-3. **Performance Tests**
-   - Test connection pooling
-   - Test large state handling
-   - Test message history scaling
+   - **State Persistence Tests**
+     * Test checkpoint persistence across nodes
+     * Test state recovery after errors
+     * Test message history preservation
+     * Test state consistency across transitions
 
-## Future Enhancements
+3. **Migration Tests**
+   - **Backward Compatibility**
+     * Test migration of existing flows
+     * Test state conversion from old format
+     * Test checkpoint conversion
+     * Test error handling during migration
 
-1. **Performance Optimization**
-   - Connection pooling
-   - State compression
-   - Message batching
-   - Query optimization
+### Migration Strategy
 
-2. **Monitoring & Debugging**
-   - Add state monitoring
-   - Improve error tracking
-   - Add debugging tools
-   - Add performance metrics
+1. **Preparation Phase**
+   - Backup existing flows
+   - Document current state patterns
+   - Create state conversion utilities
+   - Prepare rollback procedures
 
-3. **Advanced Features**
-   - State versioning
-   - State rollback
-   - State migration
-   - Advanced message filtering
+2. **Implementation Phase**
+   - Update core utilities first
+   - Implement new state patterns
+   - Update nodes in phases
+   - Add migration helpers
 
-## Notes
+3. **Validation Phase**
+   - Test existing flows
+   - Verify state conversion
+   - Check performance impact
+   - Validate error handling
 
-- All database implementations follow consistent patterns
-- Each implementation respects database-specific best practices
-- Focus on maintaining state consistency across operations
-- Ensure proper error handling and recovery
-- Keep implementation simple and maintainable
-- Follow LangGraph's checkpoint system patterns
-- Maintain Flowise compatibility throughout
+4. **Rollout Strategy**
+   - Phase 1: Core Updates
+     * Update commonUtils.ts
+     * Update base interfaces
+     * Add new state patterns
+     * Update documentation
+
+   - Phase 2: Node Updates
+     * Update State node
+     * Update Start node
+     * Update Agent node
+     * Test core functionality
+
+   - Phase 3: Secondary Nodes
+     * Update remaining nodes
+     * Test all node combinations
+     * Verify state handling
+     * Document changes
+
+   - Phase 4: Migration Support
+     * Add migration utilities
+     * Test conversion tools
+     * Update existing flows
+     * Provide migration guides
+
+### Performance Considerations
+
+1. **State Management Optimization**
+   - Efficient message accumulation
+   - Optimized state transitions
+   - Minimal state copying
+   - Proper memory management
+
+2. **Checkpoint Optimization**
+   - Efficient checkpoint creation
+   - Optimized state serialization
+   - Minimal checkpoint size
+   - Proper cleanup
+
+3. **Message Handling**
+   - Efficient message arrays
+   - Optimized message updates
+   - Proper message pruning
+   - Memory-efficient storage
+
+### Documentation Updates
+
+1. **Developer Documentation**
+   - New state management patterns
+   - Node implementation guidelines
+   - Testing requirements
+   - Migration procedures
+
+2. **User Documentation**
+   - Updated node usage guides
+   - State management examples
+   - Migration guides
+   - Troubleshooting tips
+
+3. **API Documentation**
+   - Updated interfaces
+   - New state patterns
+   - Migration utilities
+   - Error handling
+
+### Timeline
+
+1. **Phase 1: Core Updates (Week 1)**
+   - Update commonUtils.ts
+   - Update State node
+   - Update Start node
+   - Update Agent node
+
+2. **Phase 2: Secondary Nodes (Week 2)**
+   - Update ConditionAgent
+   - Update CustomFunction
+   - Update ExecuteFlow
+   - Update LLMNode
+
+3. **Phase 3: Remaining Nodes (Week 3)**
+   - Update Condition
+   - Update Loop
+   - Update End
+   - Update ToolNode
+
+4. **Phase 4: Testing & Documentation (Week 4)**
+   - Complete testing
+   - Update documentation
+   - Create migration guides
+   - Final validation
+
+### Success Criteria
+
+1. **Functionality**
+   - All nodes work with new state pattern
+   - Existing flows can be migrated
+   - No state-related errors
+   - Proper error handling
+
+2. **Performance**
+   - No significant performance impact
+   - Efficient state management
+   - Optimal memory usage
+   - Fast state transitions
+
+3. **Reliability**
+   - Consistent state handling
+   - Proper error recovery
+   - No data loss
+   - Stable operation
+
+4. **Usability**
+   - Clear documentation
+   - Easy migration path
+   - Good error messages
+   - Helpful debugging info
 
 ## Current Implementation Status Summary
 
@@ -370,3 +480,251 @@ interface FlowiseCheckpoint extends Checkpoint {
 3. Testing: High Priority
 4. Documentation: Medium Priority
 5. Future enhancements: Low Priority
+
+### Current Critical Issues
+1. **State Management Pattern Mismatch**
+   - Current error: "state.messages.default is not a function"
+   - Affects all nodes in @sequentialagents
+   - Requires update to match LangGraph 0.2.45 patterns
+   - Impacts state initialization and message handling
+
+2. **Affected Components**
+   - commonUtils.ts: Shared state functionality
+   - All nodes in @sequentialagents:
+     * State
+     * Start
+     * Agent
+     * ConditionAgent
+     * CustomFunction
+     * ExecuteFlow
+     * LLMNode
+     * Condition
+     * Loop
+     * End
+     * ToolNode
+
+### Required Updates
+
+1. **State Management Pattern Updates**
+   ```typescript
+   // Old Pattern (To be replaced)
+   const initialState = {
+       messages: {
+           value: (x: any[], y: any[]) => x.concat(y),
+           default: () => []
+       }
+   }
+
+   // New Pattern (LangGraph 0.2.45)
+   const initialState = {
+       messages: [],
+       state: {},
+       checkpoint: {
+           v: 1,
+           id: nodeData.id,
+           ts: new Date().toISOString(),
+           channel_values: {
+               messages: [],
+               state: {}
+           }
+       }
+   }
+   ```
+
+2. **Node-Specific Updates**
+   - **State Node**:
+     * Update state initialization
+     * Implement new checkpoint creation
+     * Update state validation
+
+   - **Start Node**:
+     * Update message initialization
+     * Implement new state structure
+     * Update checkpoint handling
+
+   - **Agent Node**:
+     * Fix state.messages handling
+     * Update worker node implementation
+     * Implement new message accumulation
+
+   - **Other Nodes**:
+     * Update to new state pattern
+     * Implement consistent state handling
+     * Update checkpoint management
+
+3. **Common Utilities Update**
+   - Update MessagesState interface
+   - Update RunnableCallable implementation
+   - Update state transformation functions
+   - Add new state validation utilities
+
+### Implementation Plan
+
+1. **Phase 1: Core Updates**
+   - Update commonUtils.ts with new patterns
+   - Update State node implementation
+   - Update Start node implementation
+   - Update Agent node implementation
+
+2. **Phase 2: Secondary Nodes**
+   - Update ConditionAgent
+   - Update CustomFunction
+   - Update ExecuteFlow
+   - Update LLMNode
+
+3. **Phase 3: Remaining Nodes**
+   - Update Condition
+   - Update Loop
+   - Update End
+   - Update ToolNode
+
+4. **Phase 4: Testing & Validation**
+   - Test state initialization
+   - Test message handling
+   - Test checkpoint persistence
+   - Test node interactions
+
+### Technical Details
+
+1. **LangGraph 0.2.45 Requirements**
+   - Use native state management
+   - Implement proper checkpoint system
+   - Use correct message accumulation
+   - Implement proper state transitions
+
+2. **State Management**
+   ```typescript
+   interface ISeqAgentsState {
+       messages: BaseMessage[]
+       state: Record<string, any>
+       checkpoint: FlowiseCheckpoint
+   }
+
+   interface FlowiseCheckpoint {
+       v: number
+       id: string
+       ts: string
+       channel_values: {
+           messages: BaseMessage[]
+           state: Record<string, any>
+       }
+   }
+   ```
+
+3. **Message Handling**
+   - Direct message array management
+   - Type-safe message operations
+   - Proper message accumulation
+   - Checkpoint-aware updates
+
+### AgentMemory Updates
+
+1. **Interface Updates**
+   ```typescript
+   // Update interface.ts
+   interface StateData {
+       messages: BaseMessage[]
+       state: Record<string, any>
+       [key: string]: any
+   }
+
+   interface FlowiseCheckpoint extends Checkpoint {
+       v: number
+       id: string
+       ts: string
+       channel_values: StateData
+       channel_versions: Record<string, number>
+       versions_seen: Record<string, number>
+       pending_sends: SendProtocol[]
+   }
+   ```
+
+2. **AgentMemory Node Updates**
+   - Update version to 3.0 for LangGraph 0.2.45 compatibility
+   - Implement new state initialization patterns
+   - Update checkpoint handling
+   - Add state validation
+   - Update database type handling
+
+3. **Database Saver Updates**
+   - **SQLite Saver**:
+     * Update state serialization
+     * Implement new checkpoint format
+     * Add state validation
+     * Update query patterns
+
+   - **Postgres Saver**:
+     * Update BYTEA handling for new state format
+     * Implement new checkpoint serialization
+     * Add state validation
+     * Update query patterns
+
+   - **MySQL Saver**:
+     * Update LONGTEXT handling for new state
+     * Implement new checkpoint format
+     * Add state validation
+     * Update query patterns
+
+4. **Integration Requirements**
+   - Ensure compatibility with new sequential agent state patterns
+   - Implement proper checkpoint persistence
+   - Add state validation across transitions
+   - Update error handling
+
+### Implementation Priority
+
+1. **Phase 1: Core Memory Updates**
+   - Update interface.ts
+   - Update AgentMemory.ts
+   - Update base saver functionality
+
+2. **Phase 2: Database Implementations**
+   - Update SQLite implementation
+   - Update Postgres implementation
+   - Update MySQL implementation
+
+3. **Phase 3: Integration**
+   - Test with sequential agents
+   - Verify state persistence
+   - Test error handling
+   - Add migration support
+
+4. **Phase 4: Documentation & Testing**
+   - Update memory documentation
+   - Add migration guides
+   - Add comprehensive tests
+   - Update API documentation
+
+### Testing Requirements
+
+1. **Memory-Specific Tests**
+   - Test state serialization
+   - Test checkpoint persistence
+   - Test state recovery
+   - Test error handling
+
+2. **Integration Tests**
+   - Test with sequential agents
+   - Test state transitions
+   - Test checkpoint recovery
+   - Test error scenarios
+
+3. **Database Tests**
+   - Test SQLite implementation
+   - Test Postgres implementation
+   - Test MySQL implementation
+   - Test migration scenarios
+
+### Migration Strategy
+
+1. **Memory System Migration**
+   - Create state format converter
+   - Add checkpoint migration tools
+   - Update database schemas
+   - Add validation tools
+
+2. **Integration Migration**
+   - Update node connections
+   - Update state handling
+   - Update error handling
+   - Add compatibility layer

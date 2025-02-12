@@ -1,10 +1,26 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { BufferMemory, BufferWindowMemory, ConversationSummaryMemory, ConversationSummaryBufferMemory } from 'langchain/memory'
 import { Moderation } from '../nodes/moderation/Moderation'
+import { SendProtocol, Checkpoint, ChannelVersions } from '@langchain/langgraph-checkpoint'
 
 /**
  * Types
  */
+
+export interface StateData {
+    messages: BaseMessage[]
+    [key: string]: any
+}
+
+export interface FlowiseCheckpoint extends Checkpoint<string, string> {
+    v: number
+    id: string
+    ts: string
+    channel_values: StateData
+    channel_versions: ChannelVersions
+    versions_seen: Record<string, Record<string, number>>
+    pending_sends: SendProtocol[]
+}
 
 export type NodeParamsType =
     | 'asyncOptions'
@@ -221,28 +237,10 @@ export interface ITeamState {
     summarization?: string
 }
 
-export interface StateData {
-    messages: BaseMessage[]
-    [key: string]: any
-}
-
-export interface FlowiseCheckpoint {
-    v: number
-    id: string
-    ts: string
-    channel_values: StateData
-    channel_versions: Record<string, any>
-    versions_seen: Record<string, any>
-    pending_sends: any[]
-}
-
 export interface ISeqAgentsState {
-    messages: {
-        value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
-        default: () => BaseMessage[]
-    }
-    state?: Record<string, any>
-    checkpoint?: FlowiseCheckpoint
+    messages: BaseMessage[]
+    state: Record<string, any>
+    checkpoint: FlowiseCheckpoint
 }
 
 export interface IAgentReasoning {

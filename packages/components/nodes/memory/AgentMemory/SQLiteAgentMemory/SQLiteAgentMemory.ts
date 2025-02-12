@@ -2,7 +2,7 @@ import path from 'path'
 import { getBaseClasses, getUserHome } from '../../../../src/utils'
 import { SaverOptions } from '../interface'
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../../src/Interface'
-import { SqliteSaver } from './sqliteSaver'
+import { SQLiteSaver } from './sqliteSaver'
 import { DataSource } from 'typeorm'
 
 class SQLiteAgentMemory_Memory implements INode {
@@ -26,7 +26,7 @@ class SQLiteAgentMemory_Memory implements INode {
         this.icon = 'sqlite.png'
         this.category = 'Memory'
         this.description = 'Memory for agentflow to remember the state of the conversation using SQLite database'
-        this.baseClasses = [this.type, ...getBaseClasses(SqliteSaver)]
+        this.baseClasses = [this.type, ...getBaseClasses(SQLiteSaver)]
         this.inputs = [
             /*{
                 label: 'Database File Path',
@@ -79,7 +79,7 @@ class SQLiteAgentMemory_Memory implements INode {
             chatflowid
         }
 
-        const recordManager = new SqliteSaver(args)
+        const recordManager = new SQLiteSaver(args)
         return recordManager
     }
 }

@@ -1,9 +1,10 @@
 import { START } from '@langchain/langgraph'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
+import { INode, INodeData, INodeParams, ISeqAgentNode, ISeqAgentsState, ICommonObject, FlowiseCheckpoint, StateData } from '../../../src/Interface'
 import { Moderation } from '../../moderation/Moderation'
-import { FlowiseCheckpoint, StateData } from '../../memory/AgentMemory/interface'
 import { BaseMessage } from '@langchain/core/messages'
+import { RunnableConfig } from '@langchain/core/runnables'
+import { updateStateMessages, MessagesState, createInitialState } from '../commonUtils'
 
 class Start_SeqAgents implements INode {
     label: string
@@ -73,8 +74,7 @@ class Start_SeqAgents implements INode {
                     id: 'default',
                     ts: new Date().toISOString(),
                     channel_values: {
-                        messages: [] as BaseMessage[],
-                        state: {}
+                        messages: [] as BaseMessage[]
                     },
                     channel_versions: {},
                     versions_seen: {},
@@ -99,9 +99,53 @@ class Start_SeqAgents implements INode {
             delete: async () => {}
         }
 
+        // Create worker node to handle initial message
+        const workerNode = async (state: MessagesState, config: RunnableConfig) => {
+            // First try to get existing state from checkpoint
+            let currentState: MessagesState
+            
+            try {
+                const existingState = await checkpointMemory.getTuple()
+                if (existingState?.checkpoint) {
+                    // Use existing state if available, preserving custom values
+                    currentState = {
+                        ...state,  // Keep all custom values from State node
+                        messages: state.messages || existingState.checkpoint.channel_values.messages || [], 
+                        checkpoint: {
+                            ...existingState.checkpoint,
+                            channel_values: {
+                                ...existingState.checkpoint.channel_values,
+                                ...state  // Add custom state values to channel_values
+                            }
+                        }
+                    }
+                } else {
+                    // Initialize new state while preserving custom values from State node
+                    currentState = createInitialState(nodeData.id, state)
+                }
+            } catch (error) {
+                // Fallback to new state while preserving custom values from State node
+                currentState = createInitialState(nodeData.id, state)
+            }
+
+            // Get the input messages from config
+            const configMessages = config.configurable?.messages as BaseMessage[]
+            if (configMessages?.length) {
+                // Ensure we're working with BaseMessage objects
+                const validMessages = configMessages.filter(msg => msg instanceof BaseMessage)
+                if (validMessages.length) {
+                    // Update state with new messages using utility function
+                    currentState = updateStateMessages(currentState, validMessages)
+                }
+            }
+
+            // Return state with preserved history and proper structure
+            return currentState
+        }
+
         const returnOutput: ISeqAgentNode = {
             id: nodeData.id,
-            node: START,
+            node: workerNode,
             name: START,
             label: START,
             type: 'start',

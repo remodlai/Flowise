@@ -1,18 +1,9 @@
 import { END } from '@langchain/langgraph'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { BaseMessage, SystemMessage, HumanMessage } from '@langchain/core/messages'
-import { INode, INodeData, INodeParams, ISeqAgentNode, ISeqAgentsState, INodeOutputsValue } from '../../../src/Interface'
-import { FlowiseCheckpoint, StateData } from '../../memory/AgentMemory/interface'
+import { INode, INodeData, INodeParams, ISeqAgentNode, ISeqAgentsState, INodeOutputsValue, FlowiseCheckpoint, StateData } from '../../../src/Interface'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-
-interface IExtendedSeqAgentsState extends Omit<ISeqAgentsState, 'messages'> {
-    messages: {
-        value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
-        default: () => BaseMessage[]
-    }
-    state: Record<string, any>
-    checkpoint?: FlowiseCheckpoint
-}
+import { createInitialState, updateStateMessages, MessagesState } from '../commonUtils'
 
 class End_SeqAgents implements INode {
     label: string
@@ -87,30 +78,15 @@ class End_SeqAgents implements INode {
         const sequentialNode = nodeData.inputs?.sequentialNode as ISeqAgentNode
         if (!sequentialNode) throw new Error('End must have a predecessor!')
 
-        const endWorker = async (state: IExtendedSeqAgentsState, config: RunnableConfig) => {
+        const endWorker = async (state: MessagesState, config: RunnableConfig) => {
             try {
-                let checkpoint = state.checkpoint
-                if (!checkpoint) {
-                    // Create default checkpoint if none exists
-                    const checkpointId = config?.configurable?.checkpoint_id || nodeData.id
-                    const threadId = config?.configurable?.thread_id || 'default'
-                    checkpoint = {
-                        v: 1,
-                        id: checkpointId,
-                        ts: new Date().toISOString(),
-                        channel_values: {
-                            messages: state.messages.value([], []),
-                            state: state.state
-                        },
-                        channel_versions: {},
-                        versions_seen: {},
-                        pending_sends: []
-                    }
-                    state.checkpoint = checkpoint
-                }
+                // Initialize state if null or missing
+                const currentState = state 
+                    ? createInitialState(config?.configurable?.checkpoint_id || nodeData.id, state)
+                    : createInitialState(config?.configurable?.checkpoint_id || nodeData.id)
 
                 // Get the final state
-                const messages = state.messages.value([], [])
+                const messages = currentState.messages
                 const lastMessage = messages[messages.length - 1]
 
                 // If streaming is enabled and we have a final model
@@ -132,44 +108,29 @@ class End_SeqAgents implements INode {
                     // Preserve message ID for state management
                     finalResponse.id = lastMessage.id
 
-                    // Update checkpoint with processed response
-                    checkpoint.channel_values = {
-                        ...checkpoint.channel_values,
-                        messages: [...messages.slice(0, -1), finalResponse],
-                        state: state.state
-                    }
+                    // Update state with processed response
+                    const updatedState = updateStateMessages({
+                        ...currentState,
+                        messages: messages.slice(0, -1)
+                    }, [finalResponse])
 
                     // Mark checkpoint as completed
-                    checkpoint.ts = new Date().toISOString()
-                    checkpoint.v += 1
+                    updatedState.checkpoint.ts = new Date().toISOString()
+                    updatedState.checkpoint.v += 1
 
                     return {
-                        ...state,
-                        checkpoint,
-                        messages: [...messages.slice(0, -1), finalResponse],
-                        state: state.state,
+                        ...updatedState,
                         _stream: true,
                         _tags: ['final_node']
                     }
                 }
 
                 // Regular non-streaming response
-                checkpoint.channel_values = {
-                    ...checkpoint.channel_values,
-                    messages: messages,
-                    state: state.state
-                }
-
                 // Mark checkpoint as completed
-                checkpoint.ts = new Date().toISOString()
-                checkpoint.v += 1
+                currentState.checkpoint.ts = new Date().toISOString()
+                currentState.checkpoint.v += 1
 
-                return {
-                    ...state,
-                    checkpoint,
-                    messages,
-                    state: state.state
-                }
+                return currentState
             } catch (error) {
                 console.error('Error in End node:', error)
                 throw error
