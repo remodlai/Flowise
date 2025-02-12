@@ -35,20 +35,102 @@ class PostgresAgentMemory_Memory implements INode {
         }
         this.inputs = [
             {
+                label: 'Connection Type',
+                name: 'connectionType',
+                type: 'options',
+                options: [
+                    {
+                        label: 'Direct Database',
+                        name: 'direct'
+                    },
+                    {
+                        label: 'Connection Pool',
+                        name: 'pool'
+                    }
+                ],
+                default: 'direct'
+            },
+            {
                 label: 'Host',
                 name: 'host',
-                type: 'string'
+                type: 'string',
+                placeholder: 'localhost'
             },
             {
                 label: 'Database',
                 name: 'database',
-                type: 'string'
+                type: 'string',
+                placeholder: 'flowise'
             },
             {
                 label: 'Port',
                 name: 'port',
                 type: 'number',
-                default: '5432'
+                default: 5432,
+                placeholder: '5432'
+            },
+            {
+                label: 'Max Pool Size',
+                name: 'maxPoolSize',
+                type: 'number',
+                description: 'Maximum number of clients the pool should contain',
+                default: 10,
+                optional: {
+                    'inputs.connectionType': ['pool']
+                }
+            },
+            {
+                label: 'Idle Timeout',
+                name: 'idleTimeout',
+                type: 'number',
+                description: 'Time in milliseconds a client must sit idle before being closed',
+                default: 10000,
+                optional: {
+                    'inputs.connectionType': ['pool']
+                }
+            },
+            {
+                label: 'Connection Timeout',
+                name: 'connectionTimeout',
+                type: 'number',
+                description: 'Time in milliseconds to wait for a connection',
+                default: 0,
+                optional: {
+                    'inputs.connectionType': ['pool']
+                }
+            },
+            {
+                label: 'SSL Mode',
+                name: 'ssl',
+                type: 'options',
+                options: [
+                    {
+                        label: 'Disable',
+                        name: 'disable'
+                    },
+                    {
+                        label: 'Allow',
+                        name: 'allow'
+                    },
+                    {
+                        label: 'Prefer',
+                        name: 'prefer'
+                    },
+                    {
+                        label: 'Require',
+                        name: 'require'
+                    },
+                    {
+                        label: 'Verify CA',
+                        name: 'verify-ca'
+                    },
+                    {
+                        label: 'Verify Full',
+                        name: 'verify-full'
+                    }
+                ],
+                default: 'disable',
+                optional: true
             },
             {
                 label: 'Additional Connection Configuration',
@@ -77,18 +159,16 @@ class PostgresAgentMemory_Memory implements INode {
 
         const threadId = options.sessionId || options.chatId
 
-        let datasourceOptions: ICommonObject = {
-            ...additionalConfiguration,
-            type: 'postgres'
-        }
-
         const credentialData = await getCredentialData(nodeData.credential ?? '', options)
         const user = getCredentialParam('user', credentialData, nodeData)
         const password = getCredentialParam('password', credentialData, nodeData)
         const _port = (nodeData.inputs?.port as string) || '5432'
         const port = parseInt(_port)
-        datasourceOptions = {
-            ...datasourceOptions,
+        const connectionType = nodeData.inputs?.connectionType as string || 'direct'
+
+        const datasourceOptions: ICommonObject = {
+            ...additionalConfiguration,
+            type: 'postgres',
             host: nodeData.inputs?.host as string,
             port,
             database: nodeData.inputs?.database as string,
@@ -96,6 +176,19 @@ class PostgresAgentMemory_Memory implements INode {
             user: user,
             password: password
         }
+
+        // Only add pool configuration if pool connection type is selected
+        if (connectionType === 'pool') {
+            if (nodeData.inputs?.maxPoolSize) datasourceOptions.max = parseInt((nodeData.inputs.maxPoolSize as string) || '10')
+            if (nodeData.inputs?.idleTimeout) datasourceOptions.idleTimeoutMillis = parseInt((nodeData.inputs.idleTimeout as string) || '10000')
+            if (nodeData.inputs?.connectionTimeout) datasourceOptions.connectionTimeoutMillis = parseInt((nodeData.inputs.connectionTimeout as string) || '0')
+        }
+        
+        // Add SSL configuration if provided
+        if (nodeData.inputs?.ssl && nodeData.inputs.ssl !== 'disable') {
+            datasourceOptions.ssl = nodeData.inputs.ssl
+        }
+
         const args: SaverOptions = {
             datasourceOptions,
             threadId,
