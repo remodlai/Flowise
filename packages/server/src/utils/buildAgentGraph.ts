@@ -10,7 +10,8 @@ import {
     ISeqAgentNode,
     IUsedTool,
     IDocument,
-    IServerSideEventStreamer
+    IServerSideEventStreamer,
+    channelValueReducer
 } from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
@@ -19,7 +20,10 @@ import { StatusCodes } from 'http-status-codes'
 import { v4 as uuidv4 } from 'uuid'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseMessage, HumanMessage, AIMessage, AIMessageChunk, ToolMessage } from '@langchain/core/messages'
-import { IChatFlow, IComponentNodes, IDepthQueue, IReactFlowNode, IReactFlowEdge, IMessage, IncomingInput, IFlowConfig } from '../Interface'
+import { IChatFlow,
+     IComponentNodes, 
+     IDepthQueue, 
+     IReactFlowNode, IReactFlowEdge, IMessage, IncomingInput, IFlowConfig } from '../Interface'
 import { databaseEntities, clearSessionMemory, getAPIOverrideConfig } from '../utils'
 import { replaceInputsWithConfig, resolveVariables } from '.'
 import { InternalFlowiseError } from '../errors/internalFlowiseError'
@@ -28,11 +32,7 @@ import logger from './logger'
 import { Variable } from '../database/entities/Variable'
 import { DataSource } from 'typeorm'
 import { CachePool } from '../CachePool'
-
-//LangGraph imports
-
-import { Annotation, messagesStateReducer, addMessages, MessagesAnnotation } from '@langchain/langgraph'
-
+import { Annotation, messagesStateReducer, addMessages } from '@langchain/langgraph'
 
 /**
  * Build Agent Graph
@@ -649,24 +649,25 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
     let question = params.question
 
-    //Deprecated - now using the build in MessagesAnnotation from LangGraph
-    // let channels: ISeqAgentsState = {
-        //     messages: {
-    //         value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-    //         default: () => []
-    //     }
-    // }
+    const FlowiseMessagesAnnotation = Annotation.Root({
+        messages: Annotation<BaseMessage[]>({
+            reducer: messagesStateReducer,
+            default: () => []
+        })
+
+    })
 
     // Get state
     const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+    let FlowiseState = {}
     if (seqStateNode) {
-        channels = {
+        FlowiseState = {
             ...seqStateNode.data.instance.node,
-            ...channels
+            ...FlowiseMessagesAnnotation
         }
     }
 
-    let seqGraph = new StateGraph<any>(MessagesAnnotation)
+    let seqGraph = new StateGraph<any>(FlowiseState)
 
     /*** Validate Graph ***/
     const startAgentNodes: IReactFlowNode[] = reactFlowNodes.filter((node: IReactFlowNode) => node.data.name === 'seqStart')
