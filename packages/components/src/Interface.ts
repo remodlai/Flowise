@@ -44,11 +44,16 @@ export const StateAnnotation = Annotation.Root({
     })
 })
 
-export interface ISeqAgentsState {
-    messages: typeof MessageAnnotation,
-    state: typeof StateAnnotation
-
-}
+export const ISeqAgentsState = Annotation.Root({
+    messages: Annotation<BaseMessage[]>({
+        reducer: (current, next) => current.concat(next),
+        default: () => []
+    }),
+    state: Annotation<any>({
+        reducer: channelValueReducer,
+        default: () => ({})
+    })
+})
 
 export type NodeParamsType =
     | 'asyncOptions'
@@ -314,6 +319,11 @@ export interface IDocument<Metadata extends Record<string, any> = Record<string,
     metadata: Metadata
 }
 
+export interface FlowiseCheckpoint {
+    messages: BaseMessage[]
+    state: any
+}
+
 /**
  * Classes
  */
@@ -499,4 +509,9 @@ export interface AgentMemoryMethods extends MemoryMethods {
      * @param newState The new state to be merged with the existing state.
      */
     updateState(newState: any): Promise<void>;
+}
+
+export interface StateType {
+    messages: BaseMessage[]
+    state: any
 }
