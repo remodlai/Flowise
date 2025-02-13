@@ -52,7 +52,13 @@ export const ISeqAgentsState = Annotation.Root({
     state: Annotation<any>({
         reducer: channelValueReducer,
         default: () => ({})
-    })
+    }),
+    next: Annotation<string>({
+        reducer: (current, next) => next,
+        default: () => ''
+    }),
+    instructions: Annotation<string>,
+    
 })
 
 export type NodeParamsType =
