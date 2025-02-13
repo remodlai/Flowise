@@ -2,7 +2,7 @@ import path from 'path'
 import { getBaseClasses, getCredentialData, getCredentialParam, getUserHome } from '../../../src/utils'
 import { SaverOptions } from './interface'
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../src/Interface'
-import { SQLiteSaver } from './SQLiteAgentMemory/sqliteSaver'
+
 import { DataSource } from 'typeorm'
 import { PostgresSaver } from './PostgresAgentMemory/pgSaver'
 

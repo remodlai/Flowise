@@ -18,7 +18,7 @@ import { DataSource } from 'typeorm'
 import { MessagesState, RunnableCallable, customGet, getVM } from '../commonUtils'
 import { getVars, prepareSandboxVars } from '../../../src/utils'
 import { ChatPromptTemplate } from '@langchain/core/prompts'
-import { ToolNode as LangGraphToolNode } from '@langchain/langgraph/prebuilt'
+import { ToolNode as LangGraphToolNode, createReactAgent, CreateReactAgentParams } from '@langchain/langgraph/prebuilt'
 
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`

@@ -17,7 +17,7 @@ import {
     IDatabaseEntity,
     ConversationHistorySelection
 } from '../../../src/Interface'
-import { AgentExecutor } from '../../../src/agents'
+//import { AgentExecutor } from '../../../src/agents'
 import {
     extractOutputFromArray,
     getInputVariables,
@@ -38,6 +38,11 @@ import {
     checkMessageHistory
 } from '../commonUtils'
 import { ChatGoogleGenerativeAI } from '../../chatmodels/ChatGoogleGenerativeAI/FlowiseChatGoogleGenerativeAI'
+import { createReactAgent, CreateReactAgentParams } from '@langchain/langgraph/prebuilt'
+
+import { StateGraph } from '@langchain/langgraph'
+
+
 
 const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
@@ -396,15 +401,31 @@ class LLMNode_SeqAgents implements INode {
         let tools = nodeData.inputs?.tools
         tools = flatten(tools)
 
+        //the system prompt is the prompt that is used to generate the initial messages
         let systemPrompt = nodeData.inputs?.systemMessagePrompt as string
         systemPrompt = transformBracesWithColon(systemPrompt)
+
+        //the human prompt is an optional prompt that is appended to the end of the messages
         let humanPrompt = nodeData.inputs?.humanMessagePrompt as string
         humanPrompt = transformBracesWithColon(humanPrompt)
+
+        //the label of the LLM node
         const llmNodeLabel = nodeData.inputs?.llmNodeName as string
+
+        //the sequential nodes are the nodes that are connected to the LLM node
         const sequentialNodes = nodeData.inputs?.sequentialNode as ISeqAgentNode[]
+        
+        //the model is the LLM model that is used for the LLM node
         const model = nodeData.inputs?.model as BaseChatModel
+
+        //the prompt values are the values that are used to format the prompt. Will be used in the system prompt and human prompt 
+        // following the {variable-name} syntax
         const promptValuesStr = nodeData.inputs?.promptValues
+
+        //the output is the output of the LLM node
         const output = nodeData.outputs?.output as string
+
+        //the LLM structured output is the structured output of the LLM node
         const llmStructuredOutput = nodeData.inputs?.llmStructuredOutput
 
         if (!llmNodeLabel) throw new Error('LLM Node name is required!')
@@ -422,14 +443,25 @@ class LLMNode_SeqAgents implements INode {
         }
         llmNodeInputVariablesValues = handleEscapeCharacters(llmNodeInputVariablesValues, true)
 
+
+        //the default LLM model connected to the start node
         const startLLM = sequentialNodes[0].startLLM
+
+        //if a custom model is connected to the LLM node, use that model
+        //otherwise, use the default model connected to the start node
         const llm = model || startLLM
         if (nodeData.inputs) nodeData.inputs.model = llm
 
+        //if the startLLM or node-specific LLM has enable image uploads, we handle that.
         const multiModalMessageContent = sequentialNodes[0]?.multiModalMessageContent || (await processImageMessage(llm, nodeData, options))
+        
+        //the abort controller signal is used to cancel the LLM call if the user clicks the stop button
         const abortControllerSignal = options.signal as AbortController
+
+        //the input variables are the variables that are used in the system prompt and human prompt
         const llmNodeInputVariables = uniq([...getInputVariables(systemPrompt), ...getInputVariables(humanPrompt)])
 
+        //if the input variables are not provided, we throw an error
         if (!llmNodeInputVariables.every((element) => Object.keys(llmNodeInputVariablesValues).includes(element))) {
             throw new Error('LLM Node input variables values are not provided!')
         }

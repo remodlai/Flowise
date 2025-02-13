@@ -4,7 +4,7 @@ import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '.
 import { DataSource } from 'typeorm'
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
 
-class PostgresAgentMemory_Memory implements INode {
+class PostgresAgentMemory implements INode {
     label: string
     name: string
     version: number
@@ -202,4 +202,4 @@ class PostgresAgentMemory_Memory implements INode {
     }
 }
 
-module.exports = { nodeClass: PostgresAgentMemory_Memory }
+module.exports = { nodeClass: PostgresAgentMemory }
