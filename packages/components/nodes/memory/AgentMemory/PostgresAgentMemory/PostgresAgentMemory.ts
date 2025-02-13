@@ -2,7 +2,7 @@ import { getBaseClasses, getCredentialData, getCredentialParam } from '../../../
 import { SaverOptions } from '../interface'
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../../src/Interface'
 import { DataSource } from 'typeorm'
-import { PostgresSaver } from './pgSaver'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
 
 class PostgresAgentMemory_Memory implements INode {
     label: string
@@ -189,15 +189,16 @@ class PostgresAgentMemory_Memory implements INode {
             datasourceOptions.ssl = nodeData.inputs.ssl
         }
 
-        const args: SaverOptions = {
-            datasourceOptions,
-            threadId,
-            appDataSource,
-            databaseEntities,
-            chatflowid
-        }
-        const recordManager = new PostgresSaver(args)
-        return recordManager
+        // const args: SaverOptions = {
+        //     datasourceOptions,
+        //     threadId,
+        //     appDataSource,
+        //     databaseEntities,
+        //     chatflowid
+        // }
+        const connString = `postgresql://${datasourceOptions.user}:${datasourceOptions.password}@${datasourceOptions.host}:${datasourceOptions.port}/${datasourceOptions.database}`
+        const pgRecordManager = PostgresSaver.fromConnString(connString)
+        return pgRecordManager
     }
 }
 

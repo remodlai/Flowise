@@ -2,7 +2,7 @@ import { BaseMessage } from '@langchain/core/messages'
 import { BufferMemory, BufferWindowMemory, ConversationSummaryMemory, ConversationSummaryBufferMemory } from 'langchain/memory'
 import { Moderation } from '../nodes/moderation/Moderation'
 import { SendProtocol, Checkpoint, ChannelVersions } from '@langchain/langgraph-checkpoint'
-import { Annotation, type Messages, addMessages, MessagesAnnotation } from '@langchain/langgraph'
+import { Annotation, type Messages, addMessages, MessagesAnnotation, messagesStateReducer } from '@langchain/langgraph'
 
 /**
  * Types
@@ -13,16 +13,14 @@ import { Annotation, type Messages, addMessages, MessagesAnnotation } from '@lan
  */
 
 // Define reducer types
-type MessageReducer = (current: BaseMessage[], next: BaseMessage[]) => BaseMessage[]
+
 type StateOperation = 'append' | 'replace'
 
 // Message reducer function (always appends)
-const messageReducer: MessageReducer = (current, next) => {
-    return [...current, ...next]
-}
+
 
 // Dynamic channel value reducer that handles both append and replace
-const channelValueReducer = (current: any, next: any, operation: StateOperation = 'replace') => {
+export const channelValueReducer = (current: any, next: any, operation: StateOperation = 'replace') => {
     if (operation === 'append') {
         if (Array.isArray(current)) {
             return [...current, ...(Array.isArray(next) ? next : [next])]
@@ -32,15 +30,23 @@ const channelValueReducer = (current: any, next: any, operation: StateOperation 
     return next // Default to replace
 }
 
-const MessageAnnotation = Annotation.Root({
+export const MessageAnnotation = Annotation.Root({
     messages: Annotation<BaseMessage[]>({
-        reducer: messageReducer,
+        reducer: messagesStateReducer,
         default: () => []
     })
 })
 
+export const StateAnnotation = Annotation.Root({
+    state: Annotation<any>({
+        reducer: channelValueReducer,
+        default: () => {}
+    })
+})
+
 export interface ISeqAgentsState {
-    messsages: typeof MessageAnnotation
+    messages: typeof MessageAnnotation,
+    state: typeof StateAnnotation
 
 }
 
@@ -479,3 +485,18 @@ export type FollowUpPromptConfig = {
     status: boolean
     selectedProvider: FollowUpPromptProvider
 } & FollowUpPromptProviderConfig
+
+// Add the following after the definition of MemoryMethods
+
+export interface AgentMemoryMethods extends MemoryMethods {
+    /**
+     * Get the current aggregated checkpoint state for the agent memory.
+     */
+    getState(): Promise<any>;
+    
+    /**
+     * Update the current checkpoint state by merging or replacing with the new state provided.
+     * @param newState The new state to be merged with the existing state.
+     */
+    updateState(newState: any): Promise<void>;
+}

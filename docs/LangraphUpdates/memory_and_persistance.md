@@ -13,6 +13,12 @@ Flowise uses a combination of in-memory, SQLite, and Postgres persistence to man
 - Utilizes the `MemorySaver` from langgraph-checkpoint for ephemeral, thread-level memory.
 - Suitable for testing and transient flows.
 
+### In-Memory Agent Memory
+
+- Implements the `AgentMemoryMethods` interface by wrapping the `MemorySaver` from langgraph-checkpoint.
+- Provides ephemeral memory storage for agent flows, making it ideal for development and testing environments.
+- Supports the `overrideConfig` functionality, enabling runtime configuration from the Flowise UI (e.g., overriding the default `thread_id`), ensuring that custom settings are merged into the memory operations.
+
 ### SQLite Persistence
 
 - The `SQLiteAgentMemory` node has been updated to use a SQLite saver that wraps langgraph-checkpoint functionality.

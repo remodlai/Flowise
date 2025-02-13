@@ -2,7 +2,10 @@ import path from 'path'
 import { getBaseClasses, getUserHome } from '../../../../src/utils'
 import { SaverOptions } from '../interface'
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../../src/Interface'
-import { SQLiteSaver } from './sqliteSaver'
+
+
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
+
 import { DataSource } from 'typeorm'
 
 class SQLiteAgentMemory_Memory implements INode {
@@ -26,16 +29,16 @@ class SQLiteAgentMemory_Memory implements INode {
         this.icon = 'sqlite.png'
         this.category = 'Memory'
         this.description = 'Memory for agentflow to remember the state of the conversation using SQLite database'
-        this.baseClasses = [this.type, ...getBaseClasses(SQLiteSaver)]
+        this.baseClasses = [this.type, ...getBaseClasses(SqliteSaver)]
         this.inputs = [
-            /*{
+            {
                 label: 'Database File Path',
                 name: 'databaseFilePath',
                 type: 'string',
                 placeholder: 'C:\\Users\\User\\.flowise\\database.sqlite',
                 description: 'Path to the SQLite database file. Leave empty to use default application database',
                 optional: true
-            },*/
+            },
             {
                 label: 'Additional Connection Configuration',
                 name: 'additionalConfig',
@@ -65,21 +68,21 @@ class SQLiteAgentMemory_Memory implements INode {
 
         const database = path.join(process.env.DATABASE_PATH ?? path.join(getUserHome(), '.flowise'), 'database.sqlite')
 
-        let datasourceOptions: ICommonObject = {
-            database,
-            ...additionalConfiguration,
-            type: 'sqlite'
-        }
+        // let datasourceOptions: ICommonObject = {
+        //     database,
+        //     ...additionalConfiguration,
+        //     type: 'sqlite'
+        // }
 
-        const args: SaverOptions = {
-            datasourceOptions,
-            threadId,
-            appDataSource,
-            databaseEntities,
-            chatflowid
-        }
+        // const args: SaverOptions = {
+        //     datasourceOptions,
+        //     threadId,
+        //     appDataSource,
+        //     databaseEntities,
+        //     chatflowid
+        // }
 
-        const recordManager = new SQLiteSaver(args)
+        const recordManager = SqliteSaver.fromConnString(database)
         return recordManager
     }
 }

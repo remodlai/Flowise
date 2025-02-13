@@ -1,7 +1,7 @@
 import { START } from '@langchain/langgraph'
 import { NodeVM } from '@flowiseai/nodevm'
 import { DataSource } from 'typeorm'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
+import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode, ISeqAgentsState, MessageAnnotation, StateAnnotation,  } from '../../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../../src/utils'
 import { MemorySaver } from '@langchain/langgraph-checkpoint'
 import { Annotation, messagesStateReducer, addMessages } from '@langchain/langgraph'
@@ -115,25 +115,22 @@ class State_SeqAgents implements INode {
                 const parsedSchemaFromUI = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
                 const parsedSchema = typeof stateMemory === 'string' ? JSON.parse(stateMemory) : stateMemory
                 const combinedMemorySchema = [...parsedSchemaFromUI, ...parsedSchema]
-                const obj: ICommonObject = {}
-                for (const sch of combinedMemorySchema) {
-                    const key = sch.Key ?? sch.key
-                    if (!key) throw new Error(`Key is required`)
-                    const type = sch.Operation ?? sch.type
-                    const defaultValue = sch['Default Value'] ?? sch.defaultValue
 
-                    if (type === 'Append') {
-                        obj[key] = {
-                            value: (x: any, y: any) => (Array.isArray(y) ? x.concat(y) : x.concat([y])),
-                            default: () => (defaultValue ? JSON.parse(defaultValue) : [])
-                        }
-                    } else {
-                        obj[key] = {
-                            value: (x: any, y: any) => y ?? x,
-                            default: () => defaultValue
-                        }
-                    }
+                // Create state values from UI
+                const stateValues = combinedMemorySchema.reduce((acc, field) => {
+                    const key = field.Key ?? field.key
+                    if (!key) return acc
+                    const value = field['Default Value'] ?? field.defaultValue
+                    acc[key] = value
+                    return acc
+                }, {})
+
+                // Use standard ISeqAgentsState with StateAnnotation
+                const obj: ISeqAgentsState = {
+                    messages: MessageAnnotation,
+                    state: stateValues // StateAnnotation will handle the operations
                 }
+
                 const returnOutput: ISeqAgentNode = {
                     id: nodeData.id,
                     node: obj,

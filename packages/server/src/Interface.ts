@@ -7,7 +7,7 @@ import {
     INodeParams,
     IServerSideEventStreamer
 } from 'flowise-components'
-import { GraphState, StateType } from '../../components/src/Interface'
+import { ISeqAgentsState } from '../../components/src/Interface'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'
@@ -360,4 +360,4 @@ export interface IVariableOverride {
 export * from './Interface.DocumentStore'
 
 // Re-export for convenience
-export { GraphState, StateType }
+export { ISeqAgentsState }
