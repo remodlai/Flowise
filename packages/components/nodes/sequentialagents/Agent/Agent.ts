@@ -20,8 +20,7 @@ import {
     IUsedTool,
     IDocument,
     IStateWithMessages,
-    ConversationHistorySelection,
-    FlowiseCheckpoint
+    ConversationHistorySelection
 } from '../../../src/Interface'
 import { ToolCallingAgentOutputParser, AgentExecutor, SOURCE_DOCUMENTS_PREFIX, ARTIFACTS_PREFIX } from '../../../src/agents'
 import {
@@ -42,9 +41,7 @@ import {
     restructureMessages,
     MessagesState,
     RunnableCallable,
-    checkMessageHistory,
-    
-   
+    checkMessageHistory
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
@@ -515,7 +512,7 @@ class Agent_SeqAgents implements INode {
             return response.content
         }
 
-        const workerNode = async (state: MessagesState, config: RunnableConfig) => {
+        const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
             return await agentNode(
                 {
                     state,
@@ -556,8 +553,8 @@ class Agent_SeqAgents implements INode {
             runCondition?: any,
             conditionalMapping: ICommonObject = {}
         ) => {
-            const routeMessage = async (state: MessagesState) => {
-                const messages = state.messages || []
+            const routeMessage = async (state: ISeqAgentsState) => {
+                const messages = state.messages as unknown as BaseMessage[]
                 const lastMessage = messages[messages.length - 1] as AIMessage
 
                 if (!lastMessage?.tool_calls?.length) {
@@ -616,7 +613,7 @@ async function createAgent(
     nodeData: INodeData,
     options: ICommonObject,
     agentName: string,
-    state: MessagesState,
+    state: ISeqAgentsState,
     llm: BaseChatModel,
     interrupt: boolean,
     tools: any[],
@@ -713,13 +710,8 @@ async function createAgent(
                 metadata: { sequentialNodeName: agentName }
             })
         } else {
-            // Ensure state has required checkpoint
-            const stateWithCheckpoint: MessagesState = state.checkpoint 
-                ? state as MessagesState 
-                : createInitialState(nodeData.id)
-
             agent = RunnableSequence.from([
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, stateWithCheckpoint)),
+                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
                 llm
             ]).withConfig({
@@ -773,7 +765,7 @@ async function agentNode(
         input,
         options
     }: {
-        state: MessagesState
+        state: ISeqAgentsState
         llm: BaseChatModel
         interrupt: boolean
         agent: AgentExecutor | RunnableSequence
@@ -790,29 +782,19 @@ async function agentNode(
             throw new Error('Aborted!')
         }
 
-        // Validate that we received properly initialized state
-        if (!state?.checkpoint) {
-            throw new Error('Agent received uninitialized state. Ensure State node is properly configured and connected.')
-        }
-
-        // Get current messages for LLM context
-        const currentMessages = state.messages || []
-
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        // Create filtered messages for LLM context without modifying state
-        const filteredMessages = filterConversationHistory(historySelection, input, currentMessages)
-        const llmMessages = restructureMessages(llm, filteredMessages)
+        // @ts-ignore
+        state.messages = filterConversationHistory(historySelection, input, state)
+        // @ts-ignore
+        state.messages = restructureMessages(llm, state)
 
-        // Pass filtered messages to LLM while preserving original state structure
-        let result = await agent.invoke({ 
-            messages: llmMessages,
-            checkpoint: state.checkpoint,
-            signal: abortControllerSignal.signal 
-        }, config)
+        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
 
         if (interrupt) {
-            const lastMessage = currentMessages.length ? currentMessages[currentMessages.length - 1] : null
+            const messages = state.messages as unknown as BaseMessage[]
+            const lastMessage = messages.length ? messages[messages.length - 1] : null
 
+            // If the last message is a tool message and is an interrupted message, format output into standard agent output
             if (lastMessage && lastMessage._getType() === 'tool' && lastMessage.additional_kwargs?.nodeId === nodeData.id) {
                 let formattedAgentResult: {
                     output?: string
@@ -834,10 +816,9 @@ async function agentNode(
             } else {
                 result.name = name
                 result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true }
-                
-                // Update state while maintaining proper structure
-                const updatedState = updateStateMessages(state, [result])
-                return updatedState
+                return {
+                    messages: [result]
+                }
             }
         }
 
@@ -866,39 +847,28 @@ async function agentNode(
                 ...result,
                 content: outputContent
             }
-            const returnedStateValues = await getReturnOutput(nodeData, input, options, formattedOutput, state)
-            const newMessages = convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
-            
-            // Update state while maintaining proper structure
-            const updatedState = updateStateMessages(state, newMessages)
-
-            // Add returned values to channel_values
-            if (returnedStateValues) {
-                updatedState.checkpoint.channel_values = {
-                    ...updatedState.checkpoint.channel_values,
-                    ...returnedStateValues
-                }
+            const returnedOutput = await getReturnOutput(nodeData, input, options, formattedOutput, state)
+            return {
+                ...returnedOutput,
+                messages: convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
             }
-
-            return updatedState
+        } else {
+            return {
+                messages: [
+                    new HumanMessage({
+                        content: outputContent,
+                        name,
+                        additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
+                    })
+                ]
+            }
         }
-
-        const newMessage = new HumanMessage({
-            content: outputContent,
-            name,
-            additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
-        })
-        
-        // Update state while maintaining proper structure
-        const updatedState = updateStateMessages(state, [newMessage])
-        return updatedState
-
     } catch (error) {
         throw new Error(error)
     }
 }
 
-const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: MessagesState) => {
+const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: ISeqAgentsState) => {
     const appDataSource = options.appDataSource as DataSource
     const databaseEntities = options.databaseEntities as IDatabaseEntity
     const tabIdentifier = nodeData.inputs?.[`${TAB_IDENTIFIER}_${nodeData.id}`] as string
@@ -915,7 +885,7 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
         chatId: options.chatId,
         input,
         output,
-        state: state.checkpoint.channel_values,  // Pass channel_values as state
+        state,
         vars: prepareSandboxVars(variables)
     }
 
@@ -1018,10 +988,6 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
         }
         // Handle MessagesState type
         else {
-            // Validate that we received properly initialized state
-            if (!(input as MessagesState).checkpoint) {
-                throw new Error('Tool received uninitialized state. Ensure State node is properly configured and connected.')
-            }
             messages = (input as MessagesState).messages
         }
 
@@ -1097,19 +1063,7 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
 
         const additional_kwargs: ICommonObject = { nodeId: this.nodeData.id }
         outputs.forEach((result) => (result.additional_kwargs = { ...result.additional_kwargs, ...additional_kwargs }))
-
-        // If input was MessagesState, return MessagesState with updated messages
-        if (!Array.isArray(input)) {
-            const currentState = input as MessagesState
-            return {
-                ...currentState,  // Preserve root level state
-                messages: outputs,
-                checkpoint: currentState.checkpoint
-            } as MessagesState
-        }
-        
-        // Otherwise return just the messages array
-        return outputs
+        return Array.isArray(input) ? outputs : { messages: outputs }
     }
 }
 

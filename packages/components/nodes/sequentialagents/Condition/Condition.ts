@@ -8,11 +8,11 @@ import {
     INodeOutputsValue,
     INodeParams,
     ISeqAgentNode,
-    StateType
+    ISeqAgentsState
 } from '../../../src/Interface'
 import { checkCondition, customGet, getVM } from '../commonUtils'
 import { getVars, prepareSandboxVars } from '../../../src/utils'
-
+import { toolsCondition } from '@langchain/langgraph/prebuilt'
 const howToUseCode = `
 1. Must return a string value at the end of function. For example:
     \`\`\`js

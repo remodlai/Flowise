@@ -2,7 +2,7 @@ import { BaseMessage } from '@langchain/core/messages'
 import { BufferMemory, BufferWindowMemory, ConversationSummaryMemory, ConversationSummaryBufferMemory } from 'langchain/memory'
 import { Moderation } from '../nodes/moderation/Moderation'
 import { SendProtocol, Checkpoint, ChannelVersions } from '@langchain/langgraph-checkpoint'
-import { Annotation } from '@langchain/langgraph'
+import { Annotation, type Messages, addMessages, MessagesAnnotation } from '@langchain/langgraph'
 
 /**
  * Types
@@ -32,53 +32,16 @@ const channelValueReducer = (current: any, next: any, operation: StateOperation 
     return next // Default to replace
 }
 
-export const GraphState = {
+const MessageAnnotation = Annotation.Root({
     messages: Annotation<BaseMessage[]>({
-        value: messageReducer,
+        reducer: messageReducer,
         default: () => []
-    }),
-    channel_values: Annotation<Record<string, any>>({
-        value: (current, next) => {
-            const result: Record<string, any> = {}
-            // Handle each key based on its operation type
-            for (const [key, value] of Object.entries(next)) {
-                const operation = value?.__stateOperation || 'replace'
-                const currentValue = current[key]
-                result[key] = channelValueReducer(currentValue, value?.value ?? value, operation as StateOperation)
-            }
-            return result
-        },
-        default: () => ({})
     })
-}
+})
 
-export type StateType = {
-    messages: BaseMessage[]
-    channel_values: {
-        [key: string]: any
-    }
-    checkpoint?: Checkpoint<string, string>
-}
+export interface ISeqAgentsState {
+    messsages: typeof MessageAnnotation
 
-/**
- * Checkpoint Types
- */
-export interface StateData {
-    messages: BaseMessage[]
-    [key: string]: any
-}
-
-export interface FlowiseCheckpoint extends Checkpoint<string, string> {
-    v: number
-    id: string
-    ts: string
-    channel_values: {
-        messages: BaseMessage[]
-        [key: string]: any
-    }
-    channel_versions: ChannelVersions
-    versions_seen: Record<string, Record<string, number>>
-    pending_sends: SendProtocol[]
 }
 
 export type NodeParamsType =

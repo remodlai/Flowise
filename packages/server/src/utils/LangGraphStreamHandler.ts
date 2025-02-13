@@ -2,25 +2,11 @@ import { Response } from 'express'
 import { IServerSideEventStreamer } from 'flowise-components'
 import { Graph, StateGraph } from '@langchain/langgraph'
 import { BaseMessage, MessageContent, MessageContentText } from '@langchain/core/messages'
+import { SendProtocol, Checkpoint, ChannelVersions } from '@langchain/langgraph-checkpoint'
 
 // Define version tracking interfaces
 interface VersionsSeen {
     [nodeId: string]: number
-}
-
-interface ChannelVersions {
-    [key: string]: number
-}
-
-// Define checkpoint interface
-interface Checkpoint {
-    channel_values: {
-        [key: string]: any
-    }
-    channel_versions: ChannelVersions
-    versions_seen: {
-        [key: string]: VersionsSeen
-    }
 }
 
 // Define our state type

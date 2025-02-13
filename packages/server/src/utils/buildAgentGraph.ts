@@ -10,8 +10,7 @@ import {
     ISeqAgentNode,
     IUsedTool,
     IDocument,
-    IServerSideEventStreamer,
-    FlowiseCheckpoint
+    IServerSideEventStreamer
 } from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
@@ -29,6 +28,11 @@ import logger from './logger'
 import { Variable } from '../database/entities/Variable'
 import { DataSource } from 'typeorm'
 import { CachePool } from '../CachePool'
+
+//LangGraph imports
+
+import { Annotation, messagesStateReducer, addMessages, MessagesAnnotation } from '@langchain/langgraph'
+
 
 /**
  * Build Agent Graph
@@ -137,8 +141,7 @@ export const buildAgentGraph = async ({
                     overrideConfig: incomingInput?.overrideConfig,
                     threadId: sessionId || chatId,
                     summarization: seqAgentNodes.some((node) => node.data.inputs?.summarization),
-                    uploadedFilesContent,
-                    action: incomingInput.action
+                    uploadedFilesContent
                 })
             } else {
                 isSequential = true
@@ -418,7 +421,6 @@ type MultiAgentsGraphParams = {
     threadId?: string
     summarization?: boolean
     uploadedFilesContent?: string
-    action?: IAction
 }
 
 const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
@@ -435,8 +437,7 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
         overrideConfig = {},
         threadId,
         summarization = false,
-        uploadedFilesContent,
-        action
+        uploadedFilesContent
     } = params
 
     let question = params.question
@@ -453,7 +454,7 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
 
     if (summarization) channels.summarization = 'summarize'
 
-    const workflowGraph = new StateGraph({
+    const workflowGraph = new StateGraph<ITeamState>({
         //@ts-ignore
         channels
     })
@@ -465,20 +466,6 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
     const { nodeOverrides, variableOverrides, apiOverrideStatus } = getAPIOverrideConfig(agentflow)
 
     let supervisorWorkers: { [key: string]: IMultiAgentNode[] } = {}
-
-    // Initial checkpoint structure
-    const initialCheckpoint: FlowiseCheckpoint = {
-        v: 1,
-        id: 'default',
-        ts: new Date().toISOString(),
-        channel_values: {
-            messages: [],
-            state: {}
-        },
-        channel_versions: {},
-        versions_seen: {},
-        pending_sends: []
-    }
 
     // Init worker nodes
     for (const workerNode of workerNodes) {
@@ -610,30 +597,16 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
 
             // Return stream result as we should only have 1 supervisor
             const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
-            let humanMsg: { messages: (BaseMessage)[] } = {
-                messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
-            }
-
-            if (action && action.mapping && question === action.mapping.approve) {
-                humanMsg = {
-                    messages: []
+            return await graph.stream(
+                {
+                    messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
+                },
+                {
+                    recursionLimit: supervisorResult?.recursionLimit ?? 100,
+                    callbacks: [loggerHandler, ...callbacks],
+                    configurable: config
                 }
-            } else if (action && action.mapping && question === action.mapping.reject) {
-                humanMsg = {
-                    messages: action.mapping.toolCalls.map((toolCall: any) => {
-                        return new ToolMessage({
-                            name: toolCall.name,
-                            content: `Tool ${toolCall.name} call denied by user. Acknowledge that, and DONT perform further actions. Only ask if user have other questions`,
-                            tool_call_id: toolCall.id!,
-                            additional_kwargs: { toolCallsDenied: true }
-                        })
-                    })
-                }
-            }
-            return await graph.stream(humanMsg, {
-                callbacks: [loggerHandler, ...callbacks],
-                configurable: config
-            })
+            )
         } catch (e) {
             throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error initialize supervisor nodes - ${getErrorMessage(e)}`)
         }
@@ -676,76 +649,24 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
     let question = params.question
 
-    let channels: ISeqAgentsState = {
-        messages: [],
-        state: {},
-        checkpoint: {
-            v: 1,
-            id: 'default',
-            ts: new Date().toISOString(),
-            channel_values: {
-                messages: [],
-                state: {}
-            },
-            channel_versions: {},
-            versions_seen: {},
-            pending_sends: []
-        }
-    }
+    //Deprecated - now using the build in MessagesAnnotation from LangGraph
+    // let channels: ISeqAgentsState = {
+        //     messages: {
+    //         value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+    //         default: () => []
+    //     }
+    // }
 
-    // Get state and checkpoint from State node
+    // Get state
     const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
     if (seqStateNode) {
-        const stateInstance = seqStateNode.data.instance
         channels = {
-            ...stateInstance.node,
+            ...seqStateNode.data.instance.node,
             ...channels
-        }
-        // Ensure checkpoint is properly initialized
-        if (stateInstance.checkpointMemory) {
-            try {
-                const tuple = await stateInstance.checkpointMemory.getTuple({
-                    configurable: {
-                        thread_id: threadId,
-                        checkpoint_id: seqStateNode.id
-                    }
-                })
-                // Create default checkpoint if none exists
-                channels.checkpoint = tuple?.checkpoint ?? {
-                    v: 1,
-                    id: seqStateNode.id,
-                    ts: new Date().toISOString(),
-                    channel_values: {
-                        messages: [],
-                        state: {}
-                    },
-                    channel_versions: {},
-                    versions_seen: {},
-                    pending_sends: []
-                }
-            } catch (error) {
-                console.error('Error getting checkpoint:', error)
-                // Set default checkpoint
-                channels.checkpoint = {
-                    v: 1,
-                    id: seqStateNode.id,
-                    ts: new Date().toISOString(),
-                    channel_values: {
-                        messages: [],
-                        state: {}
-                    },
-                    channel_versions: {},
-                    versions_seen: {},
-                    pending_sends: []
-                }
-            }
         }
     }
 
-    let seqGraph = new StateGraph<any>({
-        //@ts-ignore
-        channels
-    })
+    let seqGraph = new StateGraph<any>(MessagesAnnotation)
 
     /*** Validate Graph ***/
     const startAgentNodes: IReactFlowNode[] = reactFlowNodes.filter((node: IReactFlowNode) => node.data.name === 'seqStart')
@@ -1103,17 +1024,15 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         }
 
         const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
-        let humanMsg: { messages: (BaseMessage)[] } = {
+        let humanMsg: { messages: HumanMessage[] | ToolMessage[] } | null = {
             messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
         }
 
         if (action && action.mapping && question === action.mapping.approve) {
-            humanMsg = {
-                messages: []
-            }
+            humanMsg = null
         } else if (action && action.mapping && question === action.mapping.reject) {
             humanMsg = {
-                messages: action.mapping.toolCalls.map((toolCall: any) => {
+                messages: action.mapping.toolCalls.map((toolCall) => {
                     return new ToolMessage({
                         name: toolCall.name,
                         content: `Tool ${toolCall.name} call denied by user. Acknowledge that, and DONT perform further actions. Only ask if user have other questions`,

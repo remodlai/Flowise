@@ -1,33 +1,18 @@
 import { START } from '@langchain/langgraph'
 import { NodeVM } from '@flowiseai/nodevm'
 import { DataSource } from 'typeorm'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode, FlowiseCheckpoint } from '../../../src/Interface'
+import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../../src/utils'
-import { createInitialState, updateStateValue, MessagesState } from '../commonUtils'
+import { MemorySaver } from '@langchain/langgraph-checkpoint'
+import { Annotation, messagesStateReducer, addMessages } from '@langchain/langgraph'
+import { BaseMessage } from '@langchain/core/messages'
 
-interface StateOperation {
-    __stateOperation: 'append' | 'replace'
-    value: any
-}
 
-interface StateValues {
-    [key: string]: StateOperation
-}
 
 const defaultFunc = `{
-    // Define initial state values
-    state: {
-        // Simple key-value pairs
-        myKey: "myValue",
-        
-        // Array that can be appended to
-        myArray: ["item1", "item2"],
-        
-        // Complex state example
-        userPreferences: {
-            theme: "dark",
-            notifications: true
-        }
+    aggregate: {
+        value: (x, y) => x.concat(y), // here we append the new message to the existing messages
+        default: () => []
     }
 }`
 
@@ -125,223 +110,148 @@ class State_SeqAgents implements INode {
         const selectedTab = tabIdentifier ? tabIdentifier.split(`_${nodeData.id}`)[0] : 'stateMemoryUI'
         const stateMemory = nodeData.inputs?.stateMemory as string
 
-        const processStateInput = (input: any): StateValues => {
-            const stateValues: StateValues = {}
-            
-            if (Array.isArray(input)) {
-                // Handle UI table input
-                for (const item of input) {
-                    const key = item.key || item.Key
-                    if (!key) throw new Error('Key is required')
-                    const type = item.type || item.Operation
-                    const defaultValue = item.defaultValue || item['Default Value']
-
-                    try {
-                        if (type === 'Append') {
-                            // For append operations, store the initial value and operation type
-                            stateValues[key] = {
-                                __stateOperation: 'append',
-                                value: defaultValue ? JSON.parse(defaultValue) : []
-                            }
-                        } else {
-                            // For replace operations, store the value directly
-                            stateValues[key] = {
-                                __stateOperation: 'replace',
-                                value: defaultValue
-                            }
-                        }
-                    } catch (e) {
-                        throw new Error(`Invalid default value for key ${key}: ${e.message}`)
-                    }
-                }
-            } else if (typeof input === 'object' && input !== null) {
-                // Handle code input (direct object)
-                if (input.state && typeof input.state === 'object') {
-                    // New format with explicit state object
-                    Object.entries(input.state).forEach(([key, value]) => {
-                        stateValues[key] = {
-                            __stateOperation: 'replace',
-                            value: value
-                        }
-                    })
-                } else {
-                    // Legacy format or direct state object
-                    Object.entries(input).forEach(([key, value]) => {
-                        stateValues[key] = {
-                            __stateOperation: 'replace',
-                            value: value
-                        }
-                    })
-                }
-            }
-
-            return stateValues
-        }
-
-        const createCheckpointer = (initialStateValues: StateValues) => {
-            // Create initial state with proper structure
-            let currentState = createInitialState(nodeData.id)
-
-            // Apply initial values to channel_values
-            if (initialStateValues) {
-                Object.entries(initialStateValues).forEach(([key, stateOp]) => {
-                    const operation = stateOp as StateOperation
-                    if (operation.__stateOperation === 'append') {
-                        const currentValue = currentState.checkpoint.channel_values[key]
-                        const valueToAppend = Array.isArray(operation.value) ? operation.value : [operation.value]
-                        currentState.checkpoint.channel_values = {
-                            ...currentState.checkpoint.channel_values,
-                            [key]: Array.isArray(currentValue) ? [...currentValue, ...valueToAppend] : valueToAppend
-                        }
-                        // Update channel versions for append operation
-                        if (!(key in currentState.checkpoint.channel_versions)) {
-                            currentState.checkpoint.channel_versions[key] = 0;
-                        }
-                        const currentVersion = typeof currentState.checkpoint.channel_versions[key] === 'string' 
-                            ? parseInt(currentState.checkpoint.channel_versions[key] as string) 
-                            : (currentState.checkpoint.channel_versions[key] as number);
-                        currentState.checkpoint.channel_versions[key] = currentVersion + 1;
-                    } else {
-                        currentState.checkpoint.channel_values = {
-                            ...currentState.checkpoint.channel_values,
-                            [key]: operation.value
-                        }
-                        // Update channel versions for replace operation
-                        currentState.checkpoint.channel_versions[key] = 1;
-                    }
-                    // Initialize versions_seen for this key
-                    if (!(key in currentState.checkpoint.versions_seen)) {
-                        currentState.checkpoint.versions_seen[key] = {}
-                    }
-                    currentState.checkpoint.versions_seen[key][nodeData.id] = currentState.checkpoint.channel_versions[key]
-                })
-            }
-
-            return {
-                getTuple: async (config?: any) => {
-                    // Handle overrideConfig from API calls
-                    if (config?.configurable?.state) {
-                        Object.entries(config.configurable.state).forEach(([key, stateOp]) => {
-                            const operation = stateOp as StateOperation
-                            if (operation.__stateOperation === 'append') {
-                                const currentValue = currentState.checkpoint.channel_values[key]
-                                const valueToAppend = Array.isArray(operation.value) ? operation.value : [operation.value]
-                                currentState.checkpoint.channel_values = {
-                                    ...currentState.checkpoint.channel_values,
-                                    [key]: Array.isArray(currentValue) ? [...currentValue, ...valueToAppend] : valueToAppend
-                                }
-                                // Update channel versions for append operation
-                                if (!(key in currentState.checkpoint.channel_versions)) {
-                                    currentState.checkpoint.channel_versions[key] = 0;
-                                }
-                                const currentVersion = typeof currentState.checkpoint.channel_versions[key] === 'string' 
-                                    ? parseInt(currentState.checkpoint.channel_versions[key] as string) 
-                                    : (currentState.checkpoint.channel_versions[key] as number);
-                                currentState.checkpoint.channel_versions[key] = currentVersion + 1;
-                            } else {
-                                currentState.checkpoint.channel_values = {
-                                    ...currentState.checkpoint.channel_values,
-                                    [key]: operation.value
-                                }
-                                // Update channel versions for replace operation
-                                currentState.checkpoint.channel_versions[key] = 1;
-                            }
-                            // Update versions_seen for this key
-                            if (!(key in currentState.checkpoint.versions_seen)) {
-                                currentState.checkpoint.versions_seen[key] = {}
-                            }
-                            currentState.checkpoint.versions_seen[key][nodeData.id] = currentState.checkpoint.channel_versions[key]
-                        })
-                    }
-                    return currentState
-                },
-                putTuple: async (tuple: MessagesState) => {
-                    // Preserve version information when updating state
-                    currentState = {
-                        ...currentState,
-                        checkpoint: {
-                            ...currentState.checkpoint,
-                            channel_values: tuple.checkpoint.channel_values,
-                            channel_versions: {
-                                ...currentState.checkpoint.channel_versions,
-                                ...tuple.checkpoint.channel_versions
-                            },
-                            versions_seen: {
-                                ...currentState.checkpoint.versions_seen,
-                                ...tuple.checkpoint.versions_seen
-                            }
-                        }
-                    }
-                },
-                deleteTuple: async () => {
-                    currentState = createInitialState(nodeData.id)
-                }
-            }
-        }
-
-        try {
-            let stateValues: StateValues = {}
-
-            if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
+        if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
+            try {
+                const parsedSchemaFromUI = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
                 const parsedSchema = typeof stateMemory === 'string' ? JSON.parse(stateMemory) : stateMemory
-                stateValues = processStateInput(parsedSchema)
-            } else if (selectedTab === 'stateMemoryUI' && stateMemoryUI) {
-                const parsedSchema = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
-                stateValues = processStateInput(parsedSchema)
-            } else if (selectedTab === 'stateMemoryCode' && stateMemoryCode) {
-                const variables = await getVars(appDataSource, databaseEntities, nodeData)
-                const flow = {
-                    chatflowId: options.chatflowid,
-                    sessionId: options.sessionId,
-                    chatId: options.chatId,
-                    input
+                const combinedMemorySchema = [...parsedSchemaFromUI, ...parsedSchema]
+                const obj: ICommonObject = {}
+                for (const sch of combinedMemorySchema) {
+                    const key = sch.Key ?? sch.key
+                    if (!key) throw new Error(`Key is required`)
+                    const type = sch.Operation ?? sch.type
+                    const defaultValue = sch['Default Value'] ?? sch.defaultValue
+
+                    if (type === 'Append') {
+                        obj[key] = {
+                            value: (x: any, y: any) => (Array.isArray(y) ? x.concat(y) : x.concat([y])),
+                            default: () => (defaultValue ? JSON.parse(defaultValue) : [])
+                        }
+                    } else {
+                        obj[key] = {
+                            value: (x: any, y: any) => y ?? x,
+                            default: () => defaultValue
+                        }
+                    }
                 }
-
-                const sandbox = {
-                    util: undefined,
-                    Symbol: undefined,
-                    child_process: undefined,
-                    fs: undefined,
-                    process: undefined,
-                    '$vars': prepareSandboxVars(variables),
-                    '$flow': flow
+                const returnOutput: ISeqAgentNode = {
+                    id: nodeData.id,
+                    node: obj,
+                    name: 'state',
+                    label: 'state',
+                    type: 'state',
+                    output: START
                 }
-
-                const builtinDeps = process.env.TOOL_FUNCTION_BUILTIN_DEP
-                    ? defaultAllowBuiltInDep.concat(process.env.TOOL_FUNCTION_BUILTIN_DEP.split(','))
-                    : defaultAllowBuiltInDep
-                const externalDeps = process.env.TOOL_FUNCTION_EXTERNAL_DEP ? process.env.TOOL_FUNCTION_EXTERNAL_DEP.split(',') : []
-                const deps = availableDependencies.concat(externalDeps)
-
-                const vm = new NodeVM({
-                    console: 'inherit',
-                    sandbox,
-                    require: {
-                        external: { modules: deps },
-                        builtin: builtinDeps
-                    },
-                    eval: false,
-                    wasm: false,
-                    timeout: 10000
-                })
-
-                const response = await vm.run(`module.exports = async function() {return ${stateMemoryCode}}()`, __dirname)
-                if (typeof response !== 'object') throw new Error('State must be an object')
-                stateValues = response
+                return returnOutput
+            } catch (e) {
+                throw new Error(e)
             }
+        }
 
+        if (!stateMemoryUI && !stateMemoryCode) {
             const returnOutput: ISeqAgentNode = {
                 id: nodeData.id,
-                node: stateValues,
+                node: {},
                 name: 'state',
                 label: 'state',
                 type: 'state',
-                output: START,
-                checkpointMemory: createCheckpointer(stateValues)
+                output: START
             }
             return returnOutput
-        } catch (e) {
-            throw new Error(`Error initializing state: ${e.message}`)
+        }
+
+        if (selectedTab === 'stateMemoryUI' && stateMemoryUI) {
+            try {
+                const parsedSchema = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
+                const obj: ICommonObject = {}
+                for (const sch of parsedSchema) {
+                    const key = sch.key
+                    if (!key) throw new Error(`Key is required`)
+                    const type = sch.type
+                    const defaultValue = sch.defaultValue
+
+                    //updated to use LangGraph Annotation Reducers
+                    if (type === 'Append') {
+                        obj[key] = {
+                            value: Annotation<any[]>({
+                                reducer: (state: any[], update: any[]) => state.concat(update),
+                                default: () => (defaultValue ? JSON.parse(defaultValue) : [])
+                            })
+                        }
+                    } else {
+                        obj[key] = {
+                            value: Annotation<any>({
+                                reducer: (state: any, update: any) => update ?? state,
+                                default: () => defaultValue
+                            })
+                        }
+                    }
+                }
+                const returnOutput: ISeqAgentNode = {
+                    id: nodeData.id,
+                    node: obj,
+                    name: 'state',
+                    label: 'state',
+                    type: 'state',
+                    output: START
+                }
+                return returnOutput
+            } catch (e) {
+                throw new Error(e)
+            }
+        } else if (selectedTab === 'stateMemoryCode' && stateMemoryCode) {
+            const variables = await getVars(appDataSource, databaseEntities, nodeData)
+            const flow = {
+                chatflowId: options.chatflowid,
+                sessionId: options.sessionId,
+                chatId: options.chatId,
+                input
+            }
+
+            let sandbox: any = {
+                util: undefined,
+                Symbol: undefined,
+                child_process: undefined,
+                fs: undefined,
+                process: undefined
+            }
+            sandbox['$vars'] = prepareSandboxVars(variables)
+            sandbox['$flow'] = flow
+
+            const builtinDeps = process.env.TOOL_FUNCTION_BUILTIN_DEP
+                ? defaultAllowBuiltInDep.concat(process.env.TOOL_FUNCTION_BUILTIN_DEP.split(','))
+                : defaultAllowBuiltInDep
+            const externalDeps = process.env.TOOL_FUNCTION_EXTERNAL_DEP ? process.env.TOOL_FUNCTION_EXTERNAL_DEP.split(',') : []
+            const deps = availableDependencies.concat(externalDeps)
+
+            const nodeVMOptions = {
+                console: 'inherit',
+                sandbox,
+                require: {
+                    external: { modules: deps },
+                    builtin: builtinDeps
+                },
+                eval: false,
+                wasm: false,
+                timeout: 10000
+            } as any
+
+            const vm = new NodeVM(nodeVMOptions)
+            try {
+                const response = await vm.run(`module.exports = async function() {return ${stateMemoryCode}}()`, __dirname)
+                if (typeof response !== 'object') throw new Error('State must be an object')
+                const returnOutput: ISeqAgentNode = {
+                    id: nodeData.id,
+                    node: response,
+                    name: 'state',
+                    label: 'state',
+                    type: 'state',
+                    output: START
+                }
+                return returnOutput
+            } catch (e) {
+                throw new Error(e)
+            }
         }
     }
 }

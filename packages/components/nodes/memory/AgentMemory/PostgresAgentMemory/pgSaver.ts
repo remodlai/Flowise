@@ -1,9 +1,9 @@
-import { BaseCheckpointSaver, ChannelVersions, PendingWrite, SendProtocol, Checkpoint, CheckpointMetadata, CheckpointTuple as LangGraphCheckpointTuple, CheckpointListOptions as LangGraphCheckpointListOptions } from '@langchain/langgraph-checkpoint'
+import { BaseCheckpointSaver, ChannelVersions, PendingWrite, SendProtocol, Checkpoint, CheckpointMetadata, CheckpointTuple as LangGraphCheckpointTuple } from '@langchain/langgraph-checkpoint'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { BaseMessage } from '@langchain/core/messages'
 import { DataSource } from 'typeorm'
 import { SaverOptions, SerializerProtocol } from '../interface'
-import { IMessage, MemoryMethods, FlowiseCheckpoint, StateData } from '../../../../src/Interface'
+import { IMessage, MemoryMethods } from '../../../../src/Interface'
 import { mapChatMessageToBaseMessage } from '../../../../src/utils'
 import { Pool } from 'pg'
 
@@ -11,7 +11,7 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
     private threadId: string
     private config: SaverOptions
     protected isSetup: boolean = false
-    protected checkpointSerializer: SerializerProtocol<FlowiseCheckpoint>
+    protected checkpointSerializer: SerializerProtocol<Checkpoint>
     protected metadataSerializer: SerializerProtocol<CheckpointMetadata>
     protected pool: Pool
 
@@ -37,16 +37,15 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
         this.config = config
         this.threadId = config.threadId
         
-        // Initialize serializers
+        // Initialize serializers with improved message handling
         const defaultSerializer = {
             dumpsTyped: async <T>(obj: T): Promise<string> => {
                 if (obj && typeof obj === 'object') {
                     // Handle BaseMessage serialization
                     if ('messages' in obj) {
-                        const state = obj as StateData
                         return JSON.stringify({
-                            ...state,
-                            messages: state.messages.map((msg) => ({
+                            ...obj,
+                            messages: (obj as any).messages.map((msg: BaseMessage) => ({
                                 type: msg._getType(),
                                 data: msg.toDict()
                             }))
@@ -60,13 +59,14 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
                 if (parsed && typeof parsed === 'object') {
                     // Handle BaseMessage deserialization
                     if ('messages' in parsed) {
-                        const state = parsed as any
                         return {
-                            ...state,
-                            messages: state.messages.map((msg: any) => {
-                                const message = mapChatMessageToBaseMessage(msg)
-                                return message
-                            })
+                            ...parsed,
+                            messages: await Promise.all(
+                                parsed.messages.map(async (msg: any) => {
+                                    const message = await mapChatMessageToBaseMessage(msg)
+                                    return Array.isArray(message) ? message[0] : message
+                                })
+                            )
                         } as T
                     }
                 }
@@ -194,7 +194,7 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
         }
         const checkpoints = await this.list(config)
         for await (const checkpoint of checkpoints) {
-            const emptyCheckpoint: FlowiseCheckpoint = {
+            const emptyCheckpoint: Checkpoint = {
                 v: 1,
                 id: checkpoint.config.configurable?.checkpoint_id || '',
                 ts: new Date().toISOString(),
@@ -208,7 +208,7 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
             }
             await this.put(
                 checkpoint.config,
-                emptyCheckpoint as unknown as Checkpoint,
+                emptyCheckpoint,
                 {
                     source: 'input',
                     step: 0,
@@ -235,35 +235,25 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
         const parent_id = config.configurable?.parent_checkpoint_id
 
         try {
-            // Convert checkpoint to FlowiseCheckpoint format
-            const flowiseCheckpoint: FlowiseCheckpoint = {
-                v: checkpoint.v,
-                id: checkpoint.id,
-                ts: checkpoint.ts,
-                channel_values: {
-                    messages: (checkpoint.channel_values?.messages || []) as BaseMessage[],
-                    state: checkpoint.channel_values?.state || {}
-                },
-                channel_versions: checkpoint.channel_versions as ChannelVersions,
-                versions_seen: Object.fromEntries(
-                    Object.entries(checkpoint.versions_seen || {}).map(([key, value]) => [
-                        key,
-                        Object.fromEntries(Object.entries(value).map(([k, v]) => [k, Number(v)]))
-                    ])
-                ),
-                pending_sends: checkpoint.pending_sends || []
-            }
-
-            const checkpointStr = await this.checkpointSerializer.dumpsTyped(flowiseCheckpoint)
+            const checkpointStr = await this.checkpointSerializer.dumpsTyped(checkpoint)
             const metadataStr = await this.metadataSerializer.dumpsTyped(metadata)
 
             const query = `
                 INSERT INTO checkpoints (thread_id, checkpoint_id, parent_id, checkpoint, metadata)
                 VALUES ($1, $2, $3, $4, $5)
                 ON CONFLICT (thread_id, checkpoint_id)
-                DO UPDATE SET checkpoint = EXCLUDED.checkpoint, metadata = EXCLUDED.metadata
+                DO UPDATE SET
+                    parent_id = EXCLUDED.parent_id,
+                    checkpoint = EXCLUDED.checkpoint,
+                    metadata = EXCLUDED.metadata
             `
-            await this.pool.query(query, [thread_id, checkpoint_id, parent_id, checkpointStr, metadataStr])
+            await this.pool.query(query, [
+                thread_id,
+                checkpoint_id,
+                parent_id,
+                Buffer.from(checkpointStr),
+                Buffer.from(metadataStr)
+            ])
 
             return {
                 configurable: {
@@ -273,19 +263,17 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
                 }
             }
         } catch (error) {
-            console.error('Error saving checkpoint:', error)
+            console.error('Error storing checkpoint:', error)
             throw error
         }
     }
 
-    async *list(
-        config: RunnableConfig
-    ): AsyncGenerator<LangGraphCheckpointTuple> {
+    async *list(config: RunnableConfig): AsyncGenerator<LangGraphCheckpointTuple> {
         await this.setup()
         const thread_id = config.configurable?.thread_id || this.threadId
 
         try {
-            const query = 'SELECT thread_id, checkpoint_id, parent_id, checkpoint, metadata FROM checkpoints WHERE thread_id = $1 ORDER BY checkpoint_id DESC'
+            const query = 'SELECT checkpoint_id, parent_id, checkpoint, metadata FROM checkpoints WHERE thread_id = $1'
             const result = await this.pool.query(query, [thread_id])
 
             for (const row of result.rows) {
@@ -295,7 +283,7 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
                 yield {
                     config: {
                         configurable: {
-                            thread_id: row.thread_id,
+                            thread_id,
                             checkpoint_id: row.checkpoint_id
                         }
                     },
@@ -304,7 +292,7 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
                     parentConfig: row.parent_id
                         ? {
                               configurable: {
-                                  thread_id: row.thread_id,
+                                  thread_id,
                                   checkpoint_id: row.parent_id
                               }
                           }
@@ -322,7 +310,7 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
         
         try {
             for (const write of writes) {
-                const checkpoint: FlowiseCheckpoint = {
+                const checkpoint: Checkpoint = {
                     v: 1,
                     id: taskId,
                     ts: new Date().toISOString(),
@@ -342,7 +330,7 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
                 }
                 await this.put(
                     { configurable: { checkpoint_id: taskId } },
-                    checkpoint as unknown as Checkpoint,
+                    checkpoint,
                     metadata,
                     {}
                 )
@@ -409,5 +397,9 @@ export class PostgresSaver extends BaseCheckpointSaver<string> implements Memory
             metadata,
             currentState.checkpoint.channel_versions
         );
+    }
+
+    async close(): Promise<void> {
+        await this.pool.end()
     }
 }
