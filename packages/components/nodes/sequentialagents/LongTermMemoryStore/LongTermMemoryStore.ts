@@ -1,5 +1,5 @@
 import { getBaseClasses, getCredentialData, getCredentialParam } from '../../../../src/utils'
-import { SaverOptions } from '../interface'
+
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../../src/Interface'
 import { DataSource } from 'typeorm'
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'

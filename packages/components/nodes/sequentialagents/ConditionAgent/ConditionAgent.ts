@@ -14,7 +14,7 @@ import {
     INodeOutputsValue,
     INodeParams,
     ISeqAgentNode,
-    StateType
+    ISeqAgentsState
 } from '../../../src/Interface'
 import { getInputVariables, getVars, handleEscapeCharacters, prepareSandboxVars, transformBracesWithColon } from '../../../src/utils'
 import {
@@ -421,7 +421,7 @@ class ConditionAgent_SeqAgents implements INode {
 
         const abortControllerSignal = options.signal as AbortController
 
-        const conditionalEdge = async (state: StateType, config: RunnableConfig) =>
+        const conditionalEdge = async (state: ISeqAgentsState, config: RunnableConfig) =>
             await runCondition(
                 conditionName,
                 nodeData,
@@ -459,7 +459,7 @@ const runCondition = async (
     nodeData: INodeData,
     input: string,
     options: ICommonObject,
-    state: StateType,
+    state: ISeqAgentsState,
     config: RunnableConfig,
     llm: BaseChatModel,
     agentPrompt: string,
@@ -547,10 +547,7 @@ const runCondition = async (
         sessionId: options.sessionId,
         chatId: options.chatId,
         input,
-        state: {
-            messages: state.messages,
-            ...state.channel_values
-        },
+        state,
         output: result,
         vars: prepareSandboxVars(variables)
     }
@@ -584,7 +581,7 @@ const runCondition = async (
                 } else if (item.variable.startsWith('$')) {
                     const nodeId = item.variable.replace('$', '')
 
-                    const messageOutputs = state.messages.filter(
+                    const messageOutputs = ((state.messages as unknown as BaseMessage[]) ?? []).filter(
                         (message) => message.additional_kwargs && message.additional_kwargs?.nodeId === nodeId
                     )
                     const messageOutput = messageOutputs[messageOutputs.length - 1]

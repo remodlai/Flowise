@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { SystemMessage, HumanMessage, BaseMessage } from '@langchain/core/messages'
 import { StructuredTool } from '@langchain/core/tools'
-import { ChatPromptTemplate, MessagesPlaceholder, BaseMessagePromptTemplateLike, HumanMessagePromptTemplate } from '@langchain/core/prompts'
+import { ChatPromptTemplate, MessagesPlaceholder, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { createReactAgent } from '@langchain/langgraph/prebuilt'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { pull } from 'langchain/hub'
@@ -203,8 +203,6 @@ class ReactLLM_SeqAgents implements INode {
         const {
             llmNodeName,
             systemMessagePrompt,
-            humanMessagePrompt,
-            promptValues: promptValuesStr,
             model: llm,
             llmStructuredOutput,
             tools = [],
@@ -214,16 +212,6 @@ class ReactLLM_SeqAgents implements INode {
 
         if (!llmNodeName) throw new Error('LLM Node name is required!')
         if (!sequentialNodes?.length) throw new Error('ReactLLM must have a predecessor!')
-
-        // Handle prompt values from UI
-        let promptValues: ICommonObject = {}
-        if (promptValuesStr) {
-            try {
-                promptValues = typeof promptValuesStr === 'object' ? promptValuesStr : JSON.parse(promptValuesStr)
-            } catch (exception) {
-                throw new Error("Invalid JSON in the ReactLLM's Prompt Input Values: " + exception)
-            }
-        }
 
         const startLLM = sequentialNodes[0].startLLM
         const configuredLLM = llm || startLLM
@@ -247,19 +235,13 @@ class ReactLLM_SeqAgents implements INode {
             }
         }
 
-        // Create base prompt template with system and human messages
-        const promptArrays = [new MessagesPlaceholder('messages')] as BaseMessagePromptTemplateLike[]
-        if (systemMessagePrompt) promptArrays.unshift(['system', systemMessagePrompt])
-        if (humanMessagePrompt) promptArrays.push(['human', humanMessagePrompt])
+        // Get the React prompt from LangChain hub
+        const prompt = await pull<ChatPromptTemplate>('hwchase17/react')
 
-        // Get the React prompt from LangChain hub and combine with our prompt
-        const basePrompt = await pull<ChatPromptTemplate>('hwchase17/react')
-        
-        // Create React agent with our configured prompt and tools
+        // Create React agent
         const agent = await createReactAgent({
             llm: llmWithOutput,
-            tools: tools as StructuredTool[],
-            systemMessage: systemMessagePrompt || undefined
+            tools: tools as StructuredTool[]
         })
 
         const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {

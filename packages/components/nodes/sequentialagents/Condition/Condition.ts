@@ -12,7 +12,7 @@ import {
 } from '../../../src/Interface'
 import { checkCondition, customGet, getVM } from '../commonUtils'
 import { getVars, prepareSandboxVars } from '../../../src/utils'
-import { toolsCondition } from '@langchain/langgraph/prebuilt'
+
 const howToUseCode = `
 1. Must return a string value at the end of function. For example:
     \`\`\`js
@@ -240,7 +240,7 @@ class Condition_SeqAgents implements INode {
 
         const startLLM = sequentialNodes[0].startLLM
 
-        const conditionalEdge = async (state: StateType) => await runCondition(nodeData, input, options, state)
+        const conditionalEdge = async (state: ISeqAgentsState) => await runCondition(nodeData, input, options, state)
 
         const returnOutput: ISeqAgentNode = {
             id: nodeData.id,
@@ -259,7 +259,7 @@ class Condition_SeqAgents implements INode {
     }
 }
 
-const runCondition = async (nodeData: INodeData, input: string, options: ICommonObject, state: StateType) => {
+const runCondition = async (nodeData: INodeData, input: string, options: ICommonObject, state: ISeqAgentsState) => {
     const appDataSource = options.appDataSource as DataSource
     const databaseEntities = options.databaseEntities as IDatabaseEntity
     const conditionUI = nodeData.inputs?.conditionUI as string
@@ -274,10 +274,7 @@ const runCondition = async (nodeData: INodeData, input: string, options: ICommon
         sessionId: options.sessionId,
         chatId: options.chatId,
         input,
-        state: {
-            messages: state.messages,
-            ...state.channel_values
-        },
+        state,
         vars: prepareSandboxVars(variables)
     }
 
@@ -310,7 +307,7 @@ const runCondition = async (nodeData: INodeData, input: string, options: ICommon
                 } else if (item.variable.startsWith('$')) {
                     const nodeId = item.variable.replace('$', '')
 
-                    const messageOutputs = state.messages.filter(
+                    const messageOutputs = ((state.messages as unknown as BaseMessage[]) ?? []).filter(
                         (message) => message.additional_kwargs && message.additional_kwargs?.nodeId === nodeId
                     )
                     const messageOutput = messageOutputs[messageOutputs.length - 1]

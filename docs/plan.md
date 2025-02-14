@@ -7,25 +7,37 @@ This document outlines the plan to properly implement LangGraph's AgentMemory sy
 ## Implementation Status
 
 ### Completed
-1. **Core Interface Definition**
-   - Defined `FlowiseCheckpoint` interface extending LangGraph's `Checkpoint`
-   - Implemented proper state structure with `StateData`
-   - Added proper message serialization support
-   - Defined comprehensive memory methods interface
+1. **Creation of GlobalAnnotation**
+   - Created `GlobalAnnotation` interface
+      > A fundamental flaw in the original implementation was that it did not properly enable the use of State across the various LangGraph-based nodes, due in part to the use of an extremely oudated LangGraph version (it was originally using 0.0.22, while current version is 0.2.45)
+
+      Solution: Create a new Global State that leverages LangGraph's Annotation system to properly enable the use of State across the various LangGraph-based nodes. Normally, in a standard LangGraph graph, StateAnnotation is defined within the code, and thereby doesn't have to solve for availability across multiple standalone files, etc.  Because of the deconstruction of a LangGraph graph is required to enable the use of the Flowise UI, it was necessary to create a new Global State that could be used across the various LangGraph-based nodes.
+
+   - Added `uiState` property for UI-specific state
+   - Added `state` property for global state
+   - Added `vars` property for global variables
+   - Added `messages` property for message history
+
+    > This was a critical step in enabling the use of State across the various LangGraph-based nodes. It now enables easy implenetation and access, and thereby the ability to rapidly develop net-new tooling as well.
+
 
 2. **Core Node Implementation**
+   - **State Node**:
+     - Updated to use new interfaces
+     - Added proper message serialization/deserialization
+     - Implemented state initialization with type safety
+     - Full integration with the GlobalAnnotation state
    - **Start Node**: 
      - Updated to initialize state with proper checkpoint structure
      - Added proper message handling
      - Implemented state initialization with type safety
-   - **Agent Node**:
-     - Updated to handle state updates via UI and code methods
-     - Added checkpoint integration in worker node
-     - Implemented proper tool state management
+     - Full integration with the GlobalAnnotation state
+
    - **End Node**:
      - Added state finalization handling
      - Implemented checkpoint completion marking
      - Added proper cleanup and error handling
+     - Added anchor point for future MemoryStore implementation
 
 3. **Database Implementations**
    - **SQLite Implementation**
@@ -33,13 +45,9 @@ This document outlines the plan to properly implement LangGraph's AgentMemory sy
      - Added proper message serialization/deserialization
      - Improved state consistency checks
    - **PostgreSQL Implementation**
-     - Updated to use FlowiseCheckpoint interface
-     - Implemented proper BYTEA storage for JSON data
-     - Added proper parameter placeholders
+     - Fully implemented updated PostgresSaver and PostgresAgentMemory, per LangGraph 0.2.45
    - **MySQL Implementation**
-     - Created new MySQL saver implementation
-     - Used LONGTEXT for JSON storage
-     - Added proper error handling
+     - Deprecated MySQL implementation, as it is no longer supported by LangGraph (out of the box)
 
 ## Remaining Tasks
 

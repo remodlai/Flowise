@@ -4,8 +4,8 @@ import { SaverOptions } from './interface'
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../src/Interface'
 
 import { DataSource } from 'typeorm'
-import { PostgresSaver } from './PostgresAgentMemory/pgSaver'
-
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 class AgentMemory_Memory implements INode {
     label: string
     name: string
@@ -22,12 +22,12 @@ class AgentMemory_Memory implements INode {
     constructor() {
         this.label = 'Agent Memory'
         this.name = 'agentMemory'
-        this.version = 2.0
+        this.version = 3.0
         this.type = 'AgentMemory'
         this.icon = 'agentmemory.svg'
         this.category = 'Memory'
         this.description = 'Memory for agentflow to remember the state of the conversation'
-        this.baseClasses = [this.type, ...getBaseClasses(SQLiteSaver)]
+        this.baseClasses = []
         this.badge = 'DEPRECATING'
         this.credential = {
             label: 'Connect Credential',
@@ -132,7 +132,7 @@ class AgentMemory_Memory implements INode {
                 databaseEntities,
                 chatflowid
             }
-            const recordManager = new SQLiteSaver(args)
+            const recordManager = new SqliteSaver(args)
             return recordManager
         } else if (databaseType === 'postgres') {
             const credentialData = await getCredentialData(nodeData.credential ?? '', options)
@@ -156,7 +156,8 @@ class AgentMemory_Memory implements INode {
                 databaseEntities,
                 chatflowid
             }
-            const recordManager = new PostgresSaver(args)
+            const connectionString = `postgresql://${datasourceOptions. username}:${datasourceOptions.password}@${datasourceOptions.host}:${datasourceOptions.port}/${datasourceOptions.database}`
+            const recordManager = PostgresSaver.fromConnString(connectionString)
             return recordManager
         } else {
             throw new Error(`Unsupported database type: ${databaseType}. Please use either 'sqlite' or 'postgres'.`)

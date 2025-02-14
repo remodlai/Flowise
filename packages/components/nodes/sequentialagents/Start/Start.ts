@@ -3,6 +3,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
 import { Moderation } from '../../moderation/Moderation'
 import { Annotation } from '@langchain/langgraph'
+import { GlobalAnnotation } from '../../../../server/src/Interface'
 class Start_SeqAgents implements INode {
     label: string
     name: string

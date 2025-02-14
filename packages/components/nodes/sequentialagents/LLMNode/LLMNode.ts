@@ -17,7 +17,7 @@ import {
     IDatabaseEntity,
     ConversationHistorySelection
 } from '../../../src/Interface'
-//import { AgentExecutor } from '../../../src/agents'
+import { AgentExecutor } from '../../../src/agents'
 import {
     extractOutputFromArray,
     getInputVariables,

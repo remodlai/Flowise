@@ -13,8 +13,7 @@ This is why we have created a new global state management system that is more in
 
 //here we define our global state. This represents the state of the entire application.
 //It is used to store data that is shared across all nodes in the application.
-//It is also used to store data that is needed by multiple nodes, such as the state of an agent.
-//It is also used to store data that is needed by multiple nodes, such as the state of an agent.
+
 
 export const GlobalAnnotation = Annotation.Root({
     messages:  Annotation<BaseMessage[]>({

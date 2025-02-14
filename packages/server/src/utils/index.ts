@@ -24,7 +24,8 @@ import {
     IVariable,
     IVariableDict,
     IVariableOverride,
-    IncomingInput
+    IncomingInput,
+    GlobalAnnotation
 } from '../Interface'
 import { cloneDeep, get, isEqual } from 'lodash'
 import {
@@ -38,6 +39,7 @@ import {
     FlowiseMemory,
     IFileUpload,
     getS3Config
+    
 } from 'flowise-components'
 import { randomBytes } from 'crypto'
 import { AES, enc } from 'crypto-js'
@@ -829,7 +831,7 @@ export const getVariableValue = async (
     question: string,
     chatHistory: IMessage[],
     isAcceptVariable = false,
-    flowConfig?: ICommonObject,
+    flowConfig?: typeof GlobalAnnotation.State.flow,
     uploadedFilesContent?: string,
     availableVariables: IVariable[] = [],
     variableOverrides: ICommonObject[] = []
@@ -872,7 +874,7 @@ export const getVariableValue = async (
             if (isAcceptVariable && variableFullPath === CHAT_HISTORY_VAR_PREFIX) {
                 variableDict[`{{${variableFullPath}}}`] = handleEscapeCharacters(convertChatHistoryToText(chatHistory), false)
             }
-
+            //TODO: Update and test this with GlobalAnnotation.State.vars
             if (variableFullPath.startsWith('$vars.')) {
                 const vars = await getGlobalVariable(flowConfig, availableVariables, variableOverrides)
                 const variableValue = get(vars, variableFullPath.replace('$vars.', ''))
