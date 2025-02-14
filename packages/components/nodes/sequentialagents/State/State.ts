@@ -1,8 +1,9 @@
 import { START } from '@langchain/langgraph'
 import { NodeVM } from '@flowiseai/nodevm'
 import { DataSource } from 'typeorm'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode, ISeqAgentsState, MessageAnnotation, StateAnnotation,  } from '../../../src/Interface'
+import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode, ISeqAgentsState, MessageAnnotation, StateAnnotation } from '../../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../../src/utils'
+import { GlobalAnnotation } from '../../../../server/src/Interface'
 import { MemorySaver } from '@langchain/langgraph-checkpoint'
 import { Annotation, messagesStateReducer, addMessages } from '@langchain/langgraph'
 import { BaseMessage } from '@langchain/core/messages'
@@ -109,148 +110,152 @@ class State_SeqAgents implements INode {
         const databaseEntities = options.databaseEntities as IDatabaseEntity
         const selectedTab = tabIdentifier ? tabIdentifier.split(`_${nodeData.id}`)[0] : 'stateMemoryUI'
         const stateMemory = nodeData.inputs?.stateMemory as string
-
+    
+        // Case 1: Use combined UI and code state (when a custom state is provided)
         if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
-            try {
-                const parsedSchemaFromUI = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
-                const parsedSchema = typeof stateMemory === 'string' ? JSON.parse(stateMemory) : stateMemory
-                const combinedMemorySchema = [...parsedSchemaFromUI, ...parsedSchema]
-
-                // Create state values from UI
-                const stateValues = combinedMemorySchema.reduce((acc, field) => {
-                    const key = field.Key ?? field.key
-                    if (!key) return acc
-                    const value = field['Default Value'] ?? field.defaultValue
-                    acc[key] = value
-                    return acc
-                }, {})
-
-                // Use standard ISeqAgentsState with StateAnnotation
-                const obj: ISeqAgentsState = {
-                    messages: MessageAnnotation,
-                    state: stateValues // StateAnnotation will handle the operations
-                }
-
-                const returnOutput: ISeqAgentNode = {
-                    id: nodeData.id,
-                    node: obj,
-                    name: 'state',
-                    label: 'state',
-                    type: 'state',
-                    output: START
-                }
-                return returnOutput
-            } catch (e) {
-                throw new Error(e)
-            }
-        }
-
-        if (!stateMemoryUI && !stateMemoryCode) {
+          try {
+            const parsedSchemaFromUI =
+              typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
+            const parsedSchema =
+              typeof stateMemory === 'string' ? JSON.parse(stateMemory) : stateMemory
+            const combinedMemorySchema = [...parsedSchemaFromUI, ...parsedSchema]
+    
+            // Create uiState update object from combined schema
+            const uiStateUpdate = combinedMemorySchema.reduce((acc: Record<string, any>, field: any) => {
+              const key = field.Key ?? field.key
+              if (!key) return acc
+              const value = field['Default Value'] ?? field.defaultValue
+              acc[key] = value
+              return acc
+            }, {} as Record<string, any>)
+    
+            // Return update for GlobalAnnotation.uiState:
             const returnOutput: ISeqAgentNode = {
-                id: nodeData.id,
-                node: {},
-                name: 'state',
-                label: 'state',
-                type: 'state',
-                output: START
+              id: nodeData.id,
+              node: { uiState: uiStateUpdate },
+              name: 'state',
+              label: 'state',
+              type: 'state',
+              output: START
             }
             return returnOutput
+          } catch (e) {
+            throw new Error(e)
+          }
         }
-
+    
+        // Case 2: No UI state provided – return empty state update
+        if (!stateMemoryUI && !stateMemoryCode) {
+          const returnOutput: ISeqAgentNode = {
+            id: nodeData.id,
+            node: {},
+            name: 'state',
+            label: 'state',
+            type: 'state',
+            output: START
+          }
+          return returnOutput
+        }
+    
+        // Case 3: When using the UI tab directly
         if (selectedTab === 'stateMemoryUI' && stateMemoryUI) {
-            try {
-                const parsedSchema = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
-                const obj: ICommonObject = {}
-                for (const sch of parsedSchema) {
-                    const key = sch.key
-                    if (!key) throw new Error(`Key is required`)
-                    const type = sch.type
-                    const defaultValue = sch.defaultValue
-
-                    //updated to use LangGraph Annotation Reducers
-                    if (type === 'Append') {
-                        obj[key] = {
-                            value: Annotation<any[]>({
-                                reducer: (state: any[], update: any[]) => state.concat(update),
-                                default: () => (defaultValue ? JSON.parse(defaultValue) : [])
-                            })
-                        }
-                    } else {
-                        obj[key] = {
-                            value: Annotation<any>({
-                                reducer: (state: any, update: any) => update ?? state,
-                                default: () => defaultValue
-                            })
-                        }
-                    }
+          try {
+            const parsedSchema =
+              typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
+            const uiStateUpdate = parsedSchema.reduce((acc: Record<string, any>, sch: any) => {
+              const key = sch.key
+              if (!key) throw new Error(`Key is required`)
+              if (sch.type === 'Append') {
+                acc[key] = {
+                  value: {
+                    reducer: (state: any[], update: any[]) => state.concat(update),
+                    default: () => (sch.defaultValue ? JSON.parse(sch.defaultValue) : [])
+                  }
                 }
-                const returnOutput: ISeqAgentNode = {
-                    id: nodeData.id,
-                    node: obj,
-                    name: 'state',
-                    label: 'state',
-                    type: 'state',
-                    output: START
+              } else {
+                acc[key] = {
+                  value: {
+                    reducer: (state: any, update: any) => update ?? state,
+                    default: () => sch.defaultValue
+                  }
                 }
-                return returnOutput
-            } catch (e) {
-                throw new Error(e)
+              }
+              return acc
+            }, {} as Record<string, any>)
+    
+            const returnOutput: ISeqAgentNode = {
+              id: nodeData.id,
+              node: { uiState: uiStateUpdate },
+              name: 'state',
+              label: 'state',
+              type: 'state',
+              output: START
             }
-        } else if (selectedTab === 'stateMemoryCode' && stateMemoryCode) {
-            const variables = await getVars(appDataSource, databaseEntities, nodeData)
-            const flow = {
-                chatflowId: options.chatflowid,
-                sessionId: options.sessionId,
-                chatId: options.chatId,
-                input
-            }
-
-            let sandbox: any = {
-                util: undefined,
-                Symbol: undefined,
-                child_process: undefined,
-                fs: undefined,
-                process: undefined
-            }
-            sandbox['$vars'] = prepareSandboxVars(variables)
-            sandbox['$flow'] = flow
-
-            const builtinDeps = process.env.TOOL_FUNCTION_BUILTIN_DEP
-                ? defaultAllowBuiltInDep.concat(process.env.TOOL_FUNCTION_BUILTIN_DEP.split(','))
-                : defaultAllowBuiltInDep
-            const externalDeps = process.env.TOOL_FUNCTION_EXTERNAL_DEP ? process.env.TOOL_FUNCTION_EXTERNAL_DEP.split(',') : []
-            const deps = availableDependencies.concat(externalDeps)
-
-            const nodeVMOptions = {
-                console: 'inherit',
-                sandbox,
-                require: {
-                    external: { modules: deps },
-                    builtin: builtinDeps
-                },
-                eval: false,
-                wasm: false,
-                timeout: 10000
-            } as any
-
-            const vm = new NodeVM(nodeVMOptions)
-            try {
-                const response = await vm.run(`module.exports = async function() {return ${stateMemoryCode}}()`, __dirname)
-                if (typeof response !== 'object') throw new Error('State must be an object')
-                const returnOutput: ISeqAgentNode = {
-                    id: nodeData.id,
-                    node: response,
-                    name: 'state',
-                    label: 'state',
-                    type: 'state',
-                    output: START
-                }
-                return returnOutput
-            } catch (e) {
-                throw new Error(e)
-            }
+            return returnOutput
+          } catch (e) {
+            throw new Error(e)
+          }
         }
+        // Case 4: When using the Code tab for state memory
+        else if (selectedTab === 'stateMemoryCode' && stateMemoryCode) {
+          const variables = await getVars(appDataSource, databaseEntities, nodeData)
+          const flow = {
+            chatflowId: options.chatflowid,
+            sessionId: options.sessionId,
+            chatId: options.chatId,
+            input
+          }
+    
+          let sandbox: any = {
+            util: undefined,
+            Symbol: undefined,
+            child_process: undefined,
+            fs: undefined,
+            process: undefined
+          }
+          sandbox['$vars'] = prepareSandboxVars(variables)
+          sandbox['$flow'] = flow
+    
+          const builtinDeps = process.env.TOOL_FUNCTION_BUILTIN_DEP
+            ? defaultAllowBuiltInDep.concat(process.env.TOOL_FUNCTION_BUILTIN_DEP.split(','))
+            : defaultAllowBuiltInDep
+          const externalDeps = process.env.TOOL_FUNCTION_EXTERNAL_DEP
+            ? process.env.TOOL_FUNCTION_EXTERNAL_DEP.split(',')
+            : []
+          const deps = availableDependencies.concat(externalDeps)
+    
+          const nodeVMOptions = {
+            console: 'inherit',
+            sandbox,
+            require: {
+              external: { modules: deps },
+              builtin: builtinDeps
+            },
+            eval: false,
+            wasm: false,
+            timeout: 10000
+          } as any
+    
+          const vm = new NodeVM(nodeVMOptions)
+          try {
+            const response = await vm.run(
+              `module.exports = async function() {return ${stateMemoryCode}}()`,
+              __dirname
+            )
+            if (typeof response !== 'object') throw new Error('State must be an object')
+            const returnOutput: ISeqAgentNode = {
+              id: nodeData.id,
+              node: {uiState: response},
+              name: 'state',
+              label: 'state',
+              type: 'state',
+              output: START
+            }
+            return returnOutput
+          } catch (e) {
+            throw new Error(e)
+          }
+        }
+      }
     }
-}
-
-module.exports = { nodeClass: State_SeqAgents }
+module.exports = State_SeqAgents

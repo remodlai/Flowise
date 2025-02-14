@@ -37,28 +37,23 @@ export const MessageAnnotation = Annotation.Root({
     })
 })
 
+export const MemoryTupleAnnotation = Annotation.Root({
+    memories: Annotation<{ userId: string; namespace: string; memory: string; date: Date }[]>({
+        reducer: (current, next) => [...current, ...(Array.isArray(next) ? next : [next])],
+        default: () => []
+    })
+})
+
 export const StateAnnotation = Annotation.Root({
     state: Annotation<any>({
         reducer: channelValueReducer,
         default: () => {}
     })
 })
-
+ 
 export const ISeqAgentsState = Annotation.Root({
-    messages: Annotation<BaseMessage[]>({
-        reducer: (current, next) => current.concat(next),
-        default: () => []
-    }),
-    state: Annotation<any>({
-        reducer: channelValueReducer,
-        default: () => ({})
-    }),
-    next: Annotation<string>({
-        reducer: (current, next) => next,
-        default: () => ''
-    }),
-    instructions: Annotation<string>,
-    
+   ...MessageAnnotation.spec,
+   ...StateAnnotation.spec,
 })
 
 export type NodeParamsType =

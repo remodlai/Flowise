@@ -7,7 +7,7 @@ import {
     INodeParams,
     IServerSideEventStreamer
 } from 'flowise-components'
-import { ISeqAgentsState } from '../../components/src/Interface'
+import { ISeqAgentsState, channelValueReducer } from '../../components/src/Interface'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'
@@ -361,3 +361,7 @@ export * from './Interface.DocumentStore'
 
 // Re-export for convenience
 export { ISeqAgentsState }
+
+export { channelValueReducer }
+//global state
+export { GlobalAnnotation } from '../../components/src/globalState'
