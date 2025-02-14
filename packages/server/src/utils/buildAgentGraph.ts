@@ -23,7 +23,7 @@ import { BaseMessage, HumanMessage, AIMessage, AIMessageChunk, ToolMessage } fro
 import { IChatFlow,
      IComponentNodes, 
      IDepthQueue, 
-     IReactFlowNode, IReactFlowEdge, IMessage, IncomingInput, IFlowConfig } from '../Interface'
+     IReactFlowNode, IReactFlowEdge, IMessage, IncomingInput, IFlowConfig, GlobalAnnotation } from '../Interface'
 import { databaseEntities, clearSessionMemory, getAPIOverrideConfig } from '../utils'
 import { replaceInputsWithConfig, resolveVariables } from '.'
 import { InternalFlowiseError } from '../errors/internalFlowiseError'
@@ -648,26 +648,14 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
     } = params
 
     let question = params.question
-
-    const FlowiseMessagesAnnotation = Annotation.Root({
-        messages: Annotation<BaseMessage[]>({
-            reducer: messagesStateReducer,
-            default: () => []
-        })
-
-    })
+    
+    
 
     // Get state
     const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-    let FlowiseState = {}
-    if (seqStateNode) {
-        FlowiseState = {
-            ...seqStateNode.data.instance.node,
-            ...FlowiseMessagesAnnotation
-        }
-    }
+   
 
-    let seqGraph = new StateGraph<any>(FlowiseState)
+    let seqGraph = new StateGraph<any>(typeof GlobalAnnotation.State)
 
     /*** Validate Graph ***/
     const startAgentNodes: IReactFlowNode[] = reactFlowNodes.filter((node: IReactFlowNode) => node.data.name === 'seqStart')
