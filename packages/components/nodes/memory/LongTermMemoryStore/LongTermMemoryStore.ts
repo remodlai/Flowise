@@ -43,6 +43,26 @@ class LongTermMemoryStore_Memory implements INode {
                 type: 'string',
                 description: 'Prefix for the memory collection (e.g., "memories", "knowledge")',
                 default: 'memories'
+            },
+            {
+                label: 'Database Name',
+                name: 'databaseName',
+                type: 'string',
+                description: 'Name of the Neo4j database to use',
+                default: 'neo4j'    
+            },
+            {
+                label: 'Memory Node Label',
+                name: 'memoryNodeLabel',
+                type: 'string',
+                description: 'Label of the Neo4j memory node    ',
+                default: 'Memory'
+            },
+            {
+                label: 'Context Node Label',
+                name: 'contextNodeLabel',
+                type: 'string',
+                description: 'Label of the Neo4j context node',
             }
         ]
     }
