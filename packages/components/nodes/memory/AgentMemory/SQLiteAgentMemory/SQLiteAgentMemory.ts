@@ -82,8 +82,8 @@ class SQLiteAgentMemory_Memory implements INode {
         //     chatflowid
         // }
 
-        const recordManager = SqliteSaver.fromConnString(database)
-        return recordManager
+        const connString = `sqlite://${database}`
+        return connString;
     }
 }
 

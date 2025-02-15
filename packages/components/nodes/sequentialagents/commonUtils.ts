@@ -19,6 +19,19 @@ import {
 } from '../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
+import { BaseStore, LangGraphRunnableConfig } from '@langchain/langgraph'
+
+//get BaseStore from config or throw an error
+export function getStoreFromConfigOrThrow(
+    config: LangGraphRunnableConfig,
+  ): BaseStore {
+    if (!config.store) {
+      throw new Error("Store not found in configuration");
+    }
+  
+    return config.store;
+  }
+
 
 export const checkCondition = (input: string | number | undefined, condition: string, value: string | number = ''): boolean => {
     if (!input && condition === 'Is Empty') return true

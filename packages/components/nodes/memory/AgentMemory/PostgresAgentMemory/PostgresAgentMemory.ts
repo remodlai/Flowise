@@ -197,8 +197,9 @@ class PostgresAgentMemory_Memory implements INode {
         //     chatflowid
         // }
         const connString = `postgresql://${datasourceOptions.user}:${datasourceOptions.password}@${datasourceOptions.host}:${datasourceOptions.port}/${datasourceOptions.database}`
-        const pgRecordManager = PostgresSaver.fromConnString(connString)
-        return pgRecordManager
+       
+       //in this refactor we are returning the connString only.  this can then be used in the Start node via const checkpointer = new PostgresSaver.fromConnString(connString)
+        return connString;
     }
 }
 

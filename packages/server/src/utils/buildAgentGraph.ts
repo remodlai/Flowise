@@ -704,6 +704,9 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         return seqAgentNode
     }
 
+    
+
+    if 
     /*
      *  Two objectives we want to achieve here:
      *  1.) Prepare the mapping of conditional outputs to next nodes. This mapping will ONLY be used to add conditional edges to the Interrupted Agent connected next to Condition/ConditionAgent Node.
@@ -980,7 +983,13 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
     /*** Get memory ***/
     const startNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqStart')
+    const memoryNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.type === 'AgentMemory')
     let memory = startNode?.data.instance?.checkpointMemory
+    
+    //check to see if the memory node is a PostgresAgentMemory, which requires a setup call
+    if (memoryNode?.data.type === 'PostgresAgentMemory') {
+        await memory.setup();
+    }
 
     try {
         const graph = seqGraph.compile({

@@ -4,6 +4,8 @@ import { INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Inter
 import { Moderation } from '../../moderation/Moderation'
 import { Annotation } from '@langchain/langgraph'
 import { GlobalAnnotation } from '../../../../server/src/Interface'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'    
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 class Start_SeqAgents implements INode {
     label: string
     name: string
@@ -63,6 +65,19 @@ class Start_SeqAgents implements INode {
     async init(nodeData: INodeData): Promise<any> {
         const moderations = (nodeData.inputs?.inputModeration as Moderation[]) ?? []
         const model = nodeData.inputs?.model as BaseChatModel
+        let checkpointer;
+        switch (nodeData.inputs?.agentMemory?.type) {
+            case 'postgres':
+                checkpointer = PostgresSaver.fromConnString(nodeData.inputs?.agentMemory as string);
+                break;
+            case 'sqlite':
+                checkpointer = SqliteSaver.fromConnString(nodeData.inputs?.agentMemory as string);
+                break;
+            default:
+                checkpointer = null;
+        }
+
+
 
         const returnOutput: ISeqAgentNode = {
             id: nodeData.id,
@@ -74,7 +89,7 @@ class Start_SeqAgents implements INode {
             llm: model,
             startLLM: model,
             moderations,
-            checkpointMemory: nodeData.inputs?.agentMemory
+            checkpointMemory: checkpointer
         }
 
         return returnOutput

@@ -146,6 +146,7 @@ export interface INodeParams {
     refresh?: boolean
     freeSolo?: boolean
     loadPreviousNodes?: boolean
+    memoryStore?: 
 }
 
 export interface INodeExecutionData {

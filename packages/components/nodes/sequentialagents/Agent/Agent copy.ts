@@ -641,7 +641,7 @@ async function agentNode(
         input,
         options
     }: {
-        state: ISeqAgentsState
+        state: typeof GlobalAnnotation.State
         llm: BaseChatModel
         interrupt: boolean
         agent: AgentExecutor | RunnableSequence
