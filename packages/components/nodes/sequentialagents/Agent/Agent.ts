@@ -792,10 +792,15 @@ async function agentNode(
         }
 
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        // @ts-ignore
-        state.messages = filterConversationHistory(historySelection, input, state)
-        // @ts-ignore
-        state.messages = restructureMessages(llm, state)
+        
+        // Filter messages for this agent/LLM
+        const filteredMessages = filterConversationHistory(historySelection, input, state)
+
+        // Create temporary state with filtered messages for the agent
+        const agentState = {
+            ...state,
+            messages: filteredMessages
+        }
 
         const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
         const sseStreamer = options.sseStreamer
@@ -824,14 +829,14 @@ async function agentNode(
             let usedTools: IUsedTool[] = []
             let sourceDocuments: IDocument[] = []
             let artifacts: ICommonObject[] = []
-            let currentState = { ...state }
+            let currentState = { ...agentState }
 
             // Add user's message at the start
             const userMessage = new HumanMessage(input)
-            const currentMessages = state.messages.default()
+            const currentMessages = state.messages
             state.messages = {
-                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-                default: () => [...currentMessages, userMessage]
+                value: state.messages.value,
+                default: () => [...state.messages.default(), userMessage]
             }
 
             // Only stream start event once at the beginning
@@ -850,7 +855,11 @@ async function agentNode(
 
             // Collect all chunks first
             for await (const chunk of await agent.stream(
-                { ...state, signal: abortControllerSignal.signal },
+                { 
+                    ...agentState,
+                    messages: filteredMessages,
+                    signal: abortControllerSignal.signal 
+                },
                 streamConfig
             )) {
                 // Only stream content tokens, not tool calls or other metadata
@@ -915,8 +924,8 @@ async function agentNode(
 
             // Update state with both user message and final AI message
             state.messages = {
-                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-                default: () => [...currentMessages, userMessage, finalMessage]
+                value: state.messages.value,
+                default: () => [...state.messages.default(), userMessage, finalMessage]
             }
 
             result = {
@@ -936,13 +945,17 @@ async function agentNode(
         } else {
             // Add user's message first
             const userMessage = new HumanMessage(input)
-            const currentMessages = state.messages.default()
+            const currentMessages = state.messages
             state.messages = {
-                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-                default: () => [...currentMessages, userMessage]
+                value: state.messages.value,
+                default: () => [...state.messages.default(), userMessage]
             }
 
-            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+            result = await agent.invoke({ 
+                ...agentState,
+                messages: filteredMessages,
+                signal: abortControllerSignal.signal 
+            }, config)
         }
 
         if (interrupt) {

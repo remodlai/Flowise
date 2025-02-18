@@ -260,12 +260,10 @@ export function filterConversationHistory(
         case 'user_question':
             return [new HumanMessage(input)]
         case 'last_message':
-            // @ts-ignore
             return state.messages?.length ? [state.messages[state.messages.length - 1] as BaseMessage] : []
         case 'empty':
             return []
         case 'all_messages':
-            // @ts-ignore
             return (state.messages as BaseMessage[]) ?? []
         default:
             throw new Error(`Unhandled conversationHistorySelection: ${historySelection}`)

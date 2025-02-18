@@ -255,6 +255,10 @@ export const buildAgentGraph = async ({
                     }
 
                     if (shouldStreamResponse && sseStreamer) {
+                        // Send final metadata events
+                        sseStreamer.streamArtifactsEvent(chatId, totalArtifacts)
+                        sseStreamer.streamSourceDocumentsEvent(chatId, totalSourceDocuments)
+                        sseStreamer.streamUsedToolsEvent(chatId, totalUsedTools)
                         sseStreamer.streamEndEvent(chatId)
                     }
 
@@ -408,6 +412,10 @@ export const buildAgentGraph = async ({
                     }
 
                     if (shouldStreamResponse && sseStreamer) {
+                        // Send final metadata events
+                        sseStreamer.streamArtifactsEvent(chatId, totalArtifacts)
+                        sseStreamer.streamSourceDocumentsEvent(chatId, totalSourceDocuments)
+                        sseStreamer.streamUsedToolsEvent(chatId, totalUsedTools)
                         sseStreamer.streamEndEvent(chatId)
                     }
 
@@ -697,9 +705,13 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
     // Get state
     const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
     if (seqStateNode) {
+        const nodeState = seqStateNode.data.instance.node
         channels = {
-            ...seqStateNode.data.instance.node,
-            ...channels
+            ...nodeState,
+            messages: {
+                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+                default: () => nodeState.messages?.default?.() || []
+            }
         }
     }
 
