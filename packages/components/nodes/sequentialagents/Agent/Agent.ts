@@ -550,7 +550,8 @@ class Agent_SeqAgents implements INode {
                     abortControllerSignal,
                     nodeData,
                     input,
-                    options
+                    options,
+                    multiModalMessageContent
                 },
                 config
             )
@@ -639,15 +640,15 @@ async function createAgent(
             new MessagesPlaceholder('agent_scratchpad')
         ] as BaseMessagePromptTemplateLike[]
         if (systemPrompt) promptArrays.unshift(['system', systemPrompt])
+
+        // Add multimodal content before human prompt if it exists
+        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
+            promptArrays.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
+        }
         if (humanPrompt) promptArrays.push(['human', humanPrompt])
 
         let prompt = ChatPromptTemplate.fromMessages(promptArrays)
         prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
-
-        if (multiModalMessageContent.length) {
-            const msg = HumanMessagePromptTemplate.fromTemplate([...multiModalMessageContent])
-            prompt.promptMessages.splice(1, 0, msg)
-        }
 
         if (llm.bindTools === undefined) {
             throw new Error(`This agent only compatible with function calling models.`)
@@ -702,15 +703,15 @@ async function createAgent(
 
         const promptArrays = [new MessagesPlaceholder('messages')] as BaseMessagePromptTemplateLike[]
         if (systemPrompt) promptArrays.unshift(['system', systemPrompt])
+        
+        // Add multimodal content before human prompt if it exists
+        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
+            promptArrays.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
+        }
         if (humanPrompt) promptArrays.push(['human', humanPrompt])
 
         let prompt = ChatPromptTemplate.fromMessages(promptArrays)
         prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
-
-        if (multiModalMessageContent.length) {
-            const msg = HumanMessagePromptTemplate.fromTemplate([...multiModalMessageContent])
-            prompt.promptMessages.splice(1, 0, msg)
-        }
 
         let agent
 
@@ -731,15 +732,15 @@ async function createAgent(
     } else {
         const promptArrays = [new MessagesPlaceholder('messages')] as BaseMessagePromptTemplateLike[]
         if (systemPrompt) promptArrays.unshift(['system', systemPrompt])
+        
+        // Add multimodal content before human prompt if it exists
+        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
+            promptArrays.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
+        }
         if (humanPrompt) promptArrays.push(['human', humanPrompt])
 
         let prompt = ChatPromptTemplate.fromMessages(promptArrays)
         prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
-
-        if (multiModalMessageContent.length) {
-            const msg = HumanMessagePromptTemplate.fromTemplate([...multiModalMessageContent])
-            prompt.promptMessages.splice(1, 0, msg)
-        }
 
         let conversationChain
 
@@ -772,7 +773,8 @@ async function agentNode(
         abortControllerSignal,
         nodeData,
         input,
-        options
+        options,
+        multiModalMessageContent
     }: {
         state: ISeqAgentsState
         llm: BaseChatModel
@@ -783,6 +785,7 @@ async function agentNode(
         nodeData: INodeData
         input: string
         options: ICommonObject
+        multiModalMessageContent?: MessageContentImageUrl[]
     },
     config: IAgentConfig
 ) {
@@ -832,7 +835,15 @@ async function agentNode(
             let currentState = { ...agentState }
 
             // Add user's message at the start
-            const userMessage = new HumanMessage(input)
+            let userMessage: HumanMessage
+            if (multiModalMessageContent && multiModalMessageContent.length > 0) {
+                userMessage = new HumanMessage({
+                    content: multiModalMessageContent
+                })
+            } else {
+                userMessage = new HumanMessage(input)
+            }
+
             const currentMessages = state.messages
             state.messages = {
                 value: state.messages.value,
@@ -1273,7 +1284,8 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
             sourceDocuments: allSourceDocuments.filter(Boolean),
             artifacts: allArtifacts.filter(Boolean),
             usedTools: allUsedTools.filter(Boolean),
-            content: outputContent
+            content: finalText,
+            text: finalText  // Use the agent's final message content
         }
 
         return finalOutput
