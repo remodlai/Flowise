@@ -28,6 +28,8 @@ import logger from './logger'
 import { Variable } from '../database/entities/Variable'
 import { DataSource } from 'typeorm'
 import { CachePool } from '../CachePool'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
+import { Serialized } from '@langchain/core/load/serializable'
 
 /**
  * Build Agent Graph
@@ -89,10 +91,11 @@ export const buildAgentGraph = async ({
             cachePool,
             uploads,
             baseURL,
-            signal: signal ?? new AbortController()
+            signal: signal ?? new AbortController(),
+            shouldStreamResponse,
+            sseStreamer
         }
 
-        let streamResults
         let finalResult = ''
         let finalSummarization = ''
         let lastWorkerResult = ''
@@ -121,7 +124,7 @@ export const buildAgentGraph = async ({
 
         try {
             if (!seqAgentNodes.length) {
-                streamResults = await compileMultiAgentsGraph({
+                const streamResults = await compileMultiAgentsGraph({
                     agentflow,
                     appDataSource,
                     mapNameToLabel,
@@ -138,9 +141,134 @@ export const buildAgentGraph = async ({
                     summarization: seqAgentNodes.some((node) => node.data.inputs?.summarization),
                     uploadedFilesContent
                 })
+
+                if (streamResults) {
+                    if (shouldStreamResponse && sseStreamer) {
+                        sseStreamer.streamStartEvent(chatId, [])
+                    }
+
+                    for await (const output of await streamResults) {
+                        if (!output?.__end__) {
+                            for (const agentName of Object.keys(output)) {
+                                if (!mapNameToLabel[agentName]) continue
+
+                                const nodeId = output[agentName]?.messages
+                                    ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
+                                    : ''
+                                const usedTools = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.usedTools)
+                                    : []
+                                const sourceDocuments = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.sourceDocuments)
+                                    : []
+                                const artifacts = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.artifacts)
+                                    : []
+                                const messages = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => (typeof msg === 'string' ? msg : msg.content))
+                                    : []
+                                lastMessageRaw = output[agentName]?.messages
+                                    ? output[agentName].messages[output[agentName].messages.length - 1]
+                                    : {}
+
+                                const state = omit(output[agentName], ['messages'])
+
+                                if (usedTools && usedTools.length) {
+                                    const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
+                                    if (cleanedTools.length) {
+                                        totalUsedTools.push(...cleanedTools)
+                                        if (shouldStreamResponse && sseStreamer) {
+                                            sseStreamer.streamUsedToolsEvent(chatId, cleanedTools)
+                                        }
+                                    }
+                                }
+
+                                if (sourceDocuments && sourceDocuments.length) {
+                                    const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
+                                    if (cleanedDocs.length) {
+                                        totalSourceDocuments.push(...cleanedDocs)
+                                        if (shouldStreamResponse && sseStreamer) {
+                                            sseStreamer.streamSourceDocumentsEvent(chatId, cleanedDocs)
+                                        }
+                                    }
+                                }
+
+                                if (artifacts && artifacts.length) {
+                                    const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
+                                    if (cleanedArtifacts.length) {
+                                        totalArtifacts.push(...cleanedArtifacts)
+                                        if (shouldStreamResponse && sseStreamer) {
+                                            sseStreamer.streamArtifactsEvent(chatId, cleanedArtifacts)
+                                        }
+                                    }
+                                }
+
+                                const reasoning = {
+                                    agentName: mapNameToLabel[agentName].label,
+                                    messages,
+                                    next: output[agentName]?.next,
+                                    instructions: output[agentName]?.instructions,
+                                    usedTools: flatten(usedTools) as IUsedTool[],
+                                    sourceDocuments: flatten(sourceDocuments) as Document[],
+                                    artifacts: flatten(artifacts) as ICommonObject[],
+                                    state,
+                                    nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
+                                    nodeId
+                                }
+                                agentReasoning.push(reasoning)
+
+                                finalSummarization = output[agentName]?.summarization ?? ''
+
+                                lastWorkerResult =
+                                    output[agentName]?.messages?.length &&
+                                    output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.type === 'worker'
+                                        ? output[agentName].messages[output[agentName].messages.length - 1].content
+                                        : lastWorkerResult
+
+                                if (shouldStreamResponse && sseStreamer) {
+                                    sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
+                                }
+
+                                // Send loading next agent indicator
+                                if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
+                                    if (shouldStreamResponse && sseStreamer) {
+                                        sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
+                                    }
+                                }
+                            }
+                        } else {
+                            finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
+                            if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
+                            if (shouldStreamResponse && sseStreamer) {
+                                sseStreamer.streamTokenEvent(chatId, finalResult)
+                            }
+                        }
+                    }
+
+                    if (!finalResult) {
+                        if (lastWorkerResult) finalResult = lastWorkerResult
+                        else if (finalSummarization) finalResult = finalSummarization
+                        if (shouldStreamResponse && sseStreamer) {
+                            sseStreamer.streamTokenEvent(chatId, finalResult)
+                        }
+                    }
+
+                    if (shouldStreamResponse && sseStreamer) {
+                        sseStreamer.streamEndEvent(chatId)
+                    }
+
+                    return {
+                        finalResult,
+                        finalAction,
+                        sourceDocuments: totalSourceDocuments,
+                        artifacts: totalArtifacts,
+                        usedTools: totalUsedTools,
+                        agentReasoning
+                    }
+                }
             } else {
                 isSequential = true
-                streamResults = await compileSeqAgentsGraph({
+                const streamResults = await compileSeqAgentsGraph({
                     depthQueue,
                     agentflow,
                     appDataSource,
@@ -156,230 +284,140 @@ export const buildAgentGraph = async ({
                     action: incomingInput.action,
                     uploadedFilesContent
                 })
-            }
 
-            if (streamResults) {
-                let isStreamingStarted = false
-                for await (const output of await streamResults) {
-                    if (!output?.__end__) {
-                        for (const agentName of Object.keys(output)) {
-                            if (!mapNameToLabel[agentName]) continue
+                if (streamResults) {
+                    if (shouldStreamResponse && sseStreamer) {
+                        sseStreamer.streamStartEvent(chatId, [])
+                    }
 
-                            const nodeId = output[agentName]?.messages
-                                ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
-                                : ''
-                            const usedTools = output[agentName]?.messages
-                                ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.usedTools)
-                                : []
-                            const sourceDocuments = output[agentName]?.messages
-                                ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.sourceDocuments)
-                                : []
-                            const artifacts = output[agentName]?.messages
-                                ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.artifacts)
-                                : []
-                            const messages = output[agentName]?.messages
-                                ? output[agentName].messages.map((msg: BaseMessage) => (typeof msg === 'string' ? msg : msg.content))
-                                : []
-                            lastMessageRaw = output[agentName]?.messages
-                                ? output[agentName].messages[output[agentName].messages.length - 1]
-                                : {}
+                    for await (const output of await streamResults) {
+                        if (!output?.__end__) {
+                            for (const agentName of Object.keys(output)) {
+                                if (!mapNameToLabel[agentName]) continue
 
-                            const state = omit(output[agentName], ['messages'])
+                                const nodeId = output[agentName]?.messages
+                                    ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
+                                    : ''
+                                const usedTools = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.usedTools)
+                                    : []
+                                const sourceDocuments = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.sourceDocuments)
+                                    : []
+                                const artifacts = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.artifacts)
+                                    : []
+                                const messages = output[agentName]?.messages
+                                    ? output[agentName].messages.map((msg: BaseMessage) => (typeof msg === 'string' ? msg : msg.content))
+                                    : []
+                                lastMessageRaw = output[agentName]?.messages
+                                    ? output[agentName].messages[output[agentName].messages.length - 1]
+                                    : {}
 
-                            if (usedTools && usedTools.length) {
-                                const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
-                                if (cleanedTools.length) totalUsedTools.push(...cleanedTools)
-                            }
+                                const state = omit(output[agentName], ['messages'])
 
-                            if (sourceDocuments && sourceDocuments.length) {
-                                const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
-                                if (cleanedDocs.length) totalSourceDocuments.push(...cleanedDocs)
-                            }
-
-                            if (artifacts && artifacts.length) {
-                                const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
-                                if (cleanedArtifacts.length) totalArtifacts.push(...cleanedArtifacts)
-                            }
-
-                            /*
-                             * Check if the next node is a condition node, if yes, then add the agent reasoning of the condition node
-                             */
-                            if (isSequential) {
-                                const inputEdges = edges.filter(
-                                    (edg) => edg.target === nodeId && edg.targetHandle.includes(`${nodeId}-input-sequentialNode`)
-                                )
-
-                                inputEdges.forEach((edge) => {
-                                    const parentNode = initializedNodes.find((nd) => nd.id === edge.source)
-                                    if (parentNode) {
-                                        if (parentNode.data.name.includes('seqCondition')) {
-                                            const newMessages = messages.slice(0, -1)
-                                            newMessages.push(mapNameToLabel[agentName].label)
-                                            const reasoning = {
-                                                agentName: parentNode.data.instance?.label || parentNode.data.type,
-                                                messages: newMessages,
-                                                nodeName: parentNode.data.name,
-                                                nodeId: parentNode.data.id
-                                            }
-                                            agentReasoning.push(reasoning)
+                                if (usedTools && usedTools.length) {
+                                    const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
+                                    if (cleanedTools.length) {
+                                        totalUsedTools.push(...cleanedTools)
+                                        if (shouldStreamResponse && sseStreamer) {
+                                            sseStreamer.streamUsedToolsEvent(chatId, cleanedTools)
                                         }
-                                    }
-                                })
-                            }
-
-                            const reasoning = {
-                                agentName: mapNameToLabel[agentName].label,
-                                messages,
-                                next: output[agentName]?.next,
-                                instructions: output[agentName]?.instructions,
-                                usedTools: flatten(usedTools) as IUsedTool[],
-                                sourceDocuments: flatten(sourceDocuments) as Document[],
-                                artifacts: flatten(artifacts) as ICommonObject[],
-                                state,
-                                nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
-                                nodeId
-                            }
-                            agentReasoning.push(reasoning)
-
-                            finalSummarization = output[agentName]?.summarization ?? ''
-
-                            lastWorkerResult =
-                                output[agentName]?.messages?.length &&
-                                output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.type === 'worker'
-                                    ? output[agentName].messages[output[agentName].messages.length - 1].content
-                                    : lastWorkerResult
-
-                            if (shouldStreamResponse) {
-                                if (!isStreamingStarted) {
-                                    isStreamingStarted = true
-                                    if (sseStreamer) {
-                                        sseStreamer.streamStartEvent(chatId, agentReasoning)
                                     }
                                 }
 
-                                if (sseStreamer) {
+                                if (sourceDocuments && sourceDocuments.length) {
+                                    const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
+                                    if (cleanedDocs.length) {
+                                        totalSourceDocuments.push(...cleanedDocs)
+                                        if (shouldStreamResponse && sseStreamer) {
+                                            sseStreamer.streamSourceDocumentsEvent(chatId, cleanedDocs)
+                                        }
+                                    }
+                                }
+
+                                if (artifacts && artifacts.length) {
+                                    const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
+                                    if (cleanedArtifacts.length) {
+                                        totalArtifacts.push(...cleanedArtifacts)
+                                        if (shouldStreamResponse && sseStreamer) {
+                                            sseStreamer.streamArtifactsEvent(chatId, cleanedArtifacts)
+                                        }
+                                    }
+                                }
+
+                                /*
+                                 * Check if the next node is a condition node, if yes, then add the agent reasoning of the condition node
+                                 */
+                                if (isSequential) {
+                                    const inputEdges = edges.filter(
+                                        (edg) => edg.target === nodeId && edg.targetHandle.includes(`${nodeId}-input-sequentialNode`)
+                                    )
+
+                                    inputEdges.forEach((edge) => {
+                                        const parentNode = initializedNodes.find((nd) => nd.id === edge.source)
+                                        if (parentNode) {
+                                            if (parentNode.data.name.includes('seqCondition')) {
+                                                const newMessages = messages.slice(0, -1)
+                                                newMessages.push(mapNameToLabel[agentName].label)
+                                                const reasoning = {
+                                                    agentName: parentNode.data.instance?.label || parentNode.data.type,
+                                                    messages: newMessages,
+                                                    nodeName: parentNode.data.name,
+                                                    nodeId: parentNode.data.id
+                                                }
+                                                agentReasoning.push(reasoning)
+                                            }
+                                        }
+                                    })
+                                }
+
+                                const reasoning = {
+                                    agentName: mapNameToLabel[agentName].label,
+                                    messages,
+                                    next: output[agentName]?.next,
+                                    instructions: output[agentName]?.instructions,
+                                    usedTools: flatten(usedTools) as IUsedTool[],
+                                    sourceDocuments: flatten(sourceDocuments) as Document[],
+                                    artifacts: flatten(artifacts) as ICommonObject[],
+                                    state,
+                                    nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
+                                    nodeId
+                                }
+                                agentReasoning.push(reasoning)
+
+                                if (shouldStreamResponse && sseStreamer) {
                                     sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
                                 }
 
                                 // Send loading next agent indicator
                                 if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                    if (sseStreamer) {
+                                    if (shouldStreamResponse && sseStreamer) {
                                         sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
                                     }
                                 }
                             }
-                        }
-                    } else {
-                        finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
-                        if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
-                        if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
-                        }
-                    }
-                }
-
-                /*
-                 * For multi agents mode, sometimes finalResult is empty
-                 * 1.) Provide lastWorkerResult as final result if available
-                 * 2.) Provide summary as final result if available
-                 */
-                if (!isSequential && !finalResult) {
-                    if (lastWorkerResult) finalResult = lastWorkerResult
-                    else if (finalSummarization) finalResult = finalSummarization
-                    if (shouldStreamResponse && sseStreamer) {
-                        sseStreamer.streamTokenEvent(chatId, finalResult)
-                    }
-                }
-
-                /*
-                 * For sequential mode, sometimes finalResult is empty
-                 * Use last agent message as final result
-                 */
-                if (isSequential && !finalResult && agentReasoning.length) {
-                    const lastMessages = agentReasoning[agentReasoning.length - 1].messages
-                    const lastAgentReasoningMessage = lastMessages[lastMessages.length - 1]
-                    // If last message is an AI Message with tool calls, that means the last node was interrupted
-                    if (lastMessageRaw.tool_calls && lastMessageRaw.tool_calls.length > 0) {
-                        // The last node that got interrupted
-                        const node = initializedNodes.find((node) => node.id === lastMessageRaw.additional_kwargs.nodeId)
-
-                        // Find the next tool node that is connected to the interrupted node, to get the approve/reject button text
-                        const tooNodeId = edges.find(
-                            (edge) =>
-                                edge.target.includes('seqToolNode') &&
-                                edge.source === (lastMessageRaw.additional_kwargs && lastMessageRaw.additional_kwargs.nodeId)
-                        )?.target
-                        const connectedToolNode = initializedNodes.find((node) => node.id === tooNodeId)
-
-                        // Map raw tool calls to used tools, to be shown on interrupted message
-                        const mappedToolCalls = lastMessageRaw.tool_calls.map((toolCall) => {
-                            return {
-                                tool: toolCall.name,
-                                toolInput: toolCall.args,
-                                toolOutput: ''
-                            }
-                        })
-
-                        // Emit the interrupt message to the client
-                        let approveButtonText = 'Yes'
-                        let rejectButtonText = 'No'
-
-                        if (connectedToolNode || node) {
-                            if (connectedToolNode) {
-                                const result = await connectedToolNode.data.instance.node.seekPermissionMessage(mappedToolCalls)
-                                finalResult = result || 'Do you want to proceed?'
-                                approveButtonText = connectedToolNode.data.inputs?.approveButtonText || 'Yes'
-                                rejectButtonText = connectedToolNode.data.inputs?.rejectButtonText || 'No'
-                            } else if (node) {
-                                const result = await node.data.instance.agentInterruptToolNode.seekPermissionMessage(mappedToolCalls)
-                                finalResult = result || 'Do you want to proceed?'
-                                approveButtonText = node.data.inputs?.approveButtonText || 'Yes'
-                                rejectButtonText = node.data.inputs?.rejectButtonText || 'No'
-                            }
-                            finalAction = {
-                                id: uuidv4(),
-                                mapping: {
-                                    approve: approveButtonText,
-                                    reject: rejectButtonText,
-                                    toolCalls: lastMessageRaw.tool_calls
-                                },
-                                elements: [
-                                    { type: 'approve-button', label: approveButtonText },
-                                    { type: 'reject-button', label: rejectButtonText }
-                                ]
-                            }
+                        } else {
+                            finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
+                            if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
                             if (shouldStreamResponse && sseStreamer) {
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
-                                sseStreamer.streamActionEvent(chatId, finalAction)
                             }
                         }
-                        totalUsedTools.push(...mappedToolCalls)
-                    } else if (lastAgentReasoningMessage) {
-                        finalResult = lastAgentReasoningMessage
-                        if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
-                        }
                     }
-                }
 
-                totalSourceDocuments = uniq(flatten(totalSourceDocuments))
-                totalUsedTools = uniq(flatten(totalUsedTools))
-                totalArtifacts = uniq(flatten(totalArtifacts))
+                    if (shouldStreamResponse && sseStreamer) {
+                        sseStreamer.streamEndEvent(chatId)
+                    }
 
-                if (shouldStreamResponse && sseStreamer) {
-                    sseStreamer.streamUsedToolsEvent(chatId, totalUsedTools)
-                    sseStreamer.streamSourceDocumentsEvent(chatId, totalSourceDocuments)
-                    sseStreamer.streamArtifactsEvent(chatId, totalArtifacts)
-                    sseStreamer.streamEndEvent(chatId)
-                }
-
-                return {
-                    finalResult,
-                    finalAction,
-                    sourceDocuments: totalSourceDocuments,
-                    artifacts: totalArtifacts,
-                    usedTools: totalUsedTools,
-                    agentReasoning
+                    return {
+                        finalResult,
+                        finalAction,
+                        sourceDocuments: totalSourceDocuments,
+                        artifacts: totalArtifacts,
+                        usedTools: totalUsedTools,
+                        agentReasoning
+                    }
                 }
             }
         } catch (e) {
@@ -393,7 +431,6 @@ export const buildAgentGraph = async ({
             }
             throw new Error(getErrorMessage(e))
         }
-        return streamResults
     } catch (e) {
         logger.error('[server]: Error:', e)
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error buildAgentGraph - ${getErrorMessage(e)}`)
@@ -1039,10 +1076,37 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                 })
             }
         }
-        return await graph.stream(humanMsg, {
+
+        const shouldStreamResponse = options.shouldStreamResponse
+        const sseStreamer = options.sseStreamer
+        const chatId = options.chatId
+
+        if (shouldStreamResponse && sseStreamer) {
+            sseStreamer.streamStartEvent(chatId, [])
+            
+            // Add streaming callbacks
+            const streamingHandler = BaseCallbackHandler.fromMethods({
+                handleLLMNewToken(token: string) {
+                    sseStreamer.streamTokenEvent(chatId, token)
+                },
+                handleToolStart(tool: Serialized, input: string) {
+                    sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start' })
+                },
+                handleToolEnd(output: string) {
+                    sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
+                }
+            })
+
+            callbacks.push(streamingHandler)
+        }
+
+        const streamResults = await graph.stream(humanMsg, {
             callbacks: [loggerHandler, ...callbacks],
             configurable: config
         })
+
+        return streamResults
+
     } catch (e) {
         logger.error('Error compile graph', e)
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error compile graph - ${getErrorMessage(e)}`)

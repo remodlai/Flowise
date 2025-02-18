@@ -45,6 +45,8 @@ import {
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
+import { Serialized } from '@langchain/core/load/serializable'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
@@ -788,7 +790,65 @@ async function agentNode(
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
 
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+        const shouldStreamResponse = options.shouldStreamResponse
+        const sseStreamer = options.sseStreamer
+        const chatId = options.chatId
+
+        // Add streaming callbacks if streaming is enabled
+        if (shouldStreamResponse && sseStreamer) {
+            const streamingHandler = BaseCallbackHandler.fromMethods({
+                handleLLMNewToken(token: string) {
+                    sseStreamer.streamTokenEvent(chatId, token)
+                },
+                handleToolStart(tool: Serialized, input: string) {
+                    const toolName = typeof tool === 'string' ? tool : tool.name || tool.id
+                    sseStreamer.streamToolEvent(chatId, { 
+                        tool: toolName,
+                        toolInput: input,
+                        status: 'start' 
+                    })
+                },
+                handleToolEnd(output: string, runId: string, parentRunId: string | undefined) {
+                    sseStreamer.streamToolEvent(chatId, { 
+                        output,
+                        status: 'end'
+                    })
+                }
+            })
+            const currentCallbacks = config.callbacks || []
+            config.callbacks = Array.isArray(currentCallbacks) ? [...currentCallbacks, streamingHandler] : [streamingHandler]
+        }
+
+        let result
+        if (shouldStreamResponse) {
+            let content = ''
+            let usedTools: IUsedTool[] = []
+            let sourceDocuments: IDocument[] = []
+            let artifacts: ICommonObject[] = []
+
+            for await (const chunk of await agent.stream({ ...state, signal: abortControllerSignal.signal }, config)) {
+                if (chunk.content) {
+                    content = chunk.content
+                }
+                if (chunk.additional_kwargs?.usedTools) {
+                    usedTools = chunk.additional_kwargs.usedTools
+                }
+                if (chunk.additional_kwargs?.sourceDocuments) {
+                    sourceDocuments = chunk.additional_kwargs.sourceDocuments
+                }
+                if (chunk.additional_kwargs?.artifacts) {
+                    artifacts = chunk.additional_kwargs.artifacts
+                }
+            }
+            result = {
+                content,
+                usedTools,
+                sourceDocuments,
+                artifacts
+            }
+        } else {
+            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+        }
 
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
@@ -826,12 +886,21 @@ async function agentNode(
 
         if (result.usedTools) {
             additional_kwargs.usedTools = result.usedTools
+            if (shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamUsedToolsEvent(chatId, result.usedTools)
+            }
         }
         if (result.sourceDocuments) {
             additional_kwargs.sourceDocuments = result.sourceDocuments
+            if (shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamSourceDocumentsEvent(chatId, result.sourceDocuments)
+            }
         }
         if (result.artifacts) {
             additional_kwargs.artifacts = result.artifacts
+            if (shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamArtifactsEvent(chatId, result.artifacts)
+            }
         }
         if (result.output) {
             result.content = result.output
