@@ -45,8 +45,7 @@ import {
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
-import { createReactAgent } from '@langchain/langgraph/prebuilt'
-
+//START UI SETTINGS
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
@@ -188,9 +187,7 @@ return [
     new AIMessage("The answer is 172.558."),
 ]`
 const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
-
-
-//This build the flowise agent node.
+//END UI SETTINGS
 class Agent_SeqAgents implements INode {
     label: string
     name: string
@@ -458,7 +455,6 @@ class Agent_SeqAgents implements INode {
         ]
     }
 
-    //This is the init function for the agent node.
     async init(nodeData: INodeData, input: string, options: ICommonObject): Promise<any> {
         let tools = nodeData.inputs?.tools
         tools = flatten(tools)
@@ -502,13 +498,10 @@ class Agent_SeqAgents implements INode {
         }
 
         const interrupt = nodeData.inputs?.interrupt as boolean
-        
 
-        //It looks like it tries to create a tool node for each tool programatically..
         const toolName = `tool_${nodeData.id}`
         const toolNode = new ToolNode(tools, nodeData, input, options, toolName, [], { sequentialNodeName: toolName })
 
-        //It looks like it tries to create a tool node for each tool programatically..
         ;(toolNode as any).seekPermissionMessage = async (usedTools: IUsedTool[]) => {
             const prompt = ChatPromptTemplate.fromMessages([['human', approvalPrompt || defaultApprovalPrompt]])
             const chain = prompt.pipe(startLLM)
@@ -518,10 +511,6 @@ class Agent_SeqAgents implements INode {
             })) as AIMessageChunk
             return response.content
         }
-
-
-
-
 
         const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
             return await agentNode(
@@ -656,16 +645,38 @@ async function createAgent(
         }
         const modelWithTools = llm.bindTools(tools)
 
+        // Add streaming callbacks if streaming is enabled
+        const streamingCallbacks = options.sseStreamer && options.shouldStreamResponse ? [{
+            handleLLMNewToken: (token: string) => {
+                options.sseStreamer.streamTokenEvent(options.chatId, token)
+            },
+            handleToolStart: (tool: any) => {
+                options.sseStreamer.streamToolEvent(options.chatId, {
+                    tool: tool.name,
+                    input: tool.input
+                })
+            },
+            handleToolEnd: (output: any) => {
+                if (options.sseStreamer.streamUsedToolsEvent) {
+                    options.sseStreamer.streamUsedToolsEvent(options.chatId, [{
+                        tool: output.tool,
+                        toolInput: output.input,
+                        toolOutput: output.output
+                    }])
+                }
+            }
+        }] : []
+
         let agent
 
         if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
             agent = RunnableSequence.from([
                 RunnablePassthrough.assign({
-                    //@ts-ignore
-                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(input.steps)
+                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => 
+                        formatToOpenAIToolMessages(input.steps)
                 }),
                 prompt,
-                modelWithTools,
+                modelWithTools.withConfig({ callbacks: streamingCallbacks }),
                 new ToolCallingAgentOutputParser()
             ]).withConfig({
                 metadata: { sequentialNodeName: agentName }
@@ -673,19 +684,19 @@ async function createAgent(
         } else {
             agent = RunnableSequence.from([
                 RunnablePassthrough.assign({
-                    //@ts-ignore
-                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(input.steps)
+                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => 
+                        formatToOpenAIToolMessages(input.steps)
                 }),
                 RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                 prompt,
-                modelWithTools,
+                modelWithTools.withConfig({ callbacks: streamingCallbacks }),
                 new ToolCallingAgentOutputParser()
             ]).withConfig({
                 metadata: { sequentialNodeName: agentName }
             })
         }
 
-        const executor = AgentExecutor.fromAgentAndTools({
+        return AgentExecutor.fromAgentAndTools({
             agent,
             tools,
             sessionId: flowObj?.sessionId,
@@ -694,7 +705,6 @@ async function createAgent(
             verbose: process.env.DEBUG === 'true',
             maxIterations: maxIterations ? parseFloat(maxIterations) : undefined
         })
-        return executor
     } else if (tools.length && interrupt) {
         if (llm.bindTools === undefined) {
             throw new Error(`Agent Node only compatible with function calling models.`)

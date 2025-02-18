@@ -1,8 +1,9 @@
-import { BaseMessage } from '@langchain/core/messages'
+import { BaseMessage, BaseMessageLike, SystemMessage } from '@langchain/core/messages'
 import { BufferMemory, BufferWindowMemory, ConversationSummaryMemory, ConversationSummaryBufferMemory } from 'langchain/memory'
 import { Moderation } from '../nodes/moderation/Moderation'
 import { SendProtocol, Checkpoint, ChannelVersions } from '@langchain/langgraph-checkpoint'
-import { Annotation, type Messages, addMessages, MessagesAnnotation, messagesStateReducer } from '@langchain/langgraph'
+import { Runnable } from '@langchain/core/runnables'
+import { Annotation, type Messages, addMessages, MessagesAnnotation, messagesStateReducer, LangGraphRunnableConfig } from '@langchain/langgraph'
 
 /**
  * Types
@@ -117,6 +118,19 @@ export interface INodeOutputsValue {
     hidden?: boolean
     isAnchor?: boolean
 }
+export type Prompt =
+| SystemMessage
+| string
+| ((
+    state: typeof MessagesAnnotation.State,
+    config: LangGraphRunnableConfig
+  ) => BaseMessageLike[])
+| ((
+    state: typeof MessagesAnnotation.State,
+    config: LangGraphRunnableConfig
+  ) => Promise<BaseMessageLike[]>)
+| Runnable;
+
 
 export interface INodeParams {
     label: string

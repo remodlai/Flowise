@@ -986,7 +986,7 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
     const memoryNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.type === 'AgentMemory')
     let memory = startNode?.data.instance?.checkpointMemory
     
-    //check to see if the memory node is a PostgresAgentMemory, which requires a setup call
+    //NEW: check to see if the memory node is a PostgresAgentMemory, which requires a setup call
     if (memoryNode?.data.type === 'PostgresAgentMemory') {
         await memory.setup();
     }
