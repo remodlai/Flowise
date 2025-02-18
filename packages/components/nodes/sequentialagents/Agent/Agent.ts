@@ -801,18 +801,10 @@ async function agentNode(
                     sseStreamer.streamTokenEvent(chatId, token)
                 },
                 handleToolStart(tool: Serialized, input: string) {
-                    const toolName = typeof tool === 'string' ? tool : tool.name || tool.id
-                    sseStreamer.streamToolEvent(chatId, { 
-                        tool: toolName,
-                        toolInput: input,
-                        status: 'start' 
-                    })
+                    sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start' })
                 },
-                handleToolEnd(output: string, runId: string, parentRunId: string | undefined) {
-                    sseStreamer.streamToolEvent(chatId, { 
-                        output,
-                        status: 'end'
-                    })
+                handleToolEnd(output: string) {
+                    sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
                 }
             })
             const currentCallbacks = config.callbacks || []
