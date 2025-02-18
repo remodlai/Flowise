@@ -1144,7 +1144,17 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
     }
 
     private async run(input: BaseMessage[] | MessagesState, config: IAgentConfig): Promise<BaseMessage[] | MessagesState> {
-        let messages: BaseMessage[]
+        let messages = []
+        if (Array.isArray(input)) {
+            messages = input
+        } else {
+            messages = (input as MessagesState).messages
+        }
+
+        // Get the last message content for the final text
+        const lastMessage = messages[messages.length - 1]
+        const finalText = typeof lastMessage.content === 'string' ? lastMessage.content : JSON.stringify(lastMessage.content)
+
         let state: ICommonObject = {}
 
         // Check if input is an array of BaseMessage[]
@@ -1238,7 +1248,13 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
                     sourceDocuments,
                     artifacts,
                     args: call.args,
-                    usedTools: [usedTool]
+                    usedTools: allUsedTools,  // Pass all accumulated tools
+                    state: {
+                        ...state,
+                        sourceDocuments: allSourceDocuments,
+                        artifacts: allArtifacts,
+                        usedTools: allUsedTools
+                    }
                 }
 
                 return new ToolMessage({
@@ -1251,13 +1267,16 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
         )
 
         // Return both messages and updated state with accumulated metadata
-        return Array.isArray(input) ? outputs : {
+        const finalOutput = Array.isArray(input) ? outputs : {
             messages: outputs,
             ...state,
-            sourceDocuments: allSourceDocuments,
-            artifacts: allArtifacts,
-            usedTools: allUsedTools
+            sourceDocuments: allSourceDocuments.filter(Boolean),
+            artifacts: allArtifacts.filter(Boolean),
+            usedTools: allUsedTools.filter(Boolean),
+            content: outputContent
         }
+
+        return finalOutput
     }
 }
 

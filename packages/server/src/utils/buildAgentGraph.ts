@@ -10,7 +10,8 @@ import {
     ISeqAgentNode,
     IUsedTool,
     IDocument,
-    IServerSideEventStreamer
+    IServerSideEventStreamer,   
+    INodeData
 } from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
@@ -236,9 +237,21 @@ export const buildAgentGraph = async ({
                                         sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
                                     }
                                 }
+
+                                // Get the final result from the last AI message
+                                if (output[agentName]?.messages?.length) {
+                                    const lastMsg = output[agentName].messages[output[agentName].messages.length - 1]
+                                    if (lastMsg.content) {
+                                        finalResult = typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content)
+                                    }
+                                }
                             }
                         } else {
-                            finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
+                            // Handle __end__ message
+                            if (output.__end__.messages?.length) {
+                                const endMessage = output.__end__.messages.pop()
+                                finalResult = endMessage?.content || output.__end__.instructions || ''
+                            }
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
                             if (shouldStreamResponse && sseStreamer) {
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
@@ -246,6 +259,7 @@ export const buildAgentGraph = async ({
                         }
                     }
 
+                    // Only use fallbacks if we don't have a final result
                     if (!finalResult) {
                         if (lastWorkerResult) finalResult = lastWorkerResult
                         else if (finalSummarization) finalResult = finalSummarization
@@ -397,13 +411,34 @@ export const buildAgentGraph = async ({
                                         sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
                                     }
                                 }
+
+                                // Get the final result from the last AI message
+                                if (output[agentName]?.messages?.length) {
+                                    const lastMsg = output[agentName].messages[output[agentName].messages.length - 1]
+                                    if (lastMsg.content) {
+                                        finalResult = typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content)
+                                    }
+                                }
                             }
                         } else {
-                            finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
+                            // Handle __end__ message
+                            if (output.__end__.messages?.length) {
+                                const endMessage = output.__end__.messages.pop()
+                                finalResult = endMessage?.content || output.__end__.instructions || ''
+                            }
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
                             if (shouldStreamResponse && sseStreamer) {
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
                             }
+                        }
+                    }
+
+                    // Only use fallbacks if we don't have a final result
+                    if (!finalResult) {
+                        if (lastWorkerResult) finalResult = lastWorkerResult
+                        else if (finalSummarization) finalResult = finalSummarization
+                        if (shouldStreamResponse && sseStreamer) {
+                            sseStreamer.streamTokenEvent(chatId, finalResult)
                         }
                     }
 
