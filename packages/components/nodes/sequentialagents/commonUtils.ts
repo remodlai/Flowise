@@ -8,6 +8,7 @@ import { ChatAnthropic } from '@langchain/anthropic'
 import { Runnable, RunnableConfig, mergeConfigs } from '@langchain/core/runnables'
 import { AIMessage, BaseMessage, HumanMessage, MessageContentImageUrl, ToolMessage } from '@langchain/core/messages'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { Document } from '@langchain/core/documents'
 import { addImagesToMessages, llmSupportsVision } from '../../src/multiModalUtils'
 import {
     ICommonObject,
@@ -15,7 +16,8 @@ import {
     INodeData,
     ISeqAgentsState,
     IVisionChatModal,
-    ConversationHistorySelection
+    ConversationHistorySelection,
+    IUsedTool
 } from '../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
@@ -359,6 +361,10 @@ export interface RunnableCallableArgs extends Partial<any> {
 
 export interface MessagesState {
     messages: BaseMessage[]
+    sourceDocuments?: Document[]
+    artifacts?: ICommonObject[]
+    usedTools?: IUsedTool[]
+    [key: string]: any
 }
 
 export class RunnableCallable<I = unknown, O = unknown> extends Runnable<I, O> {

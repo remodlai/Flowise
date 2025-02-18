@@ -30,6 +30,7 @@ import { DataSource } from 'typeorm'
 import { CachePool } from '../CachePool'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { Serialized } from '@langchain/core/load/serializable'
+import { RunnableConfig } from '@langchain/core/runnables'
 
 /**
  * Build Agent Graph
@@ -604,8 +605,17 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
             const graph = workflowGraph.compile({ checkpointer: memory })
 
             const loggerHandler = new ConsoleCallbackHandler(logger)
-            const callbacks = await additionalCallbacks(flowNodeData, options)
-            const config = { configurable: { thread_id: threadId } }
+            const additionalCbs = await additionalCallbacks(flowNodeData as any, options)
+            const bindModel = {} // Initialize empty bindModel object
+            const config: RunnableConfig & { 
+                configurable: { thread_id: string | undefined }; 
+                bindModel: Record<string, any>;
+                callbacks: (BaseCallbackHandler | ConsoleCallbackHandler)[];
+            } = { 
+                configurable: { thread_id: threadId }, 
+                bindModel,
+                callbacks: [loggerHandler, ...additionalCbs]
+            }
 
             let prependMessages = []
             // Only append in the first message
@@ -633,11 +643,7 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
                 {
                     messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
                 },
-                {
-                    recursionLimit: supervisorResult?.recursionLimit ?? 100,
-                    callbacks: [loggerHandler, ...callbacks],
-                    configurable: config
-                }
+                config
             )
         } catch (e) {
             throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error initialize supervisor nodes - ${getErrorMessage(e)}`)
@@ -1034,8 +1040,16 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         })
 
         const loggerHandler = new ConsoleCallbackHandler(logger)
-        const callbacks = await additionalCallbacks(flowNodeData as any, options)
-        const config = { configurable: { thread_id: threadId }, bindModel }
+        const additionalCbs = await additionalCallbacks(flowNodeData as any, options)
+        const config: RunnableConfig & { 
+            configurable: { thread_id: string | undefined }; 
+            bindModel: Record<string, any>;
+            callbacks: (BaseCallbackHandler | ConsoleCallbackHandler)[];
+        } = { 
+            configurable: { thread_id: threadId }, 
+            bindModel,
+            callbacks: [loggerHandler, ...additionalCbs]
+        }
 
         let prependMessages = []
         // Only append in the first message
@@ -1090,20 +1104,17 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                     sseStreamer.streamTokenEvent(chatId, token)
                 },
                 handleToolStart(tool: Serialized, input: string) {
-                    sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start' })
+                    sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start', input })
                 },
                 handleToolEnd(output: string) {
                     sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
                 }
             })
 
-            callbacks.push(streamingHandler)
+            config.callbacks.push(streamingHandler)
         }
 
-        const streamResults = await graph.stream(humanMsg, {
-            callbacks: [loggerHandler, ...callbacks],
-            configurable: config
-        })
+        const streamResults = await graph.stream(humanMsg, config)
 
         return streamResults
 
