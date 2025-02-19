@@ -231,8 +231,10 @@ export interface IAgentReasoning {
     instructions?: string
     usedTools?: IUsedTool[]
     sourceDocuments?: IDocument[]
+    artifacts?: ICommonObject[]
     state?: ICommonObject
     nodeName?: string
+    nodeId?: string
 }
 
 export interface IAction {

@@ -146,7 +146,9 @@ export const buildAgentGraph = async ({
 
                 if (streamResults) {
                     if (shouldStreamResponse && sseStreamer) {
-                        sseStreamer.streamStartEvent(chatId, [])
+                        // Get graph state for start event
+                        const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+                        sseStreamer.streamStartEvent(chatId, seqStateNode?.data?.instance?.node ?? [])
                     }
 
                     for await (const output of await streamResults) {
@@ -198,30 +200,38 @@ export const buildAgentGraph = async ({
                                 }
 
                                 // Just collect documents, don't stream them yet
-                                if (sourceDocuments && sourceDocuments.length) {
-                                    const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
-                                    if (cleanedDocs.length) {
-                                        totalSourceDocuments.push(...cleanedDocs)
-                                    }
+                                const allSourceDocuments = sourceDocuments?.length 
+                                    ? flatten(sourceDocuments).filter((doc) => doc) as IDocument[]
+                                    : []
+                                if (allSourceDocuments.length) {
+                                    totalSourceDocuments.push(...allSourceDocuments)
                                 }
 
                                 // Just collect artifacts, don't stream them yet
-                                if (artifacts && artifacts.length) {
-                                    const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
-                                    if (cleanedArtifacts.length) {
-                                        totalArtifacts.push(...cleanedArtifacts)
-                                    }
+                                const allArtifacts = artifacts?.length 
+                                    ? flatten(artifacts).filter((artifact) => artifact) as ICommonObject[]
+                                    : []
+                                if (allArtifacts.length) {
+                                    totalArtifacts.push(...allArtifacts)
                                 }
 
-                                const reasoning = {
+                                // Get graph state
+                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+
+                                const reasoning: IAgentReasoning = {
                                     agentName: mapNameToLabel[agentName].label,
                                     messages,
                                     next: output[agentName]?.next,
                                     instructions: output[agentName]?.instructions,
-                                    usedTools: flatten(usedTools) as IUsedTool[],
-                                    sourceDocuments: flatten(sourceDocuments) as Document[],
-                                    artifacts: flatten(artifacts) as ICommonObject[],
-                                    state,
+                                    usedTools: allTools.length ? allTools : [],
+                                    sourceDocuments: allSourceDocuments.length ? allSourceDocuments : [],
+                                    artifacts: allArtifacts.length ? allArtifacts : [],
+                                    state: {
+                                        ...seqStateNode?.data?.instance?.node,  // Include graph state
+                                        ...output[agentName],  // Include node state
+                                        messages: undefined,  // Remove messages to avoid duplication
+                                        isFinal: !output[agentName]?.next || output[agentName]?.next === 'FINISH' || output[agentName]?.next === 'END'
+                                    },
                                     nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
                                     nodeId
                                 }
@@ -236,7 +246,7 @@ export const buildAgentGraph = async ({
                                         : lastWorkerResult
 
                                 if (shouldStreamResponse && sseStreamer) {
-                                    sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
+                                    sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
 
                                     // Check if there are LLM tokens to stream
                                     if (output[agentName]?.messages?.length) {
@@ -252,7 +262,8 @@ export const buildAgentGraph = async ({
 
                                     // Send condition event if next is condition
                                     if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                        sseStreamer.streamConditionEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
+                                        const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
+                                        sseStreamer.streamConditionEvent(chatId, nextLabel)
                                     }
                                 }
                             }
@@ -273,12 +284,32 @@ export const buildAgentGraph = async ({
                             }
 
                             if (shouldStreamResponse && sseStreamer) {
+                                // Get graph state
+                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+
+                                // Mark this as the final agent reasoning
+                                sseStreamer.streamAgentReasoningStartEvent(chatId)
+                                sseStreamer.streamAgentReasoningEvent(chatId, [{
+                                    agentName: 'Final Output',
+                                    messages: [finalResult],
+                                    usedTools: totalUsedTools.length ? uniq(totalUsedTools) : [],
+                                    sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
+                                    artifacts: totalArtifacts.length ? uniq(totalArtifacts) : [],
+                                    state: {
+                                        ...seqStateNode?.data?.instance?.node,  // Include graph state
+                                        output: finalResult,
+                                        isFinal: true
+                                    },
+                                    nodeName: isSequential ? 'Final' : undefined
+                                }])
+                                sseStreamer.streamAgentReasoningEndEvent(chatId)
+
                                 // Stream final token
                                 sseStreamer.streamTokenStartEvent(chatId)
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
                                 sseStreamer.streamTokenEndEvent(chatId)
 
-                                // Stream final consolidated collections
+                                // Always stream collections, even if empty
                                 sseStreamer.streamUsedToolsEvent(chatId, uniq(totalUsedTools))
                                 sseStreamer.streamSourceDocumentsEvent(chatId, uniq(totalSourceDocuments))
                                 sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))
@@ -302,9 +333,9 @@ export const buildAgentGraph = async ({
                     return {
                         finalResult,
                         finalAction,
-                        sourceDocuments: uniq(totalSourceDocuments),
-                        artifacts: uniq(totalArtifacts),
-                        usedTools: uniq(totalUsedTools),
+                        sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
+                        artifacts: totalArtifacts.length ? uniq(totalArtifacts) : [],
+                        usedTools: totalUsedTools.length ? uniq(totalUsedTools) : [],
                         agentReasoning
                     }
                 }
@@ -329,7 +360,9 @@ export const buildAgentGraph = async ({
 
                 if (streamResults) {
                     if (shouldStreamResponse && sseStreamer) {
-                        sseStreamer.streamStartEvent(chatId, [])
+                        // Get graph state for start event
+                        const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+                        sseStreamer.streamStartEvent(chatId, seqStateNode?.data?.instance?.node ?? [])
                     }
 
                     for await (const output of await streamResults) {
@@ -381,37 +414,45 @@ export const buildAgentGraph = async ({
                                 }
 
                                 // Just collect documents, don't stream them yet
-                                if (sourceDocuments && sourceDocuments.length) {
-                                    const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
-                                    if (cleanedDocs.length) {
-                                        totalSourceDocuments.push(...cleanedDocs)
-                                    }
+                                const allSourceDocuments = sourceDocuments?.length 
+                                    ? flatten(sourceDocuments).filter((doc) => doc) as IDocument[]
+                                    : []
+                                if (allSourceDocuments.length) {
+                                    totalSourceDocuments.push(...allSourceDocuments)
                                 }
 
                                 // Just collect artifacts, don't stream them yet
-                                if (artifacts && artifacts.length) {
-                                    const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
-                                    if (cleanedArtifacts.length) {
-                                        totalArtifacts.push(...cleanedArtifacts)
-                                    }
+                                const allArtifacts = artifacts?.length 
+                                    ? flatten(artifacts).filter((artifact) => artifact) as ICommonObject[]
+                                    : []
+                                if (allArtifacts.length) {
+                                    totalArtifacts.push(...allArtifacts)
                                 }
 
-                                const reasoning = {
+                                // Get graph state
+                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+
+                                const reasoning: IAgentReasoning = {
                                     agentName: mapNameToLabel[agentName].label,
                                     messages,
                                     next: output[agentName]?.next,
                                     instructions: output[agentName]?.instructions,
-                                    usedTools: flatten(usedTools) as IUsedTool[],
-                                    sourceDocuments: flatten(sourceDocuments) as Document[],
-                                    artifacts: flatten(artifacts) as ICommonObject[],
-                                    state,
+                                    usedTools: allTools.length ? allTools : [],
+                                    sourceDocuments: allSourceDocuments.length ? allSourceDocuments : [],
+                                    artifacts: allArtifacts.length ? allArtifacts : [],
+                                    state: {
+                                        ...seqStateNode?.data?.instance?.node,  // Include graph state
+                                        ...output[agentName],  // Include node state
+                                        messages: undefined,  // Remove messages to avoid duplication
+                                        isFinal: !output[agentName]?.next || output[agentName]?.next === 'FINISH' || output[agentName]?.next === 'END'
+                                    },
                                     nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
                                     nodeId
                                 }
                                 agentReasoning.push(reasoning)
 
                                 if (shouldStreamResponse && sseStreamer) {
-                                    sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
+                                    sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
 
                                     // Check if there are LLM tokens to stream
                                     if (output[agentName]?.messages?.length) {
@@ -427,7 +468,8 @@ export const buildAgentGraph = async ({
 
                                     // Send condition event if next is condition
                                     if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                        sseStreamer.streamConditionEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
+                                        const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
+                                        sseStreamer.streamConditionEvent(chatId, nextLabel)
                                     }
                                 }
                             }
@@ -448,12 +490,32 @@ export const buildAgentGraph = async ({
                             }
 
                             if (shouldStreamResponse && sseStreamer) {
+                                // Get graph state
+                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+
+                                // Mark this as the final agent reasoning
+                                sseStreamer.streamAgentReasoningStartEvent(chatId)
+                                sseStreamer.streamAgentReasoningEvent(chatId, [{
+                                    agentName: 'Final Output',
+                                    messages: [finalResult],
+                                    usedTools: totalUsedTools.length ? uniq(totalUsedTools) : [],
+                                    sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
+                                    artifacts: totalArtifacts.length ? uniq(totalArtifacts) : [],
+                                    state: {
+                                        ...seqStateNode?.data?.instance?.node,  // Include graph state
+                                        output: finalResult,
+                                        isFinal: true
+                                    },
+                                    nodeName: isSequential ? 'Final' : undefined
+                                }])
+                                sseStreamer.streamAgentReasoningEndEvent(chatId)
+
                                 // Stream final token
                                 sseStreamer.streamTokenStartEvent(chatId)
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
                                 sseStreamer.streamTokenEndEvent(chatId)
 
-                                // Stream final consolidated collections
+                                // Always stream collections, even if empty
                                 sseStreamer.streamUsedToolsEvent(chatId, uniq(totalUsedTools))
                                 sseStreamer.streamSourceDocumentsEvent(chatId, uniq(totalSourceDocuments))
                                 sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))
@@ -477,9 +539,9 @@ export const buildAgentGraph = async ({
                     return {
                         finalResult,
                         finalAction,
-                        sourceDocuments: uniq(totalSourceDocuments),
-                        artifacts: uniq(totalArtifacts),
-                        usedTools: uniq(totalUsedTools),
+                        sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
+                        artifacts: totalArtifacts.length ? uniq(totalArtifacts) : [],
+                        usedTools: totalUsedTools.length ? uniq(totalUsedTools) : [],
                         agentReasoning
                     }
                 }
