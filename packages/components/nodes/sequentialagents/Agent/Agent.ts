@@ -520,31 +520,13 @@ class Agent_SeqAgents implements INode {
                 {
                     state,
                     llm,
-                    interrupt,
-                    agent: await createAgent(
-                        nodeData,
-                        options,
-                        agentName,
-                        state,
-                        llm,
-                        interrupt,
-                        [...tools],
-                        agentSystemPrompt,
-                        agentHumanPrompt,
-                        multiModalMessageContent,
-                        agentInputVariablesValues,
-                        maxIterations,
-                        {
-                            sessionId: options.sessionId,
-                            chatId: options.chatId,
-                            input
-                        }
-                    ),
+                    agent: await createAgent(nodeData, options, agentName, state, llm, interrupt, tools, agentSystemPrompt, agentHumanPrompt, multiModalMessageContent, agentInputVariablesValues, maxIterations, { sessionId: options.sessionId, chatId: options.chatId, input }),
                     name: agentName,
                     abortControllerSignal,
                     nodeData,
                     input,
                     options,
+                    interrupt,
                     multiModalMessageContent
                 },
                 config
@@ -789,29 +771,10 @@ async function agentNode(
         }
 
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        const filteredMessages = filterConversationHistory(historySelection, input, state)
-
-        // Create temporary state with filtered messages for the agent
-        const agentState = {
-            ...state,
-            messages: filteredMessages
-        }
-
-        // Add user's message at the start
-        let userMessage: HumanMessage
-        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
-            userMessage = new HumanMessage({
-                content: multiModalMessageContent
-            })
-        } else {
-            userMessage = new HumanMessage(input)
-        }
-
-        // Update state with user message
-        state.messages = {
-            value: state.messages.value,
-            default: () => [...state.messages.default(), userMessage]
-        }
+        // @ts-ignore
+        state.messages = filterConversationHistory(historySelection, input, state)
+        // @ts-ignore
+        state.messages = restructureMessages(llm, state)
 
         const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
         const sseStreamer = options.sseStreamer
@@ -876,11 +839,7 @@ async function agentNode(
             }
 
             // Stream the agent's execution
-            result = await agent.invoke({ 
-                ...agentState,
-                messages: filteredMessages,
-                signal: abortControllerSignal.signal 
-            }, streamConfig)
+            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
 
             // After execution, determine if this was a final response
             if (result.next === 'END' || result.next === 'FINISH') {
@@ -896,28 +855,24 @@ async function agentNode(
                     usedTools: result.usedTools || [],
                     sourceDocuments: result.sourceDocuments || [],
                     artifacts: result.artifacts || [],
-                    state: result.state || agentState,
+                    state: result.state || state,
                     type: currentTokenType
                 }
             })
 
-            // Update state with both user message and final AI message
+            // Update state with final AI message
             state.messages = {
                 value: state.messages.value,
-                default: () => [...state.messages.default(), userMessage, finalMessage]
+                default: () => [...state.messages.default(), finalMessage]
             }
 
             return {
                 messages: [finalMessage],
-                state: result.state || agentState
+                state: result.state || state
             }
         } else {
             // Non-streaming case
-            result = await agent.invoke({ 
-                ...agentState,
-                messages: filteredMessages,
-                signal: abortControllerSignal.signal 
-            }, config)
+            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
 
             const finalMessage = new AIMessage({
                 content: result.content || result.output || '',
@@ -927,20 +882,20 @@ async function agentNode(
                     usedTools: result.usedTools || [],
                     sourceDocuments: result.sourceDocuments || [],
                     artifacts: result.artifacts || [],
-                    state: result.state || agentState,
+                    state: result.state || state,
                     type: result.next === 'END' ? TokenEventType.FINAL_RESPONSE : TokenEventType.AGENT_REASONING
                 }
             })
 
-            // Update state with both user message and final AI message
+            // Update state with final AI message
             state.messages = {
                 value: state.messages.value,
-                default: () => [...state.messages.default(), userMessage, finalMessage]
+                default: () => [...state.messages.default(), finalMessage]
             }
 
             return {
                 messages: [finalMessage],
-                state: result.state || agentState
+                state: result.state || state
             }
         }
     } catch (error) {
