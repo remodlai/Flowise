@@ -43,10 +43,12 @@ import {
     MessagesState,
     checkMessageHistory
 } from '../commonUtils'
-import { END, StateGraph } from '@langchain/langgraph'
+//@ts-ignore
+import { END, StateGraph, Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { Document } from '@langchain/core/documents'
+import { Serialized } from '@langchain/core/load/serializable'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
@@ -511,16 +513,6 @@ class Agent_SeqAgents implements INode {
         const toolName = `tool_${nodeData.id}`
         const toolNode = new ToolNode(tools, nodeData, input, options, toolName, [], { sequentialNodeName: toolName })
 
-        ;(toolNode as any).seekPermissionMessage = async (usedTools: IUsedTool[]) => {
-            const prompt = ChatPromptTemplate.fromMessages([['human', approvalPrompt || defaultApprovalPrompt]])
-            const chain = prompt.pipe(startLLM)
-            const response = (await chain.invoke({
-                input: 'Hello there!',
-                tools: JSON.stringify(usedTools)
-            })) as AIMessageChunk
-            return response.content
-        }
-
         const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
             return await agentNode(
                 {
@@ -558,13 +550,13 @@ class Agent_SeqAgents implements INode {
         }
 
         const toolInterrupt = async (
-            graph: StateGraph<any>,
+            graph: StateGraph<ISeqAgentsState>,
             nextNodeName?: string,
             runCondition?: any,
             conditionalMapping: ICommonObject = {}
         ) => {
             const routeMessage = async (state: ISeqAgentsState) => {
-                const messages = state.messages as unknown as BaseMessage[]
+                const messages = state.messages.default()
                 const lastMessage = messages[messages.length - 1] as AIMessage
 
                 if (!lastMessage?.tool_calls?.length) {
@@ -787,7 +779,7 @@ async function agentNode(
         options: ICommonObject
         multiModalMessageContent?: MessageContentImageUrl[]
     },
-    config: IAgentConfig
+    config: RunnableConfig
 ) {
     try {
         if (abortControllerSignal.signal.aborted) {
@@ -808,23 +800,6 @@ async function agentNode(
         const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
         const sseStreamer = options.sseStreamer
         const chatId = options.chatId
-
-        // Add streaming callbacks if streaming is enabled
-        if (shouldStream && sseStreamer) {
-            class StreamingCallback extends BaseCallbackHandler {
-                name = 'StreamingCallback'
-                constructor(private chatId: string, private sseStreamer: any) {
-                    super()
-                }
-                handleLLMNewToken(token: string) {
-                    this.sseStreamer.streamTokenEvent(this.chatId, token)
-                }
-            }
-
-            const streamingHandler = new StreamingCallback(chatId, sseStreamer)
-            const currentCallbacks = config.callbacks || []
-            config.callbacks = Array.isArray(currentCallbacks) ? [...currentCallbacks, streamingHandler] : [streamingHandler]
-        }
 
         let result
         if (shouldStream) {
@@ -850,13 +825,8 @@ async function agentNode(
                 default: () => [...state.messages.default(), userMessage]
             }
 
-            // Only stream start event once at the beginning
-            if (sseStreamer) {
-                sseStreamer.streamStartEvent(chatId, [])
-            }
-
             // Create stream config with type assertion
-            const streamConfig: IAgentConfig = {
+            const streamConfig: RunnableConfig = {
                 ...config,
                 configurable: {
                     ...(config.configurable || {}),
@@ -864,72 +834,51 @@ async function agentNode(
                 }
             }
 
-            // Collect all chunks first
-            for await (const chunk of await agent.stream(
-                { 
-                    ...agentState,
-                    messages: filteredMessages,
-                    signal: abortControllerSignal.signal 
-                },
-                streamConfig
-            )) {
-                // Only stream content tokens, not tool calls or other metadata
-                if (chunk.content && !chunk.additional_kwargs?.tool_calls) {
-                    content = chunk.content
-                    // Stream token if content has changed
-                    if (sseStreamer) {
-                        sseStreamer.streamTokenEvent(chatId, chunk.content)
-                    }
-                }
-
-                // Collect metadata but don't apply yet
-                if (chunk.additional_kwargs?.usedTools) {
-                    const newTools = chunk.additional_kwargs.usedTools.filter(
-                        (tool: IUsedTool) => !usedTools.some(existing => existing.tool === tool.tool && existing.toolInput === tool.toolInput)
-                    )
-                    if (newTools.length > 0) {
-                        usedTools = [...usedTools, ...newTools]
-                    }
-                }
-                if (chunk.additional_kwargs?.sourceDocuments) {
-                    const newDocs = chunk.additional_kwargs.sourceDocuments.filter(
-                        (doc: IDocument) => !sourceDocuments.some(existing => existing.pageContent === doc.pageContent)
-                    )
-                    if (newDocs.length > 0) {
-                        sourceDocuments = [...sourceDocuments, ...newDocs]
-                    }
-                }
-                if (chunk.additional_kwargs?.artifacts) {
-                    const newArtifacts = chunk.additional_kwargs.artifacts.filter(
-                        (art: ICommonObject) => !artifacts.some(existing => JSON.stringify(existing) === JSON.stringify(art))
-                    )
-                    if (newArtifacts.length > 0) {
-                        artifacts = [...artifacts, ...newArtifacts]
-                    }
-                }
-                // Update state with any new state properties from chunk, but exclude messages
-                if (chunk.additional_kwargs?.state) {
-                    const { messages: _, ...newState } = chunk.additional_kwargs.state
-                    currentState = { ...currentState, ...newState }
-                }
-            }
-
-            // Only stream end event once at the end
+            // Add streaming callbacks
             if (sseStreamer) {
-                sseStreamer.streamEndEvent(chatId)
+                let isStreamingStarted = false
+                const streamingHandler = BaseCallbackHandler.fromMethods({
+                    handleLLMNewToken(token: string) {
+                        if (!isStreamingStarted) {
+                            isStreamingStarted = true
+                            sseStreamer.streamStartEvent(chatId, '')
+                            sseStreamer.streamTokenStartEvent(chatId)
+                        }
+                        sseStreamer.streamTokenEvent(chatId, token)
+                    },
+                    handleLLMEnd() {
+                        if (isStreamingStarted) {
+                            sseStreamer.streamTokenEndEvent(chatId)
+                        }
+                    },
+                    handleToolStart(tool: Serialized, input: string) {
+                        sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start', input })
+                    },
+                    handleToolEnd(output: string) {
+                        sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
+                    }
+                })
+                const currentCallbacks = streamConfig.callbacks || []
+                streamConfig.callbacks = Array.isArray(currentCallbacks) ? [...currentCallbacks, streamingHandler] : [streamingHandler]
             }
+
+            // Stream the agent's execution
+            result = await agent.invoke({ 
+                ...agentState,
+                messages: filteredMessages,
+                signal: abortControllerSignal.signal 
+            }, streamConfig)
 
             // Create the final message with all metadata
-            const { messages: _, ...finalState } = currentState
             const finalMessage = new AIMessage({
-                content,
+                content: result.content || result.output || '',
                 name,
                 additional_kwargs: {
                     nodeId: nodeData.id,
-                    usedTools,
-                    sourceDocuments,
-                    artifacts,
-                    state: finalState
+                    usedTools: result.usedTools || [],
+                    sourceDocuments: result.sourceDocuments || [],
+                    artifacts: result.artifacts || [],
+                    state: result.state || currentState
                 }
             })
 
@@ -939,107 +888,33 @@ async function agentNode(
                 default: () => [...state.messages.default(), userMessage, finalMessage]
             }
 
-            result = {
-                content,
-                usedTools,
-                sourceDocuments,
-                artifacts,
-                state: finalState,
-                additional_kwargs: {
-                    nodeId: nodeData.id,
-                    usedTools,
-                    sourceDocuments,
-                    artifacts,
-                    state: finalState
-                }
+            return {
+                messages: [finalMessage],
+                state: result.state || currentState
             }
         } else {
-            // Add user's message first
-            const userMessage = new HumanMessage(input)
-            const currentMessages = state.messages
-            state.messages = {
-                value: state.messages.value,
-                default: () => [...state.messages.default(), userMessage]
-            }
-
+            // Non-streaming case remains unchanged
             result = await agent.invoke({ 
                 ...agentState,
                 messages: filteredMessages,
                 signal: abortControllerSignal.signal 
             }, config)
-        }
 
-        if (interrupt) {
-            const messages = state.messages as unknown as BaseMessage[]
-            const lastMessage = messages.length ? messages[messages.length - 1] : null
+            const finalMessage = new AIMessage({
+                content: result.content || result.output || '',
+                name,
+                additional_kwargs: {
+                    nodeId: nodeData.id,
+                    usedTools: result.usedTools || [],
+                    sourceDocuments: result.sourceDocuments || [],
+                    artifacts: result.artifacts || [],
+                    state: result.state || agentState
+                }
+            })
 
-            // If the last message is a tool message and is an interrupted message, format output into standard agent output
-            if (lastMessage && lastMessage._getType() === 'tool' && lastMessage.additional_kwargs?.nodeId === nodeData.id) {
-                let formattedAgentResult: {
-                    output?: string
-                    usedTools?: IUsedTool[]
-                    sourceDocuments?: IDocument[]
-                    artifacts?: ICommonObject[]
-                    state?: ICommonObject
-                } = {}
-                formattedAgentResult.output = result.content
-                if (lastMessage.additional_kwargs?.usedTools) {
-                    formattedAgentResult.usedTools = lastMessage.additional_kwargs.usedTools as IUsedTool[]
-                }
-                if (lastMessage.additional_kwargs?.sourceDocuments) {
-                    formattedAgentResult.sourceDocuments = lastMessage.additional_kwargs.sourceDocuments as IDocument[]
-                }
-                if (lastMessage.additional_kwargs?.artifacts) {
-                    formattedAgentResult.artifacts = lastMessage.additional_kwargs.artifacts as ICommonObject[]
-                }
-                if (lastMessage.additional_kwargs?.state) {
-                    formattedAgentResult.state = lastMessage.additional_kwargs.state as ICommonObject
-                }
-                result = formattedAgentResult
-            } else {
-                result.name = name
-                result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true }
-                return {
-                    messages: [result],
-                    state: result.additional_kwargs?.state || state
-                }
-            }
-        }
-
-        let outputContent = typeof result === 'string' ? result : result.content || result.output
-        outputContent = extractOutputFromArray(outputContent)
-        outputContent = removeInvalidImageMarkdown(outputContent)
-
-        const finalState = result.additional_kwargs?.state || result.state || state
-
-        if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
-            let formattedOutput = {
-                ...result,
-                content: outputContent
-            }
-            const returnedOutput = await getReturnOutput(nodeData, input, options, formattedOutput, finalState)
             return {
-                ...returnedOutput,
-                messages: [new AIMessage({
-                    content: outputContent,
-                    name,
-                    additional_kwargs: {
-                        ...result.additional_kwargs,
-                        state: finalState
-                    }
-                })]
-            }
-        } else {
-            return {
-                messages: [new AIMessage({
-                    content: outputContent,
-                    name,
-                    additional_kwargs: {
-                        ...result.additional_kwargs,
-                        state: finalState
-                    }
-                })],
-                state: finalState
+                messages: [finalMessage],
+                state: result.state || agentState
             }
         }
     } catch (error) {
@@ -1132,7 +1007,7 @@ const convertCustomMessagesToBaseMessages = (messages: string[], name: string, a
     })
 }
 
-class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable<T, T> {
+class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState> {
     tools: StructuredTool[]
     nodeData: INodeData
     inputQuery: string
@@ -1154,54 +1029,15 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
         this.options = options
     }
 
-    private async run(input: BaseMessage[] | MessagesState, config: IAgentConfig): Promise<BaseMessage[] | MessagesState> {
-        let messages = []
-        if (Array.isArray(input)) {
-            messages = input
-        } else {
-            messages = (input as MessagesState).messages
-        }
-
-        // Get the last message content for the final text
-        const lastMessage = messages[messages.length - 1]
-        const finalText = typeof lastMessage.content === 'string' ? lastMessage.content : JSON.stringify(lastMessage.content)
-
-        let state: ICommonObject = {}
-
-        // Check if input is an array of BaseMessage[]
-        if (Array.isArray(input)) {
-            messages = input
-        }
-        // Check if input is IStateWithMessages
-        else if ((input as IStateWithMessages).messages) {
-            messages = (input as IStateWithMessages).messages
-            state = { ...(input as IStateWithMessages) }
-            delete state.messages
-        }
-        // Handle MessagesState type
-        else {
-            messages = (input as MessagesState).messages
-            state = { ...(input as MessagesState) }
-            delete state.messages
-        }
-
-        // Get the last message
+    private async run(input: ISeqAgentsState, config: RunnableConfig): Promise<ISeqAgentsState> {
+        const messages = input.messages.default()
         const message = messages[messages.length - 1]
 
         if (message._getType() !== 'ai') {
             throw new Error('ToolNode only accepts AIMessages as input.')
         }
 
-        const ChannelsWithoutMessages = {
-            chatId: this.options.chatId,
-            sessionId: this.options.sessionId,
-            input: this.inputQuery,
-            state
-        }
-
-        let allSourceDocuments: IDocument[] = []
-        let allArtifacts: ICommonObject[] = []
-        let allUsedTools: IUsedTool[] = []
+        const { messages: _, ...inputWithoutMessages } = input
 
         const outputs = await Promise.all(
             (message as AIMessage).tool_calls?.map(async (call) => {
@@ -1211,12 +1047,16 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
                 }
                 if (tool && (tool as any).setFlowObject) {
                     // @ts-ignore
-                    tool.setFlowObject(ChannelsWithoutMessages)
+                    tool.setFlowObject({
+                        chatId: this.options.chatId,
+                        sessionId: this.options.sessionId,
+                        input: this.inputQuery,
+                        state: inputWithoutMessages
+                    })
                 }
 
                 let output = await tool.invoke(call.args, config)
-
-                let sourceDocuments: IDocument[] = []
+                let sourceDocuments: Document[] = []
                 let artifacts: ICommonObject[] = []
 
                 if (output?.includes(SOURCE_DOCUMENTS_PREFIX)) {
@@ -1224,11 +1064,7 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
                     output = outputArray[0]
                     const docs = outputArray[1]
                     try {
-                        sourceDocuments = JSON.parse(docs).map((doc: any) => ({
-                            pageContent: doc.pageContent || '',
-                            metadata: doc.metadata || {}
-                        }))
-                        allSourceDocuments = [...allSourceDocuments, ...sourceDocuments]
+                        sourceDocuments = JSON.parse(docs)
                     } catch (e) {
                         console.error('Error parsing source documents from tool')
                     }
@@ -1239,56 +1075,37 @@ class ToolNode<T extends BaseMessage[] | MessagesState> extends RunnableCallable
                     output = outputArray[0]
                     try {
                         artifacts = JSON.parse(outputArray[1])
-                        allArtifacts = [...allArtifacts, ...artifacts]
                     } catch (e) {
                         console.error('Error parsing artifacts from tool')
                     }
                 }
 
-                const outputContent = typeof output === 'string' ? output : JSON.stringify(output)
-                const usedTool = {
-                    tool: tool.name ?? '',
-                    toolInput: call.args,
-                    toolOutput: outputContent
-                }
-                allUsedTools.push(usedTool)
-
-                // Create additional kwargs with all metadata
-                const additional_kwargs = {
-                    nodeId: this.nodeData.id,
-                    sourceDocuments,
-                    artifacts,
-                    args: call.args,
-                    usedTools: allUsedTools,  // Pass all accumulated tools
-                    state: {
-                        ...state,
-                        sourceDocuments: allSourceDocuments,
-                        artifacts: allArtifacts,
-                        usedTools: allUsedTools
-                    }
-                }
-
                 return new ToolMessage({
                     name: tool.name,
-                    content: outputContent,
+                    content: typeof output === 'string' ? output : JSON.stringify(output),
                     tool_call_id: call.id!,
-                    additional_kwargs
+                    additional_kwargs: {
+                        nodeId: this.nodeData.id,
+                        sourceDocuments,
+                        artifacts,
+                        args: call.args,
+                        usedTools: [{
+                            tool: tool.name ?? '',
+                            toolInput: call.args,
+                            toolOutput: output
+                        }]
+                    }
                 })
             }) ?? []
         )
 
-        // Return both messages and updated state with accumulated metadata
-        const finalOutput = Array.isArray(input) ? outputs : {
-            messages: outputs,
-            ...state,
-            sourceDocuments: allSourceDocuments.filter(Boolean),
-            artifacts: allArtifacts.filter(Boolean),
-            usedTools: allUsedTools.filter(Boolean),
-            content: finalText,
-            text: finalText  // Use the agent's final message content
+        return {
+            ...input,
+            messages: {
+                value: input.messages.value,
+                default: () => [...messages.slice(0, -1), ...outputs]
+            }
         }
-
-        return finalOutput
     }
 }
 

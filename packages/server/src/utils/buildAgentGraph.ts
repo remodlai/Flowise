@@ -149,9 +149,8 @@ export const buildAgentGraph = async ({
 
                 if (streamResults) {
                     let startEventSent = false;
-                    let conditionEventSent = false;
                     logger.info(`[buildAgentGraph] Starting to process stream results`)
-                    for await (const output of await streamResults) {
+                    for await (const output of streamResults) {
                         logger.info(`[buildAgentGraph] Processing output:`, output)
 
                         // Check for __start__ node with content
@@ -174,24 +173,17 @@ export const buildAgentGraph = async ({
                         }
 
                         // Check for conditional edge
-                        if (output?.['conditionalEdge'] && !conditionEventSent) {
+                        if (output?.['conditionalEdge']) {
                             logger.info(`[buildAgentGraph] Found conditional edge with next:`, output.next)
                             if (shouldStreamResponse && sseStreamer) {
                                 logger.info(`[buildAgentGraph] Sending condition event for:`, output.next)
                                 sseStreamer.streamConditionEvent(chatId, output.next || '')
-                                conditionEventSent = true
                             }
                         }
 
                         if (!output?.__end__) {
                             for (const agentName of Object.keys(output)) {
                                 if (!mapNameToLabel[agentName]) continue
-
-                                // Start agent reasoning section
-                                if (shouldStreamResponse && sseStreamer) {
-                                    logger.info(`[buildAgentGraph] Sending agent reasoning start event for ${agentName}`)
-                                    sseStreamer.streamAgentReasoningStartEvent(chatId)
-                                }
 
                                 const nodeId = output[agentName]?.messages
                                     ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
@@ -206,9 +198,7 @@ export const buildAgentGraph = async ({
                                     ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.artifacts)
                                     : []
                                 const messages = output[agentName]?.messages
-                                    ? [output[agentName].messages[output[agentName].messages.length - 1]].map((msg: BaseMessage) => 
-                                        typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-                                    )
+                                    ? output[agentName].messages.map((msg: BaseMessage) => (typeof msg === 'string' ? msg : msg.content))
                                     : []
                                 lastMessageRaw = output[agentName]?.messages
                                     ? output[agentName].messages[output[agentName].messages.length - 1]
@@ -216,56 +206,56 @@ export const buildAgentGraph = async ({
 
                                 const state = omit(output[agentName], ['messages'])
 
-                                // Just collect tools, don't stream them yet
-                                const outputTools = output[agentName]?.output?.usedTools || []
-                                const messageTools = usedTools?.filter((tool: IUsedTool) => tool) || []
-                                const allTools = [...outputTools, ...messageTools]
-
-                                if (allTools.length) {
-                                    totalUsedTools.push(...allTools)
+                                if (usedTools && usedTools.length) {
+                                    const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
+                                    if (cleanedTools.length) totalUsedTools.push(...cleanedTools)
                                 }
 
-                                // Add tools to the last message's additional_kwargs
-                                if (lastMessageRaw) {
-                                    lastMessageRaw.additional_kwargs = {
-                                        ...lastMessageRaw.additional_kwargs,
-                                        usedTools: allTools
-                                    }
+                                if (sourceDocuments && sourceDocuments.length) {
+                                    const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
+                                    if (cleanedDocs.length) totalSourceDocuments.push(...cleanedDocs)
                                 }
 
-                                // Just collect documents, don't stream them yet
-                                const allSourceDocuments = sourceDocuments?.length 
-                                    ? flatten(sourceDocuments).filter((doc) => doc) as IDocument[]
-                                    : []
-                                if (allSourceDocuments.length) {
-                                    totalSourceDocuments.push(...allSourceDocuments)
+                                if (artifacts && artifacts.length) {
+                                    const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
+                                    if (cleanedArtifacts.length) totalArtifacts.push(...cleanedArtifacts)
                                 }
 
-                                // Just collect artifacts, don't stream them yet
-                                const allArtifacts = artifacts?.length 
-                                    ? flatten(artifacts).filter((artifact) => artifact) as ICommonObject[]
-                                    : []
-                                if (allArtifacts.length) {
-                                    totalArtifacts.push(...allArtifacts)
+                                /*
+                                 * Check if the next node is a condition node, if yes, then add the agent reasoning of the condition node
+                                 */
+                                if (isSequential) {
+                                    const inputEdges = edges.filter(
+                                        (edg) => edg.target === nodeId && edg.targetHandle.includes(`${nodeId}-input-sequentialNode`)
+                                    )
+
+                                    inputEdges.forEach((edge) => {
+                                        const parentNode = initializedNodes.find((nd) => nd.id === edge.source)
+                                        if (parentNode) {
+                                            if (parentNode.data.name.includes('seqCondition')) {
+                                                const newMessages = messages.slice(0, -1)
+                                                newMessages.push(mapNameToLabel[agentName].label)
+                                                const reasoning = {
+                                                    agentName: parentNode.data.instance?.label || parentNode.data.type,
+                                                    messages: newMessages,
+                                                    nodeName: parentNode.data.name,
+                                                    nodeId: parentNode.data.id
+                                                }
+                                                agentReasoning.push(reasoning)
+                                            }
+                                        }
+                                    })
                                 }
 
-                                // Get graph state
-                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-
-                                const reasoning: IAgentReasoning = {
-                                    agentName: !output[agentName]?.next || output[agentName]?.next === 'END' ? 'FINAL OUTPUT' : mapNameToLabel[agentName].label,
+                                const reasoning = {
+                                    agentName: mapNameToLabel[agentName].label,
                                     messages,
                                     next: output[agentName]?.next,
                                     instructions: output[agentName]?.instructions,
-                                    usedTools: allTools.length ? uniq(flatten(allTools)) : [],
-                                    sourceDocuments: allSourceDocuments.length ? flatten(allSourceDocuments) : [],
-                                    artifacts: allArtifacts.length ? flatten(allArtifacts) : [],
-                                    state: {
-                                        ...seqStateNode?.data?.instance?.node,  // Include graph state
-                                        ...output[agentName],  // Include node state
-                                        messages: undefined,  // Remove messages to avoid duplication
-                                        isFinal: !output[agentName]?.next || output[agentName]?.next === 'FINISH' || output[agentName]?.next === 'END'
-                                    },
+                                    usedTools: flatten(usedTools).filter((tool): tool is IUsedTool => Boolean(tool)),
+                                    sourceDocuments: flatten(sourceDocuments).filter((doc): doc is Document => Boolean(doc)),
+                                    artifacts: flatten(artifacts).filter((artifact): artifact is ICommonObject => Boolean(artifact)),
+                                    state,
                                     nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
                                     nodeId
                                 }
@@ -279,96 +269,71 @@ export const buildAgentGraph = async ({
                                         ? output[agentName].messages[output[agentName].messages.length - 1].content
                                         : lastWorkerResult
 
-                                if (shouldStreamResponse && sseStreamer) {
-                                    sseStreamer.streamAgentReasoningStartEvent(chatId)
-                                    sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
-
-                                    // Check if there are LLM tokens to stream
-                                    if (output[agentName]?.messages?.length) {
-                                        const lastMsg = output[agentName].messages[output[agentName].messages.length - 1]
-                                        if (lastMsg.content) {
-                                            sseStreamer.streamTokenStartEvent(chatId)
-                                            sseStreamer.streamTokenEvent(chatId, typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content))
-                                            sseStreamer.streamTokenEndEvent(chatId)
+                                if (shouldStreamResponse) {
+                                    if (!isStreamingStarted) {
+                                        isStreamingStarted = true
+                                        if (sseStreamer) {
+                                            sseStreamer.streamStartEvent(chatId, '')
                                         }
                                     }
 
-                                    sseStreamer.streamAgentReasoningEndEvent(chatId)
+                                    if (sseStreamer) {
+                                        // Stream agent reasoning start
+                                        sseStreamer.streamAgentReasoningStartEvent(chatId)
+                                        
+                                        // Stream the current agent's reasoning
+                                        sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
 
-                                    // Stream tools if any were used
-                                    if (allTools.length) {
-                                        sseStreamer.streamUsedToolsEvent(chatId, uniq(allTools))
-                                    }
+                                        // Stream agent reasoning end
+                                        sseStreamer.streamAgentReasoningEndEvent(chatId)
 
-                                    // Stream source documents if any were used
-                                    if (allSourceDocuments.length) {
-                                        sseStreamer.streamSourceDocumentsEvent(chatId, uniq(allSourceDocuments))
-                                    }
+                                        // Stream token start if we have a message
+                                        if (messages.length > 0) {
+                                            sseStreamer.streamTokenStartEvent(chatId)
+                                            for (const message of messages) {
+                                                sseStreamer.streamTokenEvent(chatId, message)
+                                            }
+                                            sseStreamer.streamTokenEndEvent(chatId)
+                                        }
 
-                                    // Stream artifacts if any were generated
-                                    if (allArtifacts.length) {
-                                        sseStreamer.streamArtifactsEvent(chatId, uniq(allArtifacts))
-                                    }
+                                        // Send next agent event before any tools/docs/artifacts
+                                        if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
+                                            const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
+                                            logger.info(`[buildAgentGraph] Streaming next agent event: ${nextLabel}`)
+                                            sseStreamer.streamNextAgentEvent(chatId, nextLabel)
+                                        }
 
-                                    // Handle condition routing
-                                    if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                        const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
-                                        // Check if this is a condition node
-                                        const nextNode = initializedNodes.find((node) => node.data.name === 'seqCondition' || node.data.name === 'seqConditionAgent')
-                                        if (nextNode) {
-                                            // Stream condition event with the next route
-                                            sseStreamer.streamConditionEvent(chatId, nextLabel)
+                                        // Stream any tools used
+                                        if (usedTools && usedTools.length) {
+                                            const cleanedTools = usedTools.filter((tool: IUsedTool | null) => tool !== null)
+                                            if (cleanedTools.length) {
+                                                sseStreamer.streamUsedToolsEvent(chatId, flatten(cleanedTools))
+                                            }
+                                        }
+
+                                        // Stream any source documents
+                                        if (sourceDocuments && sourceDocuments.length) {
+                                            const cleanedDocs = sourceDocuments.filter((doc: IDocument | null) => doc !== null)
+                                            if (cleanedDocs.length) {
+                                                sseStreamer.streamSourceDocumentsEvent(chatId, flatten(cleanedDocs))
+                                            }
+                                        }
+
+                                        // Stream any artifacts
+                                        if (artifacts && artifacts.length) {
+                                            const cleanedArtifacts = artifacts.filter((artifact: ICommonObject | null) => artifact !== null)
+                                            if (cleanedArtifacts.length) {
+                                                sseStreamer.streamArtifactsEvent(chatId, flatten(cleanedArtifacts))
+                                            }
                                         }
                                     }
                                 }
                             }
                         } else {
-                            // Handle __end__ message - final node
-                            if (output.__end__.messages?.length) {
-                                const endMessage = output.__end__.messages.pop()
-                                finalResult = endMessage?.content || output.__end__.instructions || ''
-                            }
+                            finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
-
-                            // Capture final tools
-                            if (output.__end__.usedTools) {
-                                const finalTools = output.__end__.usedTools.filter((tool: IUsedTool) => tool)
-                                if (finalTools.length) {
-                                    totalUsedTools.push(...finalTools)
-                                }
-                            }
-
                             if (shouldStreamResponse && sseStreamer) {
-                                // Get graph state
-                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-
-                                // Mark this as the final agent reasoning This isn't needed
-                                sseStreamer.streamAgentReasoningStartEvent(chatId)
-                                sseStreamer.streamAgentReasoningEvent(chatId, [{
-                                    agentName: 'Final Output',
-                                    messages: [finalResult],
-                                    
-                                    usedTools: totalUsedTools.length ? uniq(totalUsedTools) : [],
-                                    sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
-                                    artifacts: totalArtifacts.length ? uniq(totalArtifacts) : [],
-                                    state: {
-                                        ...seqStateNode?.data?.instance?.node,  // Include graph state
-                                        output: finalResult,
-                                        isFinal: true
-                                    },
-                                    nodeName: isSequential ? 'Final' : undefined
-                                }])
-                                sseStreamer.streamAgentReasoningEndEvent(chatId)
-
-                                // Stream final token
-                                sseStreamer.streamTokenStartEvent(chatId)
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
-                                sseStreamer.streamTokenEndEvent(chatId)
-
-                                // Always stream collections, even if empty
-                                sseStreamer.streamUsedToolsEvent(chatId, uniq(totalUsedTools))
-                                sseStreamer.streamSourceDocumentsEvent(chatId, uniq(totalSourceDocuments))
-                                sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))
                             }
                         }
                     }
@@ -416,7 +381,8 @@ export const buildAgentGraph = async ({
 
                 if (streamResults) {
                     let startEventSent = false;
-                    for await (const output of await streamResults) {
+                    let isStreamingStarted = false;
+                    for await (const output of streamResults) {
                         logger.info(`[buildAgentGraph] Processing sequential output:`, output)
 
                         // Check for __start__ node with content
@@ -438,24 +404,32 @@ export const buildAgentGraph = async ({
                             }
                         }
 
+                        // Handle streaming tokens
+                        if (output?.content && !output?.additional_kwargs?.tool_calls) {
+                            if (!isStreamingStarted) {
+                                isStreamingStarted = true
+                                if (shouldStreamResponse && sseStreamer) {
+                                    sseStreamer.streamTokenStartEvent(chatId)
+                                }
+                            }
+                            if (shouldStreamResponse && sseStreamer) {
+                                sseStreamer.streamTokenEvent(chatId, output.content)
+                            }
+                            continue
+                        }
+
                         // Check for conditional edge
-                        if (output?.['conditionalEdge'] && !startEventSent) {
+                        if (output?.['conditionalEdge']) {
                             logger.info(`[buildAgentGraph] Found conditional edge with next:`, output.next)
                             if (shouldStreamResponse && sseStreamer) {
                                 logger.info(`[buildAgentGraph] Sending condition event for:`, output.next)
                                 sseStreamer.streamConditionEvent(chatId, output.next || '')
-                                startEventSent = true
                             }
                         }
 
                         if (!output?.__end__) {
                             for (const agentName of Object.keys(output)) {
                                 if (!mapNameToLabel[agentName]) continue
-
-                                // Start agent reasoning section
-                                if (shouldStreamResponse && sseStreamer) {
-                                    sseStreamer.streamAgentReasoningStartEvent(chatId)
-                                }
 
                                 const nodeId = output[agentName]?.messages
                                     ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
@@ -470,9 +444,7 @@ export const buildAgentGraph = async ({
                                     ? output[agentName].messages.map((msg: BaseMessage) => msg.additional_kwargs?.artifacts)
                                     : []
                                 const messages = output[agentName]?.messages
-                                    ? [output[agentName].messages[output[agentName].messages.length - 1]].map((msg: BaseMessage) => 
-                                        typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-                                    )
+                                    ? output[agentName].messages.map((msg: BaseMessage) => (typeof msg === 'string' ? msg : msg.content))
                                     : []
                                 lastMessageRaw = output[agentName]?.messages
                                     ? output[agentName].messages[output[agentName].messages.length - 1]
@@ -480,54 +452,68 @@ export const buildAgentGraph = async ({
 
                                 const state = omit(output[agentName], ['messages'])
 
-                                // Just collect tools, don't stream them yet
-                                const outputTools = output[agentName]?.output?.usedTools || []
-                                const messageTools = usedTools?.filter((tool: IUsedTool) => tool) || []
-                                const allTools = [...outputTools, ...messageTools]
-
-                                if (allTools.length) {
-                                    totalUsedTools.push(...allTools)
+                                if (usedTools && usedTools.length) {
+                                    const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
+                                    if (cleanedTools.length) totalUsedTools.push(...cleanedTools)
                                 }
 
-                                // Add tools to the last message's additional_kwargs
-                                if (lastMessageRaw) {
-                                    lastMessageRaw.additional_kwargs = {
-                                        ...lastMessageRaw.additional_kwargs,
-                                        usedTools: allTools
-                                    }
+                                if (sourceDocuments && sourceDocuments.length) {
+                                    const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
+                                    if (cleanedDocs.length) totalSourceDocuments.push(...cleanedDocs)
                                 }
 
-                                // Just collect documents, don't stream them yet
-                                const allSourceDocuments = sourceDocuments?.length 
-                                    ? flatten(sourceDocuments).filter((doc) => doc) as IDocument[]
-                                    : []
-                                if (allSourceDocuments.length) {
-                                    totalSourceDocuments.push(...allSourceDocuments)
+                                if (artifacts && artifacts.length) {
+                                    const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
+                                    if (cleanedArtifacts.length) totalArtifacts.push(...cleanedArtifacts)
                                 }
 
-                                // Just collect artifacts, don't stream them yet
-                                const allArtifacts = artifacts?.length 
-                                    ? flatten(artifacts).filter((artifact) => artifact) as ICommonObject[]
-                                    : []
-                                if (allArtifacts.length) {
-                                    totalArtifacts.push(...allArtifacts)
+                                /*
+                                 * Check if the next node is a condition node, if yes, then add the agent reasoning of the condition node
+                                 */
+                                if (isSequential) {
+                                    const inputEdges = edges.filter(
+                                        (edg) => edg.target === nodeId && edg.targetHandle.includes(`${nodeId}-input-sequentialNode`)
+                                    )
+
+                                    inputEdges.forEach((edge) => {
+                                        const parentNode = initializedNodes.find((nd) => nd.id === edge.source)
+                                        if (parentNode) {
+                                            if (parentNode.data.name.includes('seqCondition')) {
+                                                const newMessages = messages.slice(0, -1)
+                                                newMessages.push(mapNameToLabel[agentName].label)
+                                                const reasoning = {
+                                                    agentName: parentNode.data.instance?.label || parentNode.data.type,
+                                                    messages: newMessages,
+                                                    nodeName: parentNode.data.name,
+                                                    nodeId: parentNode.data.id
+                                                }
+                                                agentReasoning.push(reasoning)
+                                            }
+                                        }
+                                    })
                                 }
 
-                                // Get graph state
-                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-
-                                const reasoning: IAgentReasoning = {
+                                const reasoning = {
                                     agentName: mapNameToLabel[agentName].label,
                                     messages,
                                     next: output[agentName]?.next,
                                     instructions: output[agentName]?.instructions,
-                                    usedTools: flatten(usedTools) as IUsedTool[],
-                                    sourceDocuments: flatten(sourceDocuments) as Document[],
-                                    artifacts: flatten(artifacts) as ICommonObject[],
+                                    usedTools: flatten(usedTools).filter((tool): tool is IUsedTool => Boolean(tool)),
+                                    sourceDocuments: flatten(sourceDocuments).filter((doc): doc is Document => Boolean(doc)),
+                                    artifacts: flatten(artifacts).filter((artifact): artifact is ICommonObject => Boolean(artifact)),
                                     state,
                                     nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
                                     nodeId
                                 }
+                                agentReasoning.push(reasoning)
+
+                                finalSummarization = output[agentName]?.summarization ?? ''
+
+                                lastWorkerResult =
+                                    output[agentName]?.messages?.length &&
+                                    output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.type === 'worker'
+                                        ? output[agentName].messages[output[agentName].messages.length - 1].content
+                                        : lastWorkerResult
 
                                 if (shouldStreamResponse) {
                                     if (!isStreamingStarted) {
@@ -547,101 +533,59 @@ export const buildAgentGraph = async ({
                                         // Stream agent reasoning end
                                         sseStreamer.streamAgentReasoningEndEvent(chatId)
 
-                                        // Stream token start
-                                        sseStreamer.streamTokenStartEvent(chatId)
-
-                                        // Stream the actual message content
-                                        const lastMessage = messages[messages.length - 1]
-                                        if (lastMessage) {
-                                            sseStreamer.streamTokenEvent(chatId, lastMessage)
+                                        // Stream token start if we have a message
+                                        if (messages.length > 0) {
+                                            sseStreamer.streamTokenStartEvent(chatId)
+                                            for (const message of messages) {
+                                                sseStreamer.streamTokenEvent(chatId, message)
+                                            }
+                                            sseStreamer.streamTokenEndEvent(chatId)
                                         }
 
-                                        // Stream token end
-                                        sseStreamer.streamTokenEndEvent(chatId)
-
-                                        // Send loading next agent indicator if there is a next node
+                                        // Send next agent event before any tools/docs/artifacts
                                         if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                            sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
+                                            const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
+                                            logger.info(`[buildAgentGraph] Streaming next agent event: ${nextLabel}`)
+                                            sseStreamer.streamNextAgentEvent(chatId, nextLabel)
                                         }
 
                                         // Stream any tools used
                                         if (usedTools && usedTools.length) {
-                                            sseStreamer.streamUsedToolsEvent(chatId, flatten(usedTools))
+                                            const cleanedTools = usedTools.filter((tool: IUsedTool | null) => tool !== null)
+                                            if (cleanedTools.length) {
+                                                sseStreamer.streamUsedToolsEvent(chatId, flatten(cleanedTools))
+                                            }
                                         }
 
                                         // Stream any source documents
                                         if (sourceDocuments && sourceDocuments.length) {
-                                            sseStreamer.streamSourceDocumentsEvent(chatId, flatten(sourceDocuments))
+                                            const cleanedDocs = sourceDocuments.filter((doc: IDocument | null) => doc !== null)
+                                            if (cleanedDocs.length) {
+                                                sseStreamer.streamSourceDocumentsEvent(chatId, flatten(cleanedDocs))
+                                            }
                                         }
 
                                         // Stream any artifacts
                                         if (artifacts && artifacts.length) {
-                                            sseStreamer.streamArtifactsEvent(chatId, flatten(artifacts))
+                                            const cleanedArtifacts = artifacts.filter((artifact: ICommonObject | null) => artifact !== null)
+                                            if (cleanedArtifacts.length) {
+                                                sseStreamer.streamArtifactsEvent(chatId, flatten(cleanedArtifacts))
+                                            }
                                         }
                                     }
                                 }
-                                agentReasoning.push(reasoning)
                             }
                         } else {
-                            // Handle __end__ message - final node
-                            if (output.__end__.messages?.length) {
-                                const endMessage = output.__end__.messages.pop()
-                                finalResult = endMessage?.content || output.__end__.instructions || ''
-                            }
+                            finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
-
-                            // Capture final tools
-                            if (output.__end__.usedTools) {
-                                const finalTools = output.__end__.usedTools.filter((tool: IUsedTool) => tool)
-                                if (finalTools.length) {
-                                    totalUsedTools.push(...finalTools)
-                                }
-                            }
-
                             if (shouldStreamResponse && sseStreamer) {
-                                // Get graph state
-                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-
-                                // Mark this as the final agent reasoning
-                                sseStreamer.streamAgentReasoningStartEvent(flowConfig.chatId)
-                                sseStreamer.streamAgentReasoningEvent(chatId, [{
-                                    agentName: 'Final Output',
-                                    messages: [finalResult],
-                                    usedTools: totalUsedTools.length ? uniq(totalUsedTools) : [],
-                                    sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
-                                    artifacts: totalArtifacts.length ? uniq(totalArtifacts) : [],
-                                    state: {
-                                        finalAction: finalAction,  // Include graph state
-                                        output: finalResult,
-                                        isFinal: true
-                                    },
-                                    nodeName: isSequential ? 'Final' : undefined
-                                }])
-                                sseStreamer.streamAgentReasoningEndEvent(chatId)
-
-                                // Stream final token
-                                sseStreamer.streamTokenStartEvent(chatId)
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
-                                sseStreamer.streamTokenEndEvent(chatId)
-                                totalUsedTools = uniq(flatten(totalUsedTools))
-                                // Always stream collections, even if empty
-                                sseStreamer.streamUsedToolsEvent(chatId, totalUsedTools)
-                                sseStreamer.streamSourceDocumentsEvent(flowConfig.chatId, uniq(totalSourceDocuments))
-                                sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))
                             }
                         }
                     }
 
-                    // Only use fallbacks if we don't have a final result
-                    if (!finalResult) {
-                        if (lastWorkerResult) finalResult = lastWorkerResult
-                        else if (finalSummarization) finalResult = finalSummarization
-                        if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
-                        }
-                    }
-
-                    if (shouldStreamResponse && sseStreamer) {
+                    if (isStreamingStarted && shouldStreamResponse && sseStreamer) {
+                        sseStreamer.streamTokenEndEvent(chatId)
                         sseStreamer.streamEndEvent(chatId)
                     }
 
@@ -1299,29 +1243,51 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
             callbacks: [loggerHandler, ...additionalCbs]
         }
 
-        let prependMessages = []
-        // Only append in the first message
-        if (prependHistoryMessages.length === chatHistory.length) {
-            for (const message of prependHistoryMessages) {
-                if (message.role === 'apiMessage' || message.type === 'apiMessage') {
-                    prependMessages.push(
-                        new AIMessage({
-                            content: message.message || message.content || ''
-                        })
-                    )
-                } else if (message.role === 'userMessage' || message.type === 'userMessage') {
-                    prependMessages.push(
-                        new HumanMessage({
-                            content: message.message || message.content || ''
-                        })
-                    )
+        const shouldStreamResponse = options.shouldStreamResponse
+        const sseStreamer = options.sseStreamer
+        const chatId = options.chatId
+
+        if (shouldStreamResponse && sseStreamer) {
+            let isStreamingStarted = false
+            
+            // Add streaming callbacks for token-by-token streaming
+            const streamingHandler = BaseCallbackHandler.fromMethods({
+                handleLLMNewToken(token: string) {
+                    if (!isStreamingStarted) {
+                        isStreamingStarted = true
+                        sseStreamer.streamStartEvent(chatId, '')
+                        sseStreamer.streamTokenStartEvent(chatId)
+                    }
+                    sseStreamer.streamTokenEvent(chatId, token)
+                },
+                handleLLMEnd() {
+                    if (isStreamingStarted) {
+                        sseStreamer.streamTokenEndEvent(chatId)
+                    }
+                },
+                handleToolStart(tool: Serialized, input: string) {
+                    sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start', input })
+                },
+                handleToolEnd(output: string) {
+                    sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
                 }
-            }
+            })
+
+            config.callbacks.push(streamingHandler)
         }
 
         const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
+        
+        // Convert history messages to proper types
+        const convertedHistory = prependHistoryMessages.map(msg => {
+            if (msg.type === 'apiMessage' || msg.role === 'apiMessage') {
+                return new AIMessage({ content: msg.message || msg.content || '' })
+            }
+            return new HumanMessage({ content: msg.message || msg.content || '' })
+        })
+
         let humanMsg: { messages: HumanMessage[] | ToolMessage[] } | null = {
-            messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
+            messages: [...convertedHistory, new HumanMessage({ content: finalQuestion })]
         }
 
         if (action && action.mapping && question === action.mapping.approve) {
@@ -1339,31 +1305,7 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
             }
         }
 
-        const shouldStreamResponse = options.shouldStreamResponse
-        const sseStreamer = options.sseStreamer
-        const chatId = options.chatId
-
-        if (shouldStreamResponse && sseStreamer) {
-            sseStreamer.streamStartEvent(chatId, [])
-            
-            // Add streaming callbacks
-            const streamingHandler = BaseCallbackHandler.fromMethods({
-                handleLLMNewToken(token: string) {
-                    sseStreamer.streamTokenEvent(chatId, token)
-                },
-                handleToolStart(tool: Serialized, input: string) {
-                    sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start', input })
-                },
-                handleToolEnd(output: string) {
-                    sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
-                }
-            })
-
-            config.callbacks.push(streamingHandler)
-        }
-
         const streamResults = await graph.stream(humanMsg, config)
-
         return streamResults
 
     } catch (e) {
