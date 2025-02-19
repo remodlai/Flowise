@@ -230,7 +230,7 @@ export interface IAgentReasoning {
     next?: string
     instructions?: string
     usedTools?: IUsedTool[]
-    sourceDocuments?: ICommonObject[]
+    sourceDocuments?: IDocument[]
     state?: ICommonObject
     nodeName?: string
 }
@@ -406,19 +406,26 @@ export interface IStateWithMessages extends ICommonObject {
 }
 
 export interface IServerSideEventStreamer {
-    streamStartEvent(chatId: string, data: any): void
-    streamTokenEvent(chatId: string, data: string): void
-    streamCustomEvent(chatId: string, eventType: string, data: any): void
-    streamSourceDocumentsEvent(chatId: string, data: any): void
-    streamUsedToolsEvent(chatId: string, data: any): void
-    streamFileAnnotationsEvent(chatId: string, data: any): void
-    streamToolEvent(chatId: string, data: any): void
-    streamAgentReasoningEvent(chatId: string, data: any): void
-    streamNextAgentEvent(chatId: string, data: any): void
-    streamActionEvent(chatId: string, data: any): void
-    streamArtifactsEvent(chatId: string, data: any): void
+    streamStartEvent(chatId: string, data: string | IAgentReasoning[]): void
+    streamTokenEvent(chatId: string, token: string): void
+    streamAgentReasoningEvent(chatId: string, agentReasoning: IAgentReasoning[]): void
+    streamNextAgentEvent(chatId: string, nextAgent: string): void
+    streamSourceDocumentsEvent(chatId: string, sourceDocuments: IDocument[] | ICommonObject[]): void
+    streamUsedToolsEvent(chatId: string, usedTools: IUsedTool[]): void
+    streamArtifactsEvent(chatId: string, artifacts: ICommonObject[]): void
+    streamActionEvent(chatId: string, action: IAction): void
     streamAbortEvent(chatId: string): void
     streamEndEvent(chatId: string): void
+    // New event types for structured streaming
+    streamAgentReasoningStartEvent(chatId: string): void
+    streamAgentReasoningEndEvent(chatId: string): void
+    streamTokenStartEvent(chatId: string): void
+    streamTokenEndEvent(chatId: string): void
+    streamConditionEvent(chatId: string, condition: string): void
+    // Keep existing events for backward compatibility
+    streamToolEvent?(chatId: string, data: any): void
+    streamFileAnnotationsEvent?(chatId: string, data: any): void
+    streamCustomEvent(chatId: string, eventType: string, data: any): void
 }
 
 export enum FollowUpPromptProvider {

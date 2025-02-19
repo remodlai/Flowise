@@ -154,6 +154,11 @@ export const buildAgentGraph = async ({
                             for (const agentName of Object.keys(output)) {
                                 if (!mapNameToLabel[agentName]) continue
 
+                                // Start agent reasoning section
+                                if (shouldStreamResponse && sseStreamer) {
+                                    sseStreamer.streamAgentReasoningStartEvent(chatId)
+                                }
+
                                 const nodeId = output[agentName]?.messages
                                     ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
                                     : ''
@@ -232,32 +237,34 @@ export const buildAgentGraph = async ({
 
                                 if (shouldStreamResponse && sseStreamer) {
                                     sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
-                                }
 
-                                // Send loading next agent indicator - are we actually sending an event to show that we are loading the next agent?
-                                if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                    if (shouldStreamResponse && sseStreamer) {
-                                        sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
+                                    // Check if there are LLM tokens to stream
+                                    if (output[agentName]?.messages?.length) {
+                                        const lastMsg = output[agentName].messages[output[agentName].messages.length - 1]
+                                        if (lastMsg.content) {
+                                            sseStreamer.streamTokenStartEvent(chatId)
+                                            sseStreamer.streamTokenEvent(chatId, typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content))
+                                            sseStreamer.streamTokenEndEvent(chatId)
+                                        }
                                     }
-                                }
 
-                                // Get the final result from the last AI message
-                                if (output[agentName]?.messages?.length) {
-                                    const lastMsg = output[agentName].messages[output[agentName].messages.length - 1]
-                                    if (lastMsg.content) {
-                                        finalResult = typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content)
+                                    sseStreamer.streamAgentReasoningEndEvent(chatId)
+
+                                    // Send condition event if next is condition
+                                    if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
+                                        sseStreamer.streamConditionEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
                                     }
                                 }
                             }
                         } else {
-                            // Handle __end__ message
+                            // Handle __end__ message - final node
                             if (output.__end__.messages?.length) {
                                 const endMessage = output.__end__.messages.pop()
                                 finalResult = endMessage?.content || output.__end__.instructions || ''
                             }
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
 
-                            // Capture tools from the final output
+                            // Capture final tools
                             if (output.__end__.usedTools) {
                                 const finalTools = output.__end__.usedTools.filter((tool: IUsedTool) => tool)
                                 if (finalTools.length) {
@@ -266,10 +273,12 @@ export const buildAgentGraph = async ({
                             }
 
                             if (shouldStreamResponse && sseStreamer) {
-                                // Send final token
+                                // Stream final token
+                                sseStreamer.streamTokenStartEvent(chatId)
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
+                                sseStreamer.streamTokenEndEvent(chatId)
 
-                                // Stream consolidated collections in order
+                                // Stream final consolidated collections
                                 sseStreamer.streamUsedToolsEvent(chatId, uniq(totalUsedTools))
                                 sseStreamer.streamSourceDocumentsEvent(chatId, uniq(totalSourceDocuments))
                                 sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))
@@ -327,6 +336,11 @@ export const buildAgentGraph = async ({
                         if (!output?.__end__) {
                             for (const agentName of Object.keys(output)) {
                                 if (!mapNameToLabel[agentName]) continue
+
+                                // Start agent reasoning section
+                                if (shouldStreamResponse && sseStreamer) {
+                                    sseStreamer.streamAgentReasoningStartEvent(chatId)
+                                }
 
                                 const nodeId = output[agentName]?.messages
                                     ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
@@ -398,32 +412,34 @@ export const buildAgentGraph = async ({
 
                                 if (shouldStreamResponse && sseStreamer) {
                                     sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
-                                }
 
-                                // Send loading next agent indicator
-                                if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                    if (shouldStreamResponse && sseStreamer) {
-                                        sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
+                                    // Check if there are LLM tokens to stream
+                                    if (output[agentName]?.messages?.length) {
+                                        const lastMsg = output[agentName].messages[output[agentName].messages.length - 1]
+                                        if (lastMsg.content) {
+                                            sseStreamer.streamTokenStartEvent(chatId)
+                                            sseStreamer.streamTokenEvent(chatId, typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content))
+                                            sseStreamer.streamTokenEndEvent(chatId)
+                                        }
                                     }
-                                }
 
-                                // Get the final result from the last AI message
-                                if (output[agentName]?.messages?.length) {
-                                    const lastMsg = output[agentName].messages[output[agentName].messages.length - 1]
-                                    if (lastMsg.content) {
-                                        finalResult = typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content)
+                                    sseStreamer.streamAgentReasoningEndEvent(chatId)
+
+                                    // Send condition event if next is condition
+                                    if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
+                                        sseStreamer.streamConditionEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
                                     }
                                 }
                             }
                         } else {
-                            // Handle __end__ message
+                            // Handle __end__ message - final node
                             if (output.__end__.messages?.length) {
                                 const endMessage = output.__end__.messages.pop()
                                 finalResult = endMessage?.content || output.__end__.instructions || ''
                             }
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
 
-                            // Capture tools from the final output
+                            // Capture final tools
                             if (output.__end__.usedTools) {
                                 const finalTools = output.__end__.usedTools.filter((tool: IUsedTool) => tool)
                                 if (finalTools.length) {
@@ -432,10 +448,12 @@ export const buildAgentGraph = async ({
                             }
 
                             if (shouldStreamResponse && sseStreamer) {
-                                // Send final token
+                                // Stream final token
+                                sseStreamer.streamTokenStartEvent(chatId)
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
+                                sseStreamer.streamTokenEndEvent(chatId)
 
-                                // Stream consolidated collections in order
+                                // Stream final consolidated collections
                                 sseStreamer.streamUsedToolsEvent(chatId, uniq(totalUsedTools))
                                 sseStreamer.streamSourceDocumentsEvent(chatId, uniq(totalSourceDocuments))
                                 sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))

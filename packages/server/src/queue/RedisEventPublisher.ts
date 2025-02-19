@@ -1,4 +1,4 @@
-import { IServerSideEventStreamer } from 'flowise-components'
+import { IServerSideEventStreamer, IAgentReasoning } from 'flowise-components'
 import { createClient } from 'redis'
 
 export class RedisEventPublisher implements IServerSideEventStreamer {
@@ -44,7 +44,7 @@ export class RedisEventPublisher implements IServerSideEventStreamer {
         }
     }
 
-    streamStartEvent(chatId: string, data: string) {
+    streamStartEvent(chatId: string, data: string | IAgentReasoning[]) {
         try {
             this.redisPublisher.publish(
                 chatId,
@@ -251,6 +251,81 @@ export class RedisEventPublisher implements IServerSideEventStreamer {
             }
         } catch (error) {
             console.error('Error streaming metadata event:', error)
+        }
+    }
+
+    streamAgentReasoningStartEvent(chatId: string): void {
+        try {
+            this.redisPublisher.publish(
+                chatId,
+                JSON.stringify({
+                    chatId,
+                    eventType: 'agentReasoningStart',
+                    data: null
+                })
+            )
+        } catch (error) {
+            console.error('Error streaming agentReasoningStart event:', error)
+        }
+    }
+
+    streamAgentReasoningEndEvent(chatId: string): void {
+        try {
+            this.redisPublisher.publish(
+                chatId,
+                JSON.stringify({
+                    chatId,
+                    eventType: 'agentReasoningEnd',
+                    data: null
+                })
+            )
+        } catch (error) {
+            console.error('Error streaming agentReasoningEnd event:', error)
+        }
+    }
+
+    streamTokenStartEvent(chatId: string): void {
+        try {
+            this.redisPublisher.publish(
+                chatId,
+                JSON.stringify({
+                    chatId,
+                    eventType: 'tokenStart',
+                    data: null
+                })
+            )
+        } catch (error) {
+            console.error('Error streaming tokenStart event:', error)
+        }
+    }
+
+    streamTokenEndEvent(chatId: string): void {
+        try {
+            this.redisPublisher.publish(
+                chatId,
+                JSON.stringify({
+                    chatId,
+                    eventType: 'tokenEnd',
+                    data: null
+                })
+            )
+        } catch (error) {
+            console.error('Error streaming tokenEnd event:', error)
+        }
+    }
+
+    streamConditionEvent(chatId: string, condition: string): void {
+        try {
+            this.redisPublisher.publish(
+                chatId,
+                JSON.stringify({
+                    chatId,
+                    eventType: 'condition',
+                    data: condition
+                })
+            )
+        } catch (error) {
+            console.error('Error streaming condition event:', error)
         }
     }
 

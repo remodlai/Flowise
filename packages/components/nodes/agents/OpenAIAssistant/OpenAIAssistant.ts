@@ -441,11 +441,12 @@ class OpenAIAssistant_Agents implements INode {
                                     if (!isStreamingStarted) {
                                         isStreamingStarted = true
                                         if (sseStreamer) {
-                                            sseStreamer.streamStartEvent(chatId, ' ')
+                                            if (sseStreamer.streamFileAnnotationsEvent) {
+                                                sseStreamer.streamFileAnnotationsEvent(chatId, fileAnnotations)
+                                            } else {
+                                                sseStreamer.streamCustomEvent(chatId, 'fileAnnotations', fileAnnotations)
+                                            }
                                         }
-                                    }
-                                    if (sseStreamer) {
-                                        sseStreamer.streamFileAnnotationsEvent(chatId, fileAnnotations)
                                     }
                                 }
                             } else {
@@ -643,7 +644,11 @@ class OpenAIAssistant_Agents implements INode {
                                         // Start tool analytics
                                         const toolIds = await analyticHandlers.onToolStart(tool.name, actions[i].toolInput, parentIds)
                                         if (shouldStreamResponse && sseStreamer) {
-                                            sseStreamer.streamToolEvent(chatId, tool.name)
+                                            if (sseStreamer.streamToolEvent) {
+                                                sseStreamer.streamToolEvent(chatId, tool.name)
+                                            } else {
+                                                sseStreamer.streamCustomEvent(chatId, 'tool', tool.name)
+                                            }
                                         }
 
                                         try {

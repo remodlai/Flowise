@@ -1,5 +1,5 @@
 import { Response } from 'express'
-import { IServerSideEventStreamer } from 'flowise-components'
+import { IServerSideEventStreamer, IAgentReasoning } from 'flowise-components'
 
 // define a new type that has a client type (INTERNAL or EXTERNAL) and Response type
 type Client = {
@@ -45,7 +45,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
         }
     }
 
-    streamStartEvent(chatId: string, data: string) {
+    streamStartEvent(chatId: string, data: string | IAgentReasoning[]) {
         const client = this.clients[chatId]
         // prevent multiple start events being streamed to the client
         if (client && !client.started) {
@@ -198,6 +198,61 @@ export class SSEStreamer implements IServerSideEventStreamer {
         }
         if (Object.keys(metadataJson).length > 0) {
             this.streamCustomEvent(chatId, 'metadata', metadataJson)
+        }
+    }
+
+    streamAgentReasoningStartEvent(chatId: string): void {
+        const client = this.clients[chatId]
+        if (client) {
+            const clientResponse = {
+                event: 'agentReasoningStart',
+                data: null
+            }
+            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+        }
+    }
+
+    streamAgentReasoningEndEvent(chatId: string): void {
+        const client = this.clients[chatId]
+        if (client) {
+            const clientResponse = {
+                event: 'agentReasoningEnd',
+                data: null
+            }
+            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+        }
+    }
+
+    streamTokenStartEvent(chatId: string): void {
+        const client = this.clients[chatId]
+        if (client) {
+            const clientResponse = {
+                event: 'tokenStart',
+                data: null
+            }
+            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+        }
+    }
+
+    streamTokenEndEvent(chatId: string): void {
+        const client = this.clients[chatId]
+        if (client) {
+            const clientResponse = {
+                event: 'tokenEnd',
+                data: null
+            }
+            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+        }
+    }
+
+    streamConditionEvent(chatId: string, condition: string): void {
+        const client = this.clients[chatId]
+        if (client) {
+            const clientResponse = {
+                event: 'condition',
+                data: condition
+            }
+            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
 }
