@@ -6,6 +6,7 @@ import {
     ITeamState,
     ConsoleCallbackHandler,
     additionalCallbacks,
+    SeqAgentsState,
     ISeqAgentsState,
     ISeqAgentNode,
     IUsedTool,
@@ -14,12 +15,12 @@ import {
     INodeData
 } from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
-import { StateGraph, END, START } from '@langchain/langgraph'
+import { StateGraph, END, START, messagesStateReducer } from '@langchain/langgraph'
 import { Document } from '@langchain/core/documents'
 import { StatusCodes } from 'http-status-codes'
 import { v4 as uuidv4 } from 'uuid'
 import { StructuredTool } from '@langchain/core/tools'
-import { BaseMessage, HumanMessage, AIMessage, AIMessageChunk, ToolMessage } from '@langchain/core/messages'
+import { BaseMessage, HumanMessage, AIMessage, AIMessageChunk, ToolMessage, RemoveMessage } from '@langchain/core/messages'
 import { IChatFlow, IComponentNodes, IDepthQueue, IReactFlowNode, IReactFlowEdge, IMessage, IncomingInput, IFlowConfig } from '../Interface'
 import { databaseEntities, clearSessionMemory, getAPIOverrideConfig } from '../utils'
 import { replaceInputsWithConfig, resolveVariables } from '.'
@@ -672,14 +673,64 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
                 }
             }
 
-            // Return stream result as we should only have 1 supervisor
             const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
-            return await graph.stream(
-                {
-                    messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
-                },
-                config
-            )
+            const newMessage = new HumanMessage({ 
+                content: finalQuestion,
+                id: uuidv4() // Add unique ID for message tracking
+            })
+
+            // Create a new graph for message handling
+            const messageGraph = new StateGraph(SeqAgentsState)
+
+            // Add message handling node
+            messageGraph.addNode("__start__", async (state: typeof SeqAgentsState.State) => {
+                // For DELETE requests or clear history, return completely empty state
+                if (question === 'CLEAR_HISTORY' || state.messages?.length === 0) {
+                    return {
+                        messages: [],
+                        flow: {},
+                        memories: {}
+                    }
+                }
+
+                // For normal messages, handle as before
+                return {
+                    messages: messagesStateReducer(
+                        [], 
+                        [
+                            newMessage
+                        ]
+                    ),
+                    flow: {},
+                    memories: {}
+                }
+            })
+
+            // Add edge to end
+            messageGraph.addEdge("__start__", "__end__")
+
+            // Compile with memory
+            const compiledGraph = messageGraph.compile({ 
+                checkpointer: supervisorResult?.checkpointMemory
+            })
+
+            // Initialize with empty state
+            const initialState = {
+                messages: [],
+                flow: {},
+                memories: {}
+            }
+
+            return await compiledGraph.stream(initialState, {
+                ...config,
+                configurable: {
+                    ...config.configurable,
+                    metadata: {
+                        chatId: options.chatId,
+                        sessionId: threadId
+                    }
+                }
+            })
         } catch (e) {
             throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error initialize supervisor nodes - ${getErrorMessage(e)}`)
         }
@@ -722,26 +773,13 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
     let question = params.question
 
-    let channels: ISeqAgentsState = {
-        messages: {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-            default: () => []
-        }
-    }
-
-    // Get state
+    // Create graph with SeqAgentsState and custom state
     const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-    if (seqStateNode) {
-        channels = {
-            ...seqStateNode.data.instance.node,
-            ...channels
-        }
-    }
+    const customState = seqStateNode?.data?.instance?.node || {}
 
-    let seqGraph = new StateGraph<any>({
-        //@ts-ignore
-        channels
-    })
+    // Create graph with SeqAgentsState and custom state
+    const mergedState = { ...SeqAgentsState, ...customState }
+    let seqGraph = new StateGraph(mergedState)
 
     /*** Validate Graph ***/
     const startAgentNodes: IReactFlowNode[] = reactFlowNodes.filter((node: IReactFlowNode) => node.data.name === 'seqStart')
@@ -1066,12 +1104,12 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
     /*** Get memory ***/
     const startNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqStart')
-    let memory = startNode?.data.instance?.checkpointMemory
+    const memory = startNode?.data?.instance?.checkpointMemory
 
     try {
         const graph = seqGraph.compile({
             checkpointer: memory,
-            interruptBefore: interruptToolNodeNames as any
+            interruptBefore: interruptToolNodeNames
         })
 
         const loggerHandler = new ConsoleCallbackHandler(logger)
@@ -1107,23 +1145,23 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         }
 
         const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
-        let humanMsg: { messages: HumanMessage[] | ToolMessage[] } | null = {
-            messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
-        }
 
         if (action && action.mapping && question === action.mapping.approve) {
-            humanMsg = null
+            return await graph.stream(null, config)
         } else if (action && action.mapping && question === action.mapping.reject) {
-            humanMsg = {
-                messages: action.mapping.toolCalls.map((toolCall) => {
-                    return new ToolMessage({
-                        name: toolCall.name,
-                        content: `Tool ${toolCall.name} call denied by user. Acknowledge that, and DONT perform further actions. Only ask if user have other questions`,
-                        tool_call_id: toolCall.id!,
-                        additional_kwargs: { toolCallsDenied: true }
-                    })
+            const toolMessages = action.mapping.toolCalls.map((toolCall) => 
+                new ToolMessage({
+                    name: toolCall.name,
+                    content: `Tool ${toolCall.name} call denied by user. Acknowledge that, and DONT perform further actions. Only ask if user have other questions`,
+                    tool_call_id: toolCall.id!,
+                    additional_kwargs: { toolCallsDenied: true }
                 })
-            }
+            )
+            return await graph.stream({
+                messages: toolMessages,
+                flow: {},
+                memories: {}
+            }, config)
         }
 
         const shouldStreamResponse = options.shouldStreamResponse
@@ -1149,9 +1187,13 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
             config.callbacks.push(streamingHandler)
         }
 
-        const streamResults = await graph.stream(humanMsg, config)
+        const initialState = {
+            messages: [...prependMessages, new HumanMessage({ content: finalQuestion })],
+            flow: {},
+            memories: {}
+        }
 
-        return streamResults
+        return await graph.stream(initialState, config)
 
     } catch (e) {
         logger.error('Error compile graph', e)

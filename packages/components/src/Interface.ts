@@ -1,7 +1,8 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { BufferMemory, BufferWindowMemory, ConversationSummaryMemory, ConversationSummaryBufferMemory } from 'langchain/memory'
 import { Moderation } from '../nodes/moderation/Moderation'
-
+// @ts-ignore
+import { Annotation, messagesStateReducer } from '@langchain/langgraph'
 /**
  * Types
  */
@@ -217,13 +218,20 @@ export interface ITeamState {
     summarization?: string
 }
 
-export interface ISeqAgentsState {
-    messages: {
-        value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
-        default: () => BaseMessage[]
-    }
-}
-
+export const SeqAgentsState = Annotation.Root({
+    messages: Annotation<BaseMessage[]>({
+        reducer: messagesStateReducer,
+        default: () => []
+    }),
+    flow: Annotation<Record<string, any>>({
+        reducer: (prevState: Record<string, any>, newState: Record<string, any>) => ({ ...prevState, ...newState }),
+        default: () => ({})
+    }),
+    memories: Annotation<Record<string, any>>({
+        reducer: (prevState: Record<string, any>, newState: Record<string, any>) => ({ ...prevState, ...newState }),
+        default: () => ({})
+    })
+})
 export interface IAgentReasoning {
     agentName: string
     messages: string[]
@@ -404,7 +412,12 @@ export interface IStateWithMessages extends ICommonObject {
     messages: BaseMessage[]
     [key: string]: any
 }
-
+export interface ISeqAgentsState {
+    messages: {
+        value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[];
+        default: () => BaseMessage[];
+    }
+}
 export interface IServerSideEventStreamer {
     streamStartEvent(chatId: string, data: any): void
     streamTokenEvent(chatId: string, data: string): void

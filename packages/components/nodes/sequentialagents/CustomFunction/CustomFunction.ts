@@ -1,7 +1,7 @@
 import { NodeVM } from '@flowiseai/nodevm'
 import { DataSource } from 'typeorm'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, handleEscapeCharacters, prepareSandboxVars } from '../../../src/utils'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode, ISeqAgentsState } from '../../../src/Interface'
+import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, ISeqAgentNode, SeqAgentsState } from '../../../src/Interface'
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages'
 import { customGet } from '../commonUtils'
 
@@ -101,7 +101,7 @@ class CustomFunction_SeqAgents implements INode {
 
         if (!sequentialNodes || !sequentialNodes.length) throw new Error('Custom function must have a predecessor!')
 
-        const executeFunc = async (state: ISeqAgentsState) => {
+        const executeFunc = async (state: typeof SeqAgentsState.State) => {
             const variables = await getVars(appDataSource, databaseEntities, nodeData)
             const flow = {
                 chatflowId: options.chatflowid,

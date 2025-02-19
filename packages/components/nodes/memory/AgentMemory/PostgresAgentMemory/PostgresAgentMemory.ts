@@ -1,8 +1,39 @@
 import { getBaseClasses, getCredentialData, getCredentialParam } from '../../../../src/utils'
 import { SaverOptions } from '../interface'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../../src/Interface'
+import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, MemoryMethods, FlowiseMemory } from '../../../../src/Interface'
 import { DataSource } from 'typeorm'
-import { PostgresSaver } from './pgSaver'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
+import { Pool } from 'pg'
+import { BufferMemoryInput } from 'langchain/memory'
+
+class PostgresMemory extends FlowiseMemory implements MemoryMethods {
+    sessionId: string
+    pool: Pool
+    saver: PostgresSaver
+
+    constructor(fields: BufferMemoryInput & { pool: Pool; sessionId: string }) {
+        super(fields)
+        this.pool = fields.pool
+        this.sessionId = fields.sessionId
+        this.saver = new PostgresSaver(this.pool)
+    }
+
+    async clearChatMessages(overrideSessionId?: string): Promise<void> {
+        const id = overrideSessionId || this.sessionId
+        if (!id) return
+        await this.clear()
+    }
+
+    async getChatMessages(): Promise<any> {
+        // Getting chat messages is handled at the database level
+        return []
+    }
+
+    async addChatMessages(): Promise<void> {
+        // Adding chat messages is handled at the database level
+        return
+    }
+}
 
 class PostgresAgentMemory_Memory implements INode {
     label: string
@@ -77,34 +108,29 @@ class PostgresAgentMemory_Memory implements INode {
 
         const threadId = options.sessionId || options.chatId
 
-        let datasourceOptions: ICommonObject = {
-            ...additionalConfiguration,
-            type: 'postgres'
-        }
-
         const credentialData = await getCredentialData(nodeData.credential ?? '', options)
         const user = getCredentialParam('user', credentialData, nodeData)
         const password = getCredentialParam('password', credentialData, nodeData)
         const _port = (nodeData.inputs?.port as string) || '5432'
         const port = parseInt(_port)
-        datasourceOptions = {
-            ...datasourceOptions,
+
+        // Create a new Postgres Pool with the connection details
+        const pool = new Pool({
             host: nodeData.inputs?.host as string,
             port,
             database: nodeData.inputs?.database as string,
-            username: user,
             user: user,
-            password: password
-        }
-        const args: SaverOptions = {
-            datasourceOptions,
-            threadId,
-            appDataSource,
-            databaseEntities,
-            chatflowid
-        }
-        const recordManager = new PostgresSaver(args)
-        return recordManager
+            password: password,
+            ...additionalConfiguration
+        })
+
+        // Initialize PostgresMemory with the pool and session ID
+        return new PostgresMemory({
+            returnMessages: true,
+            memoryKey: 'chat_history',
+            pool,
+            sessionId: threadId
+        })
     }
 }
 

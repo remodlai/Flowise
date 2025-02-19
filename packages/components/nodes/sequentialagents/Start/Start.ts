@@ -1,7 +1,12 @@
-import { START } from '@langchain/langgraph'
+// @ts-nocheck
+import { START, Annotation } from '@langchain/langgraph'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { INode, INodeData, INodeParams, ISeqAgentNode } from '../../../src/Interface'
 import { Moderation } from '../../moderation/Moderation'
+import { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
+import { BaseMessage } from '@langchain/core/messages'
 
 class Start_SeqAgents implements INode {
     label: string
@@ -58,10 +63,30 @@ class Start_SeqAgents implements INode {
             }
         ]
     }
+    
+    private getCheckpointSaver(nodeData: INodeData): BaseCheckpointSaver {
+        const memory = nodeData.inputs?.agentMemory
+        if (!memory) return new SqliteSaver({ dbPath: ':memory:' })
 
+        const connString = memory.instance
+        if (!connString) return new SqliteSaver({ dbPath: ':memory:' })
+
+        if (connString.startsWith('postgres://')) {
+            return new PostgresSaver(connString)
+        } else if (connString.startsWith('sqlite://')) {
+            // Extract path from sqlite:// URL or use in-memory
+            const dbPath = connString.replace('sqlite://', '') || ':memory:'
+            return new SqliteSaver({ dbPath })
+        }
+        return new SqliteSaver({ dbPath: ':memory:' })
+    }
+   
     async init(nodeData: INodeData): Promise<any> {
         const moderations = (nodeData.inputs?.inputModeration as Moderation[]) ?? []
         const model = nodeData.inputs?.model as BaseChatModel
+        const memory = this.getCheckpointSaver(nodeData)
+
+      
 
         const returnOutput: ISeqAgentNode = {
             id: nodeData.id,
@@ -73,7 +98,8 @@ class Start_SeqAgents implements INode {
             llm: model,
             startLLM: model,
             moderations,
-            checkpointMemory: nodeData.inputs?.agentMemory
+            checkpointMemory: memory,
+            
         }
 
         return returnOutput

@@ -14,7 +14,7 @@ import {
     ICommonObject,
     IDatabaseEntity,
     INodeData,
-    ISeqAgentsState,
+    SeqAgentsState,
     IVisionChatModal,
     ConversationHistorySelection,
     IUsedTool
@@ -88,7 +88,7 @@ export const checkCondition = (input: string | number | undefined, condition: st
     }
 }
 
-export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISeqAgentsState) => {
+export const transformObjectPropertyToFunction = (obj: ICommonObject, state: typeof SeqAgentsState.State) => {
     const transformedObject: ICommonObject = {}
 
     for (const key in obj) {
@@ -97,8 +97,8 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISe
         try {
             const parsedValue = JSON.parse(value)
             if (typeof parsedValue === 'object' && parsedValue.id) {
-                const messageOutputs = ((state.messages as unknown as BaseMessage[]) ?? []).filter(
-                    (message) => message.additional_kwargs && message.additional_kwargs?.nodeId === parsedValue.id
+                const messageOutputs = state.messages.filter(
+                    (message: BaseMessage) => message.additional_kwargs && message.additional_kwargs?.nodeId === parsedValue.id
                 )
                 const messageOutput = messageOutputs[messageOutputs.length - 1]
                 if (messageOutput) {
@@ -254,28 +254,39 @@ export const convertStructuredSchemaToZod = (schema: string | object): ICommonOb
 export function filterConversationHistory(
     historySelection: ConversationHistorySelection,
     input: string,
-    state: ISeqAgentsState
+    state: typeof SeqAgentsState.State
 ): BaseMessage[] {
+    // Get current messages from state
+    const currentMessages = state.messages
+
     switch (historySelection) {
         case 'user_question':
             return [new HumanMessage(input)]
+            
         case 'last_message':
-            // @ts-ignore
-            return state.messages?.length ? [state.messages[state.messages.length - 1] as BaseMessage] : []
+            return currentMessages.length 
+                ? [currentMessages[currentMessages.length - 1]] 
+                : []
+            
         case 'empty':
             return []
+            
         case 'all_messages':
-            // @ts-ignore
-            return (state.messages as BaseMessage[]) ?? []
+            return currentMessages
+            
         default:
             throw new Error(`Unhandled conversationHistorySelection: ${historySelection}`)
     }
 }
 
-export const restructureMessages = (llm: BaseChatModel, state: ISeqAgentsState) => {
+export const restructureMessages = (llm: BaseChatModel, state: typeof SeqAgentsState.State) => {
+    // Get current messages from state
+    const currentMessages = state.messages
     const messages: BaseMessage[] = []
-    for (const message of state.messages as unknown as BaseMessage[]) {
-        // Sometimes Anthropic can return a message with content types of array, ignore that EXECEPT when tool calls are present
+
+    // Process messages
+    for (const message of currentMessages) {
+        // Handle Anthropic's array content type with tool calls
         if ((message as any).tool_calls?.length && message.content !== '') {
             message.content = JSON.stringify(message.content)
         }
@@ -285,43 +296,51 @@ export const restructureMessages = (llm: BaseChatModel, state: ISeqAgentsState) 
         }
     }
 
-    const isToolMessage = (message: BaseMessage) => message instanceof ToolMessage || message.constructor.name === 'ToolMessageChunk'
-    const isAIMessage = (message: BaseMessage) => message instanceof AIMessage || message.constructor.name === 'AIMessageChunk'
-    const isHumanMessage = (message: BaseMessage) => message instanceof HumanMessage || message.constructor.name === 'HumanMessageChunk'
+    // Helper functions for message type checking
+    const isToolMessage = (message: BaseMessage) => 
+        message instanceof ToolMessage || message.constructor.name === 'ToolMessageChunk'
+    const isAIMessage = (message: BaseMessage) => 
+        message instanceof AIMessage || message.constructor.name === 'AIMessageChunk'
+    const isHumanMessage = (message: BaseMessage) => 
+        message instanceof HumanMessage || message.constructor.name === 'HumanMessageChunk'
 
-    /*
-     * MistralAI does not support:
-     * 1.) Last message as AI Message or Tool Message
-     * 2.) Tool Message followed by Human Message
-     */
+    // Handle MistralAI specific requirements
     if (llm instanceof ChatMistralAI) {
         if (messages.length > 1) {
             for (let i = 0; i < messages.length; i++) {
                 const message = messages[i]
 
-                // If last message is denied Tool Message, add a new Human Message
-                if (isToolMessage(message) && i === messages.length - 1 && message.additional_kwargs?.toolCallsDenied) {
-                    messages.push(new AIMessage({ content: `Tool calls got denied. Do you have other questions?` }))
+                // Handle denied tool messages at the end
+                if (isToolMessage(message) && 
+                    i === messages.length - 1 && 
+                    message.additional_kwargs?.toolCallsDenied) {
+                    messages.push(new AIMessage({ 
+                        content: `Tool calls got denied. Do you have other questions?` 
+                    }))
                 } else if (i + 1 < messages.length) {
                     const nextMessage = messages[i + 1]
                     const currentMessage = message
 
-                    // If current message is Tool Message and next message is Human Message, add AI Message between Tool and Human Message
+                    // Add AI message between Tool and Human messages
                     if (isToolMessage(currentMessage) && isHumanMessage(nextMessage)) {
-                        messages.splice(i + 1, 0, new AIMessage({ content: 'Tool calls executed' }))
+                        messages.splice(i + 1, 0, new AIMessage({ 
+                            content: 'Tool calls executed' 
+                        }))
                     }
 
-                    // If last message is AI Message or Tool Message, add Human Message
-                    if (i + 1 === messages.length - 1 && (isAIMessage(nextMessage) || isToolMessage(nextMessage))) {
-                        messages.push(new HumanMessage({ content: nextMessage.content || 'Given the user question, answer user query' }))
+                    // Add Human message after AI or Tool message at the end
+                    if (i + 1 === messages.length - 1 && 
+                        (isAIMessage(nextMessage) || isToolMessage(nextMessage))) {
+                        messages.push(new HumanMessage({ 
+                            content: nextMessage.content || 'Given the user question, answer user query' 
+                        }))
                     }
                 }
             }
         }
-    } else if (llm instanceof ChatAnthropic) {
-        /*
-         * Anthropic does not support first message as AI Message
-         */
+    } 
+    // Handle Anthropic specific requirements
+    else if (llm instanceof ChatAnthropic) {
         if (messages.length) {
             const firstMessage = messages[0]
             if (isAIMessage(firstMessage)) {

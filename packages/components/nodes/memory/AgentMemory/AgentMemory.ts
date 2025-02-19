@@ -2,10 +2,9 @@ import path from 'path'
 import { getBaseClasses, getCredentialData, getCredentialParam, getUserHome } from '../../../src/utils'
 import { SaverOptions } from './interface'
 import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../src/Interface'
-import { SqliteSaver } from './SQLiteAgentMemory/sqliteSaver'
+import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres'
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 import { DataSource } from 'typeorm'
-import { PostgresSaver } from './PostgresAgentMemory/pgSaver'
-import { MySQLSaver } from './MySQLAgentMemory/mysqlSaver'
 
 class AgentMemory_Memory implements INode {
     label: string
@@ -106,9 +105,6 @@ class AgentMemory_Memory implements INode {
         const additionalConfig = nodeData.inputs?.additionalConfig as string
         const databaseFilePath = nodeData.inputs?.databaseFilePath as string
         const databaseType = nodeData.inputs?.databaseType as string
-        const databaseEntities = options.databaseEntities as IDatabaseEntity
-        const chatflowid = options.chatflowid as string
-        const appDataSource = options.appDataSource as DataSource
 
         let additionalConfiguration = {}
         if (additionalConfig) {
@@ -119,75 +115,20 @@ class AgentMemory_Memory implements INode {
             }
         }
 
-        const threadId = options.sessionId || options.chatId
-
-        let datasourceOptions: ICommonObject = {
-            ...additionalConfiguration,
-            type: databaseType
-        }
-
         if (databaseType === 'sqlite') {
-            datasourceOptions.database = databaseFilePath
+            const database = databaseFilePath
                 ? path.resolve(databaseFilePath)
                 : path.join(process.env.DATABASE_PATH ?? path.join(getUserHome(), '.flowise'), 'database.sqlite')
-            const args: SaverOptions = {
-                datasourceOptions,
-                threadId,
-                appDataSource,
-                databaseEntities,
-                chatflowid
-            }
-            const recordManager = new SqliteSaver(args)
-            return recordManager
+            return `sqlite://${database}`
         } else if (databaseType === 'postgres') {
             const credentialData = await getCredentialData(nodeData.credential ?? '', options)
             const user = getCredentialParam('user', credentialData, nodeData)
             const password = getCredentialParam('password', credentialData, nodeData)
             const _port = (nodeData.inputs?.port as string) || '5432'
             const port = parseInt(_port)
-            datasourceOptions = {
-                ...datasourceOptions,
-                host: nodeData.inputs?.host as string,
-                port,
-                database: nodeData.inputs?.database as string,
-                username: user,
-                user: user,
-                password: password
-            }
-            const args: SaverOptions = {
-                datasourceOptions,
-                threadId,
-                appDataSource,
-                databaseEntities,
-                chatflowid
-            }
-            const recordManager = new PostgresSaver(args)
-            return recordManager
-        } else if (databaseType === 'mysql') {
-            const credentialData = await getCredentialData(nodeData.credential ?? '', options)
-            const user = getCredentialParam('user', credentialData, nodeData)
-            const password = getCredentialParam('password', credentialData, nodeData)
-            const _port = (nodeData.inputs?.port as string) || '3306'
-            const port = parseInt(_port)
-            datasourceOptions = {
-                ...datasourceOptions,
-                host: nodeData.inputs?.host as string,
-                port,
-                database: nodeData.inputs?.database as string,
-                username: user,
-                user: user,
-                password: password,
-                charset: 'utf8mb4'
-            }
-            const args: SaverOptions = {
-                datasourceOptions,
-                threadId,
-                appDataSource,
-                databaseEntities,
-                chatflowid
-            }
-            const recordManager = new MySQLSaver(args)
-            return recordManager
+            const host = nodeData.inputs?.host as string
+            const database = nodeData.inputs?.database as string
+            return `postgres://${user}:${password}@${host}:${port}/${database}`
         }
 
         return undefined

@@ -14,7 +14,7 @@ import {
     INodeOutputsValue,
     INodeParams,
     ISeqAgentNode,
-    ISeqAgentsState
+    SeqAgentsState
 } from '../../../src/Interface'
 import { getInputVariables, getVars, handleEscapeCharacters, prepareSandboxVars, transformBracesWithColon } from '../../../src/utils'
 import {
@@ -28,6 +28,8 @@ import {
     restructureMessages
 } from '../commonUtils'
 import { ChatGoogleGenerativeAI } from '../../chatmodels/ChatGoogleGenerativeAI/FlowiseChatGoogleGenerativeAI'
+// @ts-ignore
+import { Annotation, messagesStateReducer, END, StateGraph } from '@langchain/langgraph'
 
 interface IConditionGridItem {
     variable: string
@@ -421,8 +423,9 @@ class ConditionAgent_SeqAgents implements INode {
 
         const abortControllerSignal = options.signal as AbortController
 
-        const conditionalEdge = async (state: ISeqAgentsState, config: RunnableConfig) =>
-            await runCondition(
+        const conditionalEdge = async (state: typeof SeqAgentsState.State, config: RunnableConfig) => {
+            // Use existing state structure, no need to recreate it
+            return await runCondition(
                 conditionName,
                 nodeData,
                 input,
@@ -436,6 +439,7 @@ class ConditionAgent_SeqAgents implements INode {
                 conditionAgentStructuredOutput,
                 abortControllerSignal
             )
+        }
 
         const returnOutput: ISeqAgentNode = {
             id: nodeData.id,
@@ -459,7 +463,7 @@ const runCondition = async (
     nodeData: INodeData,
     input: string,
     options: ICommonObject,
-    state: ISeqAgentsState,
+    state: typeof SeqAgentsState.State,
     config: RunnableConfig,
     llm: BaseChatModel,
     agentPrompt: string,
@@ -524,20 +528,42 @@ const runCondition = async (
     }
 
     const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-    // @ts-ignore
-    state.messages = filterConversationHistory(historySelection, input, state)
-    // @ts-ignore
-    state.messages = restructureMessages(model, state)
+    const filteredMessages = filterConversationHistory(historySelection, input, state)
 
-    let result = await chain.invoke({ ...state, signal: abortControllerSignal?.signal }, config)
+    // Use existing state structure but with filtered messages
+    const stateWithFilteredMessages = {
+        ...state,
+        messages: filteredMessages
+    }
+
+    let result = await chain.invoke(
+        { 
+            ...stateWithFilteredMessages, 
+            signal: abortControllerSignal?.signal 
+        }, 
+        config
+    )
     result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id }
 
-    if (conditionAgentStructuredOutput && conditionAgentStructuredOutput !== '[]' && result.tool_calls && result.tool_calls.length) {
+    // Update state with metadata in flow property
+    if (nodeData.inputs?.llmStructuredOutput && nodeData.inputs.llmStructuredOutput !== '[]' && result.tool_calls && result.tool_calls.length) {
         let jsonResult = {}
         for (const toolCall of result.tool_calls) {
             jsonResult = { ...jsonResult, ...toolCall.args }
         }
-        result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
+        result = { 
+            ...jsonResult, 
+            additional_kwargs: { 
+                nodeId: nodeData.id,
+                state: {
+                    ...state,
+                    flow: {
+                        ...state.flow,
+                        ...jsonResult
+                    }
+                }
+            } 
+        }
     }
 
     const variables = await getVars(appDataSource, databaseEntities, nodeData)

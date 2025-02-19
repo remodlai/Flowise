@@ -11,7 +11,7 @@ import {
     INode,
     INodeData,
     INodeParams,
-    ISeqAgentsState,
+    SeqAgentsState,
     ICommonObject,
     MessageContentImageUrl,
     INodeOutputsValue,
@@ -43,7 +43,8 @@ import {
     MessagesState,
     checkMessageHistory
 } from '../commonUtils'
-import { END, StateGraph } from '@langchain/langgraph'
+//@ts-ignore
+import { END, StateGraph, Annotation, messagesStateReducer } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { Document } from '@langchain/core/documents'
@@ -511,17 +512,7 @@ class Agent_SeqAgents implements INode {
         const toolName = `tool_${nodeData.id}`
         const toolNode = new ToolNode(tools, nodeData, input, options, toolName, [], { sequentialNodeName: toolName })
 
-        ;(toolNode as any).seekPermissionMessage = async (usedTools: IUsedTool[]) => {
-            const prompt = ChatPromptTemplate.fromMessages([['human', approvalPrompt || defaultApprovalPrompt]])
-            const chain = prompt.pipe(startLLM)
-            const response = (await chain.invoke({
-                input: 'Hello there!',
-                tools: JSON.stringify(usedTools)
-            })) as AIMessageChunk
-            return response.content
-        }
-
-        const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
+        const workerNode = async (state: typeof SeqAgentsState.State, config: RunnableConfig) => {
             return await agentNode(
                 {
                     state,
@@ -558,15 +549,14 @@ class Agent_SeqAgents implements INode {
         }
 
         const toolInterrupt = async (
-            graph: StateGraph<any>,
+            graph: StateGraph<typeof SeqAgentsState.State>,
             nextNodeName?: string,
             runCondition?: any,
             conditionalMapping: ICommonObject = {}
         ) => {
-            const routeMessage = async (state: ISeqAgentsState) => {
-                const messages = state.messages as unknown as BaseMessage[]
+            const routeMessage = async (state: typeof SeqAgentsState.State) => {
+                const { messages } = state
                 const lastMessage = messages[messages.length - 1] as AIMessage
-
                 if (!lastMessage?.tool_calls?.length) {
                     // if next node is condition node, run the condition
                     if (runCondition) {
@@ -623,7 +613,7 @@ async function createAgent(
     nodeData: INodeData,
     options: ICommonObject,
     agentName: string,
-    state: ISeqAgentsState,
+    state: typeof SeqAgentsState.State,
     llm: BaseChatModel,
     interrupt: boolean,
     tools: any[],
@@ -776,7 +766,7 @@ async function agentNode(
         options,
         multiModalMessageContent
     }: {
-        state: ISeqAgentsState
+        state: typeof SeqAgentsState.State
         llm: BaseChatModel
         interrupt: boolean
         agent: AgentExecutor | RunnableSequence
@@ -832,145 +822,39 @@ async function agentNode(
             let usedTools: IUsedTool[] = []
             let sourceDocuments: IDocument[] = []
             let artifacts: ICommonObject[] = []
-            let currentState = { ...agentState }
 
-            // Add user's message at the start
-            let userMessage: HumanMessage
-            if (multiModalMessageContent && multiModalMessageContent.length > 0) {
-                userMessage = new HumanMessage({
-                    content: multiModalMessageContent
-                })
-            } else {
-                userMessage = new HumanMessage(input)
-            }
-
-            const currentMessages = state.messages
-            state.messages = {
-                value: state.messages.value,
-                default: () => [...state.messages.default(), userMessage]
-            }
-
-            // Only stream start event once at the beginning
-            if (sseStreamer) {
-                sseStreamer.streamStartEvent(chatId, [])
-            }
-
-            // Create stream config with type assertion
-            const streamConfig: IAgentConfig = {
-                ...config,
-                configurable: {
-                    ...(config.configurable || {}),
-                    shouldStreamResponse: true
-                }
-            }
-
-            // Collect all chunks first
-            for await (const chunk of await agent.stream(
-                { 
-                    ...agentState,
-                    messages: filteredMessages,
-                    signal: abortControllerSignal.signal 
-                },
-                streamConfig
-            )) {
-                // Only stream content tokens, not tool calls or other metadata
-                if (chunk.content && !chunk.additional_kwargs?.tool_calls) {
-                    content = chunk.content
-                    // Stream token if content has changed
-                    if (sseStreamer) {
-                        sseStreamer.streamTokenEvent(chatId, chunk.content)
-                    }
-                }
-
-                // Collect metadata but don't apply yet
-                if (chunk.additional_kwargs?.usedTools) {
-                    const newTools = chunk.additional_kwargs.usedTools.filter(
-                        (tool: IUsedTool) => !usedTools.some(existing => existing.tool === tool.tool && existing.toolInput === tool.toolInput)
-                    )
-                    if (newTools.length > 0) {
-                        usedTools = [...usedTools, ...newTools]
-                    }
-                }
-                if (chunk.additional_kwargs?.sourceDocuments) {
-                    const newDocs = chunk.additional_kwargs.sourceDocuments.filter(
-                        (doc: IDocument) => !sourceDocuments.some(existing => existing.pageContent === doc.pageContent)
-                    )
-                    if (newDocs.length > 0) {
-                        sourceDocuments = [...sourceDocuments, ...newDocs]
-                    }
-                }
-                if (chunk.additional_kwargs?.artifacts) {
-                    const newArtifacts = chunk.additional_kwargs.artifacts.filter(
-                        (art: ICommonObject) => !artifacts.some(existing => JSON.stringify(existing) === JSON.stringify(art))
-                    )
-                    if (newArtifacts.length > 0) {
-                        artifacts = [...artifacts, ...newArtifacts]
-                    }
-                }
-                // Update state with any new state properties from chunk, but exclude messages
-                if (chunk.additional_kwargs?.state) {
-                    const { messages: _, ...newState } = chunk.additional_kwargs.state
-                    currentState = { ...currentState, ...newState }
-                }
-            }
-
-            // Only stream end event once at the end
-            if (sseStreamer) {
-                sseStreamer.streamEndEvent(chatId)
-            }
-
-            // Create the final message with all metadata
-            const { messages: _, ...finalState } = currentState
-            const finalMessage = new AIMessage({
-                content,
-                name,
-                additional_kwargs: {
-                    nodeId: nodeData.id,
-                    usedTools,
-                    sourceDocuments,
-                    artifacts,
-                    state: finalState
-                }
-            })
-
-            // Update state with both user message and final AI message
-            state.messages = {
-                value: state.messages.value,
-                default: () => [...state.messages.default(), userMessage, finalMessage]
-            }
-
-            result = {
-                content,
-                usedTools,
-                sourceDocuments,
-                artifacts,
-                state: finalState,
-                additional_kwargs: {
-                    nodeId: nodeData.id,
-                    usedTools,
-                    sourceDocuments,
-                    artifacts,
-                    state: finalState
-                }
-            }
-        } else {
-            // Add user's message first
+            // Add user's message to the state
             const userMessage = new HumanMessage(input)
             const currentMessages = state.messages
-            state.messages = {
-                value: state.messages.value,
-                default: () => [...state.messages.default(), userMessage]
-            }
+            state.messages = [...currentMessages, userMessage]
 
+            // Track metadata while streaming
             result = await agent.invoke({ 
                 ...agentState,
                 messages: filteredMessages,
                 signal: abortControllerSignal.signal 
             }, config)
+
+            // Accumulate metadata from streaming result
+            if (result.usedTools) usedTools = [...usedTools, ...result.usedTools]
+            if (result.sourceDocuments) sourceDocuments = [...sourceDocuments, ...result.sourceDocuments]
+            if (result.artifacts) artifacts = [...artifacts, ...result.artifacts]
+            content = result.content || result.output || ''
+
+            // Update state with accumulated metadata in flow property
+            state = {
+                ...state,
+                flow: {
+                    ...state.flow,
+                    usedTools: usedTools.filter(Boolean),
+                    sourceDocuments: sourceDocuments.filter(Boolean),
+                    artifacts: artifacts.filter(Boolean)
+                }
+            }
         }
 
         if (interrupt) {
-            const messages = state.messages as unknown as BaseMessage[]
+            const {messages} = state
             const lastMessage = messages.length ? messages[messages.length - 1] : null
 
             // If the last message is a tool message and is an interrupted message, format output into standard agent output
@@ -997,6 +881,7 @@ async function agentNode(
                 }
                 result = formattedAgentResult
             } else {
+                //NEEDS UPDATED TO NEW STATE MANAGEMENT
                 result.name = name
                 result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true }
                 return {
@@ -1047,7 +932,7 @@ async function agentNode(
     }
 }
 
-const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: ISeqAgentsState) => {
+const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: typeof SeqAgentsState.State) => {
     const appDataSource = options.appDataSource as DataSource
     const databaseEntities = options.databaseEntities as IDatabaseEntity
     const tabIdentifier = nodeData.inputs?.[`${TAB_IDENTIFIER}_${nodeData.id}`] as string

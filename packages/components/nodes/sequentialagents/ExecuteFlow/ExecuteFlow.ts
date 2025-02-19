@@ -16,7 +16,7 @@ import {
     INodeOptionsValue,
     INodeParams,
     ISeqAgentNode,
-    ISeqAgentsState
+    SeqAgentsState
 } from '../../../src/Interface'
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages'
 import { v4 as uuidv4 } from 'uuid'
@@ -188,7 +188,7 @@ class ExecuteFlow_SeqAgents implements INode {
         const sessionId = options.sessionId
         const chatId = options.chatId
 
-        const executeFunc = async (state: ISeqAgentsState) => {
+        const executeFunc = async (state: typeof SeqAgentsState.State) => {
             const variables = await getVars(appDataSource, databaseEntities, nodeData)
 
             let flowInput = ''

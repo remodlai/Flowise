@@ -174,9 +174,11 @@ const removeAllChatMessages = async (req: Request, res: Response, next: NextFunc
             feedbackTypeFilters = getFeedbackTypeFilters(feedbackTypeFilters)
         }
 
+        // Always force hardDelete to true to ensure complete cleanup
+        const hardDelete = true
+
         if (!chatId) {
             const isFeedback = feedbackTypeFilters?.length ? true : false
-            const hardDelete = req.query?.hardDelete as boolean | undefined
             const messages = await utilGetChatMessage({
                 chatflowid,
                 chatTypes,
@@ -205,23 +207,21 @@ const removeAllChatMessages = async (req: Request, res: Response, next: NextFunc
                 chatIdMap.get(composite_key)?.push(message)
             })
 
-            // If hardDelete is ON, we clearSessionMemory from third party integrations
-            if (hardDelete) {
-                for (const [composite_key] of chatIdMap) {
-                    const [chatId, memoryType, sessionId] = composite_key.split('_')
-                    try {
-                        await clearSessionMemory(
-                            nodes,
-                            appServer.nodesPool.componentNodes,
-                            chatId,
-                            appServer.AppDataSource,
-                            sessionId,
-                            memoryType,
-                            isClearFromViewMessageDialog
-                        )
-                    } catch (e) {
-                        console.error('Error clearing chat messages')
-                    }
+            // Clear session memory for all chats
+            for (const [composite_key] of chatIdMap) {
+                const [chatId, memoryType, sessionId] = composite_key.split('_')
+                try {
+                    await clearSessionMemory(
+                        nodes,
+                        appServer.nodesPool.componentNodes,
+                        chatId,
+                        appServer.AppDataSource,
+                        sessionId,
+                        memoryType,
+                        isClearFromViewMessageDialog
+                    )
+                } catch (e) {
+                    console.error('Error clearing chat messages:', e)
                 }
             }
 
@@ -229,6 +229,7 @@ const removeAllChatMessages = async (req: Request, res: Response, next: NextFunc
             return res.json(apiResponse)
         } else {
             try {
+                // Clear session memory first
                 await clearSessionMemory(
                     nodes,
                     appServer.nodesPool.componentNodes,
@@ -239,9 +240,11 @@ const removeAllChatMessages = async (req: Request, res: Response, next: NextFunc
                     isClearFromViewMessageDialog
                 )
             } catch (e) {
+                console.error('Error clearing session memory:', e)
                 return res.status(500).send('Error clearing chat messages')
             }
 
+            // Then delete all messages
             const deleteOptions: FindOptionsWhere<ChatMessage> = { chatflowid }
             if (chatId) deleteOptions.chatId = chatId
             if (memoryType) deleteOptions.memoryType = memoryType
@@ -254,6 +257,7 @@ const removeAllChatMessages = async (req: Request, res: Response, next: NextFunc
                 const toDate = new Date(endDate)
                 deleteOptions.createdDate = Between(fromDate ?? aMonthAgo(), toDate ?? new Date())
             }
+
             const apiResponse = await chatMessagesService.removeAllChatMessages(chatId, chatflowid, deleteOptions)
             return res.json(apiResponse)
         }

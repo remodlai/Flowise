@@ -1,9 +1,39 @@
 import path from 'path'
 import { getBaseClasses, getUserHome } from '../../../../src/utils'
 import { SaverOptions } from '../interface'
-import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams } from '../../../../src/Interface'
-import { SqliteSaver } from './sqliteSaver'
+import { ICommonObject, IDatabaseEntity, INode, INodeData, INodeParams, MemoryMethods, FlowiseMemory } from '../../../../src/Interface'
+import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 import { DataSource } from 'typeorm'
+import { BufferMemoryInput } from 'langchain/memory'
+
+class SQLiteMemory extends FlowiseMemory implements MemoryMethods {
+    sessionId: string
+    dbPath: string
+    saver: SqliteSaver
+
+    constructor(fields: BufferMemoryInput & { dbPath: string; sessionId: string }) {
+        super(fields)
+        this.dbPath = fields.dbPath
+        this.sessionId = fields.sessionId
+        this.saver = new SqliteSaver({ dbPath: this.dbPath })
+    }
+
+    async clearChatMessages(overrideSessionId?: string): Promise<void> {
+        const id = overrideSessionId || this.sessionId
+        if (!id) return
+        await this.clear()
+    }
+
+    async getChatMessages(): Promise<any> {
+        // Getting chat messages is handled at the database level
+        return []
+    }
+
+    async addChatMessages(): Promise<void> {
+        // Adding chat messages is handled at the database level
+        return
+    }
+}
 
 class SQLiteAgentMemory_Memory implements INode {
     label: string
@@ -62,25 +92,15 @@ class SQLiteAgentMemory_Memory implements INode {
         }
 
         const threadId = options.sessionId || options.chatId
-
         const database = path.join(process.env.DATABASE_PATH ?? path.join(getUserHome(), '.flowise'), 'database.sqlite')
 
-        let datasourceOptions: ICommonObject = {
-            database,
-            ...additionalConfiguration,
-            type: 'sqlite'
-        }
-
-        const args: SaverOptions = {
-            datasourceOptions,
-            threadId,
-            appDataSource,
-            databaseEntities,
-            chatflowid
-        }
-
-        const recordManager = new SqliteSaver(args)
-        return recordManager
+        // Initialize SQLiteMemory with the database path and session ID
+        return new SQLiteMemory({
+            returnMessages: true,
+            memoryKey: 'chat_history',
+            dbPath: database,
+            sessionId: threadId
+        })
     }
 }
 

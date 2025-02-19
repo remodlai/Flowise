@@ -9,7 +9,7 @@ import {
     INode,
     INodeData,
     INodeParams,
-    ISeqAgentsState,
+    SeqAgentsState,
     ICommonObject,
     MessageContentImageUrl,
     INodeOutputsValue,
@@ -38,6 +38,8 @@ import {
     checkMessageHistory
 } from '../commonUtils'
 import { ChatGoogleGenerativeAI } from '../../chatmodels/ChatGoogleGenerativeAI/FlowiseChatGoogleGenerativeAI'
+import { getBaseClasses } from '../../../src/utils'
+import { IUsedTool } from '../../../src/Interface'
 
 const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
@@ -434,7 +436,7 @@ class LLMNode_SeqAgents implements INode {
             throw new Error('LLM Node input variables values are not provided!')
         }
 
-        const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
+        const workerNode = async (state: typeof SeqAgentsState.State, config: RunnableConfig) => {
             const bindModel = config.configurable?.bindModel?.[nodeData.id]
             return await agentNode(
                 {
@@ -485,7 +487,7 @@ async function createAgent(
     nodeData: INodeData,
     options: ICommonObject,
     llmNodeName: string,
-    state: ISeqAgentsState,
+    state: typeof SeqAgentsState.State,
     llm: BaseChatModel,
     tools: any[],
     systemPrompt: string,
@@ -567,7 +569,7 @@ async function agentNode(
         input,
         options
     }: {
-        state: ISeqAgentsState
+        state: typeof SeqAgentsState.State
         llm: BaseChatModel
         agent: AgentExecutor | RunnableSequence
         name: string
@@ -597,7 +599,19 @@ async function agentNode(
             for (const toolCall of result.tool_calls) {
                 jsonResult = { ...jsonResult, ...toolCall.args }
             }
-            result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
+            result = { 
+                ...jsonResult, 
+                additional_kwargs: { 
+                    nodeId: nodeData.id,
+                    state: {
+                        ...state,
+                        flow: {
+                            ...state.flow,
+                            ...jsonResult
+                        }
+                    }
+                } 
+            }
         }
 
         if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
@@ -652,7 +666,7 @@ async function agentNode(
     }
 }
 
-const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: ISeqAgentsState) => {
+const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: typeof SeqAgentsState.State) => {
     const appDataSource = options.appDataSource as DataSource
     const databaseEntities = options.databaseEntities as IDatabaseEntity
     const tabIdentifier = nodeData.inputs?.[`${TAB_IDENTIFIER}_${nodeData.id}`] as string
@@ -668,8 +682,8 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
         sessionId: options.sessionId,
         chatId: options.chatId,
         input,
-        output,
         state,
+        output: output,
         vars: prepareSandboxVars(variables)
     }
 

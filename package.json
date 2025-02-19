@@ -103,5 +103,12 @@
                 }
             ]
         ]
+    },
+    "dependencies": {
+        "@langchain/langgraph": "^0.2.46",
+        "@langchain/langgraph-checkpoint": "^0.0.15",
+        "@langchain/langgraph-checkpoint-postgres": "^0.0.3",
+        "@langchain/langgraph-checkpoint-sqlite": "^0.1.4",
+        "zod": "3.22.4"
     }
 }
