@@ -1,5 +1,5 @@
 import { Response } from 'express'
-import { IServerSideEventStreamer, IAgentReasoning } from 'flowise-components'
+import { IServerSideEventStreamer, IAgentReasoning, TokenEventType } from 'flowise-components'
 import logger from './logger'
 
 // Test logger is working
@@ -75,12 +75,13 @@ export class SSEStreamer implements IServerSideEventStreamer {
         }
     }
 
-    streamTokenEvent(chatId: string, data: string) {
+    streamTokenEvent(chatId: string, data: string, type?: TokenEventType): void {
         const client = this.clients[chatId]
         if (client) {
             const clientResponse = {
                 event: 'token',
-                data: data
+                data: data,
+                type: type || TokenEventType.AGENT_REASONING // Default to agent reasoning if not specified
             }
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }

@@ -407,9 +407,15 @@ export interface IStateWithMessages extends ICommonObject {
     [key: string]: any
 }
 
+export enum TokenEventType {
+    AGENT_REASONING = 'agentReasoning',
+    FINAL_RESPONSE = 'finalResponse',
+    TOOL_RESPONSE = 'toolResponse'
+}
+
 export interface IServerSideEventStreamer {
     streamStartEvent(chatId: string, data: string | IAgentReasoning[] | ICommonObject): void
-    streamTokenEvent(chatId: string, token: string): void
+    streamTokenEvent(chatId: string, token: string, type?: TokenEventType): void
     streamAgentReasoningEvent(chatId: string, agentReasoning: IAgentReasoning[]): void
     streamNextAgentEvent(chatId: string, nextAgent: string): void
     streamSourceDocumentsEvent(chatId: string, sourceDocuments: IDocument[] | ICommonObject[]): void

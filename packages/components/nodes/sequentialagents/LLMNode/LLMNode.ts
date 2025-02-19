@@ -5,6 +5,7 @@ import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchai
 import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import {
     INode,
     INodeData,
@@ -15,7 +16,8 @@ import {
     INodeOutputsValue,
     ISeqAgentNode,
     IDatabaseEntity,
-    ConversationHistorySelection
+    ConversationHistorySelection,
+    TokenEventType
 } from '../../../src/Interface'
 import { AgentExecutor } from '../../../src/agents'
 import {
@@ -164,6 +166,12 @@ return [
     }),
     new AIMessage("The answer is 172.558."),
 ]`
+
+interface ILLMNodeOutput extends ICommonObject {
+    content?: string
+    output?: string
+    next?: string
+}
 
 class LLMNode_SeqAgents implements INode {
     label: string
@@ -589,62 +597,189 @@ async function agentNode(
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
 
-        let result: AIMessageChunk | ICommonObject = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+        const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
+        const sseStreamer = options.sseStreamer
+        const chatId = options.chatId
 
-        const llmStructuredOutput = nodeData.inputs?.llmStructuredOutput
-        if (llmStructuredOutput && llmStructuredOutput !== '[]' && result.tool_calls && result.tool_calls.length) {
-            let jsonResult = {}
-            for (const toolCall of result.tool_calls) {
-                jsonResult = { ...jsonResult, ...toolCall.args }
+        let result: ILLMNodeOutput | AIMessageChunk
+        let finalState = { ...state }
+
+        if (shouldStream && sseStreamer) {
+            let isStreamingStarted = false
+            let content = ''
+
+            // Start agent reasoning
+            sseStreamer.streamAgentReasoningStartEvent(chatId)
+
+            // Stream the current agent's reasoning (initial state)
+            const initialReasoning = {
+                agentName: name,
+                messages: [],
+                state: state,
+                usedTools: [],
+                sourceDocuments: [],
+                artifacts: [],
+                nodeName: 'seqLLMNode',
+                nodeId: nodeData.id
             }
-            result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
-        }
+            sseStreamer.streamAgentReasoningEvent(chatId, [initialReasoning])
 
-        if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
-            const returnedOutput = await getReturnOutput(nodeData, input, options, result, state)
+            // Create stream config
+            const streamConfig = {
+                ...config,
+                configurable: {
+                    ...(config.configurable || {}),
+                    shouldStreamResponse: true
+                }
+            }
 
+            // Add streaming callbacks
+            const streamingHandler = BaseCallbackHandler.fromMethods({
+                handleLLMNewToken(token: string) {
+                    if (!isStreamingStarted) {
+                        isStreamingStarted = true
+                        sseStreamer.streamTokenStartEvent(chatId)
+                    }
+                    content += token
+                    // Use FINAL_RESPONSE type if next node is END
+                    const tokenType = ('next' in result && result.next === 'END') 
+                        ? TokenEventType.FINAL_RESPONSE 
+                        : TokenEventType.AGENT_REASONING
+                    sseStreamer.streamTokenEvent(chatId, token, tokenType)
+                },
+                handleLLMEnd() {
+                    if (isStreamingStarted) {
+                        sseStreamer.streamTokenEndEvent(chatId)
+                    }
+                }
+            })
+
+            const currentCallbacks = streamConfig.callbacks || []
+            streamConfig.callbacks = Array.isArray(currentCallbacks) 
+                ? [...currentCallbacks, streamingHandler] 
+                : [streamingHandler]
+
+            // Invoke the agent with streaming
+            result = await agent.invoke({ 
+                ...state,
+                messages: state.messages,
+                signal: abortControllerSignal.signal 
+            }, streamConfig) as ILLMNodeOutput
+
+            // Handle structured output if configured
+            const llmStructuredOutput = nodeData.inputs?.llmStructuredOutput
+            if (llmStructuredOutput && llmStructuredOutput !== '[]' && result.tool_calls && result.tool_calls.length) {
+                let jsonResult = {}
+                for (const toolCall of result.tool_calls) {
+                    jsonResult = { ...jsonResult, ...toolCall.args }
+                }
+                result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
+            }
+
+            // Handle state memory updates
+            let stateUpdate = {}
+            if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
+                stateUpdate = await getReturnOutput(nodeData, input, options, result, state)
+                finalState = { ...finalState, ...stateUpdate }
+            }
+
+            // Create final message with metadata
+            let finalMessage: AIMessage
             if (nodeData.inputs?.llmStructuredOutput && nodeData.inputs.llmStructuredOutput !== '[]') {
-                const messages = [
-                    new AIMessage({
-                        content: typeof result === 'object' ? JSON.stringify(result) : result,
-                        name,
-                        additional_kwargs: { nodeId: nodeData.id }
-                    })
-                ]
-                return {
-                    ...returnedOutput,
-                    messages
-                }
+                finalMessage = new AIMessage({
+                    content: typeof result === 'object' ? JSON.stringify(result) : result,
+                    name,
+                    additional_kwargs: {
+                        nodeId: nodeData.id,
+                        state: finalState
+                    }
+                })
             } else {
-                result.name = name
-                result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id }
-                let outputContent = typeof result === 'string' ? result : result.content
-                result.content = extractOutputFromArray(outputContent)
-                return {
-                    ...returnedOutput,
-                    messages: [result]
-                }
+                const outputContent = content || (typeof result === 'string' ? result : result.content)
+                finalMessage = new AIMessage({
+                    content: extractOutputFromArray(outputContent),
+                    name,
+                    additional_kwargs: {
+                        nodeId: nodeData.id,
+                        state: finalState
+                    }
+                })
+            }
+
+            // Stream final agent reasoning
+            const finalReasoning = {
+                agentName: name,
+                messages: [finalMessage.content],
+                state: finalState,
+                usedTools: [],
+                sourceDocuments: [],
+                artifacts: [],
+                nodeName: 'seqLLMNode',
+                nodeId: nodeData.id
+            }
+            sseStreamer.streamAgentReasoningEvent(chatId, [finalReasoning])
+            sseStreamer.streamAgentReasoningEndEvent(chatId)
+
+            // If there's a next node, emit nextAgent event
+            if (result.next && result.next !== 'FINISH' && result.next !== 'END') {
+                sseStreamer.streamNextAgentEvent(chatId, result.next)
+            }
+
+            return {
+                messages: [finalMessage],
+                state: finalState
             }
         } else {
+            // Non-streaming case
+            result = await agent.invoke({ 
+                ...state,
+                messages: state.messages,
+                signal: abortControllerSignal.signal 
+            }, config) as ILLMNodeOutput
+
+            // Handle structured output if configured
+            const llmStructuredOutput = nodeData.inputs?.llmStructuredOutput
+            if (llmStructuredOutput && llmStructuredOutput !== '[]' && result.tool_calls && result.tool_calls.length) {
+                let jsonResult = {}
+                for (const toolCall of result.tool_calls) {
+                    jsonResult = { ...jsonResult, ...toolCall.args }
+                }
+                result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
+            }
+
+            // Handle state memory updates
+            let stateUpdate = {}
+            if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
+                stateUpdate = await getReturnOutput(nodeData, input, options, result, state)
+                finalState = { ...finalState, ...stateUpdate }
+            }
+
+            // Create final message with metadata
+            let finalMessage: AIMessage
             if (nodeData.inputs?.llmStructuredOutput && nodeData.inputs.llmStructuredOutput !== '[]') {
-                const messages = [
-                    new AIMessage({
-                        content: typeof result === 'object' ? JSON.stringify(result) : result,
-                        name,
-                        additional_kwargs: { nodeId: nodeData.id }
-                    })
-                ]
-                return {
-                    messages
-                }
+                finalMessage = new AIMessage({
+                    content: typeof result === 'object' ? JSON.stringify(result) : result,
+                    name,
+                    additional_kwargs: {
+                        nodeId: nodeData.id,
+                        state: finalState
+                    }
+                })
             } else {
-                result.name = name
-                result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id }
-                let outputContent = typeof result === 'string' ? result : result.content
-                result.content = extractOutputFromArray(outputContent)
-                return {
-                    messages: [result]
-                }
+                const outputContent = typeof result === 'string' ? result : result.content
+                finalMessage = new AIMessage({
+                    content: extractOutputFromArray(outputContent),
+                    name,
+                    additional_kwargs: {
+                        nodeId: nodeData.id,
+                        state: finalState
+                    }
+                })
+            }
+
+            return {
+                messages: [finalMessage],
+                state: finalState
             }
         }
     } catch (error) {

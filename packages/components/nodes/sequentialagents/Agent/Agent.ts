@@ -20,7 +20,9 @@ import {
     IUsedTool,
     IDocument,
     IStateWithMessages,
-    ConversationHistorySelection
+    ConversationHistorySelection,
+    IMessage,
+    TokenEventType
 } from '../../../src/Interface'
 import { ToolCallingAgentOutputParser, AgentExecutor, SOURCE_DOCUMENTS_PREFIX, ARTIFACTS_PREFIX } from '../../../src/agents'
 import {
@@ -787,8 +789,6 @@ async function agentNode(
         }
 
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        
-        // Filter messages for this agent/LLM
         const filteredMessages = filterConversationHistory(historySelection, input, state)
 
         // Create temporary state with filtered messages for the agent
@@ -797,36 +797,34 @@ async function agentNode(
             messages: filteredMessages
         }
 
+        // Add user's message at the start
+        let userMessage: HumanMessage
+        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
+            userMessage = new HumanMessage({
+                content: multiModalMessageContent
+            })
+        } else {
+            userMessage = new HumanMessage(input)
+        }
+
+        // Update state with user message
+        state.messages = {
+            value: state.messages.value,
+            default: () => [...state.messages.default(), userMessage]
+        }
+
         const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
         const sseStreamer = options.sseStreamer
         const chatId = options.chatId
 
-        let result
-        if (shouldStream) {
+        let result: ICommonObject
+        if (shouldStream && sseStreamer) {
             let content = ''
-            let usedTools: IUsedTool[] = []
-            let sourceDocuments: IDocument[] = []
-            let artifacts: ICommonObject[] = []
-            let currentState = { ...agentState }
+            let currentTokenType = TokenEventType.AGENT_REASONING
+            let isStreamingStarted = false
 
-            // Add user's message at the start
-            let userMessage: HumanMessage
-            if (multiModalMessageContent && multiModalMessageContent.length > 0) {
-                userMessage = new HumanMessage({
-                    content: multiModalMessageContent
-                })
-            } else {
-                userMessage = new HumanMessage(input)
-            }
-
-            const currentMessages = state.messages
-            state.messages = {
-                value: state.messages.value,
-                default: () => [...state.messages.default(), userMessage]
-            }
-
-            // Create stream config with type assertion
-            const streamConfig: RunnableConfig = {
+            // Create stream config
+            const streamConfig = {
                 ...config,
                 configurable: {
                     ...(config.configurable || {}),
@@ -835,31 +833,46 @@ async function agentNode(
             }
 
             // Add streaming callbacks
-            if (sseStreamer) {
-                let isStreamingStarted = false
-                const streamingHandler = BaseCallbackHandler.fromMethods({
-                    handleLLMNewToken(token: string) {
-                        if (!isStreamingStarted) {
-                            isStreamingStarted = true
-                            sseStreamer.streamStartEvent(chatId, '')
-                            sseStreamer.streamTokenStartEvent(chatId)
-                        }
-                        sseStreamer.streamTokenEvent(chatId, token)
-                    },
-                    handleLLMEnd() {
-                        if (isStreamingStarted) {
-                            sseStreamer.streamTokenEndEvent(chatId)
-                        }
-                    },
-                    handleToolStart(tool: Serialized, input: string) {
-                        sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start', input })
-                    },
-                    handleToolEnd(output: string) {
-                        sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
+            const streamingHandler = BaseCallbackHandler.fromMethods({
+                handleLLMNewToken(token: string) {
+                    if (!isStreamingStarted) {
+                        isStreamingStarted = true
+                        sseStreamer.streamStartEvent(chatId, '')
+                        sseStreamer.streamTokenStartEvent(chatId)
                     }
-                })
-                const currentCallbacks = streamConfig.callbacks || []
-                streamConfig.callbacks = Array.isArray(currentCallbacks) ? [...currentCallbacks, streamingHandler] : [streamingHandler]
+                    content += token
+                    sseStreamer.streamTokenEvent(chatId, token, currentTokenType)
+                },
+                handleLLMEnd() {
+                    if (isStreamingStarted) {
+                        sseStreamer.streamTokenEndEvent(chatId)
+                    }
+                },
+                handleToolStart(tool: Serialized, input: string) {
+                    currentTokenType = TokenEventType.TOOL_RESPONSE
+                    sseStreamer.streamToolEvent(chatId, { 
+                        tool: tool.toString(), 
+                        status: 'start', 
+                        input,
+                        type: TokenEventType.TOOL_RESPONSE 
+                    })
+                },
+                handleToolEnd(output: string) {
+                    currentTokenType = TokenEventType.AGENT_REASONING
+                    sseStreamer.streamToolEvent(chatId, { 
+                        output, 
+                        status: 'end',
+                        type: TokenEventType.TOOL_RESPONSE 
+                    })
+                }
+            })
+
+            if (Array.isArray(streamConfig.callbacks)) {
+                streamConfig.callbacks.push(streamingHandler)
+            } else if (streamConfig.callbacks) {
+                streamConfig.callbacks = [streamingHandler]
+            } else {
+                streamConfig.callbacks = [streamingHandler]
             }
 
             // Stream the agent's execution
@@ -868,6 +881,11 @@ async function agentNode(
                 messages: filteredMessages,
                 signal: abortControllerSignal.signal 
             }, streamConfig)
+
+            // After execution, determine if this was a final response
+            if (result.next === 'END' || result.next === 'FINISH') {
+                currentTokenType = TokenEventType.FINAL_RESPONSE
+            }
 
             // Create the final message with all metadata
             const finalMessage = new AIMessage({
@@ -878,7 +896,8 @@ async function agentNode(
                     usedTools: result.usedTools || [],
                     sourceDocuments: result.sourceDocuments || [],
                     artifacts: result.artifacts || [],
-                    state: result.state || currentState
+                    state: result.state || agentState,
+                    type: currentTokenType
                 }
             })
 
@@ -890,10 +909,10 @@ async function agentNode(
 
             return {
                 messages: [finalMessage],
-                state: result.state || currentState
+                state: result.state || agentState
             }
         } else {
-            // Non-streaming case remains unchanged
+            // Non-streaming case
             result = await agent.invoke({ 
                 ...agentState,
                 messages: filteredMessages,
@@ -908,9 +927,16 @@ async function agentNode(
                     usedTools: result.usedTools || [],
                     sourceDocuments: result.sourceDocuments || [],
                     artifacts: result.artifacts || [],
-                    state: result.state || agentState
+                    state: result.state || agentState,
+                    type: result.next === 'END' ? TokenEventType.FINAL_RESPONSE : TokenEventType.AGENT_REASONING
                 }
             })
+
+            // Update state with both user message and final AI message
+            state.messages = {
+                value: state.messages.value,
+                default: () => [...state.messages.default(), userMessage, finalMessage]
+            }
 
             return {
                 messages: [finalMessage],
