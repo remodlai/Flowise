@@ -277,6 +277,7 @@ export const buildAgentGraph = async ({
                                         : lastWorkerResult
 
                                 if (shouldStreamResponse && sseStreamer) {
+                                    sseStreamer.streamAgentReasoningStartEvent(chatId)
                                     sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
 
                                     // Check if there are LLM tokens to stream
@@ -290,7 +291,10 @@ export const buildAgentGraph = async ({
                                     }
 
                                     sseStreamer.streamAgentReasoningEndEvent(chatId)
-
+                                    const allToolCalls = agentReasoning.flatMap(reasoning => reasoning.usedTools);
+                                    const usedToolsEvent = allToolCalls.length ? uniq(flatten(allToolCalls).filter(tool => tool !== undefined)) : [];
+                                    logger.info(`[buildAgentGraph] Streaming used tools event: ${JSON.stringify(usedToolsEvent)}`);
+                                    sseStreamer.streamUsedToolsEvent(chatId, usedToolsEvent);
                                     // Send condition event if next is condition
                                     if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
                                         const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
