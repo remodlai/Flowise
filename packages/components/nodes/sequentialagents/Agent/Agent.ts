@@ -886,7 +886,8 @@ async function agentNode(
 
             return {
                 messages: [finalMessage],
-                state: result.state || state
+                state: result.state || state,
+                next: result.next
             }
         } else {
             // Non-streaming case
@@ -904,7 +905,7 @@ async function agentNode(
                     sourceDocuments: result.sourceDocuments || [],
                     artifacts: result.artifacts || [],
                     state: result.state || state,
-                    type: result.next === 'END' ? TokenEventType.FINAL_RESPONSE : TokenEventType.AGENT_REASONING
+                    type: result.next === 'end' ? TokenEventType.FINAL_RESPONSE : TokenEventType.AGENT_REASONING
                 }
             })
 
@@ -916,7 +917,8 @@ async function agentNode(
 
             return {
                 messages: [finalMessage],
-                state: result.state || state
+                state: result.state || state,
+                next: result.next
             }
         }
     } catch (error) {

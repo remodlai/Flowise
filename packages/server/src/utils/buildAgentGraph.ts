@@ -281,7 +281,17 @@ export const buildAgentGraph = async ({
                                     if (sseStreamer) {
                                         // Get the token type from the message if available
                                         const lastMessage = output[agentName]?.messages?.[output[agentName].messages.length - 1]
-                                        const tokenType = lastMessage?.additional_kwargs?.type || TokenEventType.AGENT_REASONING
+                                        
+                                        // Check if this agent is connected to an END node
+                                        const isConnectedToEnd = edges.some(edge => 
+                                            edge.source === nodeId && 
+                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
+                                        )
+                                        
+                                        // Set token type based on whether this is the final node
+                                        const tokenType = isConnectedToEnd ? 
+                                            TokenEventType.FINAL_RESPONSE : 
+                                            (lastMessage?.additional_kwargs?.type || TokenEventType.AGENT_REASONING)
 
                                         // Stream agent reasoning start
                                         sseStreamer.streamAgentReasoningStartEvent(chatId)
@@ -411,6 +421,7 @@ export const buildAgentGraph = async ({
 
                         // Handle streaming tokens
                         if (output?.content && !output?.additional_kwargs?.tool_calls) {
+                            /*
                             if (!isStreamingStarted) {
                                 isStreamingStarted = true
                                 if (shouldStreamResponse && sseStreamer) {
@@ -418,8 +429,20 @@ export const buildAgentGraph = async ({
                                 }
                             }
                             if (shouldStreamResponse && sseStreamer) {
-                                sseStreamer.streamTokenEvent(chatId, output.content)
+                                // Check if this is the final node
+                                const isConnectedToEnd = edges.some(edge => 
+                                    edge.source === output.additional_kwargs?.nodeId && 
+                                    initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
+                                )
+                                
+                                // Set token type based on whether this is the final node
+                                const tokenType = isConnectedToEnd ? 
+                                    TokenEventType.FINAL_RESPONSE : 
+                                    TokenEventType.AGENT_REASONING
+
+                                sseStreamer.streamTokenEvent(chatId, output.content, tokenType)
                             }
+                            */
                             continue
                         }
 
@@ -531,7 +554,17 @@ export const buildAgentGraph = async ({
                                     if (sseStreamer) {
                                         // Get the token type from the message if available
                                         const lastMessage = output[agentName]?.messages?.[output[agentName].messages.length - 1]
-                                        const tokenType = lastMessage?.additional_kwargs?.type || TokenEventType.AGENT_REASONING
+                                        
+                                        // Check if this agent is connected to an END node
+                                        const isConnectedToEnd = edges.some(edge => 
+                                            edge.source === nodeId && 
+                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
+                                        )
+                                        
+                                        // Set token type based on whether this is the final node
+                                        const tokenType = isConnectedToEnd ? 
+                                            TokenEventType.FINAL_RESPONSE : 
+                                            (lastMessage?.additional_kwargs?.type || TokenEventType.AGENT_REASONING)
 
                                         // Stream agent reasoning start
                                         sseStreamer.streamAgentReasoningStartEvent(chatId)
