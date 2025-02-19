@@ -175,33 +175,36 @@ export const buildAgentGraph = async ({
 
                                 const state = omit(output[agentName], ['messages'])
 
-                                if (usedTools && usedTools.length) {
-                                    const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
-                                    if (cleanedTools.length) {
-                                        totalUsedTools.push(...cleanedTools)
-                                        if (shouldStreamResponse && sseStreamer) {
-                                            sseStreamer.streamUsedToolsEvent(chatId, cleanedTools)
-                                        }
+                                // Just collect tools, don't stream them yet
+                                const outputTools = output[agentName]?.output?.usedTools || []
+                                const messageTools = usedTools?.filter((tool: IUsedTool) => tool) || []
+                                const allTools = [...outputTools, ...messageTools]
+
+                                if (allTools.length) {
+                                    totalUsedTools.push(...allTools)
+                                }
+
+                                // Add tools to the last message's additional_kwargs
+                                if (lastMessageRaw) {
+                                    lastMessageRaw.additional_kwargs = {
+                                        ...lastMessageRaw.additional_kwargs,
+                                        usedTools: allTools
                                     }
                                 }
 
+                                // Just collect documents, don't stream them yet
                                 if (sourceDocuments && sourceDocuments.length) {
                                     const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
                                     if (cleanedDocs.length) {
                                         totalSourceDocuments.push(...cleanedDocs)
-                                        if (shouldStreamResponse && sseStreamer) {
-                                            sseStreamer.streamSourceDocumentsEvent(chatId, cleanedDocs)
-                                        }
                                     }
                                 }
 
+                                // Just collect artifacts, don't stream them yet
                                 if (artifacts && artifacts.length) {
                                     const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
                                     if (cleanedArtifacts.length) {
                                         totalArtifacts.push(...cleanedArtifacts)
-                                        if (shouldStreamResponse && sseStreamer) {
-                                            sseStreamer.streamArtifactsEvent(chatId, cleanedArtifacts)
-                                        }
                                     }
                                 }
 
@@ -231,7 +234,7 @@ export const buildAgentGraph = async ({
                                     sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
                                 }
 
-                                // Send loading next agent indicator
+                                // Send loading next agent indicator - are we actually sending an event to show that we are loading the next agent?
                                 if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
                                     if (shouldStreamResponse && sseStreamer) {
                                         sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
@@ -253,8 +256,23 @@ export const buildAgentGraph = async ({
                                 finalResult = endMessage?.content || output.__end__.instructions || ''
                             }
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
+
+                            // Capture tools from the final output
+                            if (output.__end__.usedTools) {
+                                const finalTools = output.__end__.usedTools.filter((tool: IUsedTool) => tool)
+                                if (finalTools.length) {
+                                    totalUsedTools.push(...finalTools)
+                                }
+                            }
+
                             if (shouldStreamResponse && sseStreamer) {
+                                // Send final token
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
+
+                                // Stream consolidated collections in order
+                                sseStreamer.streamUsedToolsEvent(chatId, uniq(totalUsedTools))
+                                sseStreamer.streamSourceDocumentsEvent(chatId, uniq(totalSourceDocuments))
+                                sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))
                             }
                         }
                     }
@@ -275,9 +293,9 @@ export const buildAgentGraph = async ({
                     return {
                         finalResult,
                         finalAction,
-                        sourceDocuments: totalSourceDocuments,
-                        artifacts: totalArtifacts,
-                        usedTools: totalUsedTools,
+                        sourceDocuments: uniq(totalSourceDocuments),
+                        artifacts: uniq(totalArtifacts),
+                        usedTools: uniq(totalUsedTools),
                         agentReasoning
                     }
                 }
@@ -331,60 +349,37 @@ export const buildAgentGraph = async ({
 
                                 const state = omit(output[agentName], ['messages'])
 
-                                if (usedTools && usedTools.length) {
-                                    const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
-                                    if (cleanedTools.length) {
-                                        totalUsedTools.push(...cleanedTools)
-                                        if (shouldStreamResponse && sseStreamer) {
-                                            sseStreamer.streamUsedToolsEvent(chatId, cleanedTools)
-                                        }
+                                // Just collect tools, don't stream them yet
+                                const outputTools = output[agentName]?.output?.usedTools || []
+                                const messageTools = usedTools?.filter((tool: IUsedTool) => tool) || []
+                                const allTools = [...outputTools, ...messageTools]
+
+                                if (allTools.length) {
+                                    totalUsedTools.push(...allTools)
+                                }
+
+                                // Add tools to the last message's additional_kwargs
+                                if (lastMessageRaw) {
+                                    lastMessageRaw.additional_kwargs = {
+                                        ...lastMessageRaw.additional_kwargs,
+                                        usedTools: allTools
                                     }
                                 }
 
+                                // Just collect documents, don't stream them yet
                                 if (sourceDocuments && sourceDocuments.length) {
                                     const cleanedDocs = sourceDocuments.filter((documents: IDocument) => documents)
                                     if (cleanedDocs.length) {
                                         totalSourceDocuments.push(...cleanedDocs)
-                                        if (shouldStreamResponse && sseStreamer) {
-                                            sseStreamer.streamSourceDocumentsEvent(chatId, cleanedDocs)
-                                        }
                                     }
                                 }
 
+                                // Just collect artifacts, don't stream them yet
                                 if (artifacts && artifacts.length) {
                                     const cleanedArtifacts = artifacts.filter((artifact: ICommonObject) => artifact)
                                     if (cleanedArtifacts.length) {
                                         totalArtifacts.push(...cleanedArtifacts)
-                                        if (shouldStreamResponse && sseStreamer) {
-                                            sseStreamer.streamArtifactsEvent(chatId, cleanedArtifacts)
-                                        }
                                     }
-                                }
-
-                                /*
-                                 * Check if the next node is a condition node, if yes, then add the agent reasoning of the condition node
-                                 */
-                                if (isSequential) {
-                                    const inputEdges = edges.filter(
-                                        (edg) => edg.target === nodeId && edg.targetHandle.includes(`${nodeId}-input-sequentialNode`)
-                                    )
-
-                                    inputEdges.forEach((edge) => {
-                                        const parentNode = initializedNodes.find((nd) => nd.id === edge.source)
-                                        if (parentNode) {
-                                            if (parentNode.data.name.includes('seqCondition')) {
-                                                const newMessages = messages.slice(0, -1)
-                                                newMessages.push(mapNameToLabel[agentName].label)
-                                                const reasoning = {
-                                                    agentName: parentNode.data.instance?.label || parentNode.data.type,
-                                                    messages: newMessages,
-                                                    nodeName: parentNode.data.name,
-                                                    nodeId: parentNode.data.id
-                                                }
-                                                agentReasoning.push(reasoning)
-                                            }
-                                        }
-                                    })
                                 }
 
                                 const reasoning = {
@@ -427,8 +422,23 @@ export const buildAgentGraph = async ({
                                 finalResult = endMessage?.content || output.__end__.instructions || ''
                             }
                             if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
+
+                            // Capture tools from the final output
+                            if (output.__end__.usedTools) {
+                                const finalTools = output.__end__.usedTools.filter((tool: IUsedTool) => tool)
+                                if (finalTools.length) {
+                                    totalUsedTools.push(...finalTools)
+                                }
+                            }
+
                             if (shouldStreamResponse && sseStreamer) {
+                                // Send final token
                                 sseStreamer.streamTokenEvent(chatId, finalResult)
+
+                                // Stream consolidated collections in order
+                                sseStreamer.streamUsedToolsEvent(chatId, uniq(totalUsedTools))
+                                sseStreamer.streamSourceDocumentsEvent(chatId, uniq(totalSourceDocuments))
+                                sseStreamer.streamArtifactsEvent(chatId, uniq(totalArtifacts))
                             }
                         }
                     }
@@ -449,9 +459,9 @@ export const buildAgentGraph = async ({
                     return {
                         finalResult,
                         finalAction,
-                        sourceDocuments: totalSourceDocuments,
-                        artifacts: totalArtifacts,
-                        usedTools: totalUsedTools,
+                        sourceDocuments: uniq(totalSourceDocuments),
+                        artifacts: uniq(totalArtifacts),
+                        usedTools: uniq(totalUsedTools),
                         agentReasoning
                     }
                 }
