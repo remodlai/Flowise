@@ -516,6 +516,15 @@ class Agent_SeqAgents implements INode {
         const toolNode = new ToolNode(tools, nodeData, input, options, toolName, [], { sequentialNodeName: toolName })
 
         const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
+            // Determine if this is a final response by checking if next node is END
+            const nextNodeIsEnd = sequentialNodes.some(node => 
+                node.type === 'end' && 
+                node.predecessorAgents?.some(pred => pred.name === agentName)
+            )
+            const initialTokenType = nextNodeIsEnd ? TokenEventType.FINAL_RESPONSE : TokenEventType.AGENT_REASONING
+
+            let currentTokenType = initialTokenType
+
             return await agentNode(
                 {
                     state,
@@ -527,7 +536,9 @@ class Agent_SeqAgents implements INode {
                     input,
                     options,
                     interrupt,
-                    multiModalMessageContent
+                    multiModalMessageContent,
+                    initialTokenType,
+                    currentTokenType
                 },
                 config
             )
@@ -750,7 +761,9 @@ async function agentNode(
         nodeData,
         input,
         options,
-        multiModalMessageContent
+        multiModalMessageContent,
+        initialTokenType = TokenEventType.AGENT_REASONING,
+        currentTokenType
     }: {
         state: ISeqAgentsState
         llm: BaseChatModel
@@ -762,6 +775,8 @@ async function agentNode(
         input: string
         options: ICommonObject
         multiModalMessageContent?: MessageContentImageUrl[]
+        initialTokenType?: TokenEventType
+        currentTokenType?: TokenEventType
     },
     config: RunnableConfig
 ) {
@@ -783,8 +798,8 @@ async function agentNode(
         let result: ICommonObject
         if (shouldStream && sseStreamer) {
             let content = ''
-            let currentTokenType = TokenEventType.AGENT_REASONING
             let isStreamingStarted = false
+            currentTokenType = currentTokenType || initialTokenType
 
             // Create stream config
             const streamConfig = {
@@ -821,7 +836,7 @@ async function agentNode(
                     })
                 },
                 handleToolEnd(output: string) {
-                    currentTokenType = TokenEventType.AGENT_REASONING
+                    currentTokenType = initialTokenType
                     sseStreamer.streamToolEvent(chatId, { 
                         output, 
                         status: 'end',
@@ -839,7 +854,10 @@ async function agentNode(
             }
 
             // Stream the agent's execution
-            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
+            result = await agent.invoke({ 
+                ...state,
+                signal: abortControllerSignal.signal 
+            }, streamConfig)
 
             // After execution, determine if this was a final response
             if (result.next === 'END' || result.next === 'FINISH') {
@@ -860,7 +878,7 @@ async function agentNode(
                 }
             })
 
-            // Update state with final AI message
+            // Update state with both user message and final AI message
             state.messages = {
                 value: state.messages.value,
                 default: () => [...state.messages.default(), finalMessage]
@@ -872,7 +890,10 @@ async function agentNode(
             }
         } else {
             // Non-streaming case
-            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+            result = await agent.invoke({ 
+                ...state,
+                signal: abortControllerSignal.signal 
+            }, config)
 
             const finalMessage = new AIMessage({
                 content: result.content || result.output || '',
@@ -887,7 +908,7 @@ async function agentNode(
                 }
             })
 
-            // Update state with final AI message
+            // Update state with both user message and final AI message
             state.messages = {
                 value: state.messages.value,
                 default: () => [...state.messages.default(), finalMessage]

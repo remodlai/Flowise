@@ -27,6 +27,12 @@ export enum ChatType {
     EXTERNAL = 'EXTERNAL'
 }
 
+export enum TokenEventType {
+    AGENT_REASONING = 'agentReasoning',
+    FINAL_RESPONSE = 'finalResponse',
+    TOOL_RESPONSE = 'toolResponse'
+}
+
 export enum ChatMessageRatingType {
     THUMBS_UP = 'THUMBS_UP',
     THUMBS_DOWN = 'THUMBS_DOWN'

@@ -11,7 +11,8 @@ import {
     IUsedTool,
     IDocument,
     IServerSideEventStreamer,   
-    INodeData
+    INodeData,
+    TokenEventType
 } from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
@@ -278,6 +279,10 @@ export const buildAgentGraph = async ({
                                     }
 
                                     if (sseStreamer) {
+                                        // Get the token type from the message if available
+                                        const lastMessage = output[agentName]?.messages?.[output[agentName].messages.length - 1]
+                                        const tokenType = lastMessage?.additional_kwargs?.type || TokenEventType.AGENT_REASONING
+
                                         // Stream agent reasoning start
                                         sseStreamer.streamAgentReasoningStartEvent(chatId)
                                         
@@ -291,7 +296,7 @@ export const buildAgentGraph = async ({
                                         if (messages.length > 0) {
                                             sseStreamer.streamTokenStartEvent(chatId)
                                             for (const message of messages) {
-                                                sseStreamer.streamTokenEvent(chatId, message)
+                                                sseStreamer.streamTokenEvent(chatId, message, tokenType)
                                             }
                                             sseStreamer.streamTokenEndEvent(chatId)
                                         }
@@ -524,6 +529,10 @@ export const buildAgentGraph = async ({
                                     }
 
                                     if (sseStreamer) {
+                                        // Get the token type from the message if available
+                                        const lastMessage = output[agentName]?.messages?.[output[agentName].messages.length - 1]
+                                        const tokenType = lastMessage?.additional_kwargs?.type || TokenEventType.AGENT_REASONING
+
                                         // Stream agent reasoning start
                                         sseStreamer.streamAgentReasoningStartEvent(chatId)
                                         
@@ -537,7 +546,7 @@ export const buildAgentGraph = async ({
                                         if (messages.length > 0) {
                                             sseStreamer.streamTokenStartEvent(chatId)
                                             for (const message of messages) {
-                                                sseStreamer.streamTokenEvent(chatId, message)
+                                                sseStreamer.streamTokenEvent(chatId, message, tokenType)
                                             }
                                             sseStreamer.streamTokenEndEvent(chatId)
                                         }
