@@ -425,7 +425,7 @@ export interface IServerSideEventStreamer {
     streamAbortEvent(chatId: string): void
     streamEndEvent(chatId: string): void
     // New event types for structured streaming
-    streamAgentReasoningStartEvent(chatId: string): void
+    streamAgentReasoningStartEvent(chatId: string, data?: string): void
     streamAgentReasoningEndEvent(chatId: string): void
     streamTokenStartEvent(chatId: string): void
     streamTokenEndEvent(chatId: string): void

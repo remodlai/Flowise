@@ -219,12 +219,12 @@ export class SSEStreamer implements IServerSideEventStreamer {
         }
     }
 
-    streamAgentReasoningStartEvent(chatId: string): void {
+    streamAgentReasoningStartEvent(chatId: string, data?: string): void {
         const client = this.clients[chatId]
         if (client) {
             const clientResponse = {
                 event: 'agentReasoningStart',
-                data: null
+                data: data || null
             }
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
