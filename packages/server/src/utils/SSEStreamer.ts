@@ -1,5 +1,9 @@
 import { Response } from 'express'
 import { IServerSideEventStreamer, IAgentReasoning } from 'flowise-components'
+import logger from './logger'
+
+// Test logger is working
+logger.info('SSEStreamer logger test - ' + new Date().toISOString())
 
 // define a new type that has a client type (INTERNAL or EXTERNAL) and Response type
 type Client = {
@@ -15,10 +19,12 @@ export class SSEStreamer implements IServerSideEventStreamer {
 
     addExternalClient(chatId: string, res: Response) {
         this.clients[chatId] = { clientType: 'EXTERNAL', response: res, started: false }
+        logger.info(`[SSEStreamer] Added external client for chatId: ${chatId}`)
     }
 
     addClient(chatId: string, res: Response) {
         this.clients[chatId] = { clientType: 'INTERNAL', response: res, started: false }
+        logger.info(`[SSEStreamer] Added internal client for chatId: ${chatId}`)
     }
 
     removeClient(chatId: string) {
@@ -47,14 +53,25 @@ export class SSEStreamer implements IServerSideEventStreamer {
 
     streamStartEvent(chatId: string, data: string | IAgentReasoning[]) {
         const client = this.clients[chatId]
+        logger.info(`[SSEStreamer] streamStartEvent called with chatId: ${chatId}`)
+        logger.info(`[SSEStreamer] Client exists: ${client ? 'yes' : 'no'}`)
+        logger.info(`[SSEStreamer] Client started: ${client?.started}`)
+        logger.info(`[SSEStreamer] Raw incoming data:`, data)
+        logger.info(`[SSEStreamer] Data type: ${typeof data}`)
+        logger.info(`[SSEStreamer] Is array: ${Array.isArray(data)}`)
+        
         // prevent multiple start events being streamed to the client
         if (client && !client.started) {
             const clientResponse = {
                 event: 'start',
-                data: data
+                data: `Starting stream for ${chatId} with data: ${JSON.stringify(data)}`
             }
-            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+            const sseMessage = 'message:\ndata:' + JSON.stringify(clientResponse) + '\n\n'
+            logger.info(`[SSEStreamer] Final SSE message being sent:`, sseMessage)
+            client.response.write(sseMessage)
             client.started = true
+        } else {
+            logger.info('[SSEStreamer] Not sending start event - client condition not met')
         }
     }
 

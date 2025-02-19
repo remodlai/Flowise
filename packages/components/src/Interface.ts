@@ -408,7 +408,7 @@ export interface IStateWithMessages extends ICommonObject {
 }
 
 export interface IServerSideEventStreamer {
-    streamStartEvent(chatId: string, data: string | IAgentReasoning[]): void
+    streamStartEvent(chatId: string, data: string | IAgentReasoning[] | ICommonObject): void
     streamTokenEvent(chatId: string, token: string): void
     streamAgentReasoningEvent(chatId: string, agentReasoning: IAgentReasoning[]): void
     streamNextAgentEvent(chatId: string, nextAgent: string): void

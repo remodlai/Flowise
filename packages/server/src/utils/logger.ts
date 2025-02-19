@@ -61,6 +61,14 @@ if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir)
 }
 
+// Debug log configuration
+console.log('Logger Configuration:', {
+    logDir,
+    storageType: process.env.STORAGE_TYPE || 'local',
+    level: config.logging.server.level,
+    filename: config.logging.server.filename
+})
+
 const logger = createLogger({
     format: combine(
         timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -75,16 +83,18 @@ const logger = createLogger({
         package: 'server'
     },
     transports: [
-        new transports.Console(),
+        new transports.Console({
+            level: 'debug' // Set console to debug to see all logs
+        }),
         ...(!process.env.STORAGE_TYPE || process.env.STORAGE_TYPE === 'local'
             ? [
                   new transports.File({
                       filename: path.join(logDir, config.logging.server.filename ?? 'server.log'),
-                      level: config.logging.server.level ?? 'info'
+                      level: 'debug', // Set file transport to debug
                   }),
                   new transports.File({
                       filename: path.join(logDir, config.logging.server.errorFilename ?? 'server-error.log'),
-                      level: 'error' // Log only errors to this file
+                      level: 'error'
                   })
               ]
             : []),
