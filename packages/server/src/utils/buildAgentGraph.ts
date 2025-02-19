@@ -279,45 +279,6 @@ export const buildAgentGraph = async ({
                                     }
 
                                     if (sseStreamer) {
-                                        // Get the token type from the message if available
-                                        const lastMessage = output[agentName]?.messages?.[output[agentName].messages.length - 1]
-                                        
-                                        // Check if this agent is connected to an END node
-                                        const isConnectedToEnd = edges.some(edge => 
-                                            edge.source === nodeId && 
-                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
-                                        )
-                                        
-                                        // Set token type based on whether this is the final node
-                                        const tokenType = isConnectedToEnd ? 
-                                            TokenEventType.FINAL_RESPONSE : 
-                                            (lastMessage?.additional_kwargs?.type || TokenEventType.AGENT_REASONING)
-
-                                        // Stream agent reasoning start
-                                        sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
-                                        
-                                        // Stream the current agent's reasoning
-                                        sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
-
-                                        // Stream agent reasoning end
-                                        sseStreamer.streamAgentReasoningEndEvent(chatId)
-
-                                        // Stream token start if we have a message
-                                        if (messages.length > 0) {
-                                            sseStreamer.streamTokenStartEvent(chatId)
-                                            for (const message of messages) {
-                                                sseStreamer.streamTokenEvent(chatId, message, tokenType)
-                                            }
-                                            sseStreamer.streamTokenEndEvent(chatId)
-                                        }
-
-                                        // Send next agent event before any tools/docs/artifacts
-                                        if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                            const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
-                                            logger.info(`[buildAgentGraph] Streaming next agent event: ${nextLabel}`)
-                                            sseStreamer.streamNextAgentEvent(chatId, nextLabel)
-                                        }
-
                                         // Stream any tools used
                                         if (usedTools && usedTools.length) {
                                             const cleanedTools = usedTools.filter((tool: IUsedTool | null) => tool !== null)
@@ -340,6 +301,42 @@ export const buildAgentGraph = async ({
                                             if (cleanedArtifacts.length) {
                                                 sseStreamer.streamArtifactsEvent(chatId, flatten(cleanedArtifacts))
                                             }
+                                        }
+
+                                        // Stream the current agent's reasoning
+                                        sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
+
+                                        // Stream agent reasoning end
+                                        sseStreamer.streamAgentReasoningEndEvent(chatId)
+
+                                        // Check if this agent is connected to an END node
+                                        const isConnectedToEnd = edges.some(edge => 
+                                            edge.source === nodeId && 
+                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
+                                        )
+
+                                        // Send agentReasoningStart with proper flag before token streaming
+                                        sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
+
+                                        // Stream token start if we have a message
+                                        if (messages.length > 0) {
+                                            sseStreamer.streamTokenStartEvent(chatId)
+                                            // Set token type based on whether this is the final node
+                                            const tokenType = isConnectedToEnd ? 
+                                                TokenEventType.FINAL_RESPONSE : 
+                                                TokenEventType.AGENT_REASONING
+                                            
+                                            for (const message of messages) {
+                                                sseStreamer.streamTokenEvent(chatId, message, tokenType)
+                                            }
+                                            sseStreamer.streamTokenEndEvent(chatId)
+                                        }
+
+                                        // Send next agent event before any tools/docs/artifacts
+                                        if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
+                                            const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
+                                            logger.info(`[buildAgentGraph] Streaming next agent event: ${nextLabel}`)
+                                            sseStreamer.streamNextAgentEvent(chatId, nextLabel)
                                         }
                                     }
                                 }
@@ -567,33 +564,6 @@ export const buildAgentGraph = async ({
                                     }
 
                                     if (sseStreamer) {
-                                        // Stream the current agent's reasoning
-                                        sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
-
-                                        // Stream agent reasoning end
-                                        sseStreamer.streamAgentReasoningEndEvent(chatId)
-
-                                        // Stream token start if we have a message
-                                        if (messages.length > 0) {
-                                            sseStreamer.streamTokenStartEvent(chatId)
-                                            // Set token type based on whether this is the final node
-                                            const tokenType = isConnectedToEnd ? 
-                                                TokenEventType.FINAL_RESPONSE : 
-                                                TokenEventType.AGENT_REASONING
-                                            
-                                            for (const message of messages) {
-                                                sseStreamer.streamTokenEvent(chatId, message, tokenType)
-                                            }
-                                            sseStreamer.streamTokenEndEvent(chatId)
-                                        }
-
-                                        // Send next agent event before any tools/docs/artifacts
-                                        if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                            const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
-                                            logger.info(`[buildAgentGraph] Streaming next agent event: ${nextLabel}`)
-                                            sseStreamer.streamNextAgentEvent(chatId, nextLabel)
-                                        }
-
                                         // Stream any tools used
                                         if (usedTools && usedTools.length) {
                                             const cleanedTools = usedTools.filter((tool: IUsedTool | null) => tool !== null)
@@ -616,6 +586,42 @@ export const buildAgentGraph = async ({
                                             if (cleanedArtifacts.length) {
                                                 sseStreamer.streamArtifactsEvent(chatId, flatten(cleanedArtifacts))
                                             }
+                                        }
+
+                                        // Stream the current agent's reasoning
+                                        sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
+
+                                        // Stream agent reasoning end
+                                        sseStreamer.streamAgentReasoningEndEvent(chatId)
+
+                                        // Check if this agent is connected to an END node
+                                        const isConnectedToEnd = edges.some(edge => 
+                                            edge.source === nodeId && 
+                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
+                                        )
+
+                                        // Send agentReasoningStart with proper flag before token streaming
+                                        sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
+
+                                        // Stream token start if we have a message
+                                        if (messages.length > 0) {
+                                            sseStreamer.streamTokenStartEvent(chatId)
+                                            // Set token type based on whether this is the final node
+                                            const tokenType = isConnectedToEnd ? 
+                                                TokenEventType.FINAL_RESPONSE : 
+                                                TokenEventType.AGENT_REASONING
+                                            
+                                            for (const message of messages) {
+                                                sseStreamer.streamTokenEvent(chatId, message, tokenType)
+                                            }
+                                            sseStreamer.streamTokenEndEvent(chatId)
+                                        }
+
+                                        // Send next agent event before any tools/docs/artifacts
+                                        if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
+                                            const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
+                                            logger.info(`[buildAgentGraph] Streaming next agent event: ${nextLabel}`)
+                                            sseStreamer.streamNextAgentEvent(chatId, nextLabel)
                                         }
                                     }
                                 }
