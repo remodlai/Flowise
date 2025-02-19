@@ -291,14 +291,31 @@ export const buildAgentGraph = async ({
                                     }
 
                                     sseStreamer.streamAgentReasoningEndEvent(chatId)
-                                    const allToolCalls = agentReasoning.flatMap(reasoning => reasoning.usedTools);
-                                    const usedToolsEvent = allToolCalls.length ? uniq(flatten(allToolCalls).filter(tool => tool !== undefined)) : [];
-                                    logger.info(`[buildAgentGraph] Streaming used tools event: ${JSON.stringify(usedToolsEvent)}`);
-                                    sseStreamer.streamUsedToolsEvent(chatId, usedToolsEvent);
-                                    // Send condition event if next is condition
+
+                                    // Stream tools if any were used
+                                    if (allTools.length) {
+                                        sseStreamer.streamUsedToolsEvent(chatId, uniq(allTools))
+                                    }
+
+                                    // Stream source documents if any were used
+                                    if (allSourceDocuments.length) {
+                                        sseStreamer.streamSourceDocumentsEvent(chatId, uniq(allSourceDocuments))
+                                    }
+
+                                    // Stream artifacts if any were generated
+                                    if (allArtifacts.length) {
+                                        sseStreamer.streamArtifactsEvent(chatId, uniq(allArtifacts))
+                                    }
+
+                                    // Handle condition routing
                                     if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
                                         const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
-                                        sseStreamer.streamConditionEvent(chatId, nextLabel)
+                                        // Check if this is a condition node
+                                        const nextNode = initializedNodes.find((node) => node.data.name === 'seqCondition' || node.data.name === 'seqConditionAgent')
+                                        if (nextNode) {
+                                            // Stream condition event with the next route
+                                            sseStreamer.streamConditionEvent(chatId, nextLabel)
+                                        }
                                     }
                                 }
                             }
@@ -1084,7 +1101,7 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                         if (nextNodeId && nextNode) {
                             nextNodeSeqAgentName = nextNode.data.instance.name
 
-                            // If next node is Condition Node, process the interrupted route mapping, see more details from comments of processInterruptedRouteMapping
+                            // If next node is Condition Node, process the interrupted route mapping
                             if (nextNode.data.name.includes('seqCondition')) {
                                 const conditionNode = nextNodeId
                                 processInterruptedRouteMapping(conditionNode)
@@ -1174,11 +1191,26 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         for (const startConditionEdge of startConditionEdges) {
             const startConditionNode = reactFlowNodes.find((node) => node.id === startConditionEdge.source)
             if (!startConditionNode) continue
+
+            // Ensure all paths are handled
+            const conditionData = conditionalEdges[conditionNodeId]
+            if (!conditionData.nodes['end'] && Object.keys(conditionData.nodes).length > 0) {
+                const endEdge = reactFlowEdges.find(
+                    (edge) => edge.source === conditionNodeId && edge.sourceHandle?.includes('end')
+                )
+                if (endEdge) {
+                    const endNode = reactFlowNodes.find((node) => node.id === endEdge.target)
+                    if (endNode) {
+                        conditionData.nodes['end'] = endNode.data.instance.name
+                    }
+                }
+            }
+
             seqGraph.addConditionalEdges(
                 startConditionNode.data.instance.name,
-                conditionalEdges[conditionNodeId].func,
+                conditionData.func,
                 //@ts-ignore
-                conditionalEdges[conditionNodeId].nodes
+                conditionData.nodes
             )
         }
     }
