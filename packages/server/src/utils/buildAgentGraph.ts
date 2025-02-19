@@ -589,7 +589,22 @@ export const buildAgentGraph = async ({
                         sseStreamer.streamEndEvent(chatId)
                     }
 
+                    // Get the final text from the last agent's message if not already set
+                    if (!finalResult && agentReasoning.length > 0) {
+                        const lastAgent = agentReasoning[agentReasoning.length - 1]
+                        if (lastAgent.messages && lastAgent.messages.length > 0) {
+                            finalResult = lastAgent.messages[lastAgent.messages.length - 1]
+                        }
+                    }
+
+                    // Only use fallbacks if we still don't have a final result
+                    if (!finalResult) {
+                        if (lastWorkerResult) finalResult = lastWorkerResult
+                        else if (finalSummarization) finalResult = finalSummarization
+                    }
+
                     return {
+                        text: finalResult,
                         finalResult,
                         finalAction,
                         sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
