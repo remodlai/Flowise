@@ -821,124 +821,43 @@ async function agentNode(
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
 
-        const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
-        const sseStreamer = options.sseStreamer
-        const chatId = options.chatId
+        // Execute agent with provided config - streaming handled by buildAgentGraph.ts
+        const result = await agent.invoke({ 
+            ...state,
+            signal: abortControllerSignal.signal 
+        }, config)
 
-        // Get isConnectedToEnd from config
-        const isConnectedToEnd = config?.configurable?.isConnectedToEnd
-
-        let result: ICommonObject
-        if (shouldStream && sseStreamer) {
-            let content = ''
-            let isStreamingStarted = false
-
-            // Add streaming callbacks
-            const streamingHandler = BaseCallbackHandler.fromMethods({
-                handleLLMNewToken(token: string) {
-                    if (!token.trim()) return;
-                    
-                    if (!isStreamingStarted) {
-                        isStreamingStarted = true
-                        sseStreamer.streamStartEvent(chatId, '')
-                        sseStreamer.streamTokenStartEvent(chatId)
-                    }
-                    content += token
-                    
-                    // Set token type based on isConnectedToEnd
-                    const tokenType = isConnectedToEnd 
-                        ? TokenEventType.FINAL_RESPONSE 
-                        : TokenEventType.AGENT_REASONING
-                    sseStreamer.streamTokenEvent(chatId, token, tokenType)
-                },
-                handleLLMEnd() {
-                    if (isStreamingStarted) {
-                        sseStreamer.streamTokenEndEvent(chatId)
-                    }
-                }
-            })
-
-            if (Array.isArray(config.callbacks)) {
-                config.callbacks.push(streamingHandler)
-            } else {
-                config.callbacks = [streamingHandler]
-            }
-
-            // Stream the agent's execution
-            result = await agent.invoke({ 
-                ...state,
-                signal: abortControllerSignal.signal 
-            }, config)
-
-            // Create final message with proper state handling
-            const finalMessage = new AIMessage({
-                content: result.content || result.output || '',
-                name,
-                additional_kwargs: {
-                    nodeId: nodeData.id,
-                    usedTools: result.usedTools || [],
-                    sourceDocuments: result.sourceDocuments || [],
-                    artifacts: result.artifacts || [],
-                    state: {
-                        ...state,
-                        ...(result.state || {}),
-                        messages: state.messages,
-                        
-                    }
-                }
-            })
-
-            // Update state with both user message and final AI message
-            state.messages = {
-                value: state.messages.value,
-                default: () => [...state.messages.default(), finalMessage]
-            }
-
-            return {
-                messages: [finalMessage],
+        // Create final message with proper state handling
+        const finalMessage = new AIMessage({
+            content: result.content || result.output || '',
+            name,
+            additional_kwargs: {
+                nodeId: nodeData.id,
+                usedTools: result.usedTools || [],
+                sourceDocuments: result.sourceDocuments || [],
+                artifacts: result.artifacts || [],
                 state: {
                     ...state,
                     ...(result.state || {}),
-                    messages: state.messages,
-                   
-                },
-                next: result.next
-            }
-        } else {
-            // Non-streaming case
-            result = await agent.invoke({ 
-                ...state,
-                signal: abortControllerSignal.signal 
-            }, config)
-
-            // Create final message with proper state handling
-            const finalMessage = new AIMessage({
-                content: result.content || result.output || '',
-                name,
-                additional_kwargs: {
-                    nodeId: nodeData.id,
-                    usedTools: result.usedTools || [],
-                    sourceDocuments: result.sourceDocuments || [],
-                    artifacts: result.artifacts || [],
-                    state: {
-                        ...state,
-                        ...(result.state || {}),
-                        messages: state.messages,
-                       
-                    }
+                    messages: state.messages
                 }
-            })
-
-            return {
-                messages: [finalMessage],
-                state: {
-                    ...state,
-                    ...(result.state || {}),
-                    messages: state.messages,
-                    
-                },
-                next: result.next
             }
+        })
+
+        // Update state with both user message and final AI message
+        state.messages = {
+            value: state.messages.value,
+            default: () => [...state.messages.default(), finalMessage]
+        }
+
+        return {
+            messages: [finalMessage],
+            state: {
+                ...state,
+                ...(result.state || {}),
+                messages: state.messages
+            },
+            next: result.next
         }
     } catch (error) {
         throw new Error(error)

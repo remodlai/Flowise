@@ -874,12 +874,24 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
             const loggerHandler = new ConsoleCallbackHandler(logger)
             const additionalCbs = await additionalCallbacks(flowNodeData as any, options)
             const bindModel = {} // Initialize empty bindModel object
+            const shouldStreamResponse = options.shouldStreamResponse
+            const sseStreamer = options.sseStreamer
+            const chatId = options.chatId
+
             const config: RunnableConfig & { 
-                configurable: { thread_id: string | undefined }; 
+                configurable: { 
+                    thread_id: string | undefined;
+                    nodesConnectedToEnd?: string[];
+                    shouldStreamResponse?: boolean;
+                }; 
                 bindModel: Record<string, any>;
                 callbacks: (BaseCallbackHandler | ConsoleCallbackHandler)[];
             } = { 
-                configurable: { thread_id: threadId }, 
+                configurable: { 
+                    thread_id: threadId,
+                    nodesConnectedToEnd: Array.from(workerNodeIds),
+                    shouldStreamResponse
+                }, 
                 bindModel,
                 callbacks: [loggerHandler, ...additionalCbs]
             }
@@ -1336,73 +1348,86 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
         const loggerHandler = new ConsoleCallbackHandler(logger)
         const additionalCbs = await additionalCallbacks(flowNodeData as any, options)
+        const shouldStreamResponse = options.shouldStreamResponse
+        const sseStreamer = options.sseStreamer
+        const chatId = options.chatId
+
         const config: RunnableConfig & { 
             configurable: { 
                 thread_id: string | undefined;
                 nodesConnectedToEnd?: string[];
+                shouldStreamResponse?: boolean;
             }; 
             bindModel: Record<string, any>;
             callbacks: (BaseCallbackHandler | ConsoleCallbackHandler)[];
         } = { 
             configurable: { 
                 thread_id: threadId,
-                nodesConnectedToEnd: Array.from(nodesConnectedToEnd)
+                nodesConnectedToEnd: Array.from(nodesConnectedToEnd),
+                shouldStreamResponse
             }, 
             bindModel,
             callbacks: [loggerHandler, ...additionalCbs]
         }
 
-        const shouldStreamResponse = options.shouldStreamResponse
-        const sseStreamer = options.sseStreamer
-        const chatId = options.chatId
-
         if (shouldStreamResponse && sseStreamer) {
-            let isStreamingStarted = false
-            
-            // Add streaming callbacks for token-by-token streaming
-            const streamingHandler = BaseCallbackHandler.fromMethods({
-                handleLLMNewToken(token: string) {
-                    if (!token.trim()) return;
+            // Create streaming handler with its own state
+            const createStreamingHandler = () => {
+                let isStreamingStarted = false;
+                return BaseCallbackHandler.fromMethods({
+                    handleLLMNewToken(token: string) {
+                        if (!token.trim()) return;
 
-                    if (!isStreamingStarted) {
-                        isStreamingStarted = true
-                        sseStreamer.streamStartEvent(chatId, '')
-                        sseStreamer.streamTokenStartEvent(chatId)
+                        if (!isStreamingStarted) {
+                            isStreamingStarted = true
+                            sseStreamer.streamStartEvent(chatId, '')
+                            sseStreamer.streamTokenStartEvent(chatId)
+                        }
+
+                        // Get current node ID from metadata
+                        const currentNodeId = config?.configurable?.metadata?.nodeId
+
+                        // Set token type based on whether current node connects to end
+                        const tokenType = nodesConnectedToEnd.has(currentNodeId)
+                            ? TokenEventType.FINAL_RESPONSE 
+                            : TokenEventType.AGENT_REASONING
+
+                        sseStreamer.streamTokenEvent(chatId, token, tokenType)
+                    },
+                    handleLLMEnd() {
+                        if (isStreamingStarted) {
+                            sseStreamer.streamTokenEndEvent(chatId)
+                        }
+                    },
+                    handleToolStart(tool: Serialized, input: string) {
+                        sseStreamer.streamToolEvent(chatId, { 
+                            tool: tool.toString(), 
+                            status: 'start', 
+                            input,
+                            type: TokenEventType.TOOL_RESPONSE 
+                        })
+                    },
+                    handleToolEnd(output: string) {
+                        sseStreamer.streamToolEvent(chatId, { 
+                            output, 
+                            status: 'end',
+                            type: TokenEventType.TOOL_RESPONSE 
+                        })
+                    },
+                    handleChainStart() {
+                        // Reset streaming state for new chain
+                        isStreamingStarted = false
+                    },
+                    handleChainEnd() {
+                        // Ensure token stream is properly ended
+                        if (isStreamingStarted) {
+                            sseStreamer.streamTokenEndEvent(chatId)
+                        }
                     }
+                });
+            };
 
-                    // Get current node ID from metadata
-                    const currentNodeId = config?.configurable?.metadata?.nodeId
-
-                    // Set token type based on whether current node connects to end
-                    const tokenType = nodesConnectedToEnd.has(currentNodeId)
-                        ? TokenEventType.FINAL_RESPONSE 
-                        : TokenEventType.AGENT_REASONING
-
-                    sseStreamer.streamTokenEvent(chatId, token, tokenType)
-                },
-                handleLLMEnd() {
-                    if (isStreamingStarted) {
-                        sseStreamer.streamTokenEndEvent(chatId)
-                    }
-                },
-                handleToolStart(tool: Serialized, input: string) {
-                    sseStreamer.streamToolEvent(chatId, { 
-                        tool: tool.toString(), 
-                        status: 'start', 
-                        input,
-                        type: TokenEventType.TOOL_RESPONSE 
-                    })
-                },
-                handleToolEnd(output: string) {
-                    sseStreamer.streamToolEvent(chatId, { 
-                        output, 
-                        status: 'end',
-                        type: TokenEventType.TOOL_RESPONSE 
-                    })
-                }
-            })
-
-            config.callbacks.push(streamingHandler)
+            config.callbacks.push(createStreamingHandler())
         }
 
         const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
