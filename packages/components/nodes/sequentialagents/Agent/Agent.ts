@@ -1,208 +1,51 @@
 import { flatten, uniq } from 'lodash'
 import { DataSource } from 'typeorm'
-import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
-import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
+import { RunnableSequence, RunnablePassthrough } from '@langchain/core/runnables'
+import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
-import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
 import { StringOutputParser } from '@langchain/core/output_parsers'
 import {
     INode,
     INodeData,
     INodeParams,
-    ISeqAgentsState,
-    ICommonObject,
-    MessageContentImageUrl,
     INodeOutputsValue,
     ISeqAgentNode,
     IDatabaseEntity,
-    IUsedTool,
-    IDocument,
-    IStateWithMessages,
-    ConversationHistorySelection,
-    IMessage,
-    TokenEventType
+    ICommonObject
 } from '../../../src/Interface'
-import { ToolCallingAgentOutputParser, AgentExecutor, SOURCE_DOCUMENTS_PREFIX, ARTIFACTS_PREFIX } from '../../../src/agents'
+import { ToolCallingAgentOutputParser, AgentExecutor } from '../../../src/agents'
 import {
-    extractOutputFromArray,
     getInputVariables,
     getVars,
     handleEscapeCharacters,
     prepareSandboxVars,
-    removeInvalidImageMarkdown,
     transformBracesWithColon
 } from '../../../src/utils'
 import {
     customGet,
     getVM,
     processImageMessage,
-    transformObjectPropertyToFunction,
-    filterConversationHistory,
-    restructureMessages,
-    RunnableCallable,
-    MessagesState,
-    checkMessageHistory
+    transformObjectPropertyToFunction
 } from '../commonUtils'
-//@ts-ignore
-import { END, START, StateGraph } from '@langchain/langgraph'
-import { StructuredTool } from '@langchain/core/tools'
-import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
-import { Document } from '@langchain/core/documents'
-import { Serialized } from '@langchain/core/load/serializable'
-import { v4 as uuidv4 } from 'uuid'
-import {concat} from "@langchain/core/utils/stream"
-import { ChatGenerationChunk } from '@langchain/core/outputs'
+import { SystemMessage, HumanMessage } from '@langchain/core/messages'
+import { BaseLanguageModelInput } from '@langchain/core/language_models/base'
+import { BaseChatModelCallOptions } from '@langchain/core/language_models/chat_models'
 
-const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
-const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
-const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
-const howToUseCode = `
-1. Return the key value JSON object. For example: if you have the following State:
-    \`\`\`json
-    {
-        "user": null
-    }
-    \`\`\`
+import {
+    defaultApprovalPrompt,
+    examplePrompt,
+    customOutputFuncDesc,
+    TAB_IDENTIFIER,
+    messageHistoryExample,
+    howToUse,
+    howToUseCode,
+    defaultFunc
+} from './helpers'
 
-    You can update the "user" value by returning the following:
-    \`\`\`js
-    return {
-        "user": "john doe"
-    }
-    \`\`\`
-
-2. If you want to use the agent's output as the value to update state, it is available as \`$flow.output\` with the following structure:
-    \`\`\`json
-    {
-        "content": "Hello! How can I assist you today?",
-        "usedTools": [
-            {
-                "tool": "tool-name",
-                "toolInput": "{foo: var}",
-                "toolOutput": "This is the tool's output"
-            }
-        ],
-        "sourceDocuments": [
-            {
-                "pageContent": "This is the page content",
-                "metadata": "{foo: var}"
-            }
-        ]
-    }
-    \`\`\`
-
-    For example, if the \`toolOutput\` is the value you want to update the state with, you can return the following:
-    \`\`\`js
-    return {
-        "user": $flow.output.usedTools[0].toolOutput
-    }
-    \`\`\`
-
-3. You can also get default flow config, including the current "state":
-    - \`$flow.sessionId\`
-    - \`$flow.chatId\`
-    - \`$flow.chatflowId\`
-    - \`$flow.input\`
-    - \`$flow.state\`
-
-4. You can get custom variables: \`$vars.<variable-name>\`
-
-`
-const howToUse = `
-1. Key and value pair to be updated. For example: if you have the following State:
-    | Key       | Operation     | Default Value     |
-    |-----------|---------------|-------------------|
-    | user      | Replace       |                   |
-
-    You can update the "user" value with the following:
-    | Key       | Value     |
-    |-----------|-----------|
-    | user      | john doe  |
-
-2. If you want to use the Agent's output as the value to update state, it is available as available as \`$flow.output\` with the following structure:
-    \`\`\`json
-    {
-        "content": "Hello! How can I assist you today?",
-        "usedTools": [
-            {
-                "tool": "tool-name",
-                "toolInput": "{foo: var}",
-                "toolOutput": "This is the tool's output"
-            }
-        ],
-        "sourceDocuments": [
-            {
-                "pageContent": "This is the page content",
-                "metadata": "{foo: var}"
-            }
-        ]
-    }
-    \`\`\`
-
-    For example, if the \`toolOutput\` is the value you want to update the state with, you can do the following:
-    | Key       | Value                                     |
-    |-----------|-------------------------------------------|
-    | user      | \`$flow.output.usedTools[0].toolOutput\`  |
-
-3. You can get default flow config, including the current "state":
-    - \`$flow.sessionId\`
-    - \`$flow.chatId\`
-    - \`$flow.chatflowId\`
-    - \`$flow.input\`
-    - \`$flow.state\`
-
-4. You can get custom variables: \`$vars.<variable-name>\`
-
-`
-const defaultFunc = `const result = $flow.output;
-
-/* Suppose we have a custom State schema like this:
-* {
-    aggregate: {
-        value: (x, y) => x.concat(y),
-        default: () => []
-    }
-  }
-*/
-
-return {
-  aggregate: [result.content]
-};`
-
-const messageHistoryExample = `const { AIMessage, HumanMessage, ToolMessage } = require('@langchain/core/messages');
-
-return [
-    new HumanMessage("What is 333382 🦜 1932?"),
-    new AIMessage({
-        content: "",
-        tool_calls: [
-        {
-            id: "12345",
-            name: "calulator",
-            args: {
-                number1: 333382,
-                number2: 1932,
-                operation: "divide",
-            },
-        },
-        ],
-    }),
-    new ToolMessage({
-        tool_call_id: "12345",
-        content: "The answer is 172.558.",
-    }),
-    new AIMessage("The answer is 172.558."),
-]`
-const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
-
-interface IAgentConfig extends RunnableConfig {
-    configurable?: {
-        thread_id?: string;
-        shouldStreamResponse?: boolean;
-    }
-}
+import { ToolNode } from './helpers/tool-node'
+import { agentNode } from './helpers/agent-node'
+import { createStreamingCallbacks } from './helpers/streaming'
 
 class Agent_SeqAgents implements INode {
     label: string
@@ -228,6 +71,7 @@ class Agent_SeqAgents implements INode {
         this.description = 'Agent that can execute tools'
         this.baseClasses = [this.type]
         this.documentation = 'https://docs.flowiseai.com/using-flowise/agentflows/sequential-agents#id-4.-agent-node'
+        this.outputs = []
         this.inputs = [
             {
                 label: 'Agent Name',
@@ -524,23 +368,22 @@ class Agent_SeqAgents implements INode {
             isConnectedToEnd 
         })
 
-        ;(toolNode as any).seekPermissionMessage = async (usedTools: IUsedTool[]) => {
+        ;(toolNode as any).seekPermissionMessage = async (usedTools: any[]) => {
             const prompt = ChatPromptTemplate.fromMessages([['human', approvalPrompt || defaultApprovalPrompt]])
             const chain = prompt.pipe(startLLM)
-            const response = (await chain.invoke({
+            const response = await chain.invoke({
                 input: 'Hello there!',
                 tools: JSON.stringify(usedTools)
-            })) as AIMessageChunk
+            }) as { content: string }
             return response.content
         }
 
-        const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
-         
+        const workerNode = async (state: any, config: any) => {
             return await agentNode(
                 {
                     state,
                     llm,
-                    agent: await createAgent(
+                    agent: await this.createAgent(
                         nodeData,
                         options,
                         agentName,
@@ -561,34 +404,32 @@ class Agent_SeqAgents implements INode {
                         }
                     ),
                     name: agentName,
-                    abortControllerSignal,
                     nodeData,
-                    input,
                     options,
                     interrupt,
-                    multiModalMessageContent
+                    multiModalMessageContent,
+                    isConnectedToEnd
                 },
                 config
             )
         }
 
         const toolInterrupt = async (
-            graph: StateGraph<any>,
+            graph: any,
             nextNodeName?: string,
             runCondition?: any,
             conditionalMapping: ICommonObject = {}
         ) => {
-            const routeMessage = async (state: ISeqAgentsState) => {
+            const routeMessage = async (state: any) => {
                 const messages = state.messages.default()
-                const lastMessage = messages[messages.length - 1] as AIMessage
+                const lastMessage = messages[messages.length - 1]
 
                 if (!lastMessage?.tool_calls?.length) {
-                    // if next node is condition node, run the condition
                     if (runCondition) {
                         const returnNodeName = await runCondition(state)
                         return returnNodeName
                     }
-                    return nextNodeName || END
+                    return nextNodeName || 'END'
                 }
                 return toolName
             }
@@ -596,19 +437,20 @@ class Agent_SeqAgents implements INode {
             graph.addNode(toolName, toolNode)
 
             if (nextNodeName) {
-                // @ts-ignore
                 graph.addConditionalEdges(agentName, routeMessage, {
                     [toolName]: toolName,
-                    [END]: END,
+                    END: 'END',
                     [nextNodeName]: nextNodeName,
                     ...conditionalMapping
                 })
             } else {
-                // @ts-ignore
-                graph.addConditionalEdges(agentName, routeMessage, { [toolName]: toolName, [END]: END, ...conditionalMapping })
+                graph.addConditionalEdges(agentName, routeMessage, { 
+                    [toolName]: toolName, 
+                    END: 'END', 
+                    ...conditionalMapping 
+                })
             }
 
-            // @ts-ignore
             graph.addEdge(toolName, agentName)
 
             return graph
@@ -623,7 +465,7 @@ class Agent_SeqAgents implements INode {
             llm,
             startLLM,
             output,
-            nextNodeName: isConnectedToEnd ? END : undefined,
+            nextNodeName: isConnectedToEnd ? 'END' : undefined,
             predecessorAgents: sequentialNodes,
             multiModalMessageContent,
             moderations: sequentialNodes[0]?.moderations,
@@ -633,472 +475,175 @@ class Agent_SeqAgents implements INode {
 
         return returnOutput
     }
-}
 
-async function createAgent(
-    nodeData: INodeData,
-    options: ICommonObject,
-    agentName: string,
-    state: ISeqAgentsState,
-    llm: BaseChatModel,
-    interrupt: boolean,
-    tools: any[],
-    systemPrompt: string,
-    humanPrompt: string,
-    multiModalMessageContent: MessageContentImageUrl[],
-    agentInputVariablesValues: ICommonObject,
-    maxIterations?: string,
-    isConnectedToEnd?: boolean,
-    flowObj?: { sessionId?: string; chatId?: string; input?: string }
-): Promise<any> {
-    if (tools.length && !interrupt) {
-        const promptArrays = [
-            new MessagesPlaceholder('messages'),
-            new MessagesPlaceholder('agent_scratchpad')
-        ] as BaseMessagePromptTemplateLike[]
-        if (systemPrompt) promptArrays.unshift(['system', systemPrompt])
-
-        // Add multimodal content before human prompt if it exists
-        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
-            promptArrays.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
-        }
-        if (humanPrompt) promptArrays.push(['human', humanPrompt])
-
-        let prompt = ChatPromptTemplate.fromMessages(promptArrays)
-        prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
-
-        if (llm.bindTools === undefined) {
-            throw new Error(`This agent only compatible with function calling models.`)
-        }
-        const modelWithTools = llm.bindTools(tools)
-
-        let agent
-
-        if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
-            agent = RunnableSequence.from([
-                RunnablePassthrough.assign({
-                    //@ts-ignore
-                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(input.steps)
-                }),
-                prompt,
-                modelWithTools,
-                new ToolCallingAgentOutputParser()
-            ]).withConfig({
-                metadata: { sequentialNodeName: agentName }
-            })
-        } else {
-            agent = RunnableSequence.from([
-                RunnablePassthrough.assign({
-                    //@ts-ignore
-                    agent_scratchpad: (input: { steps: ToolsAgentStep[] }) => formatToOpenAIToolMessages(input.steps)
-                }),
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
-                prompt,
-                modelWithTools,
-                new ToolCallingAgentOutputParser()
-            ]).withConfig({
-                metadata: { sequentialNodeName: agentName }
-            })
-        }
-
-        const executor = AgentExecutor.fromAgentAndTools({
-            agent,
-            tools,
-            sessionId: flowObj?.sessionId,
-            chatId: flowObj?.chatId,
-            input: flowObj?.input,
-            verbose: process.env.DEBUG === 'true',
-            maxIterations: maxIterations ? parseFloat(maxIterations) : undefined
-        })
-        return executor
-    } else if (tools.length && interrupt) {
-        if (llm.bindTools === undefined) {
-            throw new Error(`Agent Node only compatible with function calling models.`)
-        }
-        // @ts-ignore
-        llm = llm.bindTools(tools)
-
-        const promptArrays = [new MessagesPlaceholder('messages')] as BaseMessagePromptTemplateLike[]
-        if (systemPrompt) promptArrays.unshift(['system', systemPrompt])
-        
-        // Add multimodal content before human prompt if it exists
-        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
-            promptArrays.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
-        }
-        if (humanPrompt) promptArrays.push(['human', humanPrompt])
-
-        let prompt = ChatPromptTemplate.fromMessages(promptArrays)
-        prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
-
-        let agent
-
-        if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
-            agent = RunnableSequence.from([prompt, llm]).withConfig({
-                metadata: { sequentialNodeName: agentName }
-            })
-        } else {
-            agent = RunnableSequence.from([
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
-                prompt,
-                llm
-            ]).withConfig({
-                metadata: { sequentialNodeName: agentName }
-            })
-        }
-        return agent
-    } else {
-        const promptArrays = [new MessagesPlaceholder('messages')] as BaseMessagePromptTemplateLike[]
-        if (systemPrompt) promptArrays.unshift(['system', systemPrompt])
-        
-        // Add multimodal content before human prompt if it exists
-        if (multiModalMessageContent && multiModalMessageContent.length > 0) {
-            promptArrays.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
-        }
-        if (humanPrompt) promptArrays.push(['human', humanPrompt])
-
-        let prompt = ChatPromptTemplate.fromMessages(promptArrays)
-        prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
-
-        let conversationChain
-
-        if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
-            conversationChain = RunnableSequence.from([prompt, llm, new StringOutputParser()]).withConfig({
-                metadata: { sequentialNodeName: agentName }
-            })
-        } else {
-            conversationChain = RunnableSequence.from([
-                RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
-                prompt,
-                llm,
-                new StringOutputParser()
-            ]).withConfig({
-                metadata: { sequentialNodeName: agentName }
-            })
-        }
-
-        return conversationChain
-    }
-}
-
-async function* agentNode(
-    {
-        state,
-        llm,
-        agent,
-        name,
-        abortControllerSignal,
-        nodeData,
-        input,
-        options,
-        interrupt,
-        multiModalMessageContent
-    }: {
-        state: ISeqAgentsState
-        llm: BaseChatModel
-        agent: AgentExecutor | RunnableSequence
-        name: string
-        abortControllerSignal: AbortController
-        nodeData: INodeData
-        input: string
-        options: ICommonObject
-        interrupt?: boolean
-        multiModalMessageContent?: MessageContentImageUrl[]
-    },
-    config: RunnableConfig
-) {
-    try {
-        if (abortControllerSignal.signal.aborted) {
-            throw new Error('Aborted!')
-        }
-
-        const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        // @ts-ignore
-        state.messages = filterConversationHistory(historySelection, input, state)
-        // @ts-ignore
-        state.messages = restructureMessages(llm, state)
-        const {messages} = state
-        // Stream events from agent with proper config
-        const streamConfig = {
-            ...config,
-            version: "v1" ,
-            streamMode: "values"
-        }
-        const result = await agent.streamEvents({ 
-            ...state,
-            signal: abortControllerSignal.signal 
-        }, streamConfig)
-
-        let collectedContent = ''
-        let collectedTools: IUsedTool[] = []
-        let collectedDocs: IDocument[] = []
-        let collectedArtifacts: ICommonObject[] = []
-        let toolCalls: any[] = []
-
-        // Pass through all events while collecting content
-        for await (const chunk of result) {
-            // Pass event directly up to buildAgentGraph
-            yield chunk
-
-            // Collect content and metadata from events
-            if (chunk.event === 'on_chat_model_stream') {
-                const content = chunk.data?.chunk?.content
-                if (content) collectedContent += content
-            } else if (chunk.event === 'on_tool_end') {
-                const toolData = chunk.data as { output: string; name: string; input: any }
-                if (toolData.output) {
-                    const tool = {
-                        tool: toolData.name,
-                        toolInput: toolData.input,
-                        toolOutput: toolData.output
-                    }
-                    collectedTools.push(tool)
-                }
-            } else if (chunk.event === 'on_tool_start') {
-                const toolData = chunk.data as { name: string; input: any; id?: string }
-                toolCalls.push({
-                    id: toolData.id || uuidv4(),
-                    name: toolData.name,
-                    args: toolData.input
-                })
-            }
-
-            // Handle source documents and artifacts if present in events
-            const eventData = chunk.data as { sourceDocuments?: IDocument[]; artifacts?: ICommonObject[] }
-            if (eventData.sourceDocuments) {
-                collectedDocs = collectedDocs.concat(eventData.sourceDocuments)
-            }
-            if (eventData.artifacts) {
-                collectedArtifacts = collectedArtifacts.concat(eventData.artifacts)
-            }
-        }
-
-        // After streaming complete, create final message with collected data
-        const finalMessage = new AIMessage({
-            content: collectedContent || '',
-            name,
-            tool_calls: toolCalls.length ? toolCalls : undefined,
-            additional_kwargs: {
-                nodeId: nodeData.id,
-                usedTools: collectedTools,
-                sourceDocuments: collectedDocs,
-                artifacts: collectedArtifacts
-            }
-        })
-
-        // Update state with final message
-        state.messages = {
-            value: state.messages.value,
-            default: () => [...state.messages.default(), finalMessage]
-        }
-
-        return {
-            messages: [finalMessage],
-            state
-        }
-    } catch (error) {
-        throw new Error(error)
-    }
-}
-
-const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: ISeqAgentsState) => {
-    const appDataSource = options.appDataSource as DataSource
-    const databaseEntities = options.databaseEntities as IDatabaseEntity
-    const tabIdentifier = nodeData.inputs?.[`${TAB_IDENTIFIER}_${nodeData.id}`] as string
-    const updateStateMemoryUI = nodeData.inputs?.updateStateMemoryUI as string
-    const updateStateMemoryCode = nodeData.inputs?.updateStateMemoryCode as string
-    const updateStateMemory = nodeData.inputs?.updateStateMemory as string
-
-    const selectedTab = tabIdentifier ? tabIdentifier.split(`_${nodeData.id}`)[0] : 'updateStateMemoryUI'
-    const variables = await getVars(appDataSource, databaseEntities, nodeData)
-
-    const flow = {
-        chatflowId: options.chatflowid,
-        sessionId: options.sessionId,
-        chatId: options.chatId,
-        input,
-        output,
-        state,
-        vars: prepareSandboxVars(variables)
-    }
-
-    if (updateStateMemory && updateStateMemory !== 'updateStateMemoryUI' && updateStateMemory !== 'updateStateMemoryCode') {
-        try {
-            const parsedSchema = typeof updateStateMemory === 'string' ? JSON.parse(updateStateMemory) : updateStateMemory
-            const obj: ICommonObject = {}
-            for (const sch of parsedSchema) {
-                const key = sch.Key
-                if (!key) throw new Error(`Key is required`)
-                let value = sch.Value as string
-                if (value.startsWith('$flow')) {
-                    value = customGet(flow, sch.Value.replace('$flow.', ''))
-                } else if (value.startsWith('$vars')) {
-                    value = customGet(flow, sch.Value.replace('$', ''))
-                }
-                obj[key] = value
-            }
-            return obj
-        } catch (e) {
-            throw new Error(e)
-        }
-    }
-
-    if (selectedTab === 'updateStateMemoryUI' && updateStateMemoryUI) {
-        try {
-            const parsedSchema = typeof updateStateMemoryUI === 'string' ? JSON.parse(updateStateMemoryUI) : updateStateMemoryUI
-            const obj: ICommonObject = {}
-            for (const sch of parsedSchema) {
-                const key = sch.key
-                if (!key) throw new Error(`Key is required`)
-                let value = sch.value as string
-                if (value.startsWith('$flow')) {
-                    value = customGet(flow, sch.value.replace('$flow.', ''))
-                } else if (value.startsWith('$vars')) {
-                    value = customGet(flow, sch.value.replace('$', ''))
-                }
-                obj[key] = value
-            }
-            return obj
-        } catch (e) {
-            throw new Error(e)
-        }
-    } else if (selectedTab === 'updateStateMemoryCode' && updateStateMemoryCode) {
-        const vm = await getVM(appDataSource, databaseEntities, nodeData, flow)
-        try {
-            const response = await vm.run(`module.exports = async function() {${updateStateMemoryCode}}()`, __dirname)
-            if (typeof response !== 'object') throw new Error('Return output must be an object')
-            return response
-        } catch (e) {
-            throw new Error(e)
-        }
-    }
-
-    return {}
-}
-
-const convertCustomMessagesToBaseMessages = (messages: string[], name: string, additional_kwargs: ICommonObject) => {
-    return messages.map((message) => {
-        return new HumanMessage({
-            content: message,
-            name,
-            additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
-        })
-    })
-}
-
-class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState> {
-    tools: StructuredTool[]
-    nodeData: INodeData
-    inputQuery: string
-    options: ICommonObject
-
-    constructor(
-        tools: StructuredTool[],
+    private async createAgent(
         nodeData: INodeData,
-        inputQuery: string,
         options: ICommonObject,
-        name: string = 'tools',
-        tags: string[] = [],
-        metadata: ICommonObject = {}
-    ) {
-        super({ name, metadata, tags, func: (input, config) => this.run(input, config) })
-        this.tools = tools
-        this.nodeData = nodeData
-        this.inputQuery = inputQuery
-        this.options = options
-    }
+        agentName: string,
+        state: any,
+        llm: BaseChatModel,
+        interrupt: boolean,
+        tools: any[],
+        systemPrompt: string,
+        humanPrompt: string,
+        multiModalMessageContent: any[],
+        agentInputVariablesValues: ICommonObject,
+        maxIterations?: string,
+        isConnectedToEnd?: boolean,
+        flowObj?: { sessionId?: string; chatId?: string; input?: string }
+    ): Promise<any> {
+        // Create streaming callbacks
+        const streamCallbacks = createStreamingCallbacks({
+            chatId: options.chatId,
+            shouldStreamResponse: options.shouldStreamResponse,
+            sseStreamer: options.sseStreamer,
+            isConnectedToEnd
+        })
 
-    private async run(input: BaseMessage[] | MessagesState, config: RunnableConfig): Promise<BaseMessage[] | MessagesState> {
-        let messages: BaseMessage[]
+        if (tools.length && !interrupt) {
+            // Create message templates
+            const promptMessages = []
+            if (systemPrompt) {
+                promptMessages.push(new SystemMessage(systemPrompt))
+            }
+            promptMessages.push(new MessagesPlaceholder('messages'))
+            promptMessages.push(new MessagesPlaceholder('agent_scratchpad'))
 
-        // Check if input is an array of BaseMessage[]
-        if (Array.isArray(input)) {
-            messages = input
-        }
-        // Check if input is IStateWithMessages
-        else if ((input as IStateWithMessages).messages) {
-            messages = (input as IStateWithMessages).messages
-        }
-        // Handle MessagesState type
-        else {
-            messages = (input as MessagesState).messages
-        }
+            // Add multimodal content if present
+            if (multiModalMessageContent?.length) {
+                promptMessages.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
+            }
+            if (humanPrompt) {
+                promptMessages.push(new HumanMessage(humanPrompt))
+            }
 
-        // Get the last message
-        const message = messages[messages.length - 1]
+            let prompt = ChatPromptTemplate.fromMessages(promptMessages)
 
-        if (message._getType() !== 'ai') {
-            throw new Error('ToolNode only accepts AIMessages as input.')
-        }
+            if (llm.bindTools === undefined) {
+                throw new Error(`This agent only compatible with function calling models.`)
+            }
+            const modelWithTools = llm.bindTools(tools)
 
-        // Extract all properties except messages for IStateWithMessages
-        const { messages: _, ...inputWithoutMessages } = Array.isArray(input) ? { messages: input } : input
-        const ChannelsWithoutMessages = {
-            chatId: this.options.chatId,
-            sessionId: this.options.sessionId,
-            input: this.inputQuery,
-            state: inputWithoutMessages
-        }
+            let agent
 
-        const outputs = await Promise.all(
-            (message as AIMessage).tool_calls?.map(async (call) => {
-                const tool = this.tools.find((tool) => tool.name === call.name)
-                if (tool === undefined) {
-                    throw new Error(`Tool ${call.name} not found.`)
-                }
-                if (tool && (tool as any).setFlowObject) {
-                    // @ts-ignore
-                    tool.setFlowObject(ChannelsWithoutMessages)
-                }
-
-                let output = await tool.invoke(call.args, config)
-                let sourceDocuments: Document[] = []
-                let artifacts: ICommonObject[] = []
-
-                if (output?.includes(SOURCE_DOCUMENTS_PREFIX)) {
-                    const outputArray = output.split(SOURCE_DOCUMENTS_PREFIX)
-                    output = outputArray[0]
-                    const docs = outputArray[1]
-                    try {
-                        sourceDocuments = JSON.parse(docs)
-                    } catch (e) {
-                        console.error('Error parsing source documents from tool')
-                    }
-                }
-
-                if (output?.includes(ARTIFACTS_PREFIX)) {
-                    const outputArray = output.split(ARTIFACTS_PREFIX)
-                    output = outputArray[0]
-                    try {
-                        artifacts = JSON.parse(outputArray[1])
-                    } catch (e) {
-                        console.error('Error parsing artifacts from tool')
-                    }
-                }
-
-                return new ToolMessage({
-                    name: tool.name,
-                    content: typeof output === 'string' ? output : JSON.stringify(output),
-                    tool_call_id: call.id!,
-                    additional_kwargs: {
-                        nodeId: this.nodeData.id,
-                        sourceDocuments,
-                        artifacts,
-                        args: call.args,
-                        usedTools: [{
-                            tool: tool.name ?? '',
-                            toolInput: call.args,
-                            toolOutput: output
-                        }]
-                    }
+            if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
+                agent = RunnableSequence.from([
+                    RunnablePassthrough.assign({
+                        agent_scratchpad: (input: { steps: any[] }) => formatToOpenAIToolMessages(input.steps)
+                    }),
+                    prompt,
+                    modelWithTools,
+                    new ToolCallingAgentOutputParser()
+                ]).withConfig({
+                    callbacks: [streamCallbacks],
+                    metadata: { sequentialNodeName: agentName }
                 })
-            }) ?? []
-        )
+            } else {
+                agent = RunnableSequence.from([
+                    RunnablePassthrough.assign({
+                        agent_scratchpad: (input: { steps: any[] }) => formatToOpenAIToolMessages(input.steps)
+                    }),
+                    RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
+                    prompt,
+                    modelWithTools,
+                    new ToolCallingAgentOutputParser()
+                ]).withConfig({
+                    callbacks: [streamCallbacks],
+                    metadata: { sequentialNodeName: agentName }
+                })
+            }
 
-        const additional_kwargs: ICommonObject = { nodeId: this.nodeData.id }
-        outputs.forEach((result) => (result.additional_kwargs = { ...result.additional_kwargs, ...additional_kwargs }))
-        return Array.isArray(input) ? outputs : { messages: outputs }
+            const executor = AgentExecutor.fromAgentAndTools({
+                agent,
+                tools,
+                sessionId: flowObj?.sessionId,
+                chatId: flowObj?.chatId,
+                input: flowObj?.input,
+                verbose: process.env.DEBUG === 'true',
+                maxIterations: maxIterations ? parseFloat(maxIterations) : undefined
+            })
+            return executor
+        } else if (tools.length && interrupt) {
+            if (llm.bindTools === undefined) {
+                throw new Error(`Agent Node only compatible with function calling models.`)
+            }
+            const boundLLM = llm.bindTools(tools)
+
+            // Create message templates
+            const promptMessages = []
+            if (systemPrompt) {
+                promptMessages.push(new SystemMessage(systemPrompt))
+            }
+            promptMessages.push(new MessagesPlaceholder('messages'))
+
+            // Add multimodal content if present
+            if (multiModalMessageContent?.length) {
+                promptMessages.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
+            }
+            if (humanPrompt) {
+                promptMessages.push(new HumanMessage(humanPrompt))
+            }
+
+            let prompt = ChatPromptTemplate.fromMessages(promptMessages)
+
+            let agent
+
+            if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
+                agent = RunnableSequence.from([prompt, boundLLM]).withConfig({
+                    callbacks: [streamCallbacks],
+                    metadata: { sequentialNodeName: agentName }
+                })
+            } else {
+                agent = RunnableSequence.from([
+                    RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
+                    prompt,
+                    boundLLM
+                ]).withConfig({
+                    callbacks: [streamCallbacks],
+                    metadata: { sequentialNodeName: agentName }
+                })
+            }
+            return agent
+        } else {
+            // Create message templates
+            const promptMessages = []
+            if (systemPrompt) {
+                promptMessages.push(new SystemMessage(systemPrompt))
+            }
+            promptMessages.push(new MessagesPlaceholder('messages'))
+
+            // Add multimodal content if present
+            if (multiModalMessageContent?.length) {
+                promptMessages.push(HumanMessagePromptTemplate.fromTemplate(multiModalMessageContent))
+            }
+            if (humanPrompt) {
+                promptMessages.push(new HumanMessage(humanPrompt))
+            }
+
+            let prompt = ChatPromptTemplate.fromMessages(promptMessages)
+
+            let conversationChain
+
+            if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
+                conversationChain = RunnableSequence.from([prompt, llm, new StringOutputParser()]).withConfig({
+                    callbacks: [streamCallbacks],
+                    metadata: { sequentialNodeName: agentName }
+                })
+            } else {
+                conversationChain = RunnableSequence.from([
+                    RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
+                    prompt,
+                    llm,
+                    new StringOutputParser()
+                ]).withConfig({
+                    callbacks: [streamCallbacks],
+                    metadata: { sequentialNodeName: agentName }
+                })
+            }
+
+            return conversationChain
+        }
     }
 }
 
 module.exports = { nodeClass: Agent_SeqAgents }
-
