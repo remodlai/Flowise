@@ -400,61 +400,23 @@ export const buildAgentGraph = async ({
                         logger.info(`[buildAgentGraph] Processing sequential output:`, output)
 
                         // Check for __start__ node with content
-                        if (output?.['__start__']?.messages && !startEventSent) {
-                            logger.info(`[buildAgentGraph] Found sequential __start__ node with messages:`, output['__start__'].messages)
-                            if (shouldStreamResponse && sseStreamer) {
-                                const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-                                const startReasoning: IAgentReasoning[] = [{
-                                    agentName: 'Start',
-                                    messages: [incomingInput.question],
-                                    state: seqStateNode?.data?.instance?.node ?? {},
-                                    usedTools: [],
-                                    sourceDocuments: [],
-                                    artifacts: []
-                                }]
-                                logger.info(`[buildAgentGraph] Sending sequential start event with data:`, startReasoning)
-                                sseStreamer.streamStartEvent(chatId, startReasoning)
-                                startEventSent = true
-                            }
-                        }
-
-                        // Handle streaming tokens
-                        if (output?.content && !output?.additional_kwargs?.tool_calls) {
-                            if (shouldStreamResponse && sseStreamer) {
-                                // Check if this is the final node
-                                const isConnectedToEnd = edges.some(edge => 
-                                    edge.source === output.additional_kwargs?.nodeId && 
-                                    initializedNodes.find(node => node.id === edge.target)?.data.type === 'end'
-                                )
-                                
-                                // First send the agentReasoningStart event
-                                sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
-                                
-                                // Then start token streaming
-                                if (!isStreamingStarted) {
-                                    isStreamingStarted = true
-                                    sseStreamer.streamTokenStartEvent(chatId)
-                                }
-
-                                // Set token type based on whether this is the final node
-                                const tokenType = isConnectedToEnd ? 
-                                    TokenEventType.FINAL_RESPONSE : 
-                                    TokenEventType.AGENT_REASONING
-
-                                sseStreamer.streamTokenEvent(chatId, output.content, tokenType)
-                            }
-                            continue
-                        }
-
-                        // Check for conditional edge
-                        if (output?.['conditionalEdge']) {
-                            logger.info(`[buildAgentGraph] Found conditional edge with next:`, output.next)
-                            if (shouldStreamResponse && sseStreamer) {
-                                logger.info(`[buildAgentGraph] Sending condition event for:`, output.next)
-                                sseStreamer.streamConditionEvent(chatId, output.next || '')
-                            }
-                        }
-
+                        // if (output?.['__start__']?.messages && !startEventSent) {
+                        //     logger.info(`[buildAgentGraph] Found sequential __start__ node with messages:`, output['__start__'].messages)
+                        //     if (shouldStreamResponse && sseStreamer) {
+                        //         const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+                        //         const startReasoning: IAgentReasoning[] = [{
+                        //             agentName: 'Start',
+                        //             messages: [incomingInput.question],
+                        //             state: seqStateNode?.data?.instance?.node ?? {},
+                        //             usedTools: [],
+                        //             sourceDocuments: [],
+                        //             artifacts: []
+                        //         }]
+                        //         logger.info(`[buildAgentGraph] Sending sequential start event with data:`, startReasoning)
+                        //         sseStreamer.streamStartEvent(chatId, startReasoning)
+                        //         startEventSent = true
+                        //     }
+                        // }
                         if (!output?.__end__) {
                             for (const agentName of Object.keys(output)) {
                                 if (!mapNameToLabel[agentName]) continue
@@ -471,7 +433,7 @@ export const buildAgentGraph = async ({
 
                                 // Stream agent reasoning start with proper flag if this is the final node
                                 if (shouldStreamResponse && sseStreamer) {
-                                    sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
+                                    sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : agentReasoning)
                                 }
 
                                 const usedTools = output[agentName]?.messages
@@ -529,7 +491,7 @@ export const buildAgentGraph = async ({
                                                 }
                                                 agentReasoning.push(reasoning)
                                                 if (shouldStreamResponse) {
-                                                    sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
+                                                    sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "agentReasoning")
                                                     sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
                                                     //sseStreamer.streamAgentReasoningEndEvent(chatId)
                                                 }
@@ -538,6 +500,48 @@ export const buildAgentGraph = async ({
                                         }
                                     })
                                 }
+                        // Handle streaming tokens
+                        if (output?.content && !output?.additional_kwargs?.tool_calls) {
+                            if (shouldStreamResponse && sseStreamer) {
+                                // Check if this is the final node
+                                const isConnectedToEnd = edges.some(edge => {
+                                    if (edge.source === nodeId) {
+                                        const endNode = initializedNodes.find(node => node.id === edge.target && node.data.name === 'seqEnd');
+                                        const nodeBeforeEnd = endNode ? initializedNodes.find(node => node.id === edge.source) : null;
+                                        return nodeBeforeEnd !== null;
+                                    }
+                                    return false;
+                                });
+                                
+                                // First send the agentReasoningStart event
+                                sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
+                                
+                                // Then start token streaming
+                                if (!isStreamingStarted) {
+                                    isStreamingStarted = true
+                                    sseStreamer.streamTokenStartEvent(chatId)
+                                }
+
+                                // Set token type based on whether this is the final node
+                                const tokenType = isConnectedToEnd ? 
+                                    TokenEventType.FINAL_RESPONSE : 
+                                    TokenEventType.AGENT_REASONING
+
+                                sseStreamer.streamTokenEvent(chatId, output.content, tokenType)
+                            }
+                            continue
+                        }
+
+                        // Check for conditional edge
+                        if (output?.['conditionalEdge']) {
+                            logger.info(`[buildAgentGraph] Found conditional edge with next:`, output.next)
+                            if (shouldStreamResponse && sseStreamer) {
+                                logger.info(`[buildAgentGraph] Sending condition event for:`, output.next)
+                                sseStreamer.streamConditionEvent(chatId, output.next || '')
+                            }
+                        }
+
+                        
 
                                 const reasoning = {
                                     agentName: mapNameToLabel[agentName].label,
@@ -565,7 +569,7 @@ export const buildAgentGraph = async ({
                                     if (!isStreamingStarted) {
                                         isStreamingStarted = true
                                         if (sseStreamer) {
-                                            sseStreamer.streamStartEvent(chatId, '')
+                                            sseStreamer.streamStartEvent(chatId, agentReasoning)
                                         }
                                     }
 
@@ -595,19 +599,23 @@ export const buildAgentGraph = async ({
                                         }
 
                                         // Stream the current agent's reasoning
-                                        sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
+                                        sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
 
                                         // Stream agent reasoning end
                                         sseStreamer.streamAgentReasoningEndEvent(chatId)
 
                                         // Check if this agent is connected to an END node
-                                        const isConnectedToEnd = edges.some(edge => 
-                                            edge.source === nodeId && 
-                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
-                                        )
+                                        const isConnectedToEnd = edges.some(edge => {
+                                            if (edge.source === nodeId) {
+                                                const endNode = initializedNodes.find(node => node.id === edge.target && node.data.name === 'seqEnd');
+                                                const nodeBeforeEnd = endNode ? initializedNodes.find(node => node.id === edge.source) : null;
+                                                return nodeBeforeEnd !== null;
+                                            }
+                                            return false;
+                                        });
 
                                         // Send agentReasoningStart with proper flag before token streaming
-                                        sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
+                                        sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : agentReasoning)
 
                                         // Stream token start if we have a message
                                         if (messages.length > 0) {
@@ -622,7 +630,7 @@ export const buildAgentGraph = async ({
                                             }
                                             sseStreamer.streamTokenEndEvent(chatId)
                                         }
-
+                                        
                                         // Send next agent event before any tools/docs/artifacts
                                         if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'end') {
                                             const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
@@ -978,7 +986,21 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
     if (!endAgentNodes.length && !loopNodes.length) {
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, 'Graph should have at least one End/Loop node')
     }
-    /*** End of Validation ***/
+
+    // Identify all nodes that connect to end nodes
+    const nodesConnectedToEnd = new Set([
+        // Direct connections to End nodes
+        ...endAgentNodes.map(endNode => 
+            reactFlowEdges
+                .filter(edge => edge.target === endNode.id)
+                .map(edge => edge.source)
+        ).flat(),
+        
+        // Connections through condition node 'end' handles
+        ...reactFlowEdges
+            .filter(edge => edge.sourceHandle?.includes('end'))
+            .map(edge => edge.source)
+    ])
 
     let flowNodeData
     let conditionalEdges: Record<string, { nodes: Record<string, string>; func: any }> = {}
@@ -1315,11 +1337,17 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         const loggerHandler = new ConsoleCallbackHandler(logger)
         const additionalCbs = await additionalCallbacks(flowNodeData as any, options)
         const config: RunnableConfig & { 
-            configurable: { thread_id: string | undefined }; 
+            configurable: { 
+                thread_id: string | undefined;
+                nodesConnectedToEnd?: string[];
+            }; 
             bindModel: Record<string, any>;
             callbacks: (BaseCallbackHandler | ConsoleCallbackHandler)[];
         } = { 
-            configurable: { thread_id: threadId }, 
+            configurable: { 
+                thread_id: threadId,
+                nodesConnectedToEnd: Array.from(nodesConnectedToEnd)
+            }, 
             bindModel,
             callbacks: [loggerHandler, ...additionalCbs]
         }
@@ -1334,12 +1362,23 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
             // Add streaming callbacks for token-by-token streaming
             const streamingHandler = BaseCallbackHandler.fromMethods({
                 handleLLMNewToken(token: string) {
+                    if (!token.trim()) return;
+
                     if (!isStreamingStarted) {
                         isStreamingStarted = true
                         sseStreamer.streamStartEvent(chatId, '')
                         sseStreamer.streamTokenStartEvent(chatId)
                     }
-                    sseStreamer.streamTokenEvent(chatId, token)
+
+                    // Get current node ID from metadata
+                    const currentNodeId = config?.configurable?.metadata?.nodeId
+
+                    // Set token type based on whether current node connects to end
+                    const tokenType = nodesConnectedToEnd.has(currentNodeId)
+                        ? TokenEventType.FINAL_RESPONSE 
+                        : TokenEventType.AGENT_REASONING
+
+                    sseStreamer.streamTokenEvent(chatId, token, tokenType)
                 },
                 handleLLMEnd() {
                     if (isStreamingStarted) {
@@ -1347,10 +1386,19 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                     }
                 },
                 handleToolStart(tool: Serialized, input: string) {
-                    sseStreamer.streamToolEvent(chatId, { tool: tool.toString(), status: 'start', input })
+                    sseStreamer.streamToolEvent(chatId, { 
+                        tool: tool.toString(), 
+                        status: 'start', 
+                        input,
+                        type: TokenEventType.TOOL_RESPONSE 
+                    })
                 },
                 handleToolEnd(output: string) {
-                    sseStreamer.streamToolEvent(chatId, { output, status: 'end' })
+                    sseStreamer.streamToolEvent(chatId, { 
+                        output, 
+                        status: 'end',
+                        type: TokenEventType.TOOL_RESPONSE 
+                    })
                 }
             })
 

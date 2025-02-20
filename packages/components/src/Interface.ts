@@ -202,6 +202,7 @@ export interface ISeqAgentNode {
     moderations?: Moderation[]
     multiModalMessageContent?: MessageContentImageUrl[]
     checkpointMemory?: any
+    nextNodeName?: string
     agentInterruptToolNode?: any
     agentInterruptToolFunc?: any
 }
@@ -425,7 +426,7 @@ export interface IServerSideEventStreamer {
     streamAbortEvent(chatId: string): void
     streamEndEvent(chatId: string): void
     // New event types for structured streaming
-    streamAgentReasoningStartEvent(chatId: string, data?: string): void
+    streamAgentReasoningStartEvent(chatId: string, data?: any): void
     streamAgentReasoningEndEvent(chatId: string): void
     streamTokenStartEvent(chatId: string): void
     streamTokenEndEvent(chatId: string): void
