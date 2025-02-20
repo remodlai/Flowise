@@ -46,7 +46,7 @@ import {
     checkMessageHistory
 } from '../commonUtils'
 //@ts-ignore
-import { END, StateGraph, Annotation, messagesStateReducer } from '@langchain/langgraph'
+import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { Document } from '@langchain/core/documents'
@@ -511,10 +511,27 @@ class Agent_SeqAgents implements INode {
         }
 
         const interrupt = nodeData.inputs?.interrupt as boolean
-
+        
         const toolName = `tool_${nodeData.id}`
         const toolNode = new ToolNode(tools, nodeData, input, options, toolName, [], { sequentialNodeName: toolName })
 
+        ;(toolNode as any).seekPermissionMessage = async (usedTools: IUsedTool[]) => {
+
+            const prompt = ChatPromptTemplate.fromMessages([['human', approvalPrompt || defaultApprovalPrompt]])
+
+            const chain = prompt.pipe(startLLM)
+
+            const response = (await chain.invoke({
+
+                input: 'Hello there!',
+
+                tools: JSON.stringify(usedTools)
+
+            })) as AIMessageChunk
+
+            return response.content
+
+        }
         const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
             // Determine if this is a final response by checking if next node is END
             const nextNodeIsEnd = sequentialNodes.some(node => 
@@ -529,7 +546,25 @@ class Agent_SeqAgents implements INode {
                 {
                     state,
                     llm,
-                    agent: await createAgent(nodeData, options, agentName, state, llm, interrupt, tools, agentSystemPrompt, agentHumanPrompt, multiModalMessageContent, agentInputVariablesValues, maxIterations, { sessionId: options.sessionId, chatId: options.chatId, input }),
+                    agent: await createAgent(
+                        nodeData,
+                        options,
+                        agentName,
+                        state,
+                        llm,
+                        interrupt,
+                        [...tools],
+                        agentSystemPrompt,
+                        agentHumanPrompt,
+                        multiModalMessageContent,
+                        agentInputVariablesValues,
+                        maxIterations,
+                        {
+                            sessionId: options.sessionId,
+                            chatId: options.chatId,
+                            input
+                        }
+                    ),
                     name: agentName,
                     abortControllerSignal,
                     nodeData,
@@ -545,7 +580,7 @@ class Agent_SeqAgents implements INode {
         }
 
         const toolInterrupt = async (
-            graph: StateGraph<ISeqAgentsState>,
+            graph: StateGraph<any>,
             nextNodeName?: string,
             runCondition?: any,
             conditionalMapping: ICommonObject = {}
@@ -1033,15 +1068,37 @@ class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState> {
         this.options = options
     }
 
-    private async run(input: ISeqAgentsState, config: RunnableConfig): Promise<ISeqAgentsState> {
-        const messages = input.messages.default()
+    private async run(input: BaseMessage[] | MessagesState, config: RunnableConfig): Promise<BaseMessage[] | MessagesState> {
+        let messages: BaseMessage[]
+
+        // Check if input is an array of BaseMessage[]
+        if (Array.isArray(input)) {
+            messages = input
+        }
+        // Check if input is IStateWithMessages
+        else if ((input as IStateWithMessages).messages) {
+            messages = (input as IStateWithMessages).messages
+        }
+        // Handle MessagesState type
+        else {
+            messages = (input as MessagesState).messages
+        }
+
+        // Get the last message
         const message = messages[messages.length - 1]
 
         if (message._getType() !== 'ai') {
             throw new Error('ToolNode only accepts AIMessages as input.')
         }
 
-        const { messages: _, ...inputWithoutMessages } = input
+        // Extract all properties except messages for IStateWithMessages
+        const { messages: _, ...inputWithoutMessages } = Array.isArray(input) ? { messages: input } : input
+        const ChannelsWithoutMessages = {
+            chatId: this.options.chatId,
+            sessionId: this.options.sessionId,
+            input: this.inputQuery,
+            state: inputWithoutMessages
+        }
 
         const outputs = await Promise.all(
             (message as AIMessage).tool_calls?.map(async (call) => {
@@ -1051,12 +1108,7 @@ class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState> {
                 }
                 if (tool && (tool as any).setFlowObject) {
                     // @ts-ignore
-                    tool.setFlowObject({
-                        chatId: this.options.chatId,
-                        sessionId: this.options.sessionId,
-                        input: this.inputQuery,
-                        state: inputWithoutMessages
-                    })
+                    tool.setFlowObject(ChannelsWithoutMessages)
                 }
 
                 let output = await tool.invoke(call.args, config)
@@ -1103,13 +1155,9 @@ class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState> {
             }) ?? []
         )
 
-        return {
-            ...input,
-            messages: {
-                value: input.messages.value,
-                default: () => [...messages.slice(0, -1), ...outputs]
-            }
-        }
+        const additional_kwargs: ICommonObject = { nodeId: this.nodeData.id }
+        outputs.forEach((result) => (result.additional_kwargs = { ...result.additional_kwargs, ...additional_kwargs }))
+        return Array.isArray(input) ? outputs : { messages: outputs }
     }
 }
 

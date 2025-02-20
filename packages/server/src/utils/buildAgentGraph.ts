@@ -529,7 +529,9 @@ export const buildAgentGraph = async ({
                                                 }
                                                 agentReasoning.push(reasoning)
                                                 if (shouldStreamResponse) {
+                                                    sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
                                                     sseStreamer.streamAgentReasoningEvent(chatId, [reasoning])
+                                                    //sseStreamer.streamAgentReasoningEndEvent(chatId)
                                                 }
                                                 
                                             }
@@ -550,7 +552,7 @@ export const buildAgentGraph = async ({
                                     nodeId
                                 }
                                 agentReasoning.push(reasoning)
-
+                                
                                 finalSummarization = output[agentName]?.summarization ?? ''
 
                                 lastWorkerResult =
@@ -622,7 +624,7 @@ export const buildAgentGraph = async ({
                                         }
 
                                         // Send next agent event before any tools/docs/artifacts
-                                        if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
+                                        if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'end') {
                                             const nextLabel = mapNameToLabel[reasoning.next]?.label || reasoning.next
                                             logger.info(`[buildAgentGraph] Streaming next agent event: ${nextLabel}`)
                                             sseStreamer.streamNextAgentEvent(chatId, nextLabel)
@@ -641,6 +643,15 @@ export const buildAgentGraph = async ({
 
                     if (isStreamingStarted && shouldStreamResponse && sseStreamer) {
                         sseStreamer.streamTokenEndEvent(chatId)
+                        sseStreamer.streamCustomEvent(chatId, 'end', {
+                            text: finalResult,
+                            finalResult,
+                            finalAction,
+                            sourceDocuments: totalSourceDocuments.length ? uniq(totalSourceDocuments) : [],
+                            artifacts: totalArtifacts.length ? uniq(totalArtifacts) : [],
+                            usedTools: totalUsedTools.length ? uniq(totalUsedTools) : [],
+                            agentReasoning
+                        })
                         sseStreamer.streamEndEvent(chatId)
                     }
 
