@@ -14,7 +14,7 @@ import { AgentAction } from '@langchain/core/agents'
 import { LunaryHandler } from '@langchain/community/callbacks/handlers/lunary'
 
 import { getCredentialData, getCredentialParam, getEnvironmentVariable } from './utils'
-import { ICommonObject, IDatabaseEntity, INodeData, IServerSideEventStreamer } from './Interface'
+import { ICommonObject, IDatabaseEntity, INodeData, IServerSideEventStreamer, TokenEventType } from './Interface'
 import { LangWatch, LangWatchSpan, LangWatchTrace, autoconvertTypedValues } from 'langwatch'
 import { DataSource } from 'typeorm'
 import { ChatGenerationChunk } from '@langchain/core/outputs'
@@ -164,20 +164,46 @@ export class ConsoleCallbackHandler extends BaseTracer {
  * Custom chain handler class
  */
 export class CustomChainHandler extends BaseCallbackHandler {
-    name = 'custom_chain_handler'
-    isLLMStarted = false
-    skipK = 0 // Skip streaming for first K numbers of handleLLMStart
-    returnSourceDocuments = false
-    cachedResponse = true
-    chatId: string = ''
-    sseStreamer: IServerSideEventStreamer | undefined
+    readonly name = 'custom_chain_handler';
+    private isLLMStarted = false;
+    private skipK = 0; // Skip streaming for first K numbers of handleLLMStart
+    private returnSourceDocuments = false;
+    private cachedResponse = true;
+    private chatId: string = '';
+    private sseStreamer: IServerSideEventStreamer | undefined;
+    private logger: Logger;
+
+    // Collectors for non-streamed content
+    private collectedContent: string = '';
+    private collectedTools: any[] = [];
+    private collectedDocs: any[] = [];
+    private collectedArtifacts: any[] = [];
+
+    // Helper method to initialize streaming
+    private initializeStreaming(isFinalResponse: boolean = false) {
+        if (!this.isLLMStarted && this.sseStreamer) {
+            this.isLLMStarted = true;
+            
+            // Start stream
+            this.sseStreamer.streamStartEvent(this.chatId, '');
+            
+            // Send agent reasoning start with proper flag
+            this.sseStreamer.streamAgentReasoningStartEvent(
+                this.chatId, 
+                isFinalResponse ? "startFinalResponseStream" : ""
+            );
+        }
+    }
 
     constructor(sseStreamer: IServerSideEventStreamer | undefined, chatId: string, skipK?: number, returnSourceDocuments?: boolean) {
-        super()
-        this.sseStreamer = sseStreamer
-        this.chatId = chatId
-        this.skipK = skipK ?? this.skipK
-        this.returnSourceDocuments = returnSourceDocuments ?? this.returnSourceDocuments
+        super();
+        this.sseStreamer = sseStreamer;
+        this.chatId = chatId;
+        this.skipK = skipK ?? this.skipK;
+        this.returnSourceDocuments = returnSourceDocuments ?? this.returnSourceDocuments;
+        this.logger = new Logger({
+            transports: []
+        });
     }
 
     handleLLMStart() {
@@ -193,64 +219,178 @@ export class CustomChainHandler extends BaseCallbackHandler {
         tags?: string[],
         fields?: HandleLLMNewTokenCallbackFields
     ): void | Promise<void> {
-        if (this.skipK === 0) {
-            if (!this.isLLMStarted) {
-                this.isLLMStarted = true
-                if (this.sseStreamer) {
-                    this.sseStreamer.streamStartEvent(this.chatId, token)
-                }
-            }
-            if (this.sseStreamer) {
-                if (token) {
-                    const chunk = fields?.chunk as ChatGenerationChunk
-                    const message = chunk?.message as AIMessageChunk
-                    const toolCalls = message?.tool_call_chunks || []
+        try {
+            // Skip if configured
+            if (this.skipK > 0) return;
 
-                    // Only stream when token is not empty and not a tool call
-                    if (toolCalls.length === 0) {
-                        this.sseStreamer.streamTokenEvent(this.chatId, token)
-                    }
-                }
+            // Validate inputs
+            if (!token || !fields) return;
+
+            // Safely extract chunk and message
+            const chunk = fields.chunk as ChatGenerationChunk;
+            const message = chunk?.message as AIMessageChunk;
+
+            // Extract metadata from tags
+            const metadata = tags?.reduce((acc, tag) => {
+                const [key, value] = tag.split(':');
+                if (key && value) acc[key] = value;
+                return acc;
+            }, {} as Record<string, string>);
+
+            // Check if this is connected to an end node
+            const isConnectedToEnd = metadata?.isConnectedToEnd === 'true';
+
+            // Initialize streaming with proper flag
+            this.initializeStreaming(isConnectedToEnd);
+
+            // Handle tool calls
+            const toolCalls = message?.tool_call_chunks || [];
+            if (toolCalls.length > 0) {
+                // Collect tool calls but don't stream them
+                this.collectedTools.push(...toolCalls);
+                return;
             }
+
+            // Handle regular tokens
+            const trimmedToken = token.trim();
+            if (trimmedToken && this.sseStreamer) {
+                // Collect token
+                this.collectedContent += trimmedToken;
+                
+                // Stream token with proper type
+                this.sseStreamer.streamTokenEvent(
+                    this.chatId, 
+                    trimmedToken,
+                    isConnectedToEnd ? TokenEventType.FINAL_RESPONSE : TokenEventType.AGENT_REASONING
+                );
+            }
+        } catch (error) {
+            this.logger.error('Error in handler Handler, handleLLMNewToken:', error);
         }
     }
 
     handleLLMEnd() {
-        if (this.sseStreamer) {
-            this.sseStreamer.streamEndEvent(this.chatId)
+        try {
+            if (this.sseStreamer) {
+                // Create complete message with all collected content
+                const completeMessage = {
+                    content: this.collectedContent,
+                    tools: this.collectedTools,
+                    sourceDocuments: this.collectedDocs,
+                    artifacts: this.collectedArtifacts
+                };
+
+                // First send any collected tools/docs/artifacts
+                if (this.collectedTools.length) {
+                    this.sseStreamer.streamUsedToolsEvent(this.chatId, this.collectedTools);
+                }
+                if (this.collectedDocs.length) {
+                    this.sseStreamer.streamSourceDocumentsEvent(this.chatId, this.collectedDocs);
+                }
+                if (this.collectedArtifacts.length) {
+                    this.sseStreamer.streamArtifactsEvent(this.chatId, this.collectedArtifacts);
+                }
+
+                // Send complete message
+                this.sseStreamer.streamCustomEvent(this.chatId, 'complete_message', completeMessage);
+
+                // End token streaming
+                this.sseStreamer.streamTokenEndEvent(this.chatId);
+
+                // End stream
+                this.sseStreamer.streamEndEvent(this.chatId);
+
+                // Reset collectors
+                this.collectedContent = '';
+                this.collectedTools = [];
+                this.collectedDocs = [];
+                this.collectedArtifacts = [];
+            }
+        } catch (error) {
+            this.logger.error('Error in handler Handler, handleLLMEnd:', error);
         }
     }
 
     handleChainEnd(outputs: ChainValues, _: string, parentRunId?: string): void | Promise<void> {
-        /*
-            Langchain does not call handleLLMStart, handleLLMEnd, handleLLMNewToken when the chain is cached.
-            Callback Order is "Chain Start -> LLM Start --> LLM Token --> LLM End -> Chain End" for normal responses.
-            Callback Order is "Chain Start -> Chain End" for cached responses.
-         */
-        if (this.cachedResponse && parentRunId === undefined) {
-            const cachedValue = outputs.text || outputs.response || outputs.output || outputs.output_text
-            //split at whitespace, and keep the whitespace. This is to preserve the original formatting.
-            const result = cachedValue.split(/(\s+)/)
-            result.forEach((token: string, index: number) => {
-                if (index === 0) {
-                    if (this.sseStreamer) {
-                        this.sseStreamer.streamStartEvent(this.chatId, token)
-                    }
-                }
+        try {
+            /*
+             * Langchain does not call handleLLMStart, handleLLMEnd, handleLLMNewToken when the chain is cached.
+             * Callback Order is "Chain Start -> LLM Start --> LLM Token --> LLM End -> Chain End" for normal responses.
+             * Callback Order is "Chain Start -> Chain End" for cached responses.
+             */
+            if (this.cachedResponse && parentRunId === undefined) {
+                const cachedValue = outputs.text || outputs.response || outputs.output || outputs.output_text;
+                if (!cachedValue) return;
+
+                // Handle cached response
                 if (this.sseStreamer) {
-                    this.sseStreamer.streamTokenEvent(this.chatId, token)
+                    // Initialize streaming for cached response
+                    this.initializeStreaming(true);
+
+                    // Collect content
+                    this.collectedContent = cachedValue;
+
+                    // Stream tokens
+                    const tokens = cachedValue.split(/(\s+)/);
+                    for (const token of tokens) {
+                        if (token.trim()) {
+                            this.sseStreamer.streamTokenEvent(
+                                this.chatId, 
+                                token,
+                                TokenEventType.FINAL_RESPONSE
+                            );
+                        }
+                    }
+
+                    // Collect and stream source documents
+                    if (this.returnSourceDocuments && outputs?.sourceDocuments) {
+                        this.collectedDocs = outputs.sourceDocuments;
+                        this.sseStreamer.streamSourceDocumentsEvent(this.chatId, outputs.sourceDocuments);
+                    }
+
+                    // Create complete message
+                    const completeMessage = {
+                        content: this.collectedContent,
+                        tools: this.collectedTools,
+                        sourceDocuments: this.collectedDocs,
+                        artifacts: this.collectedArtifacts
+                    };
+
+                    // Send complete message
+                    this.sseStreamer.streamCustomEvent(this.chatId, 'complete_message', completeMessage);
+
+                    // End token streaming
+                    this.sseStreamer.streamTokenEndEvent(this.chatId);
+
+                    // End stream
+                    this.sseStreamer.streamEndEvent(this.chatId);
+
+                    // Reset collectors
+                    this.collectedContent = '';
+                    this.collectedTools = [];
+                    this.collectedDocs = [];
+                    this.collectedArtifacts = [];
                 }
-            })
-            if (this.returnSourceDocuments && this.sseStreamer) {
-                this.sseStreamer.streamSourceDocumentsEvent(this.chatId, outputs?.sourceDocuments)
+            } else {
+                // Handle non-cached response
+                if (this.returnSourceDocuments && this.sseStreamer && outputs?.sourceDocuments) {
+                    this.collectedDocs = outputs.sourceDocuments;
+                    this.sseStreamer.streamSourceDocumentsEvent(this.chatId, outputs.sourceDocuments);
+
+                    // Create complete message with current state
+                    const completeMessage = {
+                        content: this.collectedContent,
+                        tools: this.collectedTools,
+                        sourceDocuments: this.collectedDocs,
+                        artifacts: this.collectedArtifacts
+                    };
+
+                    // Send complete message
+                    this.sseStreamer.streamCustomEvent(this.chatId, 'complete_message', completeMessage);
+                }
             }
-            if (this.sseStreamer) {
-                this.sseStreamer.streamEndEvent(this.chatId)
-            }
-        } else {
-            if (this.returnSourceDocuments && this.sseStreamer) {
-                this.sseStreamer.streamSourceDocumentsEvent(this.chatId, outputs?.sourceDocuments)
-            }
+        } catch (error) {
+            this.logger.error('Error in handler Handler, handleChainEnd:', error);
         }
     }
 }

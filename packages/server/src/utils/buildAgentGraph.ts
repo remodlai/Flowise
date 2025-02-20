@@ -488,14 +488,10 @@ export const buildAgentGraph = async ({
                                 if (output?.content && !output?.additional_kwargs?.tool_calls) {
                                     if (shouldStreamResponse && sseStreamer?.streamTokenEvent) {
                                         // Check if this is the final node
-                                        const isConnectedToEnd = edges.some(edge => {
-                                            if (edge.source === nodeId) {
-                                                const endNode = initializedNodes.find(node => node.id === edge.target && node.data.name === 'seqEnd');
-                                                const nodeBeforeEnd = endNode ? initializedNodes.find(node => node.id === edge.source) : null;
-                                                return nodeBeforeEnd !== null;
-                                            }
-                                            return false;
-                                        });
+                                        const isConnectedToEnd = edges.some(edge => 
+                                            edge.source === nodeId && 
+                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
+                                        );
                                         
                                         // First send the agentReasoningStart event
                                         sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
@@ -608,14 +604,10 @@ export const buildAgentGraph = async ({
                                         sseStreamer.streamAgentReasoningEndEvent(chatId)
 
                                         // Check if this agent is connected to an END node
-                                        const isConnectedToEnd = edges.some(edge => {
-                                            if (edge.source === nodeId) {
-                                                const endNode = initializedNodes.find(node => node.id === edge.target && node.data.name === 'seqEnd');
-                                                const nodeBeforeEnd = endNode ? initializedNodes.find(node => node.id === edge.source) : null;
-                                                return nodeBeforeEnd !== null;
-                                            }
-                                            return false;
-                                        });
+                                        const isConnectedToEnd = edges.some(edge => 
+                                            edge.source === nodeId && 
+                                            initializedNodes.find(node => node.id === edge.target)?.data.name === 'seqEnd'
+                                        );
 
                                         // Send agentReasoningStart with proper flag before token streaming
                                         sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : agentReasoning)
@@ -875,29 +867,8 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
             const graph = workflowGraph.compile({ checkpointer: memory })
 
             const loggerHandler = new ConsoleCallbackHandler(logger)
-            const additionalCbs = await additionalCallbacks(flowNodeData as any, options)
-            const bindModel = {} // Initialize empty bindModel object
-            const shouldStreamResponse = options.shouldStreamResponse
-            const sseStreamer = options.sseStreamer
-            const chatId = options.chatId
-
-            const config: RunnableConfig & { 
-                configurable: { 
-                    thread_id: string | undefined;
-                    nodesConnectedToEnd?: string[];
-                    shouldStreamResponse?: boolean;
-                }; 
-                bindModel: Record<string, any>;
-                callbacks: (BaseCallbackHandler | ConsoleCallbackHandler)[];
-            } = { 
-                configurable: { 
-                    thread_id: threadId,
-                    nodesConnectedToEnd: Array.from(workerNodeIds),
-                    shouldStreamResponse
-                }, 
-                bindModel,
-                callbacks: [loggerHandler, ...additionalCbs]
-            }
+            const callbacks = await additionalCallbacks(flowNodeData, options)
+            const config = { configurable: { thread_id: threadId } }
 
             let prependMessages = []
             // Only append in the first message
@@ -925,7 +896,11 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
                 {
                     messages: [...prependMessages, new HumanMessage({ content: finalQuestion })]
                 },
-                config
+                {
+                    recursionLimit: supervisorResult?.recursionLimit ?? 100,
+                    callbacks: [loggerHandler, ...callbacks],
+                    configurable: config
+                }
             )
         } catch (e) {
             throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error initialize supervisor nodes - ${getErrorMessage(e)}`)
@@ -969,34 +944,102 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
     let question = params.question
 
+    // Helper functions for state channel operations
+    const handleReplaceOperation = (x: any, y: any) => y ?? x;
+    const handleAppendOperation = (x: any, y: any) => Array.isArray(y) ? x.concat(y) : x.concat([y]);
+
+    const createStateChannel = (type: 'Replace' | 'Append', defaultValue: any) => ({
+        value: type === 'Append' ? handleAppendOperation : handleReplaceOperation,
+        default: () => defaultValue
+    });
+
+    const validateStateChannel = (channel: any, key: string) => {
+        if (!channel || typeof channel !== 'object') {
+            logger.warn(`[buildAgentGraph] Invalid channel for ${key}, using default Replace operation`);
+            return createStateChannel('Replace', undefined);
+        }
+        
+        if (typeof channel.value !== 'function' || typeof channel.default !== 'function') {
+            logger.warn(`[buildAgentGraph] Invalid channel configuration for ${key}, using defaults`);
+            return createStateChannel('Replace', undefined);
+        }
+        
+        return channel;
+    };
+
+    // Initialize base channels with message handling
     let channels: ISeqAgentsState = {
         messages: {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+            value: (x: BaseMessage[], y: BaseMessage[]) => {
+                try {
+                    // Ensure x and y are arrays and handle nulls
+                    const xArray = Array.isArray(x) ? x.filter(Boolean) : [x].filter(Boolean);
+                    const yArray = Array.isArray(y) ? y.filter(Boolean) : [y].filter(Boolean);
+                    
+                    // Validate messages
+                    return [...xArray, ...yArray].filter((msg): msg is BaseMessage => 
+                        msg !== null && 
+                        msg !== undefined && 
+                        typeof msg === 'object' && 
+                        'content' in msg
+                    );
+                } catch (error) {
+                    logger.error('[buildAgentGraph] Error in message handling:', error);
+                    return Array.isArray(x) ? x : [];
+                }
+            },
             default: () => []
         }
-    }
+    };
 
-// Get state from seqState node and properly merge channels
-const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-if (seqStateNode) {
-    // Properly merge state channels preserving reducers
-    Object.entries(seqStateNode.data.instance.node).forEach(([key, value]: [string, any]) => {
-        if (key === 'messages' && channels.messages) {
-            // Special handling for messages to preserve existing reducer
-            if (value && typeof value.default === 'function') {
-                channels.messages = {
-                    value: channels.messages.value,
-                    default: value.default
-                };
+    // Get and merge state from seqState node
+    const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState');
+    if (seqStateNode?.data?.instance?.node) {
+        try {
+            const stateNodeChannels = seqStateNode.data.instance.node;
+            
+            // Merge state channels with proper validation
+            for (const [key, value] of Object.entries(stateNodeChannels)) {
+                const channelValue = value as { value?: Function; default?: Function };
+                
+                if (key === 'messages') {
+                    // Special handling for messages channel
+                    channels.messages = {
+                        value: (x: BaseMessage[], y: BaseMessage[]) => {
+                            try {
+                                const intermediateResult = channelValue.value?.(x, y);
+                                return channels.messages.value(
+                                    Array.isArray(intermediateResult) ? intermediateResult : [], 
+                                    []
+                                );
+                            } catch (error) {
+                                logger.error('[buildAgentGraph] Error in message reducer:', error);
+                                return channels.messages.value(x || [], y || []);
+                            }
+                        },
+                        default: () => {
+                            try {
+                                const baseMessages = channelValue.default?.();
+                                return channels.messages.value(
+                                    Array.isArray(baseMessages) ? baseMessages : [],
+                                    []
+                                );
+                            } catch (error) {
+                                logger.error('[buildAgentGraph] Error in message default:', error);
+                                return [];
+                            }
+                        }
+                    };
+                } else {
+                    // Handle other channels based on their operation type
+                    const validatedChannel = validateStateChannel(channelValue, key);
+                    channels[key] = validatedChannel;
+                }
             }
-        } else if (value && typeof value.value === 'function' && typeof value.default === 'function') {
-            channels[key] = {
-                value: value.value,
-                default: value.default
-            };
+        } catch (error) {
+            logger.error('[buildAgentGraph] Error merging state channels:', error);
         }
-    });
-}
+    }
 
     let seqGraph = new StateGraph<any>({
         //@ts-ignore
@@ -1392,6 +1435,7 @@ if (seqStateNode) {
                 let isStreamingStarted = false;
                 let currentNodeId = '';
                 let isCurrentNodeFinal = false;
+                let currentTokens = '';
 
                 return BaseCallbackHandler.fromMethods({
                     handleLLMNewToken(token: string, _idx: any, _runId: string, _parentRunId?: string, tags?: string[]) {
@@ -1400,26 +1444,41 @@ if (seqStateNode) {
                         // Extract node ID from metadata if available
                         const metadata = tags?.find(tag => tag.startsWith('nodeId:'))
                         if (metadata) {
-                            currentNodeId = metadata.split(':')[1]
-                            // Only update isCurrentNodeFinal if we have a valid currentNodeId
-                            isCurrentNodeFinal = currentNodeId ? nodesConnectedToEnd.has(currentNodeId) : false
+                            const newNodeId = metadata.split(':')[1];
+                            if (newNodeId !== currentNodeId) {
+                                // Node changed, send accumulated tokens if any
+                                if (currentTokens) {
+                                    const tokenType = isCurrentNodeFinal ? 
+                                        TokenEventType.FINAL_RESPONSE : 
+                                        TokenEventType.AGENT_REASONING;
+                                    sseStreamer.streamTokenEvent(chatId, currentTokens, tokenType);
+                                    currentTokens = '';
+                                }
+                                currentNodeId = newNodeId;
+                                isCurrentNodeFinal = nodesConnectedToEnd.has(currentNodeId);
+                            }
                         }
 
                         if (!isStreamingStarted) {
-                            isStreamingStarted = true
-                            sseStreamer.streamStartEvent(chatId, '')
-                            sseStreamer.streamTokenStartEvent(chatId)
+                            isStreamingStarted = true;
+                            sseStreamer.streamStartEvent(chatId, '');
+                            sseStreamer.streamTokenStartEvent(chatId);
                             
                             // Send agentReasoningStart with proper flag before token streaming
-                            sseStreamer.streamAgentReasoningStartEvent(chatId, isCurrentNodeFinal ? "startFinalResponseStream" : "")
+                            sseStreamer.streamAgentReasoningStartEvent(chatId, isCurrentNodeFinal ? "startFinalResponseStream" : "");
                         }
 
-                        // Set token type based on whether current node connects to end
-                        const tokenType = isCurrentNodeFinal
-                            ? TokenEventType.FINAL_RESPONSE 
-                            : TokenEventType.AGENT_REASONING
+                        // Accumulate tokens
+                        currentTokens += token;
 
-                        sseStreamer.streamTokenEvent(chatId, token, tokenType)
+                        // Stream accumulated tokens periodically or on certain conditions
+                        if (token.endsWith('.') || token.endsWith('!') || token.endsWith('?') || currentTokens.length > 100) {
+                            const tokenType = isCurrentNodeFinal ? 
+                                TokenEventType.FINAL_RESPONSE : 
+                                TokenEventType.AGENT_REASONING;
+                            sseStreamer.streamTokenEvent(chatId, currentTokens, tokenType);
+                            currentTokens = '';
+                        }
                     },
                     handleLLMEnd() {
                         if (isStreamingStarted) {

@@ -1,6 +1,6 @@
 import { flatten, uniq } from 'lodash'
 import { DataSource } from 'typeorm'
-import { RunnableSequence, RunnablePassthrough } from '@langchain/core/runnables'
+import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
@@ -12,8 +12,10 @@ import {
     INodeOutputsValue,
     ISeqAgentNode,
     IDatabaseEntity,
-    ICommonObject
+    ICommonObject,
+    ISeqAgentsState
 } from '../../../src/Interface'
+import { BaseMessage } from '@langchain/core/messages'
 import { ToolCallingAgentOutputParser, AgentExecutor } from '../../../src/agents'
 import {
     getInputVariables,
@@ -378,10 +380,27 @@ class Agent_SeqAgents implements INode {
             return response.content
         }
 
-        const workerNode = async (state: any, config: any) => {
+        const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
+            // Validate and initialize state
+            if (!state.messages?.value || !state.messages?.default) {
+                state.messages = {
+                    value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+                    default: () => []
+                }
+            }
+
+            // Preserve state during tool execution
+            const currentState = {
+                ...state,
+                messages: {
+                    value: state.messages.value,
+                    default: () => [...state.messages.default()]
+                }
+            }
+
             return await agentNode(
                 {
-                    state,
+                    state: currentState,
                     llm,
                     agent: await this.createAgent(
                         nodeData,
@@ -480,7 +499,7 @@ class Agent_SeqAgents implements INode {
         nodeData: INodeData,
         options: ICommonObject,
         agentName: string,
-        state: any,
+        state: ISeqAgentsState,
         llm: BaseChatModel,
         interrupt: boolean,
         tools: any[],
@@ -492,30 +511,30 @@ class Agent_SeqAgents implements INode {
         isConnectedToEnd?: boolean,
         flowObj?: { sessionId?: string; chatId?: string; input?: string }
     ): Promise<any> {
-        // Create streaming configuration
+        // Validate and initialize state
+        if (!state.messages?.value || !state.messages?.default) {
+            state.messages = {
+                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+                default: () => []
+            }
+        }
+
+        // Create streaming configuration with proper typing
         const streamConfig = {
-            chatId: options.chatId,
-            shouldStreamResponse: options.shouldStreamResponse ?? true,
-            sseStreamer: options.sseStreamer,
-            isConnectedToEnd: isConnectedToEnd ?? false
-        };
-
-        // Create streaming callbacks with validated config
-        const streamCallbacks = createStreamingCallbacks(streamConfig);
-
-        // Create base config with proper version and mode
-        const baseConfig = {
-            version: "v1",
-            streamMode: "values",
             configurable: {
-                shouldStreamResponse: streamConfig.shouldStreamResponse
+                thread_id: options.sessionId,
+                shouldStreamResponse: options.shouldStreamResponse ?? true,
+                isConnectedToEnd: isConnectedToEnd ?? false,
+                nodeId: nodeData.id
             },
-            callbacks: [streamCallbacks],
-            metadata: { sequentialNodeName: agentName }
-        };
-
-        // Use base config for all agent operations
-        const agentConfig = baseConfig;
+            metadata: { sequentialNodeName: agentName },
+            callbacks: [createStreamingCallbacks({
+                chatId: options.chatId,
+                shouldStreamResponse: options.shouldStreamResponse ?? true,
+                sseStreamer: options.sseStreamer,
+                isConnectedToEnd: isConnectedToEnd ?? false
+            })]
+        } as RunnableConfig;
 
         if (tools.length && !interrupt) {
             // Create message templates
@@ -551,10 +570,7 @@ class Agent_SeqAgents implements INode {
                     prompt,
                     modelWithTools,
                     new ToolCallingAgentOutputParser()
-                ]).withConfig({
-                    callbacks: [streamCallbacks],
-                    metadata: { sequentialNodeName: agentName }
-                })
+                ]).withConfig(streamConfig)
             } else {
                 agent = RunnableSequence.from([
                     RunnablePassthrough.assign({
@@ -564,10 +580,7 @@ class Agent_SeqAgents implements INode {
                     prompt,
                     modelWithTools,
                     new ToolCallingAgentOutputParser()
-                ]).withConfig({
-                    callbacks: [streamCallbacks],
-                    metadata: { sequentialNodeName: agentName }
-                })
+                ]).withConfig(streamConfig)
             }
 
             const executor = AgentExecutor.fromAgentAndTools({
@@ -606,19 +619,13 @@ class Agent_SeqAgents implements INode {
             let agent
 
             if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
-                agent = RunnableSequence.from([prompt, boundLLM]).withConfig({
-                    callbacks: [streamCallbacks],
-                    metadata: { sequentialNodeName: agentName }
-                })
+                agent = RunnableSequence.from([prompt, boundLLM]).withConfig(streamConfig)
             } else {
                 agent = RunnableSequence.from([
                     RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                     prompt,
                     boundLLM
-                ]).withConfig({
-                    callbacks: [streamCallbacks],
-                    metadata: { sequentialNodeName: agentName }
-                })
+                ]).withConfig(streamConfig)
             }
             return agent
         } else {
@@ -642,20 +649,14 @@ class Agent_SeqAgents implements INode {
             let conversationChain
 
             if (!agentInputVariablesValues || !Object.keys(agentInputVariablesValues).length) {
-                conversationChain = RunnableSequence.from([prompt, llm, new StringOutputParser()]).withConfig({
-                    callbacks: [streamCallbacks],
-                    metadata: { sequentialNodeName: agentName }
-                })
+                conversationChain = RunnableSequence.from([prompt, llm, new StringOutputParser()]).withConfig(streamConfig)
             } else {
                 conversationChain = RunnableSequence.from([
                     RunnablePassthrough.assign(transformObjectPropertyToFunction(agentInputVariablesValues, state)),
                     prompt,
                     llm,
                     new StringOutputParser()
-                ]).withConfig({
-                    callbacks: [streamCallbacks],
-                    metadata: { sequentialNodeName: agentName }
-                })
+                ]).withConfig(streamConfig)
             }
 
             return conversationChain

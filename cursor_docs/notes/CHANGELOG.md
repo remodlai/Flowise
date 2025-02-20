@@ -1,5 +1,25 @@
 # Changelog
 
+## [2025-02-20] Streaming and State Management Integration
+
+### Added
+- Combined token streaming and state management handling
+- Proper state variable resolution during streaming
+- Enhanced state update methods integration
+- Improved state flow during token streaming
+
+### Changed
+- Updated state handling to preserve reducers during streaming
+- Modified token streaming to be state-aware
+- Enhanced getReturnOutput integration with streaming
+- Improved state update methods with streaming support
+
+### Fixed
+- Variable resolution during streaming
+- State preservation in streaming events
+- Token type handling with state updates
+- State flow in streaming operations
+
 ## [2025-02-20] Streaming Configuration Improvements
 
 ### Added

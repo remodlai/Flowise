@@ -4,6 +4,22 @@ This directory contains documentation and technical notes for Flowise improvemen
 
 ## Contents
 
+### [Streaming and State Management Integration](./streaming_state_improvements.md)
+Detailed documentation of improvements made to integrate token streaming with state management:
+- Combined token streaming and state handling
+- State-aware token type management
+- Proper variable resolution during streaming
+- Enhanced state update methods
+
+Key documentation sections:
+1. State Structure Preservation
+2. Token Streaming with State Awareness
+3. State Updates via getReturnOutput
+4. State Update Methods
+   - Direct state updates
+   - UI-based updates
+   - Code-based updates
+
 ### [Streaming Improvements](./streaming_improvements.md)
 Detailed documentation of improvements made to token streaming and SSE handling:
 - Enhanced token type handling

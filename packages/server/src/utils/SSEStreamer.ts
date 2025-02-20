@@ -147,29 +147,62 @@ export class SSEStreamer implements IServerSideEventStreamer {
                 return;
             }
 
-            // Validate and trim data
+            // Validate and sanitize data
             if (!data || typeof data !== 'string') {
-                logger.warn(`[SSEStreamer] Invalid token data for chatId: ${chatId}`);
+                logger.warn(`[SSEStreamer] Invalid token data:`, {
+                    chatId,
+                    dataType: typeof data
+                });
                 return;
             }
-            const trimmedData = data.trim();
-            if (!trimmedData) {
-                logger.debug(`[SSEStreamer] Empty token data for chatId: ${chatId}`);
+
+            // Clean and validate token
+            let cleanedData = data
+                .trim()
+                // Remove control characters that could break SSE
+                .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+                // Ensure safe line endings
+                .replace(/\r?\n/g, ' ');
+
+            if (!cleanedData) {
+                logger.debug(`[SSEStreamer] Empty token data after cleaning:`, {
+                    chatId,
+                    originalData: data
+                });
                 return;
+            }
+
+            // Validate token type
+            let validType = type || TokenEventType.AGENT_REASONING;
+            if (!Object.values(TokenEventType).includes(validType)) {
+                logger.warn(`[SSEStreamer] Invalid token type:`, {
+                    chatId,
+                    type: validType
+                });
+                // Fall back to default type
+                validType = TokenEventType.AGENT_REASONING;
             }
 
             const clientResponse = {
                 event: 'token',
-                data: trimmedData,
-                type: type || TokenEventType.AGENT_REASONING
+                data: cleanedData,
+                type: validType
             };
 
             try {
-                client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n');
+                const message = 'message:\ndata:' + JSON.stringify(clientResponse) + '\n\n';
+                client.response.write(message);
+                
+                logger.debug('[SSEStreamer] Token streamed successfully:', {
+                    chatId,
+                    type: validType,
+                    dataLength: cleanedData.length
+                });
             } catch (error: any) {
                 logger.error('[SSEStreamer] Failed to write token event:', {
                     chatId,
-                    error: error?.message || String(error)
+                    error: error?.message || String(error),
+                    type: validType
                 });
             }
         } catch (error: any) {

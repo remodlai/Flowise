@@ -1,9 +1,9 @@
-ttasd import { AIMessage, BaseMessage } from '@langchain/core/messages'
+import { AIMessage, BaseMessage } from '@langchain/core/messages'
 import { ChatGenerationChunk, Generation } from '@langchain/core/outputs'
 import { IDocument, IUsedTool, ICommonObject, ISeqAgentsState } from '../../../../src/Interface'
 import { filterConversationHistory, restructureMessages, initializeState, validateState } from '../../commonUtils'
 import { v4 as uuidv4 } from 'uuid'
-import { IAgentParams, IStreamConfig } from './types'
+import { IAgentParams, IStreamConfig, IAgentEvent } from './types'
 import { createStreamConfig } from './streaming'
 import logger from '../../../../src/utils/logger'
 
@@ -30,7 +30,10 @@ const handleStateError = (error: any, context: any) => {
     };
 };
 
-export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
+export async function* agentNode(
+    params: IAgentParams,
+    config: IStreamConfig
+): AsyncGenerator<IAgentEvent, { messages: AIMessage[]; state: ISeqAgentsState }, void> {
     const { state, agent, name, nodeData, options } = params;
     
     try {
@@ -77,12 +80,19 @@ export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
         // Setup streaming configuration
         const streamConfig = createStreamConfig(config);
 
-        // Initialize collectors
-        let collectedContent = '';
+        // Initialize collectors with proper typing and safe defaults
+        let collectedContent: string = '';
         let collectedTools: IUsedTool[] = [];
         let collectedDocs: IDocument[] = [];
         let collectedArtifacts: ICommonObject[] = [];
         let toolCalls: any[] = [];
+
+        // Helper function for safe token concatenation
+        const appendToken = (token: string): void => {
+            if (typeof token === 'string') {
+                collectedContent = collectedContent + token;
+            }
+        };
 
         // Get event stream from agent using initialized state
         let eventStream;
@@ -93,15 +103,26 @@ export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
                     version: "v1",
                     streamMode: "values",
                     configurable: {
-                        shouldStreamResponse: streamConfig?.configurable?.shouldStreamResponse ?? true
+                        shouldStreamResponse: streamConfig?.configurable?.shouldStreamResponse ?? true,
+                        nodesConnectedToEnd: streamConfig?.configurable?.nodesConnectedToEnd,
+                        bindModel: streamConfig?.configurable?.bindModel
                     },
                     callbacks: streamConfig?.callbacks,
-                    metadata: streamConfig?.metadata
+                    metadata: {
+                        ...streamConfig?.metadata,
+                        nodeId: nodeData.id,
+                        nodeName: name
+                    }
                 };
 
-                // Get event stream with proper input format
+                // Get event stream with proper input format and validation
+                const messages = initializedState.messages.default();
+                if (!Array.isArray(messages)) {
+                    throw new Error('Invalid messages array in state');
+                }
+
                 eventStream = await agent.streamEvents(
-                    { messages: initializedState.messages.default() },
+                    { messages },
                     streamEventConfig
                 );
 
@@ -135,55 +156,163 @@ export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
                         continue;
                     }
 
-                    // Pass through valid event
-                    yield event;
+                    // Validate event structure
+                    if (!event || typeof event !== 'object' || !event.event) {
+                        logger.warn('[Agent Node] Skipping invalid event:', {
+                            nodeName: name,
+                            nodeId: nodeData.id,
+                            event: typeof event === 'object' ? JSON.stringify(event) : typeof event
+                        });
+                        continue;
+                    }
 
-                    // Handle different event types
+                    // Safely access event data with type checking
                     const eventType = event.event;
-                    if (!eventType) {
-                        continue; // Skip events without type
+                    const eventData = event.data || {};
+
+                    // Cast event to proper type with validation
+                    const typedEvent = event as IAgentEvent;
+                    if (!typedEvent || typeof typedEvent !== 'object') {
+                        logger.warn('[Agent Node] Invalid event type:', {
+                            nodeName: name,
+                            nodeId: nodeData.id,
+                            eventType
+                        });
+                        continue;
                     }
 
                     switch (eventType) {
                         case 'on_llm_stream': {
-                            const chunk = event.data?.chunk as Generation;
-                            const text = typeof chunk === 'string' ? chunk : chunk?.text;
-                            if (text) collectedContent += text;
+                            try {
+                                const chunk = eventData.chunk as Generation;
+                                // Safely extract text with type checking
+                                let text: string | undefined;
+                                if (typeof chunk === 'string') {
+                                    text = chunk;
+                                } else if (chunk && typeof chunk === 'object') {
+                                    text = chunk.text;
+                                }
+
+                                if (text && typeof text === 'string') {
+                                    // Safely append to collected content
+                                    appendToken(text);
+                                    
+                                    // Stream tokens with validation
+                                    yield {
+                                        event: 'on_llm_stream',
+                                        data: {
+                                            chunk: text
+                                        }
+                                    };
+                                } else {
+                                    logger.debug('[Agent Node] Skipping invalid token:', {
+                                        nodeName: name,
+                                        nodeId: nodeData.id,
+                                        tokenType: typeof text
+                                    });
+                                }
+                            } catch (streamError) {
+                                logger.error('[Agent Node] Error processing LLM stream:', {
+                                    nodeName: name,
+                                    nodeId: nodeData.id,
+                                    error: streamError.message || streamError
+                                });
+                            }
                             break;
                         }
 
                         case 'on_tool_start': {
-                            const toolStartData = event.data as { name?: string; input?: any };
-                            if (toolStartData.name) {
-                                toolCalls.push({
-                                    id: uuidv4(),
-                                    name: toolStartData.name,
-                                    args: toolStartData.input || {}
+                            try {
+                                const toolStartData = eventData as { name?: string; input?: any };
+                                if (toolStartData && typeof toolStartData === 'object' && toolStartData.name) {
+                                    const toolCall = {
+                                        id: uuidv4(),
+                                        name: toolStartData.name,
+                                        args: toolStartData.input || {}
+                                    };
+                                    
+                                    // Safely add tool call
+                                    if (!Array.isArray(toolCalls)) {
+                                        toolCalls = [];
+                                    }
+                                    toolCalls.push(toolCall);
+
+                                    logger.debug('[Agent Node] Tool start:', {
+                                        nodeName: name,
+                                        nodeId: nodeData.id,
+                                        toolName: toolStartData.name
+                                    });
+                                }
+                            } catch (toolError) {
+                                logger.error('[Agent Node] Error processing tool start:', {
+                                    nodeName: name,
+                                    nodeId: nodeData.id,
+                                    error: toolError.message || toolError
                                 });
                             }
                             break;
                         }
 
                         case 'on_tool_end': {
-                            const toolEndData = event.data as { name?: string; input?: any; output?: string };
-                            if (toolEndData.name && toolEndData.output) {
-                                collectedTools.push({
-                                    tool: toolEndData.name,
-                                    toolInput: toolEndData.input || {},
-                                    toolOutput: toolEndData.output
+                            try {
+                                const toolEndData = eventData as { name?: string; input?: any; output?: string };
+                                if (toolEndData && typeof toolEndData === 'object' && toolEndData.name && toolEndData.output) {
+                                    const tool = {
+                                        tool: toolEndData.name,
+                                        toolInput: toolEndData.input || {},
+                                        toolOutput: toolEndData.output
+                                    };
+                                    
+                                    // Safely add tool
+                                    if (!Array.isArray(collectedTools)) {
+                                        collectedTools = [];
+                                    }
+                                    collectedTools.push(tool);
+
+                                    logger.debug('[Agent Node] Tool end:', {
+                                        nodeName: name,
+                                        nodeId: nodeData.id,
+                                        toolName: toolEndData.name
+                                    });
+                                }
+                            } catch (toolError) {
+                                logger.error('[Agent Node] Error processing tool end:', {
+                                    nodeName: name,
+                                    nodeId: nodeData.id,
+                                    error: toolError.message || toolError
                                 });
                             }
                             break;
                         }
                     }
 
-                    // Handle additional data
-                    const eventData = event.data as { sourceDocuments?: IDocument[]; artifacts?: ICommonObject[] };
-                    if (eventData.sourceDocuments?.length) {
-                        collectedDocs = collectedDocs.concat(eventData.sourceDocuments);
-                    }
-                    if (eventData.artifacts?.length) {
-                        collectedArtifacts = collectedArtifacts.concat(eventData.artifacts);
+                    // Handle additional data with validation
+                    try {
+                        // Initialize arrays if undefined
+                        if (!Array.isArray(collectedDocs)) collectedDocs = [];
+                        if (!Array.isArray(collectedArtifacts)) collectedArtifacts = [];
+
+                        // Safely handle source documents
+                        if (Array.isArray(eventData.sourceDocuments)) {
+                            const validDocs = eventData.sourceDocuments.filter((doc: IDocument) => doc && typeof doc === 'object');
+                            if (validDocs.length) {
+                                collectedDocs = collectedDocs.concat(validDocs);
+                            }
+                        }
+
+                        // Safely handle artifacts
+                        if (Array.isArray(eventData.artifacts)) {
+                            const validArtifacts = eventData.artifacts.filter((artifact: ICommonObject) => artifact && typeof artifact === 'object');
+                            if (validArtifacts.length) {
+                                collectedArtifacts = collectedArtifacts.concat(validArtifacts);
+                            }
+                        }
+                    } catch (dataError) {
+                        logger.error('[Agent Node] Error processing additional data:', {
+                            nodeName: name,
+                            nodeId: nodeData.id,
+                            error: dataError.message || dataError
+                        });
                     }
                 } catch (eventError) {
                     // Log event processing error but continue with next event
@@ -206,7 +335,7 @@ export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
             throw new Error(`Error processing event stream: ${JSON.stringify(streamErrorContext)}`);
         }
 
-        // Create final message
+        // Create final message after all tokens are collected
         const finalMessage = new AIMessage({
             content: collectedContent,
             name,
@@ -216,20 +345,29 @@ export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
                 usedTools: collectedTools,
                 sourceDocuments: collectedDocs,
                 artifacts: collectedArtifacts,
-                state: initializedState // Include state in message for proper tracking
+                state: initializedState // Include current state for context
             }
         });
 
-        // Update state with final message
-        const currentMessages = initializedState.messages.default();
-        initializedState.messages = {
-            value: initializedState.messages.value,
-            default: () => [...currentMessages, finalMessage]
+        // Create a new state object to avoid mutations
+        const finalState = {
+            ...initializedState,
+            messages: {
+                value: initializedState.messages.value,
+                default: () => {
+                    const existingMessages = initializedState.messages.default();
+                    // Ensure proper array concatenation
+                    return Array.isArray(existingMessages) 
+                        ? existingMessages.concat([finalMessage])
+                        : [finalMessage];
+                }
+            }
         };
 
+        // Return final message and state without streaming state updates
         return {
             messages: [finalMessage],
-            state: initializedState
+            state: finalState
         };
     } catch (error) {
         // Add error context for better debugging

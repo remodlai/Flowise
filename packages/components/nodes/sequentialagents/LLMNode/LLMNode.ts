@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessage, AIMessageChunk } from '@langchain/core/messages'
+import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
+import logger from '../../../src/utils/logger'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import {
     INode,
@@ -592,21 +593,57 @@ async function agentNode(
             throw new Error('Aborted!')
         }
 
-        // Validate and initialize state
+        // Validate and initialize state with robust error handling
         let validatedState = validateState(state)
+        if (!validatedState.messages?.value || !validatedState.messages?.default) {
+            validatedState.messages = {
+                value: (x: BaseMessage[], y: BaseMessage[]) => {
+                    const xArray = Array.isArray(x) ? x.filter(Boolean) : [x].filter(Boolean)
+                    const yArray = Array.isArray(y) ? y.filter(Boolean) : [y].filter(Boolean)
+                    return xArray.concat(yArray)
+                },
+                default: () => []
+            }
+        }
 
+        // Process conversation history with validation
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
         const filteredMessages = filterConversationHistory(historySelection, input, validatedState)
-        const restructuredMessages = restructureMessages(llm, { 
+        
+        // Ensure messages are properly structured before restructuring
+        const safeMessages = {
             messages: {
                 value: validatedState.messages.value,
-                default: () => filteredMessages
+                default: () => filteredMessages.filter((msg): msg is BaseMessage => 
+                    msg !== null && 
+                    msg !== undefined && 
+                    typeof msg.content === 'string'
+                )
             }
-        })
+        }
 
+        const restructuredMessages = restructureMessages(llm, safeMessages)
+
+        // Update state with validated messages
         validatedState.messages = {
-            value: validatedState.messages.value,
-            default: () => restructuredMessages
+            value: (x: BaseMessage[], y: BaseMessage[]) => {
+                try {
+                    const xArray = Array.isArray(x) ? x.filter(Boolean) : [x].filter(Boolean)
+                    const yArray = Array.isArray(y) ? y.filter(Boolean) : [y].filter(Boolean)
+                    return xArray.concat(yArray)
+                } catch (error) {
+                    logger.error('[LLMNode] Error in message reducer:', error)
+                    return []
+                }
+            },
+            default: () => {
+                try {
+                    return restructuredMessages.filter(msg => msg && typeof msg.content === 'string')
+                } catch (error) {
+                    logger.error('[LLMNode] Error in message default:', error)
+                    return []
+                }
+            }
         }
 
         const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
@@ -645,23 +682,57 @@ async function agentNode(
                 }
             }
 
-            // Add streaming callbacks
+            // Add streaming callbacks with error handling
             const streamingHandler = BaseCallbackHandler.fromMethods({
-                handleLLMNewToken(token: string) {
-                    if (!isStreamingStarted) {
-                        isStreamingStarted = true
-                        sseStreamer.streamTokenStartEvent(chatId)
+                handleLLMNewToken(token: string, _idx: any, _runId: string, _parentRunId?: string, tags?: string[]) {
+                    try {
+                        if (!token?.trim()) return
+
+                        if (!isStreamingStarted) {
+                            isStreamingStarted = true
+                            sseStreamer.streamTokenStartEvent(chatId)
+                        }
+
+                        content += token
+
+                        // Extract node ID from metadata if available
+                        const metadata = tags?.find(tag => tag.startsWith('nodeId:'))
+                        const currentNodeId = metadata ? metadata.split(':')[1] : nodeData.id
+
+                        // Check if this node connects to an end node
+                        const isConnectedToEnd = config.configurable?.nodesConnectedToEnd?.includes(currentNodeId)
+
+                        // Set token type based on connection to end
+                        const tokenType = isConnectedToEnd
+                            ? TokenEventType.FINAL_RESPONSE
+                            : TokenEventType.AGENT_REASONING
+
+                        sseStreamer.streamTokenEvent(chatId, token, tokenType)
+                    } catch (error) {
+                        logger.error('[LLMNode] Error in token streaming:', error)
                     }
-                    content += token
-                    // Use FINAL_RESPONSE type if next node is END
-                    const tokenType = ('next' in result && result.next === 'END') 
-                        ? TokenEventType.FINAL_RESPONSE 
-                        : TokenEventType.AGENT_REASONING
-                    sseStreamer.streamTokenEvent(chatId, token, tokenType)
                 },
                 handleLLMEnd() {
-                    if (isStreamingStarted) {
-                        sseStreamer.streamTokenEndEvent(chatId)
+                    try {
+                        if (isStreamingStarted) {
+                            sseStreamer.streamTokenEndEvent(chatId)
+                            sseStreamer.streamAgentReasoningEndEvent(chatId)
+                        }
+                    } catch (error) {
+                        logger.error('[LLMNode] Error in LLM end handling:', error)
+                    }
+                },
+                handleChainStart() {
+                    isStreamingStarted = false
+                },
+                handleChainEnd() {
+                    try {
+                        if (isStreamingStarted) {
+                            sseStreamer.streamTokenEndEvent(chatId)
+                            sseStreamer.streamAgentReasoningEndEvent(chatId)
+                        }
+                    } catch (error) {
+                        logger.error('[LLMNode] Error in chain end handling:', error)
                     }
                 }
             })

@@ -1,7 +1,8 @@
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { Serialized } from '@langchain/core/load/serializable'
+import { RunnableConfig } from '@langchain/core/runnables'
 import { TokenEventType } from '../../../../src/Interface'
-import { IStreamParams } from './types'
+import { IStreamParams, IStreamConfig } from './types'
 import logger from '../../../../src/utils/logger'
 
 /**
@@ -23,12 +24,34 @@ export function createStreamingCallbacks(params: IStreamParams) {
                 const trimmedToken = token.trim();
                 if (!trimmedToken) return;
 
-                // Extract node ID from metadata if available
-                const metadata = tags?.find(tag => tag.startsWith('nodeId:'))
-                if (metadata) {
-                    currentNodeId = metadata.split(':')[1]
-                    // Default to false if isConnectedToEnd is undefined
-                    isCurrentNodeFinal = currentNodeId ? (isConnectedToEnd ?? false) : false
+                // Extract node ID and metadata safely
+                try {
+                    if (Array.isArray(tags)) {
+                        // Extract nodeId from metadata
+                        const nodeIdTag = tags.find(tag => tag.startsWith('nodeId:'));
+                        if (nodeIdTag) {
+                            const [_, id] = nodeIdTag.split(':');
+                            if (id) currentNodeId = id;
+                        }
+
+                        // Extract nodeName from metadata
+                        const nodeNameTag = tags.find(tag => tag.startsWith('nodeName:'));
+                        if (nodeNameTag) {
+                            const [_, name] = nodeNameTag.split(':');
+                            logger.debug('[Streaming] Processing node:', { name, id: currentNodeId });
+                        }
+                    }
+
+                    // Determine if this is a final node
+                    isCurrentNodeFinal = Boolean(currentNodeId && isConnectedToEnd);
+                } catch (metadataError) {
+                    logger.error('[Streaming] Error processing metadata:', {
+                        tags,
+                        error: metadataError.message || metadataError
+                    });
+                    // Use safe defaults
+                    currentNodeId = '';
+                    isCurrentNodeFinal = false;
                 }
 
                 // Initialize streaming if needed
@@ -122,19 +145,67 @@ export function createStreamingCallbacks(params: IStreamParams) {
 /**
  * Creates streaming configuration for the agent
  */
-export function createStreamConfig(config: any) {
-    // Ensure we have a valid config object
-    const baseConfig = config || {};
-    
-    // Create stream config with required fields
-    return {
-        ...baseConfig,
-        streamMode: "values",
-        version: "v1",  // Explicitly set version to v1 as required by LangGraph
-        configurable: {
-            ...baseConfig.configurable,
-            // Preserve any existing configurable options while ensuring required ones
-            shouldStreamResponse: baseConfig.configurable?.shouldStreamResponse ?? true
+export function createStreamConfig(config: RunnableConfig): IStreamConfig {
+    try {
+        // Ensure we have a valid config object with defaults
+        const baseConfig = config || {};
+        const configurable = baseConfig.configurable || {};
+        
+        // Validate and sanitize nodeId
+        const nodeId = configurable.nodeId ? String(configurable.nodeId).trim() : undefined;
+        
+        // Validate nodesConnectedToEnd array
+        const nodesConnectedToEnd = Array.isArray(configurable.nodesConnectedToEnd) 
+            ? configurable.nodesConnectedToEnd.filter(id => typeof id === 'string' && id.trim())
+            : [];
+        
+        // Create stream config with required fields and validation
+        const streamConfig: IStreamConfig = {
+            ...baseConfig,
+            streamMode: "values",
+            version: "v1",  // Explicitly set version to v1 as required by LangGraph
+            configurable: {
+                ...configurable,
+                shouldStreamResponse: configurable.shouldStreamResponse ?? true,
+                isConnectedToEnd: nodeId ? nodesConnectedToEnd.includes(nodeId) : false,
+                thread_id: configurable.thread_id ? String(configurable.thread_id) : undefined,
+                nodeId,
+                bindModel: configurable.bindModel
+            },
+            metadata: {
+                ...baseConfig.metadata,
+                nodeId,
+                nodeName: configurable.nodeName ? String(configurable.nodeName) : undefined
+            }
+        };
+
+        // Additional validation
+        if (!streamConfig.configurable) {
+            logger.warn('[Streaming] Missing configurable in stream config');
+            streamConfig.configurable = {
+                shouldStreamResponse: true,
+                isConnectedToEnd: false
+            };
         }
+
+        // Log configuration for debugging
+        logger.debug('[Streaming] Created stream config:', {
+            nodeId,
+            isConnectedToEnd: streamConfig.configurable.isConnectedToEnd,
+            nodesConnectedToEnd
+        });
+
+        return streamConfig;
+    } catch (error) {
+        logger.error('[Streaming] Error creating stream config:', error);
+        // Return safe default config
+        return {
+            streamMode: "values",
+            version: "v1",
+            configurable: {
+                shouldStreamResponse: true,
+                isConnectedToEnd: false
+            }
+        };
     }
 }
