@@ -500,48 +500,68 @@ export const buildAgentGraph = async ({
                                         }
                                     })
                                 }
-                        // Handle streaming tokens
-                        if (output?.content && !output?.additional_kwargs?.tool_calls) {
-                            if (shouldStreamResponse && sseStreamer) {
-                                // Check if this is the final node
-                                const isConnectedToEnd = edges.some(edge => {
-                                    if (edge.source === nodeId) {
-                                        const endNode = initializedNodes.find(node => node.id === edge.target && node.data.name === 'seqEnd');
-                                        const nodeBeforeEnd = endNode ? initializedNodes.find(node => node.id === edge.source) : null;
-                                        return nodeBeforeEnd !== null;
+
+                                // Handle streaming tokens
+                                if (output?.content && !output?.additional_kwargs?.tool_calls) {
+                                    if (shouldStreamResponse && sseStreamer?.streamTokenEvent) {
+                                        // Check if this is the final node
+                                        const isConnectedToEnd = edges.some(edge => {
+                                            if (edge.source === nodeId) {
+                                                const endNode = initializedNodes.find(node => node.id === edge.target && node.data.name === 'seqEnd');
+                                                const nodeBeforeEnd = endNode ? initializedNodes.find(node => node.id === edge.source) : null;
+                                                return nodeBeforeEnd !== null;
+                                            }
+                                            return false;
+                                        });
+                                        
+                                        // First send the agentReasoningStart event
+                                        sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
+                                        
+                                        // Then start token streaming
+                                        if (!isStreamingStarted) {
+                                            isStreamingStarted = true
+                                            sseStreamer.streamTokenStartEvent(chatId)
+                                        }
+
+                                        // Set token type based on whether this is the final node
+                                        const tokenType = isConnectedToEnd ? 
+                                            TokenEventType.FINAL_RESPONSE : 
+                                            TokenEventType.AGENT_REASONING
+
+                                        sseStreamer.streamTokenEvent(chatId, output.content, tokenType)
                                     }
-                                    return false;
-                                });
-                                
-                                // First send the agentReasoningStart event
-                                sseStreamer.streamAgentReasoningStartEvent(chatId, isConnectedToEnd ? "startFinalResponseStream" : "")
-                                
-                                // Then start token streaming
-                                if (!isStreamingStarted) {
-                                    isStreamingStarted = true
-                                    sseStreamer.streamTokenStartEvent(chatId)
+                                    continue
                                 }
 
-                                // Set token type based on whether this is the final node
-                                const tokenType = isConnectedToEnd ? 
-                                    TokenEventType.FINAL_RESPONSE : 
-                                    TokenEventType.AGENT_REASONING
+                                // Handle tool calls
+                                if (output?.additional_kwargs?.tool_calls) {
+                                    if (shouldStreamResponse && sseStreamer?.streamToolEvent) {
+                                        // Stream tool start event
+                                        sseStreamer.streamToolEvent(chatId, {
+                                            tool: output.additional_kwargs.tool_calls[0].name,
+                                            status: 'start',
+                                            input: output.additional_kwargs.tool_calls[0].args,
+                                            type: TokenEventType.TOOL_RESPONSE
+                                        })
+                                    }
+                                    continue
+                                }
 
-                                sseStreamer.streamTokenEvent(chatId, output.content, tokenType)
-                            }
-                            continue
-                        }
-
-                        // Check for conditional edge
-                        if (output?.['conditionalEdge']) {
-                            logger.info(`[buildAgentGraph] Found conditional edge with next:`, output.next)
-                            if (shouldStreamResponse && sseStreamer) {
-                                logger.info(`[buildAgentGraph] Sending condition event for:`, output.next)
-                                sseStreamer.streamConditionEvent(chatId, output.next || '')
-                            }
-                        }
-
-                        
+                                // Handle tool output
+                                if (output?.additional_kwargs?.usedTools) {
+                                    if (shouldStreamResponse && sseStreamer?.streamToolEvent) {
+                                        const tools = output.additional_kwargs.usedTools
+                                        for (const tool of tools) {
+                                            // Stream tool end event with output
+                                            sseStreamer.streamToolEvent(chatId, {
+                                                output: tool.toolOutput,
+                                                status: 'end',
+                                                type: TokenEventType.TOOL_RESPONSE
+                                            })
+                                        }
+                                    }
+                                    continue
+                                }
 
                                 const reasoning = {
                                     agentName: mapNameToLabel[agentName].label,

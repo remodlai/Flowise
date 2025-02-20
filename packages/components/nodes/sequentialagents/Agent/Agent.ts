@@ -46,11 +46,14 @@ import {
     checkMessageHistory
 } from '../commonUtils'
 //@ts-ignore
-import { END, StateGraph } from '@langchain/langgraph'
+import { END, START, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { Document } from '@langchain/core/documents'
 import { Serialized } from '@langchain/core/load/serializable'
+import { v4 as uuidv4 } from 'uuid'
+import {concat} from "@langchain/core/utils/stream"
+import { ChatGenerationChunk } from '@langchain/core/outputs'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
@@ -532,14 +535,7 @@ class Agent_SeqAgents implements INode {
         }
 
         const workerNode = async (state: ISeqAgentsState, config: RunnableConfig) => {
-            // Pass isConnectedToEnd through config
-            // const updatedConfig = {
-            //     ...config,
-            //     configurable: {
-            //         ...(config.configurable || {}),
-            //         isConnectedToEnd
-            //     }
-            // }
+         
             return await agentNode(
                 {
                     state,
@@ -784,7 +780,7 @@ async function createAgent(
     }
 }
 
-async function agentNode(
+async function* agentNode(
     {
         state,
         llm,
@@ -820,31 +816,76 @@ async function agentNode(
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
-
-        // Execute agent with provided config - streaming handled by buildAgentGraph.ts
-        const result = await agent.invoke({ 
+        const {messages} = state
+        // Stream events from agent with proper config
+        const streamConfig = {
+            ...config,
+            version: "v1" ,
+            streamMode: "values"
+        }
+        const result = await agent.streamEvents({ 
             ...state,
             signal: abortControllerSignal.signal 
-        }, config)
+        }, streamConfig)
 
-        // Create final message with proper state handling
+        let collectedContent = ''
+        let collectedTools: IUsedTool[] = []
+        let collectedDocs: IDocument[] = []
+        let collectedArtifacts: ICommonObject[] = []
+        let toolCalls: any[] = []
+
+        // Pass through all events while collecting content
+        for await (const chunk of result) {
+            // Pass event directly up to buildAgentGraph
+            yield chunk
+
+            // Collect content and metadata from events
+            if (chunk.event === 'on_chat_model_stream') {
+                const content = chunk.data?.chunk?.content
+                if (content) collectedContent += content
+            } else if (chunk.event === 'on_tool_end') {
+                const toolData = chunk.data as { output: string; name: string; input: any }
+                if (toolData.output) {
+                    const tool = {
+                        tool: toolData.name,
+                        toolInput: toolData.input,
+                        toolOutput: toolData.output
+                    }
+                    collectedTools.push(tool)
+                }
+            } else if (chunk.event === 'on_tool_start') {
+                const toolData = chunk.data as { name: string; input: any; id?: string }
+                toolCalls.push({
+                    id: toolData.id || uuidv4(),
+                    name: toolData.name,
+                    args: toolData.input
+                })
+            }
+
+            // Handle source documents and artifacts if present in events
+            const eventData = chunk.data as { sourceDocuments?: IDocument[]; artifacts?: ICommonObject[] }
+            if (eventData.sourceDocuments) {
+                collectedDocs = collectedDocs.concat(eventData.sourceDocuments)
+            }
+            if (eventData.artifacts) {
+                collectedArtifacts = collectedArtifacts.concat(eventData.artifacts)
+            }
+        }
+
+        // After streaming complete, create final message with collected data
         const finalMessage = new AIMessage({
-            content: result.content || result.output || '',
+            content: collectedContent || '',
             name,
+            tool_calls: toolCalls.length ? toolCalls : undefined,
             additional_kwargs: {
                 nodeId: nodeData.id,
-                usedTools: result.usedTools || [],
-                sourceDocuments: result.sourceDocuments || [],
-                artifacts: result.artifacts || [],
-                state: {
-                    ...state,
-                    ...(result.state || {}),
-                    messages: state.messages
-                }
+                usedTools: collectedTools,
+                sourceDocuments: collectedDocs,
+                artifacts: collectedArtifacts
             }
         })
 
-        // Update state with both user message and final AI message
+        // Update state with final message
         state.messages = {
             value: state.messages.value,
             default: () => [...state.messages.default(), finalMessage]
@@ -852,12 +893,7 @@ async function agentNode(
 
         return {
             messages: [finalMessage],
-            state: {
-                ...state,
-                ...(result.state || {}),
-                messages: state.messages
-            },
-            next: result.next
+            state
         }
     } catch (error) {
         throw new Error(error)
