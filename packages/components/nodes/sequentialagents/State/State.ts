@@ -163,15 +163,29 @@ class State_SeqAgents implements INode {
                     const type = sch.type
                     const defaultValue = sch.defaultValue
 
+                    // Handle default value parsing
+                    let parsedDefaultValue
+                    try {
+                        // Try to parse as JSON if it looks like JSON
+                        if (defaultValue && (defaultValue.startsWith('{') || defaultValue.startsWith('['))) {
+                            parsedDefaultValue = JSON.parse(defaultValue)
+                        } else {
+                            parsedDefaultValue = defaultValue
+                        }
+                    } catch (e) {
+                        // If parsing fails, use raw value
+                        parsedDefaultValue = defaultValue
+                    }
+
                     if (type === 'Append') {
                         obj[key] = {
                             value: (x: any, y: any) => (Array.isArray(y) ? x.concat(y) : x.concat([y])),
-                            default: () => (defaultValue ? JSON.parse(defaultValue) : [])
+                            default: () => (parsedDefaultValue ? (Array.isArray(parsedDefaultValue) ? parsedDefaultValue : [parsedDefaultValue]) : [])
                         }
                     } else {
                         obj[key] = {
                             value: (x: any, y: any) => y ?? x,
-                            default: () => defaultValue
+                            default: () => parsedDefaultValue
                         }
                     }
                 }
