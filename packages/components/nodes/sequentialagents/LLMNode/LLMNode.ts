@@ -37,7 +37,8 @@ import {
     transformObjectPropertyToFunction,
     filterConversationHistory,
     restructureMessages,
-    checkMessageHistory
+    checkMessageHistory,
+    validateState
 } from '../commonUtils'
 import { ChatGoogleGenerativeAI } from '../../chatmodels/ChatGoogleGenerativeAI/FlowiseChatGoogleGenerativeAI'
 
@@ -591,18 +592,29 @@ async function agentNode(
             throw new Error('Aborted!')
         }
 
+        // Validate and initialize state
+        let validatedState = validateState(state)
+
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        // @ts-ignore
-        state.messages = filterConversationHistory(historySelection, input, state)
-        // @ts-ignore
-        state.messages = restructureMessages(llm, state)
+        const filteredMessages = filterConversationHistory(historySelection, input, validatedState)
+        const restructuredMessages = restructureMessages(llm, { 
+            messages: {
+                value: validatedState.messages.value,
+                default: () => filteredMessages
+            }
+        })
+
+        validatedState.messages = {
+            value: validatedState.messages.value,
+            default: () => restructuredMessages
+        }
 
         const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
         const sseStreamer = options.sseStreamer
         const chatId = options.chatId
 
         let result: ILLMNodeOutput | AIMessageChunk
-        let finalState = { ...state }
+        let finalState = { ...validatedState }
 
         if (shouldStream && sseStreamer) {
             let isStreamingStarted = false
@@ -615,7 +627,7 @@ async function agentNode(
             const initialReasoning = {
                 agentName: name,
                 messages: [],
-                state: state,
+                state: validatedState,
                 usedTools: [],
                 sourceDocuments: [],
                 artifacts: [],
@@ -661,8 +673,8 @@ async function agentNode(
 
             // Invoke the agent with streaming
             result = await agent.invoke({ 
-                ...state,
-                messages: state.messages,
+                ...validatedState,
+                messages: validatedState.messages.default(),
                 signal: abortControllerSignal.signal 
             }, streamConfig) as ILLMNodeOutput
 
@@ -679,7 +691,7 @@ async function agentNode(
             // Handle state memory updates
             let stateUpdate = {}
             if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
-                stateUpdate = await getReturnOutput(nodeData, input, options, result, state)
+                stateUpdate = await getReturnOutput(nodeData, input, options, result, validatedState)
                 finalState = { ...finalState, ...stateUpdate }
             }
 
@@ -732,8 +744,8 @@ async function agentNode(
         } else {
             // Non-streaming case
             result = await agent.invoke({ 
-                ...state,
-                messages: state.messages,
+                ...validatedState,
+                messages: validatedState.messages.default(),
                 signal: abortControllerSignal.signal 
             }, config) as ILLMNodeOutput
 
@@ -750,7 +762,7 @@ async function agentNode(
             // Handle state memory updates
             let stateUpdate = {}
             if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
-                stateUpdate = await getReturnOutput(nodeData, input, options, result, state)
+                stateUpdate = await getReturnOutput(nodeData, input, options, result, validatedState)
                 finalState = { ...finalState, ...stateUpdate }
             }
 

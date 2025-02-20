@@ -9,48 +9,93 @@ import { IStreamParams } from './types'
 export function createStreamingCallbacks(params: IStreamParams) {
     const { chatId, shouldStreamResponse, sseStreamer, isConnectedToEnd } = params;
     
+    let isStreamingStarted = false;
+    let currentNodeId = '';
+    let isCurrentNodeFinal = false;
+
     return BaseCallbackHandler.fromMethods({
-        handleLLMNewToken(token: string) {
-            if (shouldStreamResponse && sseStreamer) {
-                const tokenType = isConnectedToEnd ? 
-                    TokenEventType.FINAL_RESPONSE : 
-                    TokenEventType.AGENT_REASONING;
+        handleLLMNewToken(token: string, _idx: any, _runId: string, _parentRunId?: string, tags?: string[]) {
+            if (!shouldStreamResponse || !sseStreamer || !token.trim()) return;
+
+            // Extract node ID from metadata if available
+            const metadata = tags?.find(tag => tag.startsWith('nodeId:'))
+            if (metadata) {
+                currentNodeId = metadata.split(':')[1]
+                // Default to false if isConnectedToEnd is undefined
+                isCurrentNodeFinal = currentNodeId ? (isConnectedToEnd ?? false) : false
+            }
+
+            if (!isStreamingStarted) {
+                isStreamingStarted = true
+                sseStreamer.streamStartEvent(chatId, '')
+                sseStreamer.streamTokenStartEvent(chatId)
                 
-                sseStreamer.streamTokenEvent(chatId, token, tokenType);
+                // Send agentReasoningStart with proper flag before token streaming
+                sseStreamer.streamAgentReasoningStartEvent(chatId, isCurrentNodeFinal ? "startFinalResponseStream" : "")
+            }
+
+            // Set token type based on whether current node connects to end
+            const tokenType = isCurrentNodeFinal
+                ? TokenEventType.FINAL_RESPONSE 
+                : TokenEventType.AGENT_REASONING
+
+            sseStreamer.streamTokenEvent(chatId, token, tokenType)
+        },
+
+        handleLLMEnd() {
+            if (isStreamingStarted && shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamTokenEndEvent(chatId)
+                sseStreamer.streamAgentReasoningEndEvent(chatId)
+                isStreamingStarted = false
             }
         },
 
-        handleToolStart(tool: Serialized, input: string, runId: string) {
+        handleToolStart(tool: Serialized, input: string) {
             if (shouldStreamResponse && sseStreamer?.streamToolEvent) {
                 sseStreamer.streamToolEvent(chatId, {
                     tool: tool.toString(),
                     status: 'start',
                     input,
                     type: TokenEventType.TOOL_RESPONSE
-                });
+                })
             }
         },
 
-        handleToolEnd(output: string, runId: string) {
+        handleToolEnd(output: string) {
             if (shouldStreamResponse && sseStreamer?.streamToolEvent) {
                 sseStreamer.streamToolEvent(chatId, {
                     output,
                     status: 'end',
                     type: TokenEventType.TOOL_RESPONSE
-                });
+                })
+            }
+        },
+
+        handleChainStart() {
+            // Reset streaming state for new chain
+            isStreamingStarted = false
+            currentNodeId = ''
+            isCurrentNodeFinal = false
+        },
+
+        handleChainEnd() {
+            // Ensure token stream is properly ended
+            if (isStreamingStarted && shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamTokenEndEvent(chatId)
+                sseStreamer.streamAgentReasoningEndEvent(chatId)
+                isStreamingStarted = false
             }
         }
-    });
+    })
 }
 
 /**
  * Creates streaming configuration for the agent
  */
-export function createStreamConfig(config: any, version: "v1" | "v2" = "v1") {
+export function createStreamConfig(config: any) {
     return {
         ...config,
-        version,
         streamMode: "values",
-        encoding: "text/event-stream"
-    };
+        version: "v1"  // Explicitly set version to v1 as required by LangGraph
+    }
 }

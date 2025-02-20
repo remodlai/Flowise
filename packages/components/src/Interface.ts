@@ -223,6 +223,10 @@ export interface ISeqAgentsState {
         value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
         default: () => BaseMessage[]
     }
+    [key: string]: {
+        value: (x: any, y: any) => any
+        default: () => any
+    }
 }
 
 export interface IAgentReasoning {

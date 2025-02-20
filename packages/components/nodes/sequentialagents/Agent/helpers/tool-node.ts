@@ -1,5 +1,5 @@
 import { BaseMessage, AIMessage, ToolMessage } from '@langchain/core/messages'
-import { RunnableCallable } from '../../commonUtils'
+import { RunnableCallable, validateState } from '../../commonUtils'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { StructuredTool } from '@langchain/core/tools'
 import { INodeData, ICommonObject, IDocument, ISeqAgentsState, IStateWithMessages } from '../../../../src/Interface'
@@ -9,7 +9,7 @@ import { MessagesState } from '../../commonUtils'
 /**
  * Tool node implementation that handles tool execution and message processing
  */
-export class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState> {
+export class ToolNode extends RunnableCallable<BaseMessage[] | MessagesState, BaseMessage[] | ISeqAgentsState> {
     tools: StructuredTool[]
     nodeData: INodeData
     inputQuery: string
@@ -31,16 +31,32 @@ export class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState>
         this.options = options
     }
 
-    private async run(input: BaseMessage[] | MessagesState, config: RunnableConfig): Promise<BaseMessage[] | MessagesState> {
+    private async run(input: BaseMessage[] | MessagesState, config: RunnableConfig): Promise<BaseMessage[] | ISeqAgentsState> {
         let messages: BaseMessage[]
+        let state: ISeqAgentsState | undefined
 
-        // Handle different input types
+        // Handle different input types and validate state
         if (Array.isArray(input)) {
             messages = input
+            state = validateState({} as ISeqAgentsState)
         } else if ((input as IStateWithMessages).messages) {
-            messages = (input as IStateWithMessages).messages
+            const inputState = input as IStateWithMessages
+            messages = inputState.messages
+            const { messages: _, ...rest } = inputState
+            state = validateState({ ...rest } as ISeqAgentsState)
         } else {
-            messages = (input as MessagesState).messages
+            const inputState = input as MessagesState
+            messages = inputState.messages
+            const { messages: _, ...rest } = inputState
+            state = validateState({ ...rest } as ISeqAgentsState)
+        }
+
+        // Ensure state has proper messages structure
+        if (state) {
+            state.messages = {
+                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+                default: () => messages
+            }
         }
 
         // Get the last message
@@ -125,6 +141,17 @@ export class ToolNode extends RunnableCallable<ISeqAgentsState, ISeqAgentsState>
         })
 
         // Return appropriate format based on input type
-        return Array.isArray(input) ? outputs : { messages: outputs }
+        if (Array.isArray(input)) {
+            return outputs;
+        }
+
+        // Return state with updated messages
+        return {
+            ...state,
+            messages: {
+                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
+                default: () => outputs
+            }
+        } as ISeqAgentsState;
     }
 }

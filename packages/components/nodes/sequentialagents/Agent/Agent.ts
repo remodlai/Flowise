@@ -492,12 +492,12 @@ class Agent_SeqAgents implements INode {
         isConnectedToEnd?: boolean,
         flowObj?: { sessionId?: string; chatId?: string; input?: string }
     ): Promise<any> {
-        // Create streaming callbacks
+        // Create streaming callbacks with default false for isConnectedToEnd if undefined
         const streamCallbacks = createStreamingCallbacks({
             chatId: options.chatId,
             shouldStreamResponse: options.shouldStreamResponse,
             sseStreamer: options.sseStreamer,
-            isConnectedToEnd
+            isConnectedToEnd: isConnectedToEnd ?? false
         })
 
         if (tools.length && !interrupt) {

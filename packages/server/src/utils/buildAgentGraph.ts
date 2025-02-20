@@ -993,14 +993,27 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         }
     }
 
-    // Get state
-    const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-    if (seqStateNode) {
-        channels = {
-            ...seqStateNode.data.instance.node,
-            ...channels
+// Get state from seqState node and properly merge channels
+const seqStateNode = reactFlowNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
+if (seqStateNode) {
+    // Properly merge state channels preserving reducers
+    Object.entries(seqStateNode.data.instance.node).forEach(([key, value]: [string, any]) => {
+        if (key === 'messages' && channels.messages) {
+            // Special handling for messages to preserve existing reducer
+            if (value && typeof value.default === 'function') {
+                channels.messages = {
+                    value: channels.messages.value,
+                    default: value.default
+                };
+            }
+        } else if (value && typeof value.value === 'function' && typeof value.default === 'function') {
+            channels[key] = {
+                value: value.value,
+                default: value.default
+            };
         }
-    }
+    });
+}
 
     let seqGraph = new StateGraph<any>({
         //@ts-ignore
@@ -1399,13 +1412,14 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
 
                 return BaseCallbackHandler.fromMethods({
                     handleLLMNewToken(token: string, _idx: any, _runId: string, _parentRunId?: string, tags?: string[]) {
-                        if (!token.trim()) return;
+                        if (!shouldStreamResponse || !sseStreamer || !token.trim()) return;
 
                         // Extract node ID from metadata if available
                         const metadata = tags?.find(tag => tag.startsWith('nodeId:'))
                         if (metadata) {
                             currentNodeId = metadata.split(':')[1]
-                            isCurrentNodeFinal = nodesConnectedToEnd.has(currentNodeId)
+                            // Only update isCurrentNodeFinal if we have a valid currentNodeId
+                            isCurrentNodeFinal = currentNodeId ? nodesConnectedToEnd.has(currentNodeId) : false
                         }
 
                         if (!isStreamingStarted) {

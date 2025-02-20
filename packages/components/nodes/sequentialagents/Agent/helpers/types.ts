@@ -11,13 +11,15 @@ export interface IStreamConfig extends RunnableConfig {
         nodeId?: string;
     };
     callbacks?: BaseCallbackHandler[];
+    version?: "v1" | "v2";  // Only v1 and v2 are supported
+    streamMode?: "values";  // Values mode for streaming
 }
 
 export interface IStreamParams {
     chatId: string;
     shouldStreamResponse: boolean;
     sseStreamer: IServerSideEventStreamer;
-    isConnectedToEnd?: boolean;
+    isConnectedToEnd?: boolean;  // Keep optional but handle properly in implementation
 }
 
 export interface IAgentParams {

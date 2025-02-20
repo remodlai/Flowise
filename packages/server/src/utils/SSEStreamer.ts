@@ -64,7 +64,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
         if (client && !client.started) {
             const clientResponse = {
                 event: 'start',
-                data: `Starting stream for ${chatId} with data: ${JSON.stringify(data)}`
+                data: data
             }
             const sseMessage = 'message:\ndata:' + JSON.stringify(clientResponse) + '\n\n'
             logger.info(`[SSEStreamer] Final SSE message being sent:`, sseMessage)
@@ -77,11 +77,11 @@ export class SSEStreamer implements IServerSideEventStreamer {
 
     streamTokenEvent(chatId: string, data: string, type?: TokenEventType): void {
         const client = this.clients[chatId]
-        if (client) {
+        if (client && data?.trim()) {
             const clientResponse = {
                 event: 'token',
                 data: data,
-                type: type || TokenEventType.AGENT_REASONING // Default to agent reasoning if not specified
+                type: type || TokenEventType.AGENT_REASONING
             }
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
@@ -97,6 +97,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
+
     streamArtifactsEvent(chatId: string, data: any) {
         const client = this.clients[chatId]
         if (client) {
@@ -107,6 +108,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
+
     streamUsedToolsEvent(chatId: string, data: any): void {
         const client = this.clients[chatId]
         if (client) {
@@ -117,6 +119,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
+
     streamFileAnnotationsEvent(chatId: string, data: any): void {
         const client = this.clients[chatId]
         if (client) {
@@ -127,6 +130,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
+
     streamToolEvent(chatId: string, data: any): void {
         const client = this.clients[chatId]
         if (client) {
@@ -137,6 +141,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
+
     streamAgentReasoningEvent(chatId: string, data: any): void {
         const client = this.clients[chatId]
         if (client) {
@@ -147,6 +152,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
+
     streamNextAgentEvent(chatId: string, data: any): void {
         const client = this.clients[chatId]
         if (client) {
@@ -157,6 +163,7 @@ export class SSEStreamer implements IServerSideEventStreamer {
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }
     }
+
     streamActionEvent(chatId: string, data: any): void {
         const client = this.clients[chatId]
         if (client) {
@@ -179,8 +186,15 @@ export class SSEStreamer implements IServerSideEventStreamer {
         }
     }
 
-    streamEndEvent(_: string) {
-        // placeholder for future use
+    streamEndEvent(chatId: string) {
+        const client = this.clients[chatId]
+        if (client) {
+            const clientResponse = {
+                event: 'end',
+                data: '[DONE]'
+            }
+            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+        }
     }
 
     streamErrorEvent(chatId: string, msg: string) {
