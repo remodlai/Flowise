@@ -1,5 +1,25 @@
 # Changelog
 
+## [2025-02-20] Streaming Configuration Improvements
+
+### Added
+- Consistent streaming configuration across all components
+- Proper version handling for LangGraph compatibility
+- Enhanced stream mode configuration
+- Improved streaming callback configuration
+
+### Changed
+- Standardized streaming configuration structure
+- Updated streaming callback initialization
+- Improved version handling in stream events
+- Enhanced config merging strategy
+
+### Fixed
+- LangGraph version compatibility issues
+- Stream configuration inconsistencies
+- Token streaming version errors
+- Config propagation issues
+
 ## [2025-02-20] Streaming Improvements
 
 ### Added

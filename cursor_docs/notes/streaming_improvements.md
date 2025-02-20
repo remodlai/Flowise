@@ -2,7 +2,52 @@
 
 ## Overview
 
-Recent improvements to token streaming and Server-Sent Events (SSE) handling focus on ensuring proper token type handling, consistent message formatting, and robust state management during streaming operations.
+Recent improvements to token streaming and Server-Sent Events (SSE) handling focus on ensuring proper token type handling, consistent message formatting, robust state management, and standardized configuration across all streaming operations.
+
+## Configuration Improvements
+
+### Standardized Configuration Structure
+```typescript
+interface IStreamConfig {
+    version: "v1" | "v2";  // Only v1 and v2 are supported
+    streamMode: "values";  // Values mode for streaming
+    configurable: {
+        shouldStreamResponse: boolean;
+    };
+}
+```
+
+### Configuration Management
+1. **Base Configuration**
+```typescript
+const baseConfig = {
+    version: "v1",
+    streamMode: "values",
+    configurable: {
+        shouldStreamResponse: true
+    }
+};
+```
+
+2. **Callback Integration**
+```typescript
+const finalConfig = {
+    ...baseConfig,
+    callbacks: [streamCallbacks],
+    metadata: { sequentialNodeName: agentName }
+};
+```
+
+### Version Handling
+- Consistent version "v1" across all components
+- Proper version validation in stream events
+- Standardized version configuration
+
+### Benefits
+- LangGraph compatibility
+- Consistent streaming behavior
+- Proper version handling
+- Improved error prevention
 
 ## Key Improvements
 

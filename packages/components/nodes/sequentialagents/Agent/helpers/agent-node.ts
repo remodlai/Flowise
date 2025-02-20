@@ -87,22 +87,35 @@ export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
         // Get event stream from agent using initialized state
         let eventStream;
         try {
-            // Create stream config with proper version
-            const streamEventConfig = {
-                ...streamConfig,
-                version: "v1",
-                streamMode: "values"
-            };
+            try {
+                // Create stream config with proper version and mode
+                const streamEventConfig = {
+                    version: "v1",
+                    streamMode: "values",
+                    configurable: {
+                        shouldStreamResponse: streamConfig?.configurable?.shouldStreamResponse ?? true
+                    },
+                    callbacks: streamConfig?.callbacks,
+                    metadata: streamConfig?.metadata
+                };
 
-            // Get event stream with proper input format
-            eventStream = await agent.streamEvents(
-                { messages: initializedState.messages.default() },
-                streamEventConfig
-            );
+                // Get event stream with proper input format
+                eventStream = await agent.streamEvents(
+                    { messages: initializedState.messages.default() },
+                    streamEventConfig
+                );
 
-            // Validate event stream before proceeding
-            if (!eventStream) {
-                throw new Error("Failed to create event stream: Stream is undefined");
+                // Validate event stream before proceeding
+                if (!eventStream) {
+                    throw new Error("Failed to create event stream: Stream is undefined");
+                }
+            } catch (error) {
+                logger.error('[Agent Node] Stream creation error:', {
+                    nodeName: name,
+                    nodeId: nodeData.id,
+                    error: error.message || error
+                });
+                throw error;
             }
         } catch (error) {
             throw new Error(`Failed to create event stream: ${error}`);
@@ -112,15 +125,26 @@ export async function* agentNode(params: IAgentParams, config: IStreamConfig) {
         try {
             for await (const event of eventStream) {
                 try {
-                    // Pass through event
-                    yield event;
-
-                    if (!event?.event) {
-                        continue; // Skip invalid events
+                    // Validate event before processing
+                    if (!event || typeof event !== 'object') {
+                        logger.warn('[Agent Node] Invalid event received:', {
+                            nodeName: name,
+                            nodeId: nodeData.id,
+                            event
+                        });
+                        continue;
                     }
 
+                    // Pass through valid event
+                    yield event;
+
                     // Handle different event types
-                    switch (event.event) {
+                    const eventType = event.event;
+                    if (!eventType) {
+                        continue; // Skip events without type
+                    }
+
+                    switch (eventType) {
                         case 'on_llm_stream': {
                             const chunk = event.data?.chunk as Generation;
                             const text = typeof chunk === 'string' ? chunk : chunk?.text;

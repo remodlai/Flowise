@@ -399,24 +399,7 @@ export const buildAgentGraph = async ({
                     for await (const output of streamResults) {
                         logger.info(`[buildAgentGraph] Processing sequential output:`, output)
 
-                        // Check for __start__ node with content
-                        // if (output?.['__start__']?.messages && !startEventSent) {
-                        //     logger.info(`[buildAgentGraph] Found sequential __start__ node with messages:`, output['__start__'].messages)
-                        //     if (shouldStreamResponse && sseStreamer) {
-                        //         const seqStateNode = initializedNodes.find((node: IReactFlowNode) => node.data.name === 'seqState')
-                        //         const startReasoning: IAgentReasoning[] = [{
-                        //             agentName: 'Start',
-                        //             messages: [incomingInput.question],
-                        //             state: seqStateNode?.data?.instance?.node ?? {},
-                        //             usedTools: [],
-                        //             sourceDocuments: [],
-                        //             artifacts: []
-                        //         }]
-                        //         logger.info(`[buildAgentGraph] Sending sequential start event with data:`, startReasoning)
-                        //         sseStreamer.streamStartEvent(chatId, startReasoning)
-                        //         startEventSent = true
-                        //     }
-                        // }
+                       
                         if (!output?.__end__) {
                             for (const agentName of Object.keys(output)) {
                                 if (!mapNameToLabel[agentName]) continue

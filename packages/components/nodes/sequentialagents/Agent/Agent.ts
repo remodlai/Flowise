@@ -492,13 +492,30 @@ class Agent_SeqAgents implements INode {
         isConnectedToEnd?: boolean,
         flowObj?: { sessionId?: string; chatId?: string; input?: string }
     ): Promise<any> {
-        // Create streaming callbacks with default false for isConnectedToEnd if undefined
-        const streamCallbacks = createStreamingCallbacks({
+        // Create streaming configuration
+        const streamConfig = {
             chatId: options.chatId,
-            shouldStreamResponse: options.shouldStreamResponse,
+            shouldStreamResponse: options.shouldStreamResponse ?? true,
             sseStreamer: options.sseStreamer,
             isConnectedToEnd: isConnectedToEnd ?? false
-        })
+        };
+
+        // Create streaming callbacks with validated config
+        const streamCallbacks = createStreamingCallbacks(streamConfig);
+
+        // Create base config with proper version and mode
+        const baseConfig = {
+            version: "v1",
+            streamMode: "values",
+            configurable: {
+                shouldStreamResponse: streamConfig.shouldStreamResponse
+            },
+            callbacks: [streamCallbacks],
+            metadata: { sequentialNodeName: agentName }
+        };
+
+        // Use base config for all agent operations
+        const agentConfig = baseConfig;
 
         if (tools.length && !interrupt) {
             // Create message templates
