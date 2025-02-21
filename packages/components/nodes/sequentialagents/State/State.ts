@@ -107,13 +107,15 @@ class State_SeqAgents implements INode {
 
         if (stateMemory && stateMemory !== 'stateMemoryUI' && stateMemory !== 'stateMemoryCode') {
             try {
+                const parsedSchemaFromUI = typeof stateMemoryUI === 'string' ? JSON.parse(stateMemoryUI) : stateMemoryUI
                 const parsedSchema = typeof stateMemory === 'string' ? JSON.parse(stateMemory) : stateMemory
+                const combinedMemorySchema = [...parsedSchemaFromUI, ...parsedSchema]
                 const obj: ICommonObject = {}
-                for (const sch of parsedSchema) {
-                    const key = sch.Key
+                for (const sch of combinedMemorySchema) {
+                    const key = sch.Key ?? sch.key
                     if (!key) throw new Error(`Key is required`)
-                    const type = sch.Operation
-                    const defaultValue = sch['Default Value']
+                    const type = sch.Operation ?? sch.type
+                    const defaultValue = sch['Default Value'] ?? sch.defaultValue
 
                     if (type === 'Append') {
                         obj[key] = {
@@ -163,29 +165,15 @@ class State_SeqAgents implements INode {
                     const type = sch.type
                     const defaultValue = sch.defaultValue
 
-                    // Handle default value parsing
-                    let parsedDefaultValue
-                    try {
-                        // Try to parse as JSON if it looks like JSON
-                        if (defaultValue && (defaultValue.startsWith('{') || defaultValue.startsWith('['))) {
-                            parsedDefaultValue = JSON.parse(defaultValue)
-                        } else {
-                            parsedDefaultValue = defaultValue
-                        }
-                    } catch (e) {
-                        // If parsing fails, use raw value
-                        parsedDefaultValue = defaultValue
-                    }
-
                     if (type === 'Append') {
                         obj[key] = {
                             value: (x: any, y: any) => (Array.isArray(y) ? x.concat(y) : x.concat([y])),
-                            default: () => (parsedDefaultValue ? (Array.isArray(parsedDefaultValue) ? parsedDefaultValue : [parsedDefaultValue]) : [])
+                            default: () => (defaultValue ? JSON.parse(defaultValue) : [])
                         }
                     } else {
                         obj[key] = {
                             value: (x: any, y: any) => y ?? x,
-                            default: () => parsedDefaultValue
+                            default: () => defaultValue
                         }
                     }
                 }

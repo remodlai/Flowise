@@ -484,7 +484,7 @@ class Agent_SeqAgents implements INode {
             llm,
             startLLM,
             output,
-            nextNodeName: isConnectedToEnd ? 'END' : undefined,
+            //nextNodeName: isConnectedToEnd ? 'END' : undefined,
             predecessorAgents: sequentialNodes,
             multiModalMessageContent,
             moderations: sequentialNodes[0]?.moderations,

@@ -1,7 +1,7 @@
 import { AIMessage, BaseMessage } from '@langchain/core/messages'
 import { ChatGenerationChunk, Generation } from '@langchain/core/outputs'
-import { IDocument, IUsedTool, ICommonObject, ISeqAgentsState } from '../../../../src/Interface'
-import { filterConversationHistory, restructureMessages, initializeState, validateState } from '../../commonUtils'
+import { IDocument, IUsedTool, ICommonObject, ISeqAgentsState, ConversationHistorySelection } from '../../../../src/Interface'
+import { filterConversationHistory, restructureMessages } from '../../commonUtils'
 import { v4 as uuidv4 } from 'uuid'
 import { IAgentParams, IStreamConfig, IAgentEvent } from './types'
 import { createStreamConfig } from './streaming'
@@ -14,21 +14,7 @@ import logger from '../../../../src/utils/logger'
  * - Tool execution
  * - State management
  */
-const handleStateError = (error: any, context: any) => {
-    logger.error('[Agent Node] State Error:', {
-        ...context,
-        error: error.message || error,
-        stack: error.stack
-    });
-    
-    // Return safe default state
-    return {
-        messages: {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-            default: () => []
-        }
-    };
-};
+
 
 export async function* agentNode(
     params: IAgentParams,
@@ -38,20 +24,22 @@ export async function* agentNode(
     
     try {
         // Initialize and validate state structure
-        let initializedState = validateState(state);
+       =
         
         try {
             // Process message history
-            const historySelection = nodeData.inputs?.conversationHistorySelection || 'all_messages';
-            const filteredMessages = filterConversationHistory(historySelection, options.input, initializedState);
+            const historySelection = nodeData.inputs?.conversationHistorySelection || 'all_messages' as ConversationHistorySelection
+
+            state.messages = filterConversationHistory(historySelection, options.input, state);
+            const filteredMessages = filterConversationHistory(historySelection, options.input, state);
             
             // Get existing messages from state
-            const existingMessages = initializedState.messages.default();
+            const existingMessages = state.messages.default();
             
             // Restructure and combine messages
             const restructuredMessages = restructureMessages(params.llm, { 
                 messages: {
-                    value: initializedState.messages.value,
+                    value: state.messages.value,
                     default: () => filteredMessages
                 }
             });
@@ -60,8 +48,8 @@ export async function* agentNode(
             const combinedMessages = [...existingMessages, ...restructuredMessages];
             
             // Update state's messages while preserving the reducer
-            initializedState.messages = {
-                value: initializedState.messages.value,
+            state.messages = {
+                value: state.messages.value,
                 default: () => combinedMessages
             };
         } catch (stateError) {
@@ -70,11 +58,7 @@ export async function* agentNode(
                 nodeId: nodeData.id,
                 error: stateError.message || stateError
             });
-            initializedState = handleStateError(stateError, {
-                nodeName: name,
-                nodeId: nodeData.id,
-                state: initializedState
-            });
+           
         }
 
         // Setup streaming configuration
@@ -116,7 +100,8 @@ export async function* agentNode(
                 };
 
                 // Get event stream with proper input format and validation
-                const messages = initializedState.messages.default();
+                const messages = state.messages as unknown as BaseMessage[]
+                const lastMessage = messages[messages.length - 1] as AIMessage
                 if (!Array.isArray(messages)) {
                     throw new Error('Invalid messages array in state');
                 }
@@ -345,7 +330,8 @@ export async function* agentNode(
                 usedTools: collectedTools,
                 sourceDocuments: collectedDocs,
                 artifacts: collectedArtifacts,
-                state: initializedState // Include current state for context
+                state,
+                vars: prepareSandboxVars(variables)
             }
         });
 

@@ -8,7 +8,7 @@ import { ChatAnthropic } from '@langchain/anthropic'
 import { Runnable, RunnableConfig, mergeConfigs } from '@langchain/core/runnables'
 import { AIMessage, BaseMessage, HumanMessage, MessageContentImageUrl, ToolMessage } from '@langchain/core/messages'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { Document } from '@langchain/core/documents'
+
 import { addImagesToMessages, llmSupportsVision } from '../../src/multiModalUtils'
 import {
     ICommonObject,
@@ -17,7 +17,7 @@ import {
     ISeqAgentsState,
     IVisionChatModal,
     ConversationHistorySelection,
-    IUsedTool
+
 } from '../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
@@ -88,53 +88,17 @@ export const checkCondition = (input: string | number | undefined, condition: st
     }
 }
 
-export const validateState = (state: ISeqAgentsState): ISeqAgentsState => {
-    if (!state) {
-        return {
-            messages: {
-                value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-                default: () => []
-            }
-        };
-    }
-
-    // Ensure each state property has value and default functions
-    Object.keys(state).forEach(key => {
-        if (!state[key]?.value || !state[key]?.default) {
-            const currentValue = state[key];
-            state[key] = {
-                value: (x: any, y: any) => y ?? x,
-                default: () => currentValue
-            };
-        }
-    });
-
-    return state;
-}
-
-export const initializeState = (state: ISeqAgentsState): ISeqAgentsState => {
-    if (!state?.messages?.default) {
-        state.messages = {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-            default: () => []
-        };
-    }
-    return validateState(state);
-}
 
 export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISeqAgentsState) => {
-    // Ensure state is properly initialized
-    state = initializeState(state);
-    
     const transformedObject: ICommonObject = {}
+
     for (const key in obj) {
         let value = obj[key]
         // get message from agent
         try {
             const parsedValue = JSON.parse(value)
             if (typeof parsedValue === 'object' && parsedValue.id) {
-                const messages = state.messages?.default?.() ?? [];
-                const messageOutputs = messages.filter(
+                const messageOutputs = ((state.messages as unknown as BaseMessage[]) ?? []).filter(
                     (message) => message.additional_kwargs && message.additional_kwargs?.nodeId === parsedValue.id
                 )
                 const messageOutput = messageOutputs[messageOutputs.length - 1]
@@ -293,26 +257,17 @@ export function filterConversationHistory(
     input: string,
     state: ISeqAgentsState
 ): BaseMessage[] {
-    // Ensure state.messages exists and has proper structure
-    if (!state?.messages?.default) {
-        state.messages = {
-            value: (x: BaseMessage[], y: BaseMessage[]) => x.concat(y),
-            default: () => []
-        };
-    }
-
-    // Get actual messages array using default()
-    const messages = state.messages.default();
-
     switch (historySelection) {
         case 'user_question':
             return [new HumanMessage(input)]
         case 'last_message':
-            return messages.length ? [messages[messages.length - 1]] : []
+            // @ts-ignore
+            return state.messages?.length ? [state.messages[state.messages.length - 1] as BaseMessage] : []
         case 'empty':
             return []
         case 'all_messages':
-            return messages
+            // @ts-ignore
+            return (state.messages as BaseMessage[]) ?? []
         default:
             throw new Error(`Unhandled conversationHistorySelection: ${historySelection}`)
     }
@@ -320,9 +275,7 @@ export function filterConversationHistory(
 
 export const restructureMessages = (llm: BaseChatModel, state: ISeqAgentsState) => {
     const messages: BaseMessage[] = []
-    // Get actual messages array using default()
-    const stateMessages = state.messages?.default?.() ?? [];
-    for (const message of stateMessages) {
+    for (const message of state.messages as unknown as BaseMessage[]) {
         // Sometimes Anthropic can return a message with content types of array, ignore that EXECEPT when tool calls are present
         if ((message as any).tool_calls?.length && message.content !== '') {
             message.content = JSON.stringify(message.content)
@@ -409,10 +362,7 @@ export interface RunnableCallableArgs extends Partial<any> {
 
 export interface MessagesState {
     messages: BaseMessage[]
-    sourceDocuments?: Document[]
-    artifacts?: ICommonObject[]
-    usedTools?: IUsedTool[]
-    [key: string]: any
+
 }
 
 export class RunnableCallable<I = unknown, O = unknown> extends Runnable<I, O> {

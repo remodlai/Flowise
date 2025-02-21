@@ -202,7 +202,7 @@ export interface ISeqAgentNode {
     moderations?: Moderation[]
     multiModalMessageContent?: MessageContentImageUrl[]
     checkpointMemory?: any
-    nextNodeName?: string
+    //nextNodeName?: string
     agentInterruptToolNode?: any
     agentInterruptToolFunc?: any
 }
@@ -223,10 +223,10 @@ export interface ISeqAgentsState {
         value: (x: BaseMessage[], y: BaseMessage[]) => BaseMessage[]
         default: () => BaseMessage[]
     }
-    [key: string]: {
-        value: (x: any, y: any) => any
-        default: () => any
-    }
+    // [key: string]: {
+    //     value: (x: any, y: any) => any
+    //     default: () => any
+    // }
 }
 
 export interface IAgentReasoning {
@@ -236,10 +236,10 @@ export interface IAgentReasoning {
     instructions?: string
     usedTools?: IUsedTool[]
     sourceDocuments?: IDocument[]
-    artifacts?: ICommonObject[]
+    //artifacts?: ICommonObject[]
     state?: ICommonObject
     nodeName?: string
-    nodeId?: string
+    //nodeId?: string
 }
 
 export interface IAction {
