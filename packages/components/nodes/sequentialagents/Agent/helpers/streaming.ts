@@ -45,9 +45,10 @@ export function createAgentStreamingCallbacks(params: IStreamParams) {
                     // Determine if this is a final node
                     isCurrentNodeFinal = Boolean(currentNodeId && isConnectedToEnd);
                 } catch (metadataError) {
+                    const error = metadataError as Error;
                     logger.error('[Streaming] Error processing metadata:', {
                         tags,
-                        error: metadataError.message || metadataError
+                        error: error.message || String(error)
                     });
                     // Use safe defaults
                     currentNodeId = '';
@@ -64,10 +65,11 @@ export function createAgentStreamingCallbacks(params: IStreamParams) {
                         // Send agentReasoningStart with proper flag before token streaming
                         sseStreamer.streamAgentReasoningStartEvent(chatId, isCurrentNodeFinal ? "startFinalResponseStream" : "")
                     } catch (error) {
-                        logger.error('[Streaming] Failed to initialize stream:', {
-                            chatId,
-                            error: error.message || error
-                        });
+                    const err = error as Error;
+                    logger.error('[Streaming] Failed to initialize stream:', {
+                        chatId,
+                        error: err.message || String(err)
+                    });
                         return;
                     }
                 }
@@ -81,16 +83,18 @@ export function createAgentStreamingCallbacks(params: IStreamParams) {
                 try {
                     sseStreamer.streamTokenEvent(chatId, trimmedToken, tokenType)
                 } catch (error) {
+                    const err = error as Error;
                     logger.error('[Streaming] Failed to stream token:', {
                         chatId,
                         tokenType,
-                        error: error.message || error
+                        error: err.message || String(err)
                     });
                 }
             } catch (error) {
+                const err = error as Error;
                 logger.error('[Streaming] Token handling error:', {
                     chatId,
-                    error: error.message || error
+                    error: err.message || String(err)
                 });
             }
         },

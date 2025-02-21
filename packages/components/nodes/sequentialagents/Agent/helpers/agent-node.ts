@@ -13,7 +13,7 @@ import {
     filterConversationHistory, 
     restructureMessages 
 } from '../../commonUtils'
-import { createAgentStreamingCallbacks } from '../../../../src/Interface'
+import { createAgentStreamingCallbacks } from './streaming'
 
 interface AgentNodeParams {
     state: ISeqAgentsState
