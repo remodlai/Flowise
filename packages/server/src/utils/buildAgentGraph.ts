@@ -14,7 +14,7 @@ import {
     INodeData,
     TokenEventType
 } from 'flowise-components'
-import { createAgentStreamingCallbacks } from 'flowise-components'
+import { createAgentStreamingCallbacks } from 'flowise-components/src/Interface'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
 import { Document } from '@langchain/core/documents'
