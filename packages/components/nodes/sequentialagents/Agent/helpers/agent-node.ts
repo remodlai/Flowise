@@ -13,7 +13,7 @@ import {
     filterConversationHistory, 
     restructureMessages 
 } from '../../commonUtils'
-import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
+import { createAgentStreamingCallbacks } from '../../../../src/Interface'
 
 interface AgentNodeParams {
     state: ISeqAgentsState

@@ -44,13 +44,10 @@ export function createAgentStreamingCallbacks(params: IStreamParams) {
 
                     // Determine if this is a final node
                     isCurrentNodeFinal = Boolean(currentNodeId && isConnectedToEnd);
-                } catch (metadataError: unknown) {
-                    const errorMessage = metadataError instanceof Error ? 
-                        metadataError.message : 
-                        String(metadataError);
+                } catch (metadataError) {
                     logger.error('[Streaming] Error processing metadata:', {
                         tags,
-                        error: errorMessage
+                        error: metadataError.message || metadataError
                     });
                     // Use safe defaults
                     currentNodeId = '';
@@ -66,13 +63,10 @@ export function createAgentStreamingCallbacks(params: IStreamParams) {
                         
                         // Send agentReasoningStart with proper flag before token streaming
                         sseStreamer.streamAgentReasoningStartEvent(chatId, isCurrentNodeFinal ? "startFinalResponseStream" : "")
-                    } catch (error: unknown) {
-                        const errorMessage = error instanceof Error ? 
-                            error.message : 
-                            String(error);
+                    } catch (error) {
                         logger.error('[Streaming] Failed to initialize stream:', {
                             chatId,
-                            error: errorMessage
+                            error: error.message || error
                         });
                         return;
                     }
@@ -86,23 +80,17 @@ export function createAgentStreamingCallbacks(params: IStreamParams) {
                 // Stream token with error handling
                 try {
                     sseStreamer.streamTokenEvent(chatId, trimmedToken, tokenType)
-                } catch (error: unknown) {
-                    const errorMessage = error instanceof Error ? 
-                        error.message : 
-                        String(error);
+                } catch (error) {
                     logger.error('[Streaming] Failed to stream token:', {
                         chatId,
                         tokenType,
-                        error: errorMessage
+                        error: error.message || error
                     });
                 }
-            } catch (error: unknown) {
-                const errorMessage = error instanceof Error ? 
-                    error.message : 
-                    String(error);
+            } catch (error) {
                 logger.error('[Streaming] Token handling error:', {
                     chatId,
-                    error: errorMessage
+                    error: error.message || error
                 });
             }
         },

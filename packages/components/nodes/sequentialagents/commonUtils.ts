@@ -17,6 +17,7 @@ import {
     ISeqAgentsState,
     IVisionChatModal,
     ConversationHistorySelection,
+
 } from '../../src/Interface'
 import { availableDependencies, defaultAllowBuiltInDep, getVars, prepareSandboxVars } from '../../src/utils'
 import { ChatPromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
@@ -87,6 +88,7 @@ export const checkCondition = (input: string | number | undefined, condition: st
     }
 }
 
+
 export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISeqAgentsState) => {
     const transformedObject: ICommonObject = {}
 
@@ -120,9 +122,8 @@ export const transformObjectPropertyToFunction = (obj: ICommonObject, state: ISe
                     }
                 }
             }
-        } catch (e: unknown) {
-            // Log error but continue
-            console.debug('[transformObjectPropertyToFunction] Parse error:', e instanceof Error ? e.message : String(e))
+        } catch (e) {
+            // do nothing
         }
         // get state value
         if (value.startsWith('$flow.state')) {
@@ -239,9 +240,8 @@ export const convertStructuredSchemaToZod = (schema: string | object): ICommonOb
             }
         }
         return zodObj
-    } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : String(e)
-        throw new Error(errorMessage)
+    } catch (e) {
+        throw new Error(e)
     }
 }
 
@@ -362,6 +362,7 @@ export interface RunnableCallableArgs extends Partial<any> {
 
 export interface MessagesState {
     messages: BaseMessage[]
+
 }
 
 export class RunnableCallable<I = unknown, O = unknown> extends Runnable<I, O> {
@@ -434,9 +435,8 @@ export const checkMessageHistory = async (
                 promptArrays.unshift(...response)
             }
             prompt = ChatPromptTemplate.fromMessages(promptArrays)
-        } catch (e: unknown) {
-            const errorMessage = e instanceof Error ? e.message : String(e)
-            throw new Error(errorMessage)
+        } catch (e) {
+            throw new Error(e)
         }
     }
 
