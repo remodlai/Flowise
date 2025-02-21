@@ -2,58 +2,68 @@
 
 ## Overview
 
-Recent improvements to token streaming and Server-Sent Events (SSE) handling focus on ensuring proper token type handling, consistent message formatting, robust state management, and standardized configuration across all streaming operations.
+Recent improvements to token streaming and Server-Sent Events (SSE) handling focus on ensuring proper token type handling, consistent message formatting, and robust state management. The key enhancement is the ability to differentiate between agent reasoning and final response tokens based on node connections.
 
-## Configuration Improvements
+## Latest Agent Node Streaming
 
-### Standardized Configuration Structure
+### Token Type Differentiation
+
+1. **Node Context Awareness**
 ```typescript
-interface IStreamConfig {
-    version: "v1" | "v2";  // Only v1 and v2 are supported
-    streamMode: "values";  // Values mode for streaming
+const streamConfig = {
     configurable: {
-        shouldStreamResponse: boolean;
-    };
-}
-```
-
-### Configuration Management
-1. **Base Configuration**
-```typescript
-const baseConfig = {
-    version: "v1",
-    streamMode: "values",
-    configurable: {
-        shouldStreamResponse: true
+        nodeId: nodeData.id,
+        isConnectedToEnd
     }
 };
 ```
 
-2. **Callback Integration**
+2. **Streaming Handler**
 ```typescript
-const finalConfig = {
-    ...baseConfig,
-    callbacks: [streamCallbacks],
-    metadata: { sequentialNodeName: agentName }
+return BaseCallbackHandler.fromMethods({
+    handleLLMNewToken(token: string) {
+        if (!token?.trim()) return;
+
+        // Initialize streaming if needed
+        if (!isStreamingStarted) {
+            isStreamingStarted = true;
+            sseStreamer.streamTokenStartEvent(chatId);
+            sseStreamer.streamAgentReasoningStartEvent(
+                chatId,
+                isConnectedToEnd ? "startFinalResponseStream" : ""
+            );
+        }
+
+        // Stream token with proper type
+        const tokenType = isConnectedToEnd ? 
+            TokenEventType.FINAL_RESPONSE : 
+            TokenEventType.AGENT_REASONING;
+        sseStreamer.streamTokenEvent(chatId, token, tokenType);
+    }
+});
+```
+
+### State Management During Streaming
+
+1. **State Preservation**
+```typescript
+// Filter and restructure while maintaining state
+const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages');
+state.messages = filterConversationHistory(historySelection, options.input, state);
+state.messages = restructureMessages(llm, state);
+```
+
+2. **Message Updates**
+```typescript
+// Update state with final message
+state.messages = {
+    value: state.messages.value,
+    default: () => [...state.messages.default(), finalMessage]
 };
 ```
 
-### Version Handling
-- Consistent version "v1" across all components
-- Proper version validation in stream events
-- Standardized version configuration
+## Token Event Types
 
-### Benefits
-- LangGraph compatibility
-- Consistent streaming behavior
-- Proper version handling
-- Improved error prevention
-
-## Key Improvements
-
-### Token Type Handling
-
-1. **Token Event Types**
 ```typescript
 enum TokenEventType {
     AGENT_REASONING = 'agentReasoning',
@@ -62,172 +72,97 @@ enum TokenEventType {
 }
 ```
 
-2. **Streaming Callback Implementation**
+## Streaming Events
+
+1. **Start Events**
+- streamTokenStartEvent: Initialize token streaming
+- streamAgentReasoningStartEvent: Start agent reasoning with context
+
+2. **Token Events**
+- streamTokenEvent: Stream individual tokens with type
+- streamTokenEndEvent: End token streaming
+
+3. **State Events**
+- streamStartEvent: Initialize streaming session
+- streamEndEvent: Clean up streaming session
+
+## Error Handling
+
+1. **Token Validation**
 ```typescript
-handleLLMNewToken(token: string) {
-    if (shouldStreamResponse && sseStreamer && token.trim()) {
-        const tokenType = isConnectedToEnd ? 
-            TokenEventType.FINAL_RESPONSE : 
-            TokenEventType.AGENT_REASONING;
-        
-        sseStreamer.streamTokenEvent(chatId, token, tokenType);
-    }
-}
+if (!token?.trim()) return;
 ```
 
-### SSE Message Formatting
-
-1. **Consistent Message Structure**
+2. **State Management**
 ```typescript
-const clientResponse = {
-    event: eventType,
-    data: data,
-    type: type || TokenEventType.AGENT_REASONING
-}
-client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
-```
-
-2. **Event Type Handling**
-- All events now use consistent message format
-- Proper event type assignment based on node context
-- Improved error handling for malformed messages
-
-### State Management During Streaming
-
-1. **Client State Tracking**
-```typescript
-type Client = {
-    clientType: 'INTERNAL' | 'EXTERNAL'
-    response: Response
-    started?: boolean
+try {
+    // Stream operations
+} catch (error) {
+    console.error('[Streaming] Error:', error);
 }
 ```
-
-2. **State Preservation**
-- Proper tracking of client state
-- Prevention of duplicate start events
-- Maintenance of streaming state across operations
-
-### Error Handling
-
-1. **Empty Token Validation**
-```typescript
-if (client && data?.trim()) {
-    // Process token
-} else {
-    // Skip empty tokens
-}
-```
-
-2. **Client Validation**
-- Check for client existence before streaming
-- Validate client state before operations
-- Handle disconnection gracefully
-
-## Integration Points
-
-### With Agent Node
-- Proper token type handling based on node context
-- State preservation during agent operations
-- Tool execution event handling
-
-### With LLM Node
-- Token streaming during LLM responses
-- State management during streaming
-- Error handling for LLM operations
 
 ## Best Practices
 
 1. **Token Handling**
 ```typescript
-// Always validate tokens before streaming
+// Always validate tokens
 if (token?.trim()) {
-    // Stream token
+    sseStreamer.streamTokenEvent(chatId, token, tokenType);
 }
-
-// Use proper token type
-const tokenType = isConnectedToEnd ? 
-    TokenEventType.FINAL_RESPONSE : 
-    TokenEventType.AGENT_REASONING;
 ```
 
-2. **Message Formatting**
+2. **State Management**
 ```typescript
-// Use consistent message format
-const clientResponse = {
-    event: eventType,
-    data: data
-}
-client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+// Preserve state structure
+state.messages = {
+    value: state.messages.value,
+    default: () => newMessages
+};
 ```
 
-3. **State Management**
+3. **Error Handling**
 ```typescript
-// Check client state before operations
-if (client && !client.started) {
-    // Initialize streaming
-    client.started = true
-}
-
-// Handle cleanup
-if (client) {
-    client.response.end()
-    delete this.clients[chatId]
+try {
+    if (isStreamingStarted) {
+        sseStreamer.streamTokenEndEvent(chatId);
+        sseStreamer.streamAgentReasoningEndEvent(chatId);
+    }
+} catch (error) {
+    console.error('[Streaming] Error in cleanup:', error);
 }
 ```
 
-## Testing Considerations
+## Integration Points
 
-1. **Token Streaming Tests**
-- Test empty token handling
-- Verify token type assignment
-- Check streaming state management
+### With Agent Node
+- Token type based on node connection
+- State preservation during streaming
+- Clean error handling
 
-2. **Edge Cases**
-- Handle client disconnection
-- Test concurrent streaming
-- Verify error recovery
-
-3. **Performance Testing**
-- Measure streaming latency
-- Test with large token streams
-- Verify memory usage
+### With buildAgentGraph
+- Proper event propagation
+- State management coordination
+- Token type determination
 
 ## Future Improvements
 
-1. **Enhanced Token Handling**
-- Add token batching for efficiency
-- Implement backpressure handling
-- Add streaming metrics
+1. **Performance**
+- Token batching for efficiency
+- Streaming compression
+- Memory optimization
 
-2. **State Management**
-- Add streaming session recovery
-- Implement reconnection handling
-- Add streaming checkpoints
+2. **Error Recovery**
+- Automatic retry mechanisms
+- Graceful degradation
+- Better error reporting
 
-3. **Error Recovery**
-- Add automatic retry mechanisms
-- Implement fallback strategies
-- Add detailed error reporting
+3. **State Management**
+- Enhanced state validation
+- Better type safety
+- Improved error context
 
-4. **Performance**
-- Optimize message formatting
-- Add streaming compression
-- Implement token buffering
-
-## Maintenance Guidelines
-
-1. **Code Organization**
-- Keep streaming logic isolated
-- Use consistent error handling
-- Maintain clear type definitions
-
-2. **Testing**
-- Add tests for new streaming features
-- Verify backward compatibility
-- Test error scenarios
-
-3. **Documentation**
-- Update streaming documentation
-- Document new event types
-- Keep examples current
+4. **Testing**
+- Streaming integration tests
+- State preservation tests
+- Error handling coverage

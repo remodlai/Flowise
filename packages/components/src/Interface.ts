@@ -1,6 +1,7 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { BufferMemory, BufferWindowMemory, ConversationSummaryMemory, ConversationSummaryBufferMemory } from 'langchain/memory'
 import { Moderation } from '../nodes/moderation/Moderation'
+import { RunnableConfig } from '@langchain/core/runnables'
 
 /**
  * Types
@@ -416,6 +417,24 @@ export enum TokenEventType {
     AGENT_REASONING = 'agentReasoning',
     FINAL_RESPONSE = 'finalResponse',
     TOOL_RESPONSE = 'toolResponse'
+}
+
+export interface IStreamParams {
+    chatId: string;
+    shouldStreamResponse?: boolean;
+    sseStreamer?: IServerSideEventStreamer;
+    isConnectedToEnd?: boolean;
+}
+
+export interface IStreamConfig extends Omit<RunnableConfig, 'configurable'> {
+    configurable?: {
+        thread_id?: string;
+        shouldStreamResponse?: boolean;
+        isConnectedToEnd?: boolean;
+        nodeId?: string;
+    } & Record<string, any>;
+    streamMode?: string;
+    version?: string;
 }
 
 export interface IServerSideEventStreamer {

@@ -8,7 +8,7 @@ import logger from '../../../../src/utils/logger'
 /**
  * Creates callback handlers for streaming tokens and tool events
  */
-export function createStreamingCallbacks(params: IStreamParams) {
+export function createAgentStreamingCallbacks(params: IStreamParams) {
     const { chatId, shouldStreamResponse, sseStreamer, isConnectedToEnd } = params;
     
     let isStreamingStarted = false;

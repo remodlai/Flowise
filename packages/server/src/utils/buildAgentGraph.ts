@@ -14,6 +14,7 @@ import {
     INodeData,
     TokenEventType
 } from 'flowise-components'
+import { createAgentStreamingCallbacks } from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
 import { Document } from '@langchain/core/documents'
@@ -1145,113 +1146,13 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         }
 
         if (shouldStreamResponse && sseStreamer) {
-            // Create streaming handler with its own state
-            const createStreamingHandler = () => {
-                let isStreamingStarted = false;
-                let currentNodeId = '';
-                let isCurrentNodeFinal = false;
-
-                return BaseCallbackHandler.fromMethods({
-                    handleLLMNewToken(token: string, _idx: any, _runId: string, _parentRunId?: string, tags?: string[]) {
-                        try {
-                            if (!shouldStreamResponse || !sseStreamer || !token?.trim()) return;
-
-                            // Extract node ID from metadata if available
-                            const metadata = tags?.find(tag => tag.startsWith('nodeId:'))
-                            if (metadata) {
-                                const newNodeId = metadata.split(':')[1];
-                                if (newNodeId !== currentNodeId) {
-                                    currentNodeId = newNodeId;
-                                    isCurrentNodeFinal = nodesConnectedToEnd.has(currentNodeId);
-                                    
-                                    // Send agentReasoningStart with proper flag when node changes
-                                    sseStreamer.streamAgentReasoningStartEvent(
-                                        chatId, 
-                                        isCurrentNodeFinal ? "startFinalResponseStream" : ""
-                                    );
-                                }
-                            }
-
-                            if (!isStreamingStarted) {
-                                isStreamingStarted = true;
-                                sseStreamer.streamStartEvent(chatId, '');
-                                sseStreamer.streamTokenStartEvent(chatId);
-                            }
-
-                            // Stream token immediately with proper type
-                            const tokenType = isCurrentNodeFinal ? 
-                                TokenEventType.FINAL_RESPONSE : 
-                                TokenEventType.AGENT_REASONING;
-                            
-                            sseStreamer.streamTokenEvent(chatId, token, tokenType);
-                        } catch (error) {
-                            logger.error('[buildAgentGraph] Error in handleLLMNewToken:', error);
-                        }
-                    },
-                    handleLLMEnd() {
-                        try {
-                            if (isStreamingStarted) {
-                                sseStreamer.streamTokenEndEvent(chatId);
-                                sseStreamer.streamAgentReasoningEndEvent(chatId);
-                                isStreamingStarted = false;
-                                currentNodeId = '';
-                                isCurrentNodeFinal = false;
-                            }
-                        } catch (error) {
-                            logger.error('[buildAgentGraph] Error in handleLLMEnd:', error);
-                        }
-                    },
-                    handleToolStart(tool: Serialized, input: string) {
-                        try {
-                            sseStreamer.streamToolEvent(chatId, { 
-                                tool: tool.toString(), 
-                                status: 'start', 
-                                input,
-                                type: TokenEventType.TOOL_RESPONSE 
-                            });
-                        } catch (error) {
-                            logger.error('[buildAgentGraph] Error in handleToolStart:', error);
-                        }
-                    },
-                    handleToolEnd(output: string) {
-                        try {
-                            sseStreamer.streamToolEvent(chatId, { 
-                                output, 
-                                status: 'end',
-                                type: TokenEventType.TOOL_RESPONSE 
-                            });
-                        } catch (error) {
-                            logger.error('[buildAgentGraph] Error in handleToolEnd:', error);
-                        }
-                    },
-                    handleChainStart() {
-                        try {
-                            // Reset streaming state for new chain
-                            isStreamingStarted = false;
-                            currentNodeId = '';
-                            isCurrentNodeFinal = false;
-                            logger.debug('[buildAgentGraph] Starting new chain');
-                        } catch (error) {
-                            logger.error('[buildAgentGraph] Error in handleChainStart:', error);
-                        }
-                    },
-                    handleChainEnd() {
-                        try {
-                            // Ensure token stream is properly ended
-                            if (isStreamingStarted) {
-                                sseStreamer.streamTokenEndEvent(chatId);
-                                sseStreamer.streamAgentReasoningEndEvent(chatId);
-                                isStreamingStarted = false;
-                                logger.debug('[buildAgentGraph] Chain ended, all tokens sent');
-                            }
-                        } catch (error) {
-                            logger.error('[buildAgentGraph] Error in handleChainEnd:', error);
-                        }
-                    }
-                });
-            };
-
-            config.callbacks.push(createStreamingHandler())
+            // Add streaming handler
+            config.callbacks.push(createAgentStreamingCallbacks({
+                chatId,
+                shouldStreamResponse,
+                sseStreamer,
+                isConnectedToEnd: false // This will be determined per-node by the handler
+            }))
         }
 
         const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question

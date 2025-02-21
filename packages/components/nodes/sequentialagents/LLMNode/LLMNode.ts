@@ -4,9 +4,7 @@ import { z } from 'zod'
 import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIMessage, AIMessageChunk, BaseMessage } from '@langchain/core/messages'
-import logger from '../../../src/utils/logger'
-import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
+import { AIMessage, BaseMessage } from '@langchain/core/messages'
 import {
     INode,
     INodeData,
@@ -38,10 +36,10 @@ import {
     transformObjectPropertyToFunction,
     filterConversationHistory,
     restructureMessages,
-    checkMessageHistory,
-    validateState
+    checkMessageHistory
 } from '../commonUtils'
 import { ChatGoogleGenerativeAI } from '../../chatmodels/ChatGoogleGenerativeAI/FlowiseChatGoogleGenerativeAI'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 
 const TAB_IDENTIFIER = 'selectedUpdateStateMemoryTab'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
@@ -88,8 +86,8 @@ const howToUseCode = `
     - \`$flow.state\`
 
 4. You can get custom variables: \`$vars.<variable-name>\`
-
 `
+
 const howToUse = `
 1. Key and value pair to be updated. For example: if you have the following State:
     | Key       | Operation     | Default Value     |
@@ -127,8 +125,8 @@ const howToUse = `
     - \`$flow.state\`
 
 4. You can get custom variables: \`$vars.<variable-name>\`
-
 `
+
 const defaultFunc = `const result = $flow.output;
 
 /* Suppose we have a custom State schema like this:
@@ -402,7 +400,6 @@ class LLMNode_SeqAgents implements INode {
     }
 
     async init(nodeData: INodeData, input: string, options: ICommonObject): Promise<any> {
-        // Tools can be connected through ToolNodes
         let tools = nodeData.inputs?.tools
         tools = flatten(tools)
 
@@ -467,7 +464,8 @@ class LLMNode_SeqAgents implements INode {
                     abortControllerSignal,
                     nodeData,
                     input,
-                    options
+                    options,
+                    isConnectedToEnd: config.configurable?.nodesConnectedToEnd?.includes(nodeData.id)
                 },
                 config
             )
@@ -575,7 +573,8 @@ async function agentNode(
         abortControllerSignal,
         nodeData,
         input,
-        options
+        options,
+        isConnectedToEnd
     }: {
         state: ISeqAgentsState
         llm: BaseChatModel
@@ -585,6 +584,7 @@ async function agentNode(
         nodeData: INodeData
         input: string
         options: ICommonObject
+        isConnectedToEnd?: boolean
     },
     config: RunnableConfig
 ) {
@@ -593,125 +593,50 @@ async function agentNode(
             throw new Error('Aborted!')
         }
 
-        // Validate and initialize state with robust error handling
-        let validatedState = validateState(state)
-        if (!validatedState.messages?.value || !validatedState.messages?.default) {
-            validatedState.messages = {
-                value: (x: BaseMessage[], y: BaseMessage[]) => {
-                    const xArray = Array.isArray(x) ? x.filter(Boolean) : [x].filter(Boolean)
-                    const yArray = Array.isArray(y) ? y.filter(Boolean) : [y].filter(Boolean)
-                    return xArray.concat(yArray)
-                },
-                default: () => []
-            }
-        }
-
-        // Process conversation history with validation
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        const filteredMessages = filterConversationHistory(historySelection, input, validatedState)
-        
-        // Ensure messages are properly structured before restructuring
-        const safeMessages = {
-            messages: {
-                value: validatedState.messages.value,
-                default: () => filteredMessages.filter((msg): msg is BaseMessage => 
-                    msg !== null && 
-                    msg !== undefined && 
-                    typeof msg.content === 'string'
-                )
-            }
-        }
-
-        const restructuredMessages = restructureMessages(llm, safeMessages)
-
-        // Update state with validated messages
-        validatedState.messages = {
-            value: (x: BaseMessage[], y: BaseMessage[]) => {
-                try {
-                    const xArray = Array.isArray(x) ? x.filter(Boolean) : [x].filter(Boolean)
-                    const yArray = Array.isArray(y) ? y.filter(Boolean) : [y].filter(Boolean)
-                    return xArray.concat(yArray)
-                } catch (error) {
-                    logger.error('[LLMNode] Error in message reducer:', error)
-                    return []
-                }
-            },
-            default: () => {
-                try {
-                    return restructuredMessages.filter(msg => msg && typeof msg.content === 'string')
-                } catch (error) {
-                    logger.error('[LLMNode] Error in message default:', error)
-                    return []
-                }
-            }
-        }
+        // @ts-ignore
+        state.messages = filterConversationHistory(historySelection, input, state)
+        // @ts-ignore
+        state.messages = restructureMessages(llm, state)
 
         const shouldStream = Boolean(config.configurable?.shouldStreamResponse)
         const sseStreamer = options.sseStreamer
         const chatId = options.chatId
 
-        let result: ILLMNodeOutput | AIMessageChunk
-        let finalState = { ...validatedState }
+        let result: ILLMNodeOutput
+        let content = ''
 
         if (shouldStream && sseStreamer) {
             let isStreamingStarted = false
-            let content = ''
 
-            // Start agent reasoning
-            sseStreamer.streamAgentReasoningStartEvent(chatId)
-
-            // Stream the current agent's reasoning (initial state)
-            const initialReasoning = {
-                agentName: name,
-                messages: [],
-                state: validatedState,
-                usedTools: [],
-                sourceDocuments: [],
-                artifacts: [],
-                nodeName: 'seqLLMNode',
-                nodeId: nodeData.id
-            }
-            sseStreamer.streamAgentReasoningEvent(chatId, [initialReasoning])
-
-            // Create stream config
-            const streamConfig = {
-                ...config,
-                configurable: {
-                    ...(config.configurable || {}),
-                    shouldStreamResponse: true
-                }
-            }
-
-            // Add streaming callbacks with error handling
+            // Create streaming handler
             const streamingHandler = BaseCallbackHandler.fromMethods({
-                handleLLMNewToken(token: string, _idx: any, _runId: string, _parentRunId?: string, tags?: string[]) {
+                handleLLMNewToken(token: string) {
                     try {
                         if (!token?.trim()) return
 
                         if (!isStreamingStarted) {
                             isStreamingStarted = true
                             sseStreamer.streamTokenStartEvent(chatId)
+                            sseStreamer.streamAgentReasoningStartEvent(
+                                chatId,
+                                isConnectedToEnd ? "startFinalResponseStream" : ""
+                            )
                         }
 
                         content += token
 
-                        // Extract node ID from metadata if available
-                        const metadata = tags?.find(tag => tag.startsWith('nodeId:'))
-                        const currentNodeId = metadata ? metadata.split(':')[1] : nodeData.id
-
-                        // Check if this node connects to an end node
-                        const isConnectedToEnd = config.configurable?.nodesConnectedToEnd?.includes(currentNodeId)
-
-                        // Set token type based on connection to end
-                        const tokenType = isConnectedToEnd
-                            ? TokenEventType.FINAL_RESPONSE
-                            : TokenEventType.AGENT_REASONING
+                        // Stream token with proper type
+                        const tokenType = isConnectedToEnd ? 
+                            TokenEventType.FINAL_RESPONSE : 
+                            TokenEventType.AGENT_REASONING
 
                         sseStreamer.streamTokenEvent(chatId, token, tokenType)
                     } catch (error) {
-                        logger.error('[LLMNode] Error in token streaming:', error)
+                        console.error('[LLMNode] Error in token streaming:', error)
                     }
                 },
+
                 handleLLMEnd() {
                     try {
                         if (isStreamingStarted) {
@@ -719,12 +644,14 @@ async function agentNode(
                             sseStreamer.streamAgentReasoningEndEvent(chatId)
                         }
                     } catch (error) {
-                        logger.error('[LLMNode] Error in LLM end handling:', error)
+                        console.error('[LLMNode] Error in LLM end handling:', error)
                     }
                 },
+
                 handleChainStart() {
                     isStreamingStarted = false
                 },
+
                 handleChainEnd() {
                     try {
                         if (isStreamingStarted) {
@@ -732,145 +659,63 @@ async function agentNode(
                             sseStreamer.streamAgentReasoningEndEvent(chatId)
                         }
                     } catch (error) {
-                        logger.error('[LLMNode] Error in chain end handling:', error)
+                        console.error('[LLMNode] Error in chain end handling:', error)
                     }
                 }
             })
 
-            const currentCallbacks = streamConfig.callbacks || []
-            streamConfig.callbacks = Array.isArray(currentCallbacks) 
+            // Add streaming handler to config
+            const currentCallbacks = config.callbacks || []
+            config.callbacks = Array.isArray(currentCallbacks) 
                 ? [...currentCallbacks, streamingHandler] 
                 : [streamingHandler]
+        }
 
-            // Invoke the agent with streaming
-            result = await agent.invoke({ 
-                ...validatedState,
-                messages: validatedState.messages.default(),
-                signal: abortControllerSignal.signal 
-            }, streamConfig) as ILLMNodeOutput
+        // Execute agent
+        result = await agent.invoke({ 
+            ...state,
+            signal: abortControllerSignal.signal 
+        }, config) as ILLMNodeOutput
 
-            // Handle structured output if configured
-            const llmStructuredOutput = nodeData.inputs?.llmStructuredOutput
-            if (llmStructuredOutput && llmStructuredOutput !== '[]' && result.tool_calls && result.tool_calls.length) {
-                let jsonResult = {}
-                for (const toolCall of result.tool_calls) {
-                    jsonResult = { ...jsonResult, ...toolCall.args }
-                }
-                result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
+        // Handle structured output
+        if (nodeData.inputs?.llmStructuredOutput && nodeData.inputs.llmStructuredOutput !== '[]' && result.tool_calls?.length) {
+            let jsonResult = {}
+            for (const toolCall of result.tool_calls) {
+                jsonResult = { ...jsonResult, ...toolCall.args }
             }
+            result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
+        }
 
-            // Handle state memory updates
-            let stateUpdate = {}
-            if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
-                stateUpdate = await getReturnOutput(nodeData, input, options, result, validatedState)
-                finalState = { ...finalState, ...stateUpdate }
-            }
+        // Handle state updates
+        let stateUpdate = {}
+        if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
+            stateUpdate = await getReturnOutput(nodeData, input, options, result, state)
+        }
 
-            // Create final message with metadata
-            let finalMessage: AIMessage
-            if (nodeData.inputs?.llmStructuredOutput && nodeData.inputs.llmStructuredOutput !== '[]') {
-                finalMessage = new AIMessage({
-                    content: typeof result === 'object' ? JSON.stringify(result) : result,
-                    name,
-                    additional_kwargs: {
-                        nodeId: nodeData.id,
-                        state: finalState
-                    }
-                })
-            } else {
-                const outputContent = content || (typeof result === 'string' ? result : result.content)
-                finalMessage = new AIMessage({
-                    content: extractOutputFromArray(outputContent),
-                    name,
-                    additional_kwargs: {
-                        nodeId: nodeData.id,
-                        state: finalState
-                    }
-                })
-            }
+        // Create final message with proper content handling
+        const messageContent = content || 
+            (typeof result === 'string' ? result : result.content) || 
+            'No content generated'
 
-            // Stream final agent reasoning
-            const finalReasoning = {
-                agentName: name,
-                messages: [finalMessage.content],
-                state: finalState,
-                usedTools: [],
-                sourceDocuments: [],
-                artifacts: [],
-                nodeName: 'seqLLMNode',
-                nodeId: nodeData.id
+        const finalMessage = new AIMessage({
+            content: messageContent,
+            name,
+            additional_kwargs: {
+                nodeId: nodeData.id,
+                state: { ...state, ...stateUpdate }
             }
-            sseStreamer.streamAgentReasoningEvent(chatId, [finalReasoning])
-            sseStreamer.streamAgentReasoningEndEvent(chatId)
+        })
 
-            // If there's a next node, emit nextAgent event
-            if (result.next && result.next !== 'FINISH' && result.next !== 'END') {
-                sseStreamer.streamNextAgentEvent(chatId, result.next)
-            }
-
-            return {
-                messages: [finalMessage],
-                state: finalState
-            }
-        } else {
-            // Non-streaming case
-            result = await agent.invoke({ 
-                ...validatedState,
-                messages: validatedState.messages.default(),
-                signal: abortControllerSignal.signal 
-            }, config) as ILLMNodeOutput
-
-            // Handle structured output if configured
-            const llmStructuredOutput = nodeData.inputs?.llmStructuredOutput
-            if (llmStructuredOutput && llmStructuredOutput !== '[]' && result.tool_calls && result.tool_calls.length) {
-                let jsonResult = {}
-                for (const toolCall of result.tool_calls) {
-                    jsonResult = { ...jsonResult, ...toolCall.args }
-                }
-                result = { ...jsonResult, additional_kwargs: { nodeId: nodeData.id } }
-            }
-
-            // Handle state memory updates
-            let stateUpdate = {}
-            if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
-                stateUpdate = await getReturnOutput(nodeData, input, options, result, validatedState)
-                finalState = { ...finalState, ...stateUpdate }
-            }
-
-            // Create final message with metadata
-            let finalMessage: AIMessage
-            if (nodeData.inputs?.llmStructuredOutput && nodeData.inputs.llmStructuredOutput !== '[]') {
-                finalMessage = new AIMessage({
-                    content: typeof result === 'object' ? JSON.stringify(result) : result,
-                    name,
-                    additional_kwargs: {
-                        nodeId: nodeData.id,
-                        state: finalState
-                    }
-                })
-            } else {
-                const outputContent = typeof result === 'string' ? result : result.content
-                finalMessage = new AIMessage({
-                    content: extractOutputFromArray(outputContent),
-                    name,
-                    additional_kwargs: {
-                        nodeId: nodeData.id,
-                        state: finalState
-                    }
-                })
-            }
-
-            return {
-                messages: [finalMessage],
-                state: finalState
-            }
+        return {
+            messages: [finalMessage],
+            state: { ...state, ...stateUpdate }
         }
     } catch (error) {
-        throw new Error(error)
+        throw new Error(`LLM node execution failed: ${error}`)
     }
 }
 
-const getReturnOutput = async (nodeData: INodeData, input: string, options: ICommonObject, output: any, state: ISeqAgentsState) => {
+async function getReturnOutput(nodeData: INodeData, input: string, options: ICommonObject, output: any, state: ISeqAgentsState) {
     const appDataSource = options.appDataSource as DataSource
     const databaseEntities = options.databaseEntities as IDatabaseEntity
     const tabIdentifier = nodeData.inputs?.[`${TAB_IDENTIFIER}_${nodeData.id}`] as string
@@ -941,6 +786,8 @@ const getReturnOutput = async (nodeData: INodeData, input: string, options: ICom
             throw new Error(e)
         }
     }
+
+    return {}
 }
 
 module.exports = { nodeClass: LLMNode_SeqAgents }

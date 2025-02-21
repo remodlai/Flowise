@@ -1,5 +1,25 @@
 # Changelog
 
+## [2025-02-20] Agent Node Streaming Improvements
+
+### Added
+- Token type differentiation based on node connection to END
+- Proper streaming callback handling with state preservation
+- Structured streaming event management
+- Enhanced error handling in streaming callbacks
+
+### Changed
+- Simplified state management during streaming
+- Improved message handling to match original implementation
+- Enhanced streaming configuration with node context
+- Streamlined token event handling
+
+### Fixed
+- Token type assignment based on node context
+- State preservation during streaming
+- Message history handling
+- Streaming callback error handling
+
 ## [2025-02-20] Streaming and State Management Integration
 
 ### Added

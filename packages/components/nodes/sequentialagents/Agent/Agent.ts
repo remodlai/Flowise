@@ -31,8 +31,6 @@ import {
     transformObjectPropertyToFunction
 } from '../commonUtils'
 import { SystemMessage, HumanMessage } from '@langchain/core/messages'
-import { BaseLanguageModelInput } from '@langchain/core/language_models/base'
-import { BaseChatModelCallOptions } from '@langchain/core/language_models/chat_models'
 
 import {
     defaultApprovalPrompt,
@@ -47,7 +45,7 @@ import {
 
 import { ToolNode } from './helpers/tool-node'
 import { agentNode } from './helpers/agent-node'
-import { createStreamingCallbacks } from './helpers/streaming'
+import { createAgentStreamingCallbacks } from './helpers/streaming'
 
 class Agent_SeqAgents implements INode {
     label: string
@@ -484,7 +482,6 @@ class Agent_SeqAgents implements INode {
             llm,
             startLLM,
             output,
-            //nextNodeName: isConnectedToEnd ? 'END' : undefined,
             predecessorAgents: sequentialNodes,
             multiModalMessageContent,
             moderations: sequentialNodes[0]?.moderations,
@@ -528,7 +525,7 @@ class Agent_SeqAgents implements INode {
                 nodeId: nodeData.id
             },
             metadata: { sequentialNodeName: agentName },
-            callbacks: [createStreamingCallbacks({
+            callbacks: [createAgentStreamingCallbacks({
                 chatId: options.chatId,
                 shouldStreamResponse: options.shouldStreamResponse ?? true,
                 sseStreamer: options.sseStreamer,
