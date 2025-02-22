@@ -11,12 +11,26 @@ export default function themePalette(theme) {
             black: theme.colors?.darkPaper,
             dark: theme.colors?.darkPrimaryMain
         },
+        glass: theme.customization.isDarkMode
+            ? {
+                  background: 'rgba(41, 52, 71, 0.4)',
+                  gradient: 'linear-gradient(45deg, rgba(41, 52, 71, 0.6) 0%, rgba(41, 52, 71, 0.4) 99%, rgba(41, 52, 71, 0.4) 100%)',
+                  shadow: '10px 10px 10px rgba(0, 0, 0, 0.2)',
+                  blur: 'blur(40px)'
+              }
+            : {
+                  background: 'rgba(255, 255, 255, 0.7)',
+                  gradient: 'linear-gradient(45deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 99%, rgba(255, 255, 255, 0.6) 100%)',
+                  shadow: '0px 20px 27px rgba(0, 0, 0, 0.05)',
+                  blur: 'blur(40px)'
+              },
         primary: {
             light: theme.customization.isDarkMode ? theme.colors?.darkPrimaryLight : theme.colors?.primaryLight,
             main: theme.colors?.primaryMain,
             dark: theme.customization.isDarkMode ? theme.colors?.darkPrimaryDark : theme.colors?.primaryDark,
             200: theme.customization.isDarkMode ? theme.colors?.darkPrimary200 : theme.colors?.primary200,
-            800: theme.customization.isDarkMode ? theme.colors?.darkPrimary800 : theme.colors?.primary800
+            800: theme.customization.isDarkMode ? theme.colors?.darkPrimary800 : theme.colors?.primary800,
+            900: theme.customization.isDarkMode ? theme.colors?.darkPrimary900 : theme.colors?.primary900
         },
         secondary: {
             light: theme.customization.isDarkMode ? theme.colors?.darkSecondaryLight : theme.colors?.secondaryLight,
@@ -79,9 +93,13 @@ export default function themePalette(theme) {
             default: theme.backgroundDefault
         },
         card: {
+            white: theme.customization.isDarkMode ? theme.darkGlass : theme.colors?.white,
             main: theme.customization.isDarkMode ? theme.colors?.darkPrimaryMain : theme.colors?.paper,
             light: theme.customization.isDarkMode ? theme.colors?.darkPrimary200 : theme.colors?.paper,
             hover: theme.customization.isDarkMode ? theme.colors?.darkPrimary800 : theme.colors?.paper
+        },
+        border: {
+            main: theme.customization.isDarkMode ? theme.colors?.darkPrimaryMain : theme.colors?.grey50
         },
         asyncSelect: {
             main: theme.customization.isDarkMode ? theme.colors?.darkPrimary800 : theme.colors?.grey50

@@ -29,6 +29,7 @@ export const theme = (customization) => {
               menuSelected: color.darkSecondaryDark,
               menuSelectedBack: color.darkSecondaryLight,
               divider: color.darkPaper,
+              darkGlass: color.darkGlass,
               customization
           }
         : {
@@ -68,3 +69,14 @@ export const theme = (customization) => {
 }
 
 export default theme
+
+// Create and export light theme
+export const lightTheme = theme({
+    isDarkMode: false
+})
+
+// Create and export dark theme
+export const darkTheme = theme({
+    isDarkMode: true
+})
+

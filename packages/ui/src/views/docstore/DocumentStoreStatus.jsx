@@ -2,7 +2,21 @@ import { useTheme } from '@mui/material'
 import { useSelector } from 'react-redux'
 import PropTypes from 'prop-types'
 
-const DocumentStoreStatus = ({ status, isTableView }) => {
+const DocumentStoreStatus = ({ 
+    status,
+    isTableView,
+    // Container styles
+    containerBorderRadius = '25px',
+    containerPaddingX = '10px',
+    containerPaddingY = '3px',
+    // Dot styles
+    dotSize = '10px',
+    dotTableSize = '20px',
+    dotBorderWidth = '3px',
+    // Text styles
+    textFontSize = '0.7rem',
+    textMarginLeft = '5px'
+}) => {
     const theme = useTheme()
     const customization = useSelector((state) => state.customization)
 
@@ -43,6 +57,8 @@ const DocumentStoreStatus = ({ status, isTableView }) => {
         }
     }
 
+    const colors = getColor(status);
+
     return (
         <>
             {!isTableView && (
@@ -52,40 +68,48 @@ const DocumentStoreStatus = ({ status, isTableView }) => {
                         flexDirection: 'row',
                         alignContent: 'center',
                         alignItems: 'center',
-                        background: status === 'EMPTY' ? 'transparent' : getColor(status)[0],
+                        background: status === 'EMPTY' ? 'transparent' : colors[0],
                         border: status === 'EMPTY' ? '1px solid' : 'none',
-                        borderColor: status === 'EMPTY' ? getColor(status)[0] : 'transparent',
-                        borderRadius: '25px',
-                        paddingTop: '3px',
-                        paddingBottom: '3px',
-                        paddingLeft: '10px',
-                        paddingRight: '10px',
+                        borderColor: status === 'EMPTY' ? colors[0] : 'transparent',
+                        borderRadius: containerBorderRadius,
+                        paddingTop: containerPaddingY,
+                        paddingBottom: containerPaddingY,
+                        paddingLeft: containerPaddingX,
+                        paddingRight: containerPaddingX,
                         width: 'fit-content'
                     }}
                 >
                     <div
                         style={{
-                            width: '10px',
-                            height: '10px',
+                            width: dotSize,
+                            height: dotSize,
                             borderRadius: '50%',
-                            backgroundColor: status === 'EMPTY' ? 'transparent' : getColor(status)[1],
-                            border: status === 'EMPTY' ? '3px solid' : 'none',
-                            borderColor: status === 'EMPTY' ? getColor(status)[1] : 'transparent'
+                            backgroundColor: status === 'EMPTY' ? 'transparent' : colors[1],
+                            border: status === 'EMPTY' ? `${dotBorderWidth} solid` : 'none',
+                            borderColor: status === 'EMPTY' ? colors[1] : 'transparent'
                         }}
                     />
-                    <span style={{ fontSize: '0.7rem', color: getColor(status)[2], marginLeft: 5 }}>{status}</span>
+                    <span 
+                        style={{ 
+                            fontSize: textFontSize,
+                            color: colors[2],
+                            marginLeft: textMarginLeft
+                        }}
+                    >
+                        {status}
+                    </span>
                 </div>
             )}
             {isTableView && (
                 <div
                     style={{
                         display: 'flex',
-                        width: '20px',
-                        height: '20px',
+                        width: dotTableSize,
+                        height: dotTableSize,
                         borderRadius: '50%',
-                        backgroundColor: status === 'EMPTY' ? 'transparent' : getColor(status)[1],
-                        border: status === 'EMPTY' ? '3px solid' : 'none',
-                        borderColor: status === 'EMPTY' ? getColor(status)[1] : 'transparent'
+                        backgroundColor: status === 'EMPTY' ? 'transparent' : colors[1],
+                        border: status === 'EMPTY' ? `${dotBorderWidth} solid` : 'none',
+                        borderColor: status === 'EMPTY' ? colors[1] : 'transparent'
                     }}
                     title={status}
                 ></div>
@@ -96,7 +120,18 @@ const DocumentStoreStatus = ({ status, isTableView }) => {
 
 DocumentStoreStatus.propTypes = {
     status: PropTypes.string,
-    isTableView: PropTypes.bool
+    isTableView: PropTypes.bool,
+    // Container styles
+    containerBorderRadius: PropTypes.string,
+    containerPaddingX: PropTypes.string,
+    containerPaddingY: PropTypes.string,
+    // Dot styles
+    dotSize: PropTypes.string,
+    dotTableSize: PropTypes.string,
+    dotBorderWidth: PropTypes.string,
+    // Text styles
+    textFontSize: PropTypes.string,
+    textMarginLeft: PropTypes.string
 }
 
 export default DocumentStoreStatus

@@ -23,20 +23,20 @@ const dashboard = {
     children: [
         {
             id: 'chatflows',
-            title: 'Chatflows',
+            title: 'Agent Chains',
             type: 'item',
             url: '/chatflows',
             icon: icons.IconHierarchy,
-            breadcrumbs: true
+            breadcrumbs: true,
         },
         {
             id: 'agentflows',
-            title: 'Agentflows',
+            title: 'Agent Teams',
             type: 'item',
             url: '/agentflows',
             icon: icons.IconUsersGroup,
             breadcrumbs: true,
-            isBeta: true
+            isBeta: false
         },
         {
             id: 'assistants',
@@ -93,6 +93,30 @@ const dashboard = {
             url: '/document-stores',
             icon: icons.IconFiles,
             breadcrumbs: true
+        },
+        {
+            id: 'settings',
+            title: 'Settings',
+            type: 'collapse',
+            icon: icons.IconGear,
+            children: [
+                {
+                    id: 'child1',
+                    title: 'Child Item 1',
+                    type: 'item',
+                    url: '/some-url',
+                    icon: icons.SomeIcon,
+                    breadcrumbs: true
+                },
+                {
+                    id: 'child2',
+                    title: 'Child Item 2',
+                    type: 'item',
+                    url: '/another-url',
+                    icon: icons.AnotherIcon,
+                    breadcrumbs: true
+                }
+            ]
         }
     ]
 }
