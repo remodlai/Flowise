@@ -122,6 +122,8 @@ export interface INodeProperties {
     hideOutput?: boolean
     author?: string
     documentation?: string
+    descriptionInputs?: string[]
+    descriptionOutputs?: string[]
 }
 
 export interface INode extends INodeProperties {

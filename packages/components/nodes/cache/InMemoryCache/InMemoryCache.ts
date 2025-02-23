@@ -7,6 +7,8 @@ class InMemoryCache implements INode {
     name: string
     version: number
     description: string
+    descriptionInputs?: string[]
+    descriptionOutputs?: string[]
     type: string
     icon: string
     category: string
@@ -24,6 +26,8 @@ class InMemoryCache implements INode {
         this.category = 'Cache'
         this.baseClasses = [this.type, ...getBaseClasses(InMemoryCacheExtended)]
         this.inputs = []
+        this.descriptionInputs = ['none']
+        this.descriptionOutputs = ['Agent', 'Chain', 'Tool', 'Memory', 'LLM']
     }
 
     async init(nodeData: INodeData, _: string, options: ICommonObject): Promise<any> {

@@ -875,6 +875,9 @@ importers:
       '@chromatic-com/storybook':
         specifier: ^3.2.4
         version: 3.2.4(react@18.2.0)(storybook@8.5.8(bufferutil@4.0.8)(prettier@3.2.5)(utf-8-validate@6.0.4))
+      '@fontsource/open-sans':
+        specifier: ^5.1.1
+        version: 5.1.1
       '@storybook/addon-actions':
         specifier: ^8.5.8
         version: 8.5.8(storybook@8.5.8(bufferutil@4.0.8)(prettier@3.2.5)(utf-8-validate@6.0.4))
@@ -3339,6 +3342,9 @@ packages:
 
   '@fontsource/material-icons@5.1.1':
     resolution: {integrity: sha512-l1EhBIh9US1RMiiKEJ+/FTFvHZIU3cpn0MmxSZA6Ip2C/Szwca6h2xqNg/OTIOFWADune7b/rhtypeDbjHrZzA==}
+
+  '@fontsource/open-sans@5.1.1':
+    resolution: {integrity: sha512-Wfio5om0XH24ZUu6FfW4r50e4xLdoLzvd8midtqUFT2unniyWQj6GJ05RW1YQsHp4Sug3i+agFBIxEmYQzUHSg==}
 
   '@fontsource/poppins@5.1.1':
     resolution: {integrity: sha512-PQVKHGQOK+UpVNPzTFF9Z9ez3CIDkunfvRXGH95hiDoqWJc1shW4JFqe4tEoqnq7RtZaYrw9aWQq58L4eny5xg==}
@@ -21632,6 +21638,8 @@ snapshots:
       acorn-walk: 8.3.2
 
   '@fontsource/material-icons@5.1.1': {}
+
+  '@fontsource/open-sans@5.1.1': {}
 
   '@fontsource/poppins@5.1.1': {}
 

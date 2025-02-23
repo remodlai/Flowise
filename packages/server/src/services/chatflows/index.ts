@@ -104,7 +104,7 @@ const deleteChatflow = async (chatflowId: string): Promise<any> => {
         )
     }
 }
-
+/*TODO: modify this to allow for multi-tenant check again database*/
 const getAllChatflows = async (type?: ChatflowType): Promise<ChatFlow[]> => {
     try {
         const appServer = getRunningExpressApp()

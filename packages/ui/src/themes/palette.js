@@ -37,7 +37,8 @@ export default function themePalette(theme) {
             main: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
             dark: theme.customization.isDarkMode ? theme.colors?.darkSecondaryDark : theme.colors?.secondaryDark,
             200: theme.colors?.secondary200,
-            800: theme.colors?.secondary800
+            800: theme.colors?.secondary800,
+            900: theme.colors?.secondaryDarkBlue
         },
         error: {
             light: theme.colors?.errorLight,
@@ -90,7 +91,8 @@ export default function themePalette(theme) {
         },
         background: {
             paper: theme.paper,
-            default: theme.backgroundDefault
+            default: theme.backgroundDefault,
+            white: theme.customization.isDarkMode ? theme.colors?.white : theme.colors?.white
         },
         card: {
             white: theme.customization.isDarkMode ? theme.darkGlass : theme.colors?.white,

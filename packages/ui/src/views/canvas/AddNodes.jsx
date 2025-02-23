@@ -91,7 +91,7 @@ const SearchInput = styled(OutlinedInput)(({ theme }) => ({
     marginBottom: '20px',
     '& .MuiOutlinedInput-input': {
         padding: '12px 16px',
-        background: theme.palette.background.paper,
+        background: theme.palette.background.white,
         borderRadius: '8px'
     },
     '& .MuiOutlinedInput-notchedOutline': {
@@ -103,17 +103,17 @@ const CategoryButton = styled(ListItemButton)(({ theme }) => ({
     padding: '10px 16px',
     borderRadius: '8px',
     '&:hover': {
-        background: theme.palette.background.paper
+        background: theme.palette.card.white
     }
 }))
 
-const NodeCard = styled(Paper)(({ theme }) => ({
-    background: theme.palette.background.paper,
+const NodeCard = styled(MainCard)(({ theme }) => ({
+    background: theme.palette.card.white,
     borderRadius: '10px',
     padding: '16px',
     cursor: 'pointer',
     '&:hover': {
-        background: theme.palette.background.default
+        background: theme.palette.card.white
     }
 }))
 
@@ -203,18 +203,26 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
         return passed
     }
 
-    const filterSearch = (value, newTabValue) => {
+    const filterSearch = (value) => {
         setSearchValue(value)
-        setTimeout(() => {
-            if (value) {
-                const returnData = getSearchedNodes(value)
-                groupByCategory(returnData, newTabValue ?? tabValue, true)
-                scrollTop()
-            } else if (value === '') {
-                groupByCategory(nodesData, newTabValue ?? tabValue)
-                scrollTop()
+        if (value) {
+            const searchResults = getSearchedNodes(value)
+            const categorizedResults = searchResults.reduce((acc, node) => {
+                if (!acc[node.category]) {
+                    acc[node.category] = []
+                }
+                acc[node.category].push(node)
+                return acc
+            }, {})
+            setNodes(categorizedResults)
+            // Select first category with results
+            const firstCategory = Object.keys(categorizedResults)[0]
+            if (firstCategory) {
+                setSelectedCategory(firstCategory)
             }
-        }, 500)
+        } else {
+            groupByCategory(nodesData)
+        }
     }
 
     const groupByTags = (nodes, newTabValue = 0) => {
@@ -232,59 +240,62 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
 
     const groupByCategory = (nodes, newTabValue, isFilter) => {
         if (isAgentCanvas) {
-            const accordianCategories = {}
-            const result = nodes.reduce(function (r, a) {
-                r[a.category] = r[a.category] || []
-                r[a.category].push(a)
-                accordianCategories[a.category] = isFilter ? true : false
-                return r
-            }, Object.create(null))
-
-            const filteredResult = {}
-            for (const category in result) {
-                // Filter out blacklisted categories
-                if (!blacklistCategoriesForAgentCanvas.includes(category)) {
-                    // Filter out LlamaIndex nodes
-                    const nodes = result[category].filter((nd) => !nd.tags || !nd.tags.includes('LlamaIndex'))
-                    if (!nodes.length) continue
-
-                    filteredResult[category] = nodes
+            const result = nodes.reduce((acc, node) => {
+                // Skip blacklisted categories unless they're exceptions
+                if (blacklistCategoriesForAgentCanvas.includes(node.category)) {
+                    if (!exceptionsForAgentCanvas[node.category]?.includes(node.name)) {
+                        return acc
+                    }
+                }
+                
+                // Skip LlamaIndex nodes
+                if (node.tags?.includes('LlamaIndex')) {
+                    return acc
                 }
 
-                // Allow exceptionsForAgentCanvas
-                if (Object.keys(exceptionsForAgentCanvas).includes(category)) {
-                    filteredResult[category] = addException(category)
+                if (!acc[node.category]) {
+                    acc[node.category] = []
+                }
+                acc[node.category].push(node)
+                return acc
+            }, {})
+
+            setNodes(result)
+            // Select first category if none selected
+            if (!selectedCategory || !result[selectedCategory]) {
+                const firstCategory = Object.keys(result)[0]
+                if (firstCategory) {
+                    setSelectedCategory(firstCategory)
                 }
             }
-            setNodes(filteredResult)
-            accordianCategories['Multi Agents'] = true
-            accordianCategories['Sequential Agents'] = true
-            accordianCategories['Memory'] = true
-            setCategoryExpanded(accordianCategories)
         } else {
             const taggedNodes = groupByTags(nodes, newTabValue)
-            const accordianCategories = {}
-            const result = taggedNodes.reduce(function (r, a) {
-                r[a.category] = r[a.category] || []
-                r[a.category].push(a)
-                accordianCategories[a.category] = isFilter ? true : false
-                return r
-            }, Object.create(null))
+            const result = taggedNodes.reduce((acc, node) => {
+                // Skip specific categories
+                if (node.category === 'Multi Agents' || node.category === 'Sequential Agents') {
+                    return acc
+                }
+                
+                // Skip blacklisted nodes
+                if (blacklistForChatflowCanvas[node.category]?.includes(node.name)) {
+                    return acc
+                }
 
-            const filteredResult = {}
-            for (const category in result) {
-                if (category === 'Multi Agents' || category === 'Sequential Agents') {
-                    continue
+                if (!acc[node.category]) {
+                    acc[node.category] = []
                 }
-                if (Object.keys(blacklistForChatflowCanvas).includes(category)) {
-                    const nodes = blacklistForChatflowCanvas[category]
-                    result[category] = result[category].filter((nd) => !nodes.includes(nd.name))
+                acc[node.category].push(node)
+                return acc
+            }, {})
+
+            setNodes(result)
+            // Select first category if none selected
+            if (!selectedCategory || !result[selectedCategory]) {
+                const firstCategory = Object.keys(result)[0]
+                if (firstCategory) {
+                    setSelectedCategory(firstCategory)
                 }
-                filteredResult[category] = result[category]
             }
-
-            setNodes(filteredResult)
-            setCategoryExpanded(accordianCategories)
         }
     }
 
@@ -377,7 +388,7 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                                     <Typography variant='h4' sx={{ mb: 2 }}>Block Library</Typography>
                                     <SearchInput
                                         fullWidth
-                                        placeholder="Search..."
+                                        placeholder="Search nodes..."
                                         value={searchValue}
                                         onChange={(e) => filterSearch(e.target.value)}
                                         startAdornment={
@@ -399,7 +410,10 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                                                         <ListItemIcon>
                                                             <IconPlus size={20} />
                                                         </ListItemIcon>
-                                                        <ListItemText primary={category} />
+                                                        <ListItemText 
+                                                            primary={category} 
+                                                            secondary={`${nodes[category].length} nodes`}
+                                                        />
                                                     </CategoryButton>
                                                 ))}
                                             </List>
@@ -407,18 +421,12 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
 
                                         {/* Main content */}
                                         <ScrollableContent sx={{ flex: 1 }}>
-                                            <Typography variant='h5' sx={{ mb: 2 }}>{selectedCategory}</Typography>
+                                            <Typography variant='h5' sx={{ mb: 2 }}>
+                                                {selectedCategory} 
+                                                {searchValue && ' - Search Results'}
+                                            </Typography>
                                             <Grid container spacing={2}>
-                                                {(searchValue
-                                                    ? Object.values(nodes).flat()
-                                                    : (nodes[selectedCategory] || [])
-                                                ).filter(node => 
-                                                    searchValue ? (
-                                                        node.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-                                                        node.description.toLowerCase().includes(searchValue.toLowerCase()) ||
-                                                        node.category.toLowerCase().includes(searchValue.toLowerCase())
-                                                    ) : true
-                                                ).map((node) => (
+                                                {(nodes[selectedCategory] || []).map((node) => (
                                                     <Grid item xs={12} sm={6} md={4} key={node.name}>
                                                         <NodeCard
                                                             onDragStart={(event) => onDragStart(event, node)}
@@ -453,7 +461,7 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                                                             </Typography>
                                                             <Box sx={{ mt: 1 }}>
                                                                 <Typography variant='caption' sx={{ display: 'block' }}>
-                                                                    Input: {node.inputParams?.length ? node.inputParams.map(p => p.name).join(', ') : '-'}
+                                                                    Input: {Array.isArray(node.descriptionInputs) ? node.descriptionInputs.join(', ') : '-'}
                                                                 </Typography>
                                                                 <Typography variant='caption'>
                                                                     Output: {node.outputs?.length ? node.outputs.map(o => o.name).join(', ') : 'Dataset'}

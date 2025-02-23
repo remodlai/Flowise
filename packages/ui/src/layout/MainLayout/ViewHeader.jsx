@@ -54,8 +54,8 @@ const ViewHeader = ({
                     <Box sx={{ display: 'flex', alignItems: 'start', flexDirection: 'column' }}>
                         <Typography
                             sx={{
-                                fontSize: '2rem',
-                                fontWeight: 600,
+                                fontSize: '1.5rem',
+                                fontWeight: 400,
                                 display: '-webkit-box',
                                 WebkitLineClamp: 3,
                                 WebkitBoxOrient: 'vertical',
@@ -64,7 +64,7 @@ const ViewHeader = ({
                                 flex: 1,
                                 maxWidth: 'calc(100vh - 100px)'
                             }}
-                            variant='h1'
+                            variant='h2'
                         >
                             {title}
                         </Typography>
@@ -88,8 +88,8 @@ const ViewHeader = ({
                         )}
                     </Box>
                     {isEditButton && (
-                        <IconButton sx={{ ml: 3 }} color='secondary' title='Edit' onClick={onEdit}>
-                            <IconEdit />
+                        <IconButton sx={{ ml: 2 }} color='secondary' title='Edit' onClick={onEdit}>
+                            <IconSearch />
                         </IconButton>
                     )}
                 </Box>

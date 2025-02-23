@@ -23,8 +23,8 @@ const getNodeColors = (theme, nodeType) => {
             }
         case 'tool':
             return {
-                background: 'rgba(255, 152, 0, 0.4)',
-                gradient: 'linear-gradient(45deg, rgba(255, 152, 0, 0.6) 0%, rgba(255, 152, 0, 0.4) 100%)'
+                background: 'rgba(255, 153, 0, 0.4)',
+                gradient: 'linear-gradient(45deg, rgba(255, 171, 46, 0.6) 0%, rgba(255, 152, 0, 0.4) 100%)'
             }
         default:
             return {
@@ -39,7 +39,8 @@ const NodeCardWrapper = styled(MainCard)(({ theme, nodeType }) => {
     return {
         background: 'transparent !important',
         color: theme.palette.text.primary,
-        border: 'solid 2px',
+        border: 'solid 0px',
+        overflow: 'visible',
         backgroundColor: 'transparent !important',
         position: 'relative',
         '& .MuiPaper-root': {
@@ -58,7 +59,7 @@ const NodeCardWrapper = styled(MainCard)(({ theme, nodeType }) => {
             right: 0,
             bottom: 0,
             background: nodeColors.background,
-            backgroundImage: nodeColors.gradient,
+            backgroundImage: 'transparent',
             backdropFilter: theme.palette.glass.blur,
             WebkitBackdropFilter: theme.palette.glass.blur,
             borderRadius: 'inherit',

@@ -93,6 +93,7 @@
     "@babel/eslint-parser": "^7.23.10",
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@chromatic-com/storybook": "^3.2.4",
+    "@fontsource/open-sans": "^5.1.1",
     "@storybook/addon-actions": "^8.5.8",
     "@storybook/addon-backgrounds": "^8.5.8",
     "@storybook/addon-controls": "^8.5.8",
