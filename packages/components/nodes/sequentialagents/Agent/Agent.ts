@@ -1,6 +1,5 @@
-import { flatten, uniq } from 'lodash'
+import { flatten, result, uniq } from 'lodash'
 import { DataSource } from 'typeorm'
-import logger from '../../../../server/src/utils/logger'
 import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
@@ -8,7 +7,9 @@ import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } fro
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
 import { StringOutputParser } from '@langchain/core/output_parsers'
-import {ConsoleCallbackHandler, additionalCallbacks, CustomChainHandler } from '../../../src/handler'
+import { streamResponse } from '../../moderation/Moderation'
+import { CustomChainHandler, additionalCallbacks, ConsoleCallbackHandler } from '../../../src/handler'
+import { SSEStreamer } from '../../../../server/src/utils/SSEStreamer'
 import {
     INode,
     INodeData,
@@ -48,7 +49,7 @@ import {
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
-import { ConversationChain } from 'langchain/chains'
+import { verbose } from 'winston'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
@@ -679,7 +680,6 @@ async function createAgent(
         }
 
         const executor = AgentExecutor.fromAgentAndTools({
-            
             agent,
             tools,
             sessionId: flowObj?.sessionId,
@@ -792,72 +792,30 @@ async function agentNode(
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
-       
-        const streamConfig = {
-            ...config,
-            signal: abortControllerSignal.signal,
-            streamMode: 'values',
-            version: 'v1'
-        }
-      
-        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
-        const chatId = options.chatId as string
-        console.debug(options)
-        const shouldStreamResponse =  true
+
+        const sseStreamer : IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
+
+        const shouldStreamResponse = options.shouldStreamResponse || true
+        const chatId = options.chatId
+        const loggerHandler = new ConsoleCallbackHandler(options.logger)
+        
+        
+        const callbacks = await additionalCallbacks(nodeData, options)
+
         let result: any
 
-        const loggerHandler = new ConsoleCallbackHandler(options.logger)
-
-        const additionalCallback = await additionalCallbacks(nodeData, options)
-        let callbacks = [loggerHandler, additionalCallback]
-        let sourceDocuments: IDocument[] = []
-        let usedTools: IUsedTool[] = []
-        let artifacts: ICommonObject[] = []
-        if (shouldStreamResponse) {
-            const handler =  new CustomChainHandler(sseStreamer, chatId)
+        if (shouldStreamResponse && sseStreamer) {
+            const handler = new CustomChainHandler(sseStreamer, chatId)
+            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal, callbacks: [loggerHandler, handler, ...callbacks] }, config)
+            for (const chunk of result) {
+                streamResponse(sseStreamer, chatId, chunk)
+            }
             callbacks.push(handler)
-            result = await agent.invoke({...state, signal: abortControllerSignal.signal, callbacks: [handler, ...callbacks]}, config)
-               
-            if (result.sourceDocuments) {
-                if (sseStreamer) {
-                    sseStreamer.streamSourceDocumentsEvent(chatId, flatten(result.sourceDocuments))
-                }
-                sourceDocuments = result.sourceDocuments
-            }
-            if (result.usedTools) {
-                if (sseStreamer) {
-                    sseStreamer.streamUsedToolsEvent(chatId, flatten(result.usedTools))
-                }
-                usedTools = result.usedTools
-            }
-            if (result.artifacts) {
-                if (sseStreamer) {
-                    sseStreamer.streamArtifactsEvent(chatId, flatten(result.artifacts))
-                }
-                artifacts = result.artifacts
-            }
-            //If the tool is set to returnDirect, stream the output to the client
-            if (result.usedTools && result.usedTools.length) {
-                let inputTools = nodeData.inputs?.tools
-                inputTools = flatten(inputTools)
-                for (const tool of result.usedTools) {
-                    const inputTool = inputTools.find((inputTool: StructuredTool) => inputTool.name === tool.tool)
-                    if (inputTool && inputTool.returnDirect && shouldStreamResponse) {
-                        sseStreamer.streamTokenEvent(chatId, tool.toolOutput)
-                    }
-                }
-            }
-        } 
-
-         else {
-            await agent.invoke({
-                input,
-                config: {
-                    ...config,
-                    callbacks
-                }
-            })
+        } else {
+            result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
         }
+
+        
 
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]

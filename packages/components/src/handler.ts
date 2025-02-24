@@ -165,12 +165,15 @@ export class ConsoleCallbackHandler extends BaseTracer {
  */
 export class CustomChainHandler extends BaseCallbackHandler {
     name = 'custom_chain_handler'
+    
     isLLMStarted = false
     skipK = 0 // Skip streaming for first K numbers of handleLLMStart
     returnSourceDocuments = false
     cachedResponse = true
     chatId: string = ''
     sseStreamer: IServerSideEventStreamer | undefined
+    logger: Logger
+    
 
     constructor(sseStreamer: IServerSideEventStreamer | undefined, chatId: string, skipK?: number, returnSourceDocuments?: boolean) {
         super()
@@ -181,6 +184,7 @@ export class CustomChainHandler extends BaseCallbackHandler {
     }
 
     handleLLMStart() {
+        this.logger.log('info', "TEST HANDLE LLM START")
         this.cachedResponse = false
         if (this.skipK > 0) this.skipK -= 1
     }
@@ -201,6 +205,7 @@ export class CustomChainHandler extends BaseCallbackHandler {
                 }
             }
             if (this.sseStreamer) {
+                this.logger.log('info', "TEST HANDLE LLM NEW TOKEN")
                 if (token) {
                     const chunk = fields?.chunk as ChatGenerationChunk
                     const message = chunk?.message as AIMessageChunk

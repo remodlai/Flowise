@@ -77,9 +77,10 @@ export const buildAgentGraph = async ({
         const sessionId = flowConfig.sessionId
         const analytic = agentflow.analytic
         const uploads = incomingInput.uploads
-
+        let shouldStreamResponse
         const options = {
             chatId,
+            shouldStreamResponse,
             sessionId,
             chatflowid,
             logger,
@@ -89,11 +90,13 @@ export const buildAgentGraph = async ({
             cachePool,
             uploads,
             baseURL,
+            sseStreamer,
             signal: signal ?? new AbortController()
         }
 
         let streamResults
         let finalResult = ''
+        shouldStreamResponse = true
         let finalSummarization = ''
         let lastWorkerResult = ''
         let agentReasoning: IAgentReasoning[] = []
@@ -159,7 +162,7 @@ export const buildAgentGraph = async ({
             }
 
             if (streamResults) {
-                let isStreamingStarted = false
+                let isStreamingStarted = true
                 //changes this to just "output of" streamResults starts the streaming
                 for await (const output of streamResults) {
                     if (!output?.__end__) {
@@ -278,7 +281,7 @@ export const buildAgentGraph = async ({
                         }
                     } else {
                         
-                        shouldStreamResponse = true
+                        
                         if (!isStreamingStarted && sseStreamer) {
                             isStreamingStarted = true
                             finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''

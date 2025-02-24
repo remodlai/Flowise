@@ -34,7 +34,7 @@ const checkIfChatflowIsValidForStreaming = async (chatflowId: string): Promise<a
         const nodes = parsedFlowData.nodes
         const edges = parsedFlowData.edges
         const { graph, nodeDependencies } = constructGraphs(nodes, edges)
-
+        const agentNodes = nodes.filter((node) => node.data.type === 'agent') && nodes.filter((node) => node.data.category === 'Sequential Agents')
         const endingNodes = getEndingNodes(nodeDependencies, graph, nodes)
 
         let isStreaming = false
@@ -50,6 +50,9 @@ const checkIfChatflowIsValidForStreaming = async (chatflowId: string): Promise<a
 
         // If it is a Multi/Sequential Agents, always enable streaming
         if (endingNodes.filter((node) => node.data.category === 'Multi Agents' || node.data.category === 'Sequential Agents').length > 0) {
+            return { isStreaming: true }
+        }
+        if (agentNodes.length > 0) {
             return { isStreaming: true }
         }
 
