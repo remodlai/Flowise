@@ -6,10 +6,8 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
+import { ChatGenerationChunk } from '@langchain/core/outputs'
 import { StringOutputParser } from '@langchain/core/output_parsers'
-import { StreamingTextResponse } from 'ai'
-
-
 import {
     INode,
     INodeData,
@@ -49,8 +47,9 @@ import {
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
-import { CustomChainHandler } from '../../../src/handler'
+
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
+import { additionalCallbacks, CustomChainHandler } from '../../../src/handler'
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
 const howToUseCode = `
@@ -786,69 +785,25 @@ async function agentNode(
             throw new Error('Aborted!')
         }
 
-        const streamConfig = {
-            ...config,
-            configurable: {
-                ...config.configurable,
-                stream: true
-            }
-        }
-
-        const shouldStreamResponse = options.shouldStreamResponse
-        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        
         // @ts-ignore
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
+
+        const shouldStreamResponse = options.shouldStreamResponse
+        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
+        const chatId = options.chatId
+        const handler = new CustomChainHandler(sseStreamer, chatId)
+        const callbacks = await additionalCallbacks(nodeData, options)
         
-        const handler = new CustomChainHandler(shouldStreamResponse ? sseStreamer : undefined, options.chatId)
-
-        let accumulatedContent = ''
-        let accumulatedToolCalls: any[] = []
-        let result: any
-
-        try {
-            const stream = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
-            
-            // Handle both AsyncIterable and regular responses
-            if (Symbol.asyncIterator in Object(stream)) {
-                for await (const chunk of stream) {
-                    if (shouldStreamResponse && sseStreamer) {
-                        // Stream chunks via SSE
-                        if (chunk.message?.content) {
-                            sseStreamer.streamTokenEvent('on_llm_stream', chunk.message.content)
-                            accumulatedContent += chunk.message.content
-                        }
-                        if (chunk.message?.tool_call_chunks?.length) {
-                            sseStreamer.streamTokenEvent('on_llm_stream', chunk.message.tool_call_chunks)
-                            accumulatedToolCalls.push(...chunk.message.tool_call_chunks)
-                        }
-                    } else {
-                        // Accumulate without streaming
-                        if (chunk.message?.content) {
-                            accumulatedContent += chunk.message.content
-                        }
-                        if (chunk.message?.tool_call_chunks?.length) {
-                            accumulatedToolCalls.push(...chunk.message.tool_call_chunks)
-                        }
-                    }
-                }
-                
-                // Construct result from accumulated content
-                result = {
-                    content: accumulatedContent,
-                    tool_calls: accumulatedToolCalls.length ? accumulatedToolCalls : undefined
-                }
-            } else {
-                // Handle non-streaming response
-                result = stream
+        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal, callbacks: [handler, ...callbacks] }, config)
+        if (result.usedTools) {
+            if (sseStreamer) {
+                sseStreamer.streamUsedToolsEvent(chatId, flatten(result.usedTools))
             }
-        } catch (error) {
-            throw new Error(error)
+            usedTools = result.usedTools
         }
-
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
             const lastMessage = messages.length ? messages[messages.length - 1] : null
