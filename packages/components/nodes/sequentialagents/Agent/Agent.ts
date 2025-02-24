@@ -7,6 +7,9 @@ import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } fro
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
 import { StringOutputParser } from '@langchain/core/output_parsers'
+import { StreamingTextResponse } from 'ai'
+
+
 import {
     INode,
     INodeData,
@@ -20,6 +23,7 @@ import {
     IUsedTool,
     IDocument,
     IStateWithMessages,
+    IServerSideEventStreamer,
     ConversationHistorySelection
 } from '../../../src/Interface'
 import { ToolCallingAgentOutputParser, AgentExecutor, SOURCE_DOCUMENTS_PREFIX, ARTIFACTS_PREFIX } from '../../../src/agents'
@@ -45,7 +49,7 @@ import {
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
-
+import { CustomChainHandler } from '../../../src/handler'
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
@@ -781,15 +785,48 @@ async function agentNode(
         if (abortControllerSignal.signal.aborted) {
             throw new Error('Aborted!')
         }
-
+        const streamConfig = {
+            ...config,
+            configurable: {
+                ...config.configurable,
+                stream: true
+            }
+        }
+        //added this to stream the response
+        const shouldStreamResponse = options.shouldStreamResponse
+        //added this to stream the response
+        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
         // @ts-ignore
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
+        const handler = new CustomChainHandler(shouldStreamResponse ? sseStreamer : undefined, options.chatId)
+        // let result: any | {}
+        // if (shouldStreamResponse) {
+        //     try {   
+        //         let response = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
+        //         result = response 
+        //         return result
+        //     } catch (error) {
+        //         throw new Error(error)
+        //     }
+        // }else { 
+        //     try {   
+        //         let response = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
+        //         result = response
+        //         return result
+        //     } catch (error) {
+        //         throw new Error(error)
+        //     }
+        // } 
+            
 
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
 
+        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
+        
+        
+        
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
             const lastMessage = messages.length ? messages[messages.length - 1] : null
