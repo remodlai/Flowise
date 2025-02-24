@@ -785,6 +785,7 @@ async function agentNode(
         if (abortControllerSignal.signal.aborted) {
             throw new Error('Aborted!')
         }
+
         const streamConfig = {
             ...config,
             configurable: {
@@ -792,41 +793,62 @@ async function agentNode(
                 stream: true
             }
         }
-        //added this to stream the response
+
         const shouldStreamResponse = options.shouldStreamResponse
-        //added this to stream the response
         const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
+        
         // @ts-ignore
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
+        
         const handler = new CustomChainHandler(shouldStreamResponse ? sseStreamer : undefined, options.chatId)
-        // let result: any | {}
-        // if (shouldStreamResponse) {
-        //     try {   
-        //         let response = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
-        //         result = response 
-        //         return result
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // }else { 
-        //     try {   
-        //         let response = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
-        //         result = response
-        //         return result
-        //     } catch (error) {
-        //         throw new Error(error)
-        //     }
-        // } 
+
+        let accumulatedContent = ''
+        let accumulatedToolCalls: any[] = []
+        let result: any
+
+        try {
+            const stream = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
             
+            // Handle both AsyncIterable and regular responses
+            if (Symbol.asyncIterator in Object(stream)) {
+                for await (const chunk of stream) {
+                    if (shouldStreamResponse && sseStreamer) {
+                        // Stream chunks via SSE
+                        if (chunk.message?.content) {
+                            sseStreamer.streamTokenEvent('on_llm_stream', chunk.message.content)
+                            accumulatedContent += chunk.message.content
+                        }
+                        if (chunk.message?.tool_call_chunks?.length) {
+                            sseStreamer.streamTokenEvent('on_llm_stream', chunk.message.tool_call_chunks)
+                            accumulatedToolCalls.push(...chunk.message.tool_call_chunks)
+                        }
+                    } else {
+                        // Accumulate without streaming
+                        if (chunk.message?.content) {
+                            accumulatedContent += chunk.message.content
+                        }
+                        if (chunk.message?.tool_call_chunks?.length) {
+                            accumulatedToolCalls.push(...chunk.message.tool_call_chunks)
+                        }
+                    }
+                }
+                
+                // Construct result from accumulated content
+                result = {
+                    content: accumulatedContent,
+                    tool_calls: accumulatedToolCalls.length ? accumulatedToolCalls : undefined
+                }
+            } else {
+                // Handle non-streaming response
+                result = stream
+            }
+        } catch (error) {
+            throw new Error(error)
+        }
 
-
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
-        
-        
-        
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
             const lastMessage = messages.length ? messages[messages.length - 1] : null
