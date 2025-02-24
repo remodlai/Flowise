@@ -159,7 +159,7 @@ export const buildAgentGraph = async ({
             }
 
             if (streamResults) {
-                let isStreamingStarted = true
+                let isStreamingStarted = false
                 //changes this to just "output of" streamResults starts the streaming
                 for await (const output of streamResults) {
                     if (!output?.__end__) {
@@ -260,34 +260,45 @@ export const buildAgentGraph = async ({
 
                                 if (sseStreamer) {
                                     sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
+                                    const lastMessage = reasoning.messages?.[reasoning.messages.length - 1]
+                                    if (lastMessage) {
+                                        const tokens = lastMessage.split(/(\s+)/); // Split message into tokens, preserving whitespace
+                                        for (const token of tokens) {
+                                            sseStreamer.streamTokenEvent(chatId, token)
+                                        }
+                                    }
                                 }
                                
                                 // Send loading next agent indicator
                                 if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
-                                    if (sseStreamer) {
-                                        sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
-                                    }
-                                }
-                                if (shouldStreamResponse && sseStreamer) {
-                                    if (reasoning.next === 'FINISH' || reasoning.next === 'END') {
-                                    const lastMessage = agentReasoning[agentReasoning.length - 1].messages[agentReasoning[agentReasoning.length - 1].messages.length - 1];
-                                    const tokens = lastMessage.split(/(\s+)/); // Split message into tokens, preserving whitespace
-                                    tokens.forEach((token: string) => {
-                                            sseStreamer.streamTokenEvent(chatId, token);
-                                        });
-                                    }
-                                }
+                                    sseStreamer?.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next);
+                                } 
                                 
                             }
                         }
                     } else {
-                       
-                        finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
-                        if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
-                        if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
+                        
+                        shouldStreamResponse = true
+                        if (!isStreamingStarted && sseStreamer) {
+                            isStreamingStarted = true
+                            finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
+                            if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
+                            const tokens = finalResult.split(/(\s+)/); // Split message into tokens, preserving whitespace
+                            tokens.forEach((token: string) => {
+                                sseStreamer.streamTokenEvent(chatId, token);
+                            });
+                            sseStreamer.streamTokenEvent(chatId, `final ACTUAL result: ${finalResult}`)
                         }
                     }
+
+                    //This is the old way of streaming the final result
+                    // } else {
+                    //     finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
+                    //     if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
+                    //     if (shouldStreamResponse && sseStreamer) {
+                    //         sseStreamer.streamTokenEvent(chatId, finalResult)
+                    //     }
+                    // }
                 }
 
                 /*
@@ -368,8 +379,13 @@ export const buildAgentGraph = async ({
                         totalUsedTools.push(...mappedToolCalls)
                     } else if (lastAgentReasoningMessage) {
                         finalResult = lastAgentReasoningMessage
+                        //This streams the last message of the agent reasoning if it is the last message.
                         if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
+                            const tokens = finalResult.split(/(\s+)/); // Split message into tokens, preserving whitespace
+                            tokens.forEach((token: string) => {
+                                sseStreamer.streamTokenEvent(chatId, token);
+                            });
+                            sseStreamer.streamTokenEvent(chatId, `final result: ${finalResult}`)
                         }
                     }
                 }

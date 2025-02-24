@@ -6,7 +6,6 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
-import { ChatGenerationChunk } from '@langchain/core/outputs'
 import { StringOutputParser } from '@langchain/core/output_parsers'
 import {
     INode,
@@ -21,8 +20,8 @@ import {
     IUsedTool,
     IDocument,
     IStateWithMessages,
-    IServerSideEventStreamer,
-    ConversationHistorySelection
+    ConversationHistorySelection,
+    IServerSideEventStreamer
 } from '../../../src/Interface'
 import { ToolCallingAgentOutputParser, AgentExecutor, SOURCE_DOCUMENTS_PREFIX, ARTIFACTS_PREFIX } from '../../../src/agents'
 import {
@@ -49,7 +48,6 @@ import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
-import { additionalCallbacks, CustomChainHandler } from '../../../src/handler'
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
 const howToUseCode = `
@@ -678,6 +676,7 @@ async function createAgent(
         }
 
         const executor = AgentExecutor.fromAgentAndTools({
+            
             agent,
             tools,
             sessionId: flowObj?.sessionId,
@@ -791,19 +790,15 @@ async function agentNode(
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
 
-        const shouldStreamResponse = options.shouldStreamResponse
-        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
-        const chatId = options.chatId
-        const handler = new CustomChainHandler(sseStreamer, chatId)
-        const callbacks = await additionalCallbacks(nodeData, options)
-        
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal, callbacks: [handler, ...callbacks] }, config)
-        if (result.usedTools) {
-            if (sseStreamer) {
-                sseStreamer.streamUsedToolsEvent(chatId, flatten(result.usedTools))
-            }
-            usedTools = result.usedTools
+        const streamConfig = {
+            ...config,
+            signal: abortControllerSignal.signal,
+            streamMode: 'values',
+            version: 'v1'
         }
+
+        let result = await agent.invoke({ ...state }, streamConfig)
+
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
             const lastMessage = messages.length ? messages[messages.length - 1] : null

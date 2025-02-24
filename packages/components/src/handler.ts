@@ -200,17 +200,8 @@ export class CustomChainHandler extends BaseCallbackHandler {
                     this.sseStreamer.streamStartEvent(this.chatId, token)
                 }
             }
-            if (this.sseStreamer) {
-                if (token) {
-                    const chunk = fields?.chunk as ChatGenerationChunk
-                    const message = chunk?.message as AIMessageChunk
-                    const toolCalls = message?.tool_call_chunks || []
-
-                    // Only stream when token is not empty and not a tool call
-                    if (toolCalls.length === 0) {
-                        this.sseStreamer.streamTokenEvent(this.chatId, token)
-                    }
-                }
+            if (this.sseStreamer && token) {
+                this.sseStreamer.streamTokenEvent(this.chatId, token)
             }
         }
     }
