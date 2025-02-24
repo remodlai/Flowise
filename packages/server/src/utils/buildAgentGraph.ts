@@ -261,16 +261,27 @@ export const buildAgentGraph = async ({
                                 if (sseStreamer) {
                                     sseStreamer.streamAgentReasoningEvent(chatId, agentReasoning)
                                 }
-
+                               
                                 // Send loading next agent indicator
                                 if (reasoning.next && reasoning.next !== 'FINISH' && reasoning.next !== 'END') {
                                     if (sseStreamer) {
                                         sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
                                     }
                                 }
+                                if (shouldStreamResponse && sseStreamer) {
+                                    if (reasoning.next === 'FINISH' || reasoning.next === 'END') {
+                                    const lastMessage = agentReasoning[agentReasoning.length - 1].messages[agentReasoning[agentReasoning.length - 1].messages.length - 1];
+                                    const tokens = lastMessage.split(/(\s+)/); // Split message into tokens, preserving whitespace
+                                    tokens.forEach((token: string) => {
+                                            sseStreamer.streamTokenEvent(chatId, token);
+                                        });
+                                    }
+                                }
+                                
                             }
                         }
                     } else {
+                       
                         finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
                         if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
                         if (shouldStreamResponse && sseStreamer) {
