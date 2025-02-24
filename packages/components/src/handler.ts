@@ -184,7 +184,7 @@ export class CustomChainHandler extends BaseCallbackHandler {
     }
 
     handleLLMStart() {
-        this.logger.log('info', "TEST HANDLE LLM START")
+        this.isLLMStarted = false
         this.cachedResponse = false
         if (this.skipK > 0) this.skipK -= 1
     }
@@ -204,17 +204,14 @@ export class CustomChainHandler extends BaseCallbackHandler {
                     this.sseStreamer.streamStartEvent(this.chatId, token)
                 }
             }
-            if (this.sseStreamer) {
-                this.logger.log('info', "TEST HANDLE LLM NEW TOKEN")
-                if (token) {
-                    const chunk = fields?.chunk as ChatGenerationChunk
-                    const message = chunk?.message as AIMessageChunk
-                    const toolCalls = message?.tool_call_chunks || []
+            if (this.sseStreamer && token) {
+                const chunk = fields?.chunk as ChatGenerationChunk
+                const message = chunk?.message as AIMessageChunk
+                const toolCalls = message?.tool_call_chunks || []
 
-                    // Only stream when token is not empty and not a tool call
-                    if (toolCalls.length === 0) {
-                        this.sseStreamer.streamTokenEvent(this.chatId, token)
-                    }
+                // Only stream when token is not empty and not a tool call
+                if (toolCalls.length === 0) {
+                    this.sseStreamer.streamTokenEvent(this.chatId, token)
                 }
             }
         }

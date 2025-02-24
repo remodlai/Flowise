@@ -1,7 +1,7 @@
 import { flatten } from 'lodash'
 import { ChainValues } from '@langchain/core/utils/types'
 import { AgentStep, AgentAction } from '@langchain/core/agents'
-import { BaseMessage, FunctionMessage, AIMessage, isBaseMessage } from '@langchain/core/messages'
+import { BaseMessage, FunctionMessage, AIMessage, AIMessageChunk, isBaseMessage } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/messages/tool'
 import { OutputParserException, BaseOutputParser, BaseLLMOutputParser } from '@langchain/core/output_parsers'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
@@ -919,8 +919,38 @@ export class ToolCallingAgentOutputParser extends AgentMultiActionOutputParser {
         throw new Error(`ToolCallingAgentOutputParser can only parse messages.\nPassed input: ${text}`)
     }
 
-    async parseResult(generations: ChatGeneration[]) {
+    async parseResult(generations: ChatGeneration[], callbacks?: Callbacks): Promise<AgentAction[] | AgentFinish> {
         if ('message' in generations[0] && isBaseMessage(generations[0].message)) {
+            // Handle streaming chunks if they exist
+            if (generations[0].message instanceof AIMessageChunk) {
+                const chunk = generations[0].message
+                const content = typeof chunk.content === 'string' 
+                    ? chunk.content 
+                    : JSON.stringify(chunk.content)
+    
+                // If there's content, always return it as a finish action
+                if (content && content.trim()) {
+                    console.log(content)
+                    return {
+                        returnValues: { output: content },
+                        log: content
+                    }
+                }
+    
+                // If no content but has tool calls, handle those
+                if (chunk.additional_kwargs?.tool_calls?.length) {
+                    return parseAIMessageToToolAction(chunk)
+                }
+    
+                // If no content and no tool calls, return empty finish
+                // This keeps streaming alive while waiting for more content
+                return {
+                    returnValues: { output: "" },
+                    log: ""
+                }
+            }
+            
+            // Process complete message as normal
             return parseAIMessageToToolAction(generations[0].message)
         }
         throw new Error('parseResult on ToolCallingAgentOutputParser only works on ChatGeneration output')

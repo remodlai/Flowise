@@ -161,8 +161,15 @@ export class SSEStreamer implements IServerSideEventStreamer {
         }
     }
 
-    streamEndEvent(_: string) {
-        // placeholder for future use
+    streamEndEvent(chatId: string) {
+        const client = this.clients[chatId]
+        if (client) {
+            const clientResponse = {
+                event: 'end',
+                data: '[DONE]'
+            }
+            client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
+        }
     }
 
     streamErrorEvent(chatId: string, msg: string) {

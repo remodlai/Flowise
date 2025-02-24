@@ -162,8 +162,8 @@ export const buildAgentGraph = async ({
             }
 
             if (streamResults) {
-                let isStreamingStarted = true
-                //changes this to just "output of" streamResults starts the streaming
+                let isStreamingStarted = false
+                // Process each chunk from the stream
                 for await (const output of streamResults) {
                     if (!output?.__end__) {
                         for (const agentName of Object.keys(output)) {

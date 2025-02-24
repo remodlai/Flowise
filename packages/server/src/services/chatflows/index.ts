@@ -52,9 +52,7 @@ const checkIfChatflowIsValidForStreaming = async (chatflowId: string): Promise<a
         if (endingNodes.filter((node) => node.data.category === 'Multi Agents' || node.data.category === 'Sequential Agents').length > 0) {
             return { isStreaming: true }
         }
-        if (agentNodes.length > 0) {
-            return { isStreaming: true }
-        }
+       
 
         const dbResponse = { isStreaming: isStreaming }
         return dbResponse
