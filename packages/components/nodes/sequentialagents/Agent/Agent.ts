@@ -1,5 +1,6 @@
 import { flatten, uniq } from 'lodash'
 import { DataSource } from 'typeorm'
+import logger from '../../../../server/src/utils/logger'
 import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
@@ -7,9 +8,7 @@ import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } fro
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
 import { StringOutputParser } from '@langchain/core/output_parsers'
-import { StreamingTextResponse } from 'ai'
-
-
+import {ConsoleCallbackHandler, additionalCallbacks, CustomChainHandler } from '../../../src/handler'
 import {
     INode,
     INodeData,
@@ -23,8 +22,8 @@ import {
     IUsedTool,
     IDocument,
     IStateWithMessages,
-    IServerSideEventStreamer,
-    ConversationHistorySelection
+    ConversationHistorySelection,
+    IServerSideEventStreamer
 } from '../../../src/Interface'
 import { ToolCallingAgentOutputParser, AgentExecutor, SOURCE_DOCUMENTS_PREFIX, ARTIFACTS_PREFIX } from '../../../src/agents'
 import {
@@ -49,7 +48,8 @@ import {
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
 import { StructuredTool } from '@langchain/core/tools'
-import { CustomChainHandler } from '../../../src/handler'
+import { ConversationChain } from 'langchain/chains'
+
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
 const customOutputFuncDesc = `This is only applicable when you have a custom State at the START node. After agent execution, you might want to update the State values`
@@ -679,6 +679,7 @@ async function createAgent(
         }
 
         const executor = AgentExecutor.fromAgentAndTools({
+            
             agent,
             tools,
             sessionId: flowObj?.sessionId,
@@ -786,67 +787,76 @@ async function agentNode(
             throw new Error('Aborted!')
         }
 
-        const streamConfig = {
-            ...config,
-            configurable: {
-                ...config.configurable,
-                stream: true
-            }
-        }
-
-        const shouldStreamResponse = options.shouldStreamResponse
-        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
-        
         // @ts-ignore
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
-        
-        const handler = new CustomChainHandler(shouldStreamResponse ? sseStreamer : undefined, options.chatId)
-
-        let accumulatedContent = ''
-        let accumulatedToolCalls: any[] = []
+       
+        const streamConfig = {
+            ...config,
+            signal: abortControllerSignal.signal,
+            streamMode: 'values',
+            version: 'v1'
+        }
+      
+        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
+        const chatId = options.chatId as string
+        console.debug(options)
+        const shouldStreamResponse =  true
         let result: any
 
-        try {
-            const stream = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, streamConfig)
-            
-            // Handle both AsyncIterable and regular responses
-            if (Symbol.asyncIterator in Object(stream)) {
-                for await (const chunk of stream) {
-                    if (shouldStreamResponse && sseStreamer) {
-                        // Stream chunks via SSE
-                        if (chunk.message?.content) {
-                            sseStreamer.streamTokenEvent('on_llm_stream', chunk.message.content)
-                            accumulatedContent += chunk.message.content
-                        }
-                        if (chunk.message?.tool_call_chunks?.length) {
-                            sseStreamer.streamTokenEvent('on_llm_stream', chunk.message.tool_call_chunks)
-                            accumulatedToolCalls.push(...chunk.message.tool_call_chunks)
-                        }
-                    } else {
-                        // Accumulate without streaming
-                        if (chunk.message?.content) {
-                            accumulatedContent += chunk.message.content
-                        }
-                        if (chunk.message?.tool_call_chunks?.length) {
-                            accumulatedToolCalls.push(...chunk.message.tool_call_chunks)
-                        }
+        const loggerHandler = new ConsoleCallbackHandler(options.logger)
+
+        const additionalCallback = await additionalCallbacks(nodeData, options)
+        let callbacks = [loggerHandler, additionalCallback]
+        let sourceDocuments: IDocument[] = []
+        let usedTools: IUsedTool[] = []
+        let artifacts: ICommonObject[] = []
+        if (shouldStreamResponse) {
+            const handler =  new CustomChainHandler(sseStreamer, chatId)
+            callbacks.push(handler)
+            result = await agent.invoke({...state, signal: abortControllerSignal.signal, callbacks: [handler, ...callbacks]}, config)
+               
+            if (result.sourceDocuments) {
+                if (sseStreamer) {
+                    sseStreamer.streamSourceDocumentsEvent(chatId, flatten(result.sourceDocuments))
+                }
+                sourceDocuments = result.sourceDocuments
+            }
+            if (result.usedTools) {
+                if (sseStreamer) {
+                    sseStreamer.streamUsedToolsEvent(chatId, flatten(result.usedTools))
+                }
+                usedTools = result.usedTools
+            }
+            if (result.artifacts) {
+                if (sseStreamer) {
+                    sseStreamer.streamArtifactsEvent(chatId, flatten(result.artifacts))
+                }
+                artifacts = result.artifacts
+            }
+            //If the tool is set to returnDirect, stream the output to the client
+            if (result.usedTools && result.usedTools.length) {
+                let inputTools = nodeData.inputs?.tools
+                inputTools = flatten(inputTools)
+                for (const tool of result.usedTools) {
+                    const inputTool = inputTools.find((inputTool: StructuredTool) => inputTool.name === tool.tool)
+                    if (inputTool && inputTool.returnDirect && shouldStreamResponse) {
+                        sseStreamer.streamTokenEvent(chatId, tool.toolOutput)
                     }
                 }
-                
-                // Construct result from accumulated content
-                result = {
-                    content: accumulatedContent,
-                    tool_calls: accumulatedToolCalls.length ? accumulatedToolCalls : undefined
-                }
-            } else {
-                // Handle non-streaming response
-                result = stream
             }
-        } catch (error) {
-            throw new Error(error)
+        } 
+
+         else {
+            await agent.invoke({
+                input,
+                config: {
+                    ...config,
+                    callbacks
+                }
+            })
         }
 
         if (interrupt) {
