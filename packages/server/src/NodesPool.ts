@@ -3,7 +3,7 @@ import path from 'path'
 import { Dirent } from 'fs'
 import { getNodeModulesPackagePath } from './utils'
 import { promises } from 'fs'
-import { ICommonObject } from 'flowise-components'
+import { ICommonObject } from '../../components/src/Interface'
 import logger from './utils/logger'
 import { appConfig } from './AppConfig'
 

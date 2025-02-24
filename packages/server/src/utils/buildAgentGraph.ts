@@ -4,14 +4,14 @@ import {
     IAgentReasoning,
     IAction,
     ITeamState,
-    ConsoleCallbackHandler,
-    additionalCallbacks,
+    
     ISeqAgentsState,
     ISeqAgentNode,
     IUsedTool,
     IDocument,
     IServerSideEventStreamer
-} from 'flowise-components'
+} from '../../../components/src/Interface'
+import { ConsoleCallbackHandler, additionalCallbacks } from '../../../components/src/handler'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
 import { Document } from '@langchain/core/documents'

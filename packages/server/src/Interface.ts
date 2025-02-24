@@ -6,7 +6,7 @@ import {
     INodeData as INodeDataFromComponent,
     INodeParams,
     IServerSideEventStreamer
-} from 'flowise-components'
+} from '../../components/src/Interface'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'
@@ -51,7 +51,6 @@ export interface IChatFlow {
     category?: string
     type?: ChatflowType
     tenantId?: string
-    userId?: string
 }
 
 export interface IChatMessage {

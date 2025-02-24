@@ -3,19 +3,22 @@ import * as path from 'path'
 import { DataSource } from 'typeorm'
 import { v4 as uuidv4 } from 'uuid'
 import { omit } from 'lodash'
+import { convertSpeechToText } from '../../../components/src/speechToText'
 import {
-    IFileUpload,
-    convertSpeechToText,
-    ICommonObject,
+
+ 
+
     addSingleFileToStorage,
-    generateFollowUpPrompts,
-    IAction,
+    
+    
     addArrayFilesToStorage,
-    mapMimeTypeToInputField,
-    mapExtToInputField,
+    
     getFileFromUpload,
     removeSpecificFileFromUpload
-} from 'flowise-components'
+} from '../../../components/src/storageUtils'
+import { mapMimeTypeToInputField, mapExtToInputField } from '../../../components/src/utils'
+import { IAction, IFileUpload, ICommonObject } from '../../../components/src/Interface'
+import { generateFollowUpPrompts} from '../../../components/src/followUpPrompts'
 import { StatusCodes } from 'http-status-codes'
 import {
     IncomingInput,

@@ -5,7 +5,7 @@ import CallbackHandler from 'langfuse-langchain'
 import lunary from 'lunary'
 import { RunTree, RunTreeConfig, Client as LangsmithClient } from 'langsmith'
 import { Langfuse, LangfuseTraceClient, LangfuseSpanClient, LangfuseGenerationClient } from 'langfuse'
-
+import logger from '../../server/src/utils/logger'
 import { BaseCallbackHandler, NewTokenIndices, HandleLLMNewTokenCallbackFields } from '@langchain/core/callbacks/base'
 import { LangChainTracer, LangChainTracerFields } from '@langchain/core/tracers/tracer_langchain'
 import { BaseTracer, Run } from '@langchain/core/tracers/base'
@@ -171,9 +171,11 @@ export class CustomChainHandler extends BaseCallbackHandler {
     cachedResponse = true
     chatId: string = ''
     sseStreamer: IServerSideEventStreamer | undefined
-
+    
     constructor(sseStreamer: IServerSideEventStreamer | undefined, chatId: string, skipK?: number, returnSourceDocuments?: boolean) {
         super()
+        console.log(sseStreamer? sseStreamer : 'no sseStreamer')
+        logger.log('info', sseStreamer? sseStreamer : 'no sseStreamer')
         this.sseStreamer = sseStreamer
         this.chatId = chatId
         this.skipK = skipK ?? this.skipK

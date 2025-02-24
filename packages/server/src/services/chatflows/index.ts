@@ -1,4 +1,4 @@
-import { removeFolderFromStorage } from 'flowise-components'
+import { removeFolderFromStorage } from '../../../../components/src/storageUtils'
 import { StatusCodes } from 'http-status-codes'
 import { ChatflowType, IReactFlowObject } from '../../Interface'
 import { ChatFlow } from '../../database/entities/ChatFlow'

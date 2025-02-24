@@ -577,7 +577,7 @@ importers:
         specifier: ^6.9.0
         version: 6.11.2(express@4.18.3)
       flowise-components:
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../components
       flowise-ui:
         specifier: workspace:^

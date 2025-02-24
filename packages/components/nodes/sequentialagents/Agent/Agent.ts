@@ -1,5 +1,6 @@
 import { flatten, uniq } from 'lodash'
 import { DataSource } from 'typeorm'
+import logger from '../../../../server/src/utils/logger'
 import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
 import { ChatPromptTemplate, MessagesPlaceholder, HumanMessagePromptTemplate, BaseMessagePromptTemplateLike } from '@langchain/core/prompts'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
@@ -798,10 +799,11 @@ async function agentNode(
             streamMode: 'values',
             version: 'v1'
         }
-        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer 
+      
+        const sseStreamer: IServerSideEventStreamer = options.sseStreamer as IServerSideEventStreamer
         const chatId = options.chatId as string
         console.debug(options)
-        const shouldStreamResponse = options.shouldStreamResponse as boolean || true
+        const shouldStreamResponse =  true
         let result: any
 
         const loggerHandler = new ConsoleCallbackHandler(options.logger)
