@@ -1,20 +1,19 @@
 import { flatten } from 'lodash'
 import { ChainValues } from '@langchain/core/utils/types'
 import { AgentStep, AgentAction } from '@langchain/core/agents'
-import { BaseMessage, FunctionMessage, AIMessage, isBaseMessage } from '@langchain/core/messages'
+import { BaseMessage, FunctionMessage, AIMessage, isBaseMessage, AIMessageChunk } from '@langchain/core/messages'
 import { ToolCall } from '@langchain/core/messages/tool'
 import { OutputParserException, BaseOutputParser, BaseLLMOutputParser } from '@langchain/core/output_parsers'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
-import { CallbackManager, CallbackManagerForChainRun, Callbacks, CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
+import { CallbackManager, CallbackManagerForChainRun, Callbacks } from '@langchain/core/callbacks/manager'
 import { ToolInputParsingException, Tool, StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableSequence, RunnablePassthrough, type RunnableConfig } from '@langchain/core/runnables'
 import { Serializable } from '@langchain/core/load/serializable'
 import { renderTemplate } from '@langchain/core/prompts'
-import { ChatGeneration } from '@langchain/core/outputs'
+import { ChatGeneration, ChatGenerationChunk } from '@langchain/core/outputs'
 import { Document } from '@langchain/core/documents'
+import { BaseCallbackHandler, NewTokenIndices, HandleLLMNewTokenCallbackFields } from '@langchain/core/callbacks/base'
 import { BaseChain, SerializedLLMChain } from 'langchain/chains'
-import { SSEStreamer } from '../../server/src/utils/SSEStreamer'
-import { getErrorMessage} from '../../server/src/errors/utils'
 import {
     CreateReactAgentParams,
     AgentExecutorInput,
@@ -24,12 +23,35 @@ import {
     RunnableAgent,
     StoppingMethod
 } from 'langchain/agents'
-import { Serialized } from '@langchain/core/load/serializable'
 import { formatLogToString } from 'langchain/agents/format_scratchpad/log'
 import { IUsedTool, IServerSideEventStreamer } from './Interface'
-import { LLMResult } from '@langchain/core/outputs'
+
 export const SOURCE_DOCUMENTS_PREFIX = '\n\n----FLOWISE_SOURCE_DOCUMENTS----\n\n'
 export const ARTIFACTS_PREFIX = '\n\n----FLOWISE_ARTIFACTS----\n\n'
+
+
+class TokenStreamingHandler extends BaseCallbackHandler {
+    name = 'token_streaming_handler';
+    isLLMStarted = false;
+    
+    constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer) {
+        super();
+    }
+    
+    handleLLMNewToken(token: string): Promise<void> {
+        console.log(`Streaming token: ${token}`);
+        
+        if (!this.isLLMStarted) {
+            this.isLLMStarted = true;
+            this.sseStreamer.streamStartEvent(this.chatId, token);
+        }
+        
+        this.sseStreamer.streamTokenEvent(this.chatId, token);
+        return Promise.resolve();
+    }
+}
+
+
 
 export type AgentFinish = {
     returnValues: Record<string, any>
@@ -45,54 +67,6 @@ interface AgentExecutorIteratorInput {
     metadata?: Record<string, unknown>
     runName?: string
     runManager?: CallbackManagerForChainRun
-}
-
-
-//custom Manager for callbacks
-class LLMChainCallbackManager extends CallbackManagerForChainRun {
-    private sseStreamer: IServerSideEventStreamer;
-    private chatId: string;
-
-    constructor(
-        runId: string | undefined,
-        parentRunId: string | undefined,
-        tags: string[] | undefined,
-        metadata: Record<string, unknown> | undefined,
-        sseStreamer: IServerSideEventStreamer,
-        chatId: string
-    ) {
-        super(runId, parentRunId, tags, metadata);
-        this.sseStreamer = sseStreamer;
-        this.chatId = chatId;
-    }
-
-    // Implement LLM methods
-    async handleLLMNewToken(token: string): Promise<void> {
-        if (this.sseStreamer) {
-            await this.sseStreamer.streamTokenEvent(this.chatId, token);
-        }
-    }
-
-    async handleLLMStart(
-        llm: Serialized,
-        prompts: string[],
-        runId?: string,
-        parentRunId?: string
-    ): Promise<CallbackManagerForLLMRun[]> {
-        // Return self since we handle both Chain and LLM callbacks
-        return [this as unknown as CallbackManagerForLLMRun];
-    }
-
-    async handleLLMEnd(output: LLMResult): Promise<void> {
-        // Handle LLM completion if needed
-    }
-    //removed by @brian
-    // async handleLLMError(err: Error): Promise<void> {
-    //     console.error('LLM Error:', err);
-    //     if (this.sseStreamer) {
-    //         await this.sseStreamer.streamErrorEvent(this.chatId, getErrorMessage(err));
-    //     }
-    // }
 }
 
 //TODO: stream tools back
@@ -149,7 +123,36 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
         this.metadata = fields.metadata
         this.runName = fields.runName
         this.runManager = fields.runManager
-        this.config = fields.config
+        
+        // IMPORTANT: Modify config to include our streaming handler
+        // This ensures it gets passed all the way to the LLM
+        if (this.agentExecutor.sseStreamer && this.agentExecutor.chatId) {
+            // Capture these values to ensure they're not undefined when the handler is called
+            const sseStreamer = this.agentExecutor.sseStreamer;
+            const chatId = this.agentExecutor.chatId;
+            
+            // Create a direct token streaming handler 
+            const tokenHandler = {
+                handleLLMNewToken: (token: string) => {
+                    console.log("Direct token handler: " + token);
+                    sseStreamer.streamTokenEvent(chatId, token);
+                    return Promise.resolve();
+                }
+            };
+            
+            // Ensure our config has the handler
+            this.config = fields.config || {};
+            this.config.callbacks = this.config.callbacks || [];
+            
+            // Add our token handler to the config callbacks
+            if (Array.isArray(this.config.callbacks)) {
+                this.config.callbacks.push(tokenHandler);
+            } else {
+                this.config.callbacks = [this.config.callbacks, tokenHandler];
+            }
+        } else {
+            this.config = fields.config;
+        }
     }
 
     /**
@@ -199,8 +202,25 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
      */
     async onFirstStep(): Promise<void> {
         if (this.iterations === 0) {
+            // Create a custom callback handler for token streaming
+            let callbacksToUse = this.callbacks;
+            if (this.agentExecutor.sseStreamer && this.agentExecutor.chatId) {
+                const streamingCallback = this.agentExecutor.createCustomCallbackHandler();
+                
+                // Add the streaming callback to the callbacks
+                if (streamingCallback) {
+                    if (Array.isArray(this.callbacks)) {
+                        callbacksToUse = [...this.callbacks, streamingCallback];
+                    } else if (this.callbacks) {
+                        callbacksToUse = [this.callbacks, streamingCallback];
+                    } else {
+                        callbacksToUse = [streamingCallback];
+                    }
+                }
+            }
+            
             const callbackManager = await CallbackManager.configure(
-                this.callbacks,
+                callbacksToUse,
                 this.agentExecutor.callbacks,
                 this.tags,
                 this.agentExecutor.tags,
@@ -209,7 +229,8 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
                 {
                     verbose: this.agentExecutor.verbose
                 }
-            )
+            );
+            
             this.runManager = await callbackManager?.handleChainStart(
                 this.agentExecutor.toJSON(),
                 this.inputs,
@@ -218,7 +239,7 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
                 this.tags,
                 this.metadata,
                 this.runName
-            )
+            );
         }
     }
 
@@ -227,7 +248,27 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
      * AgentExecutor's _takeNextStep method.
      */
     async _executeNextStep(runManager?: CallbackManagerForChainRun): Promise<AgentFinish | AgentStep[]> {
-        return this.agentExecutor._takeNextStep(this.nameToToolMap, this.inputs, this.intermediateSteps, runManager)
+        console.log(`Executing next step with streaming config`);
+        
+        // Make sure we pass our config with token handler to _takeNextStep
+        const config = this.config || {};
+        
+        // If we have an SSE streamer, log what's happening to diagnose issues
+        if (this.agentExecutor.sseStreamer && this.agentExecutor.chatId) {
+            console.log(`Executing step for chatId: ${this.agentExecutor.chatId}`);
+            if (config.callbacks) {
+                console.log(`Config has ${Array.isArray(config.callbacks) ? config.callbacks.length : 1} callback(s)`);
+            }
+        }
+        
+        // Always use this.config which now contains our token streaming handler
+        return this.agentExecutor._takeNextStep(
+            this.nameToToolMap, 
+            this.inputs, 
+            this.intermediateSteps, 
+            runManager,
+            config  // Pass our config with the token handler
+        );
     }
 
     /**
@@ -341,7 +382,14 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         return this.agent.returnValues
     }
 
-    constructor(input: AgentExecutorInput & { sessionId?: string; chatId?: string; input?: string; isXML?: boolean }) {
+    sseStreamer?: IServerSideEventStreamer
+    constructor(input: AgentExecutorInput & {
+        sessionId?: string; 
+        chatId?: string; 
+        input?: string; 
+        isXML?: boolean; 
+        sseStreamer?: IServerSideEventStreamer 
+    }) {
         let agent: BaseSingleActionAgent | BaseMultiActionAgent
         if (Runnable.isRunnable(input.agent)) {
             agent = new RunnableAgent({ runnable: input.agent })
@@ -353,16 +401,6 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         this.agent = agent
         this.tools = input.tools
         this.handleParsingErrors = input.handleParsingErrors ?? this.handleParsingErrors
-        /* Getting rid of this because RunnableAgent doesnt allow return direct
-        if (this.agent._agentActionType() === "multi") {
-            for (const tool of this.tools) {
-              if (tool.returnDirect) {
-                throw new Error(
-                  `Tool with return direct ${tool.name} not supported for multi-action agent.`
-                );
-              }
-            }
-        }*/
         this.returnIntermediateSteps = input.returnIntermediateSteps ?? this.returnIntermediateSteps
         this.maxIterations = input.maxIterations ?? this.maxIterations
         this.earlyStoppingMethod = input.earlyStoppingMethod ?? this.earlyStoppingMethod
@@ -370,17 +408,74 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         this.chatId = input.chatId
         this.input = input.input
         this.isXML = input.isXML
+        this.sseStreamer = input.sseStreamer
     }
 
     static fromAgentAndTools(
-        fields: AgentExecutorInput & { sessionId?: string; chatId?: string; input?: string; isXML?: boolean }
+        fields: AgentExecutorInput & { 
+            sessionId?: string; 
+            chatId?: string; 
+            input?: string; 
+            isXML?: boolean; 
+            sseStreamer?: IServerSideEventStreamer 
+        }
     ): AgentExecutor {
         const newInstance = new AgentExecutor(fields)
         if (fields.sessionId) newInstance.sessionId = fields.sessionId
         if (fields.chatId) newInstance.chatId = fields.chatId
         if (fields.input) newInstance.input = fields.input
         if (fields.isXML) newInstance.isXML = fields.isXML
+        if (fields.sseStreamer) newInstance.sseStreamer = fields.sseStreamer
         return newInstance
+    }
+
+    createCustomCallbackHandler(): BaseCallbackHandler | undefined {
+        if (!this.chatId || !this.sseStreamer) {
+            return undefined;
+        }
+        
+        // Create a custom callback handler that implements token streaming
+        return new class extends BaseCallbackHandler {
+            name = 'custom_token_streaming_handler';
+            isLLMStarted = false;
+            
+            constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer) {
+                super();
+            }
+            
+            handleLLMStart() {
+                return Promise.resolve();
+            }
+            
+            handleLLMNewToken(token: string, idx?: NewTokenIndices, runId?: string, parentRunId?: string, tags?: string[], fields?: HandleLLMNewTokenCallbackFields): Promise<void> {
+                if (!this.isLLMStarted) {
+                    this.isLLMStarted = true;
+                    if (this.sseStreamer) {
+                        this.sseStreamer.streamStartEvent(this.chatId, token);
+                    }
+                }
+                
+                if (this.sseStreamer && token) {
+                    const chunk = fields?.chunk as ChatGenerationChunk;
+                    const message = chunk?.message as AIMessageChunk;
+                    const toolCalls = message?.tool_call_chunks || [];
+                    
+                    // Only stream when token is not empty and not a tool call
+                    if (toolCalls.length === 0) {
+                        this.sseStreamer.streamTokenEvent(this.chatId, token);
+                    }
+                }
+                
+                return Promise.resolve();
+            }
+            
+            handleLLMEnd() {
+                if (this.sseStreamer) {
+                    this.sseStreamer.streamEndEvent(this.chatId);
+                }
+                return Promise.resolve();
+            }
+        }(this.chatId, this.sseStreamer);
     }
 
     get shouldContinueGetter() {
@@ -399,6 +494,69 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
 
     async _call(inputs: ChainValues, runManager?: CallbackManagerForChainRun, config?: RunnableConfig): Promise<AgentExecutorOutput> {
         const toolsByName = Object.fromEntries(this.tools.map((t) => [t.name?.toLowerCase(), t]))
+
+        // Add a streaming callback if we have an SSE streamer and chat ID
+        if (this.sseStreamer && this.chatId) {
+            console.log(`Setting up token streaming for chatId: ${this.chatId}`);
+            
+            // Create a handler that directly captures and streams tokens
+            const streamingHandler = new class extends BaseCallbackHandler {
+                name = 'direct_token_streaming_handler';
+                isLLMStarted = false;
+                tokenCount = 0;
+                
+                constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer) {
+                    super();
+                    console.log(`Created direct streaming handler for chatId: ${chatId}`);
+                }
+                
+                handleLLMStart() {
+                    console.log(`LLM started for chatId: ${this.chatId}`);
+                    return Promise.resolve();
+                }
+                
+                handleLLMNewToken(token: string): Promise<void> {
+                    this.tokenCount++;
+                    console.log(`STREAMING TOKEN #${this.tokenCount}: "${token}" for chatId: ${this.chatId}`);
+                    
+                    if (!this.isLLMStarted) {
+                        this.isLLMStarted = true;
+                        this.sseStreamer.streamStartEvent(this.chatId, token);
+                    }
+                    
+                    // Always stream the token
+                    this.sseStreamer.streamTokenEvent(this.chatId, token);
+                    return Promise.resolve();
+                }
+                
+                handleLLMEnd() {
+                    console.log(`LLM ended after ${this.tokenCount} tokens for chatId: ${this.chatId}`);
+                    return Promise.resolve();
+                }
+            }(this.chatId, this.sseStreamer);
+            
+            // Add our handler to the config callbacks
+            if (!config) config = {};
+            if (!config.callbacks) config.callbacks = [];
+            if (Array.isArray(config.callbacks)) {
+                config.callbacks.push(streamingHandler);
+            } else {
+                config.callbacks = [config.callbacks, streamingHandler];
+            }
+            
+            // Also add the handler to any existing callbacks
+            if (this.callbacks) {
+                if (Array.isArray(this.callbacks)) {
+                    this.callbacks.push(streamingHandler);
+                } else {
+                    this.callbacks = [this.callbacks, streamingHandler];
+                }
+            } else {
+                this.callbacks = [streamingHandler];
+            }
+            
+            console.log(`Token streaming handler registered for chatId: ${this.chatId}`);
+        }
 
         const steps: AgentStep[] = []
         let iterations = 0
@@ -422,6 +580,7 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         while (this.shouldContinue(iterations)) {
             let output
             try {
+                console.log(`Calling agent.plan with config that includes streaming handler for iteration ${iterations}`);
                 output = await this.agent.plan(steps, inputs, runManager?.getChild(), config)
             } catch (e) {
                 if (e instanceof OutputParserException) {
@@ -569,9 +728,39 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         runManager?: CallbackManagerForChainRun,
         config?: RunnableConfig
     ): Promise<AgentFinish | AgentStep[]> {
-        let output
+        // Ensure we have a config object
+        const combinedConfig: RunnableConfig = { ...config };
+        
+        // If we have a sseStreamer, make sure the callback correctly handles token streaming
+        if (this.sseStreamer && this.chatId) {
+            // Capture these values to ensure they're not undefined when the handler is called
+            const sseStreamer = this.sseStreamer;
+            const chatId = this.chatId;
+            
+            // Create a handler that directly streams tokens to the client
+            const tokenStreamingCallback = {
+                handleLLMNewToken: (token: string) => {
+                    sseStreamer.streamTokenEvent(chatId, token);
+                    return Promise.resolve();
+                }
+            };
+            
+            // Add the streaming callback to the config
+            combinedConfig.callbacks = combinedConfig.callbacks || [];
+            if (Array.isArray(combinedConfig.callbacks)) {
+                combinedConfig.callbacks.push(tokenStreamingCallback);
+            } else {
+                combinedConfig.callbacks = [combinedConfig.callbacks, tokenStreamingCallback];
+            }
+        }
+        
+        // Pass the combined config to the agent.plan method
+        let output;
         try {
-            output = await this.agent.plan(intermediateSteps, inputs, runManager?.getChild(), config)
+            output = await this.agent.plan(intermediateSteps, inputs, runManager?.getChild(), combinedConfig);
+            
+            // Rest of the method remains unchanged
+            // ...
         } catch (e) {
             if (e instanceof OutputParserException) {
                 let observation
