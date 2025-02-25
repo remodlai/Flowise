@@ -7,6 +7,7 @@ import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } fro
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
 import { StringOutputParser } from '@langchain/core/output_parsers'
+import { CustomChainHandler, ConsoleCallbackHandler, additionalCallbacks } from '../../../src/handler'
 import {
     INode,
     INodeData,
@@ -16,6 +17,7 @@ import {
     MessageContentImageUrl,
     INodeOutputsValue,
     ISeqAgentNode,
+    IServerSideEventStreamer,
     IDatabaseEntity,
     IUsedTool,
     IDocument,
