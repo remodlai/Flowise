@@ -19,6 +19,7 @@ import { StatusCodes } from 'http-status-codes'
 import { v4 as uuidv4 } from 'uuid'
 import { StructuredTool } from '@langchain/core/tools'
 import { BaseMessage, HumanMessage, AIMessage, AIMessageChunk, ToolMessage } from '@langchain/core/messages'
+import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { IChatFlow, IComponentNodes, IDepthQueue, IReactFlowNode, IReactFlowEdge, IMessage, IncomingInput, IFlowConfig } from '../Interface'
 import { databaseEntities, clearSessionMemory, getAPIOverrideConfig } from '../utils'
 import { replaceInputsWithConfig, resolveVariables } from '.'
@@ -89,7 +90,40 @@ export const buildAgentGraph = async ({
             cachePool,
             uploads,
             baseURL,
-            signal: signal ?? new AbortController()
+            signal: signal ?? new AbortController(),
+            callbacks: [] as BaseCallbackHandler[]
+        }
+
+        // Add a direct token streaming handler for token-by-token streaming
+        if (shouldStreamResponse && sseStreamer && chatId) {
+            // Create a direct token streaming handler
+            class DirectTokenStreamingHandler extends BaseCallbackHandler {
+                name = 'direct_token_streaming_handler';
+                isLLMStarted = false;
+                
+                constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer) {
+                    super();
+                }
+                
+                handleLLMNewToken(token: string): Promise<void> {
+                    console.log(`Direct token streaming: ${token}`);
+                    
+                    if (!this.isLLMStarted) {
+                        this.isLLMStarted = true;
+                        this.sseStreamer.streamStartEvent(this.chatId, token);
+                    }
+                    
+                    this.sseStreamer.streamTokenEvent(this.chatId, token);
+                    return Promise.resolve();
+                }
+            }
+            
+            const tokenHandler = new DirectTokenStreamingHandler(chatId, sseStreamer);
+            
+            // Add tokenHandler to the options so it gets passed to the LLM
+            options.callbacks.push(tokenHandler);
+            
+            console.log(`Token streaming handler registered for direct streaming to chatId: ${chatId}`);
         }
 
         let streamResults
@@ -598,7 +632,7 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
                 },
                 {
                     recursionLimit: supervisorResult?.recursionLimit ?? 100,
-                    callbacks: [loggerHandler, ...callbacks],
+                    callbacks: [loggerHandler, ...callbacks, ...(options.callbacks || [])],
                     configurable: config
                 }
             )
@@ -1040,7 +1074,7 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
             }
         }
         return await graph.stream(humanMsg, {
-            callbacks: [loggerHandler, ...callbacks],
+            callbacks: [loggerHandler, ...callbacks, ...(options.callbacks || [])],
             configurable: config
         })
     } catch (e) {
