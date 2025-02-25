@@ -104,8 +104,6 @@ export const buildAgentGraph = async ({
         let totalUsedTools: IUsedTool[] = []
         let totalArtifacts: ICommonObject[] = []
 
-        //a flag to check if the final result has been streamed to the client
-        let alreadyStreamedFinalResult = false;
         const workerNodes = initializedNodes.filter((node) => node.data.name === 'worker')
         const supervisorNodes = initializedNodes.filter((node) => node.data.name === 'supervisor')
         const seqAgentNodes = initializedNodes.filter((node) => node.data.category === 'Sequential Agents')
@@ -162,37 +160,11 @@ export const buildAgentGraph = async ({
 
             if (streamResults) {
                 let isStreamingStarted = false
-
-                const agentTokens = new Map();
                 for await (const output of await streamResults) {
                     if (!output?.__end__) {
                         for (const agentName of Object.keys(output)) {
-                            if (!mapNameToLabel[agentName]) continue;
-                    
-                            let streamingMessages = output[agentName]?.messages || [];
-                            const lastMessage = streamingMessages.length > 0 ? streamingMessages[streamingMessages.length - 1] : null;
-                            
-                            if (lastMessage && lastMessage._getType && lastMessage._getType() === 'ai') {
-                                const content = lastMessage.content || '';
-                    
-                                // Track previous content to only stream new tokens
-                                const previousContent = agentTokens.get(agentName) || '';
-                                if (content.length > previousContent.length) {
-                                    const newContent = content.substring(previousContent.length);
-                                    
-                                    if (shouldStreamResponse && sseStreamer && newContent) {
-                                        // Don't stream if the message has tool calls
-                                        if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
-                                            sseStreamer.streamTokenEvent(chatId, newContent);
-                                            alreadyStreamedFinalResult = true;
-                                        }
-                                    }
-                                    
-                                    // Update our tracking map with the full content
-                                    agentTokens.set(agentName, content);
-                                }
-                            }
-             
+                            if (!mapNameToLabel[agentName]) continue
+
                             const nodeId = output[agentName]?.messages
                                 ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
                                 : ''
@@ -384,8 +356,8 @@ export const buildAgentGraph = async ({
                         totalUsedTools.push(...mappedToolCalls)
                     } else if (lastAgentReasoningMessage) {
                         finalResult = lastAgentReasoningMessage
-                        if (shouldStreamResponse && sseStreamer && !alreadyStreamedFinalResult) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult);
+                        if (shouldStreamResponse && sseStreamer) {
+                            sseStreamer.streamTokenEvent(chatId, finalResult)
                         }
                     }
                 }
@@ -393,9 +365,7 @@ export const buildAgentGraph = async ({
                 totalSourceDocuments = uniq(flatten(totalSourceDocuments))
                 totalUsedTools = uniq(flatten(totalUsedTools))
                 totalArtifacts = uniq(flatten(totalArtifacts))
-                if (!alreadyStreamedFinalResult && finalResult) {
-                    sseStreamer.streamTokenEvent(chatId, finalResult);
-                }
+
                 if (shouldStreamResponse && sseStreamer) {
                     sseStreamer.streamUsedToolsEvent(chatId, totalUsedTools)
                     sseStreamer.streamSourceDocumentsEvent(chatId, totalSourceDocuments)
@@ -1069,32 +1039,10 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                 })
             }
         }
-        const shouldStreamResponse = true
-        const sseStreamer = options.sseStreamer
-        const chatId = options.chatId
-        const streamingGraphCallbacks = {
-            handleLLMNewToken(token: string) {
-                // Directly stream each token to the client
-                if (shouldStreamResponse && sseStreamer) {
-                    sseStreamer.streamTokenEvent(chatId, token);
-                }
-                return true; // Important: allows token to continue propagating
-            }
-        };
-        
-        // Add these callbacks to existing ones
-        const allCallbacks = [loggerHandler, streamingGraphCallbacks, ...callbacks];
-        
-        // Update the graph.stream call
         return await graph.stream(humanMsg, {
-            callbacks: allCallbacks,
-            configurable: {
-                thread_id: threadId,
-                streamMode: 'messages',
-                version: 'v2',
-                ...config
-            }
-        });
+            callbacks: [loggerHandler, ...callbacks],
+            configurable: config
+        })
     } catch (e) {
         logger.error('Error compile graph', e)
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error compile graph - ${getErrorMessage(e)}`)
