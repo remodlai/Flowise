@@ -779,6 +779,9 @@ async function agentNode(
     },
     config: RunnableConfig
 ) {
+    const shouldStreamResponse = options.shouldStreamResponse
+    const sseStreamer: IServerSideEventStreamer = options.sseStreamer
+    const chatId = options.chatId
     try {
         if (abortControllerSignal.signal.aborted) {
             throw new Error('Aborted!')
@@ -790,7 +793,14 @@ async function agentNode(
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
 
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+        let result
+        if (shouldStreamResponse) {
+            const handler = new CustomChainHandler(sseStreamer, chatId)
+            const loggerHandler = new ConsoleCallbackHandler(options.logger)
+            const callbacks = await additionalCallbacks(nodeData, options)
+            config.callbacks = [loggerHandler, handler, ...callbacks]
+        }
+        result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
 
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
@@ -828,12 +838,21 @@ async function agentNode(
 
         if (result.usedTools) {
             additional_kwargs.usedTools = result.usedTools
+            if (shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamUsedToolsEvent(chatId, result.usedTools)
+            }
         }
         if (result.sourceDocuments) {
             additional_kwargs.sourceDocuments = result.sourceDocuments
+            if (shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamSourceDocumentsEvent(chatId, result.sourceDocuments)
+            }
         }
         if (result.artifacts) {
             additional_kwargs.artifacts = result.artifacts
+            if (shouldStreamResponse && sseStreamer) {
+                sseStreamer.streamArtifactsEvent(chatId, result.artifacts)
+            }
         }
         if (result.output) {
             result.content = result.output
@@ -843,6 +862,10 @@ async function agentNode(
         let outputContent = typeof result === 'string' ? result : result.content || result.output
         outputContent = extractOutputFromArray(outputContent)
         outputContent = removeInvalidImageMarkdown(outputContent)
+
+        if (shouldStreamResponse && sseStreamer) {
+            sseStreamer.streamTokenEvent(chatId, outputContent)
+        }
 
         if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
             let formattedOutput = {
