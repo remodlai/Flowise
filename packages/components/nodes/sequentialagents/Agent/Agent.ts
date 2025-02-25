@@ -1,3 +1,4 @@
+
 import { flatten, uniq } from 'lodash'
 import { DataSource } from 'typeorm'
 import { RunnableSequence, RunnablePassthrough, RunnableConfig } from '@langchain/core/runnables'
@@ -46,7 +47,8 @@ import {
     checkMessageHistory
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
-import { StructuredTool } from '@langchain/core/tools'
+import { StructuredTool, Tool } from '@langchain/core/tools'
+import { ChainValues } from '@langchain/core/dist/utils/types'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
@@ -471,7 +473,7 @@ class Agent_SeqAgents implements INode {
         const promptValuesStr = nodeData.inputs?.promptValues
         const output = nodeData.outputs?.output as string
         const approvalPrompt = nodeData.inputs?.approvalPrompt as string
-
+        
         if (!agentLabel) throw new Error('Agent name is required!')
         const agentName = agentLabel.toLowerCase().replace(/\s/g, '_').trim()
 
@@ -779,29 +781,115 @@ async function agentNode(
     },
     config: RunnableConfig
 ) {
-    const shouldStreamResponse = options.shouldStreamResponse
-    const sseStreamer: IServerSideEventStreamer = options.sseStreamer
-    const chatId = options.chatId
     try {
         if (abortControllerSignal.signal.aborted) {
             throw new Error('Aborted!')
         }
-
+        const shouldStreamResponse = options.shouldStreamResponse
+        const sseStreamer: IServerSideEventStreamer = options.sseStreamer
+        const chatId = options.chatId
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
         // @ts-ignore
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
+        const loggerHandler = new ConsoleCallbackHandler(options.logger)
+        const callbacks = await additionalCallbacks(nodeData, options)
+        let result: any = {}
 
-        let result
-        if (shouldStreamResponse) {
-            const handler = new CustomChainHandler(sseStreamer, chatId)
-            const loggerHandler = new ConsoleCallbackHandler(options.logger)
-            const callbacks = await additionalCallbacks(nodeData, options)
-            config.callbacks = [loggerHandler, handler, ...callbacks]
+        // For streaming responses, we need to use a custom callback to handle the chunks
+        if (shouldStreamResponse && sseStreamer) {
+            // To collect various metadata and content
+            let sourceDocuments: any[] = []
+            let usedTools: any[] = [] 
+            let artifacts: any[] = []
+            let contentChunks: string[] = []
+
+            // Create a custom callback to handle the streaming
+            const streamingCallback = {
+                
+                    handleLLMNewToken(token: string) {
+                        console.log("Streaming token:", token);
+                        // Stream token to client
+                        if (sseStreamer) {
+                            sseStreamer.streamTokenEvent(chatId, token);
+                        }
+                        // Store token for final result
+                        contentChunks.push(token);
+                    },
+                    
+                    // Standard LangChain handlers for stream events
+                    handleLLMStart() {
+                        console.log("LLM stream starting");
+                    },
+                    
+                    handleLLMEnd() {
+                        console.log("LLM stream complete");
+                    },
+                    
+                    handleLLMError(error: Error) {
+                        console.error("LLM stream error:", error);
+                    },
+                
+                // If your LangChain implementation supports these custom callbacks, use them
+                handleSourceDocuments(docs: any[]) {
+                    if (sseStreamer) {
+                        sseStreamer.streamSourceDocumentsEvent(chatId, flatten(docs))
+                    }
+                    sourceDocuments = docs
+                },
+                
+                handleUsedTools(tools: any[]) {
+                    if (sseStreamer) {
+                        sseStreamer.streamUsedToolsEvent(chatId, flatten(tools))
+                    }
+                    usedTools = tools
+                },
+                
+                handleArtifacts(artfs: any[]) {
+                    if (sseStreamer) {
+                        sseStreamer.streamArtifactsEvent(chatId, flatten(artfs))
+                    }
+                    artifacts = artfs
+                }
+            }
+
+            // Add the streaming callback to the callbacks list
+            const allCallbacks = [loggerHandler, streamingCallback, ...callbacks]
+            
+            // Invoke the agent with streaming
+            await agent.invoke(
+                { ...state, signal: abortControllerSignal.signal }, 
+                { callbacks: allCallbacks, ...config }
+            )
+            
+            // After streaming completes, build the final result object
+            result = {
+                content: contentChunks.join(''),
+                sourceDocuments: sourceDocuments.length > 0 ? sourceDocuments : undefined,
+                usedTools: usedTools.length > 0 ? usedTools : undefined,
+                artifacts: artifacts.length > 0 ? artifacts : undefined
+            }
+            
+            // Process any tool outputs that should be directly streamed
+            if (usedTools.length > 0) {
+                let inputTools = nodeData.inputs?.tools
+                inputTools = flatten(inputTools)
+                for (const tool of usedTools) {
+                    const inputTool = inputTools.find((inputTool: StructuredTool) => inputTool.name === tool.tool)
+                    if (inputTool && inputTool.returnDirect && shouldStreamResponse) {
+                        sseStreamer.streamTokenEvent(chatId, tool.toolOutput)
+                    }
+                }
+            }
+        } else {
+            // For non-streaming, just invoke normally
+            result = await agent.invoke(
+                { ...state, signal: abortControllerSignal.signal }, 
+                { callbacks: [loggerHandler, ...callbacks], ...config }
+            )
         }
-        result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
-
+        
         if (interrupt) {
             const messages = state.messages as unknown as BaseMessage[]
             const lastMessage = messages.length ? messages[messages.length - 1] : null
@@ -838,34 +926,23 @@ async function agentNode(
 
         if (result.usedTools) {
             additional_kwargs.usedTools = result.usedTools
-            if (shouldStreamResponse && sseStreamer) {
-                sseStreamer.streamUsedToolsEvent(chatId, result.usedTools)
-            }
         }
         if (result.sourceDocuments) {
             additional_kwargs.sourceDocuments = result.sourceDocuments
-            if (shouldStreamResponse && sseStreamer) {
-                sseStreamer.streamSourceDocumentsEvent(chatId, result.sourceDocuments)
-            }
         }
         if (result.artifacts) {
             additional_kwargs.artifacts = result.artifacts
-            if (shouldStreamResponse && sseStreamer) {
-                sseStreamer.streamArtifactsEvent(chatId, result.artifacts)
-            }
         }
         if (result.output) {
             result.content = result.output
-            delete result.output
+            for (const chunk of result.output) {
+                console.log(chunk)
+            }
         }
 
         let outputContent = typeof result === 'string' ? result : result.content || result.output
         outputContent = extractOutputFromArray(outputContent)
         outputContent = removeInvalidImageMarkdown(outputContent)
-
-        if (shouldStreamResponse && sseStreamer) {
-            sseStreamer.streamTokenEvent(chatId, outputContent)
-        }
 
         if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
             let formattedOutput = {

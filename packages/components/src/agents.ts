@@ -5,13 +5,12 @@ import { BaseMessage, FunctionMessage, AIMessage, isBaseMessage } from '@langcha
 import { ToolCall } from '@langchain/core/messages/tool'
 import { OutputParserException, BaseOutputParser, BaseLLMOutputParser } from '@langchain/core/output_parsers'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
-import { NewTokenIndices, HandleLLMNewTokenCallbackFields } from '@langchain/core/callbacks/base'
-import { CallbackManager,  BaseRunManager, CallbackManagerForLLMRun,BaseCallbackManager, BaseCallbackManagerMethods, Callbacks, CallbackManagerForChainRun, CallbackManagerOptions } from '@langchain/core/callbacks/manager'
+import { CallbackManager, CallbackManagerForChainRun, Callbacks } from '@langchain/core/callbacks/manager'
 import { ToolInputParsingException, Tool, StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableSequence, RunnablePassthrough, type RunnableConfig } from '@langchain/core/runnables'
 import { Serializable } from '@langchain/core/load/serializable'
 import { renderTemplate } from '@langchain/core/prompts'
-import { ChatGeneration, LLMResult } from '@langchain/core/outputs'
+import { ChatGeneration } from '@langchain/core/outputs'
 import { Document } from '@langchain/core/documents'
 import { BaseChain, SerializedLLMChain } from 'langchain/chains'
 import {
@@ -25,81 +24,6 @@ import {
 } from 'langchain/agents'
 import { formatLogToString } from 'langchain/agents/format_scratchpad/log'
 import { IUsedTool } from './Interface'
-import { Serialized } from '@langchain/core/load/serializable'
-//import base callback methods
-import { BaseCallbackHandler, CallbackHandlerMethods } from '@langchain/core/callbacks/base'
-import { RemodlBaseCallbackHandler } from '../../../server/src/utils/customHandlers'
-//recreate base callback manager methods that are in the base callback manager (but not exported)
-//we do this because that is an older npm package and its bad practice to modify it.
-// export type BaseCallbackManagerMethods = {
-//     [K in keyof CallbackHandlerMethods]?: (...args: Parameters<Required<CallbackHandlerMethods>[K]>) => Promise<unknown>;
-// }
-export declare class RemodlBaseCallbackManager extends BaseCallbackManager implements BaseCallbackManagerMethods {
-    handlers: RemodlBaseCallbackHandler[];
-    inheritableHandlers: BaseCallbackHandler[];
-    tags: string[];
-    inheritableTags: string[];
-    metadata: Record<string, unknown>;
-    inheritableMetadata: Record<string, unknown>;
-    name: string;
-    _parentRunId?: string;
-    constructor(parentRunId?: string, options?: {
-        handlers?: BaseCallbackHandler[];
-        inheritableHandlers?: BaseCallbackHandler[];
-        tags?: string[];
-        inheritableTags?: string[];
-        metadata?: Record<string, unknown>;
-        inheritableMetadata?: Record<string, unknown>;
-    });
-    /**
-     * Gets the parent run ID, if any.
-     *
-     * @returns The parent run ID.
-     */
-    getParentRunId(): string | undefined;
-    handleLLMStart(llm: Serialized, prompts: string[], runId?: string | undefined, _parentRunId?: string | undefined, extraParams?: Record<string, unknown> | undefined, _tags?: string[] | undefined, _metadata?: Record<string, unknown> | undefined, runName?: string | undefined): Promise<CallbackManagerForLLMRun[]>;
-    handleChatModelStart(llm: Serialized, messages: BaseMessage[][], runId?: string | undefined, _parentRunId?: string | undefined, extraParams?: Record<string, unknown> | undefined, _tags?: string[] | undefined, _metadata?: Record<string, unknown> | undefined, runName?: string | undefined): Promise<CallbackManagerForLLMRun[]>;
-    handleChainStart(chain: Serialized, inputs: ChainValues, runId?: string, runType?: string | undefined, _tags?: string[] | undefined, _metadata?: Record<string, unknown> | undefined, runName?: string | undefined): Promise<CallbackManagerForChainRun>;
-    handleToolStart(tool: Serialized, input: string, runId?: string, _parentRunId?: string | undefined, _tags?: string[] | undefined, _metadata?: Record<string, unknown> | undefined, runName?: string | undefined): Promise<CombinedCallbackManager>;
-    handleRetrieverStart(retriever: Serialized, query: string, runId?: string, _parentRunId?: string | undefined, _tags?: string[] | undefined, _metadata?: Record<string, unknown> | undefined, runName?: string | undefined): Promise<CombinedCallbackManager>;
-    handleCustomEvent?(eventName: string, data: any, runId: string, _tags?: string[], _metadata?: Record<string, any>): Promise<any>;
-    addHandler(handler: BaseCallbackHandler, inherit?: boolean): void;
-    removeHandler(handler: BaseCallbackHandler): void;
-    setHandlers(handlers: BaseCallbackHandler[], inherit?: boolean): void;
-    addTags(tags: string[], inherit?: boolean): void;
-    removeTags(tags: string[]): void;
-    addMetadata(metadata: Record<string, unknown>, inherit?: boolean): void;
-    removeMetadata(metadata: Record<string, unknown>): void;
-    copy(additionalHandlers?: BaseCallbackHandler[], inherit?: boolean): CallbackManager;
-    static fromHandlers(handlers: CallbackHandlerMethods): CallbackManager;
-    static configure(inheritableHandlers?: Callbacks, localHandlers?: Callbacks, inheritableTags?: string[], localTags?: string[], inheritableMetadata?: Record<string, unknown>, localMetadata?: Record<string, unknown>, options?: CallbackManagerOptions): CallbackManager | undefined;
-    static _configureSync(inheritableHandlers?: Callbacks, localHandlers?: Callbacks, inheritableTags?: string[], localTags?: string[], inheritableMetadata?: Record<string, unknown>, localMetadata?: Record<string, unknown>, options?: CallbackManagerOptions): CallbackManager | undefined;
-}
-
-
-
-
-export declare class CombinedCallbackManager extends BaseRunManager implements BaseCallbackManagerMethods {
-    handleLLMNewToken(token: string, idx?: NewTokenIndices, _runId?: string, _parentRunId?: string, _tags?: string[], fields?: HandleLLMNewTokenCallbackFields): Promise<void>;
-    handleLLMError(err: Error | unknown): Promise<void>;
-    handleLLMEnd(output: LLMResult): Promise<void>;
-    getChild(tag?: string): CallbackManager;
-    handleChainError(err: Error | unknown, _runId?: string, _parentRunId?: string, _tags?: string[], kwargs?: {
-        inputs?: Record<string, unknown>;
-    }): Promise<void>;
-    handleChainEnd(output: ChainValues, _runId?: string, _parentRunId?: string, _tags?: string[], kwargs?: {
-        inputs?: Record<string, unknown>;
-    }): Promise<void>;
-    handleAgentAction(action: AgentAction): Promise<void>;
-    handleAgentEnd(action: AgentFinish): Promise<void>;
-    handleToolError(err: Error | unknown): Promise<void>;
-    handleToolEnd(output: any): Promise<void>;
-    handleChainStart(chain: Serialized, inputs: ChainValues, _runId?: string, _parentRunId?: string, _tags?: string[], kwargs?: {
-        inputs?: Record<string, unknown>;
-    }): Promise<CallbackManagerForChainRun>;
-   
-}
-
 
 export const SOURCE_DOCUMENTS_PREFIX = '\n\n----FLOWISE_SOURCE_DOCUMENTS----\n\n'
 export const ARTIFACTS_PREFIX = '\n\n----FLOWISE_ARTIFACTS----\n\n'
@@ -117,10 +41,8 @@ interface AgentExecutorIteratorInput {
     tags?: string[]
     metadata?: Record<string, unknown>
     runName?: string
-    runManager?: CombinedCallbackManager
+    runManager?: CallbackManagerForChainRun
 }
-
-
 
 //TODO: stream tools back
 export class AgentExecutorIterator extends Serializable implements AgentExecutorIteratorInput {
@@ -155,7 +77,7 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
         }
     }
 
-    runManager: CombinedCallbackManager | undefined
+    runManager: CallbackManagerForChainRun | undefined
 
     intermediateSteps: AgentStep[] = []
 
@@ -253,7 +175,7 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
      * Execute the next step in the chain using the
      * AgentExecutor's _takeNextStep method.
      */
-    async _executeNextStep(runManager?: CombinedCallbackManager): Promise<AgentFinish | AgentStep[]> {
+    async _executeNextStep(runManager?: CallbackManagerForChainRun): Promise<AgentFinish | AgentStep[]> {
         return this.agentExecutor._takeNextStep(this.nameToToolMap, this.inputs, this.intermediateSteps, runManager)
     }
 
@@ -263,7 +185,7 @@ export class AgentExecutorIterator extends Serializable implements AgentExecutor
      */
     async _processNextStepOutput(
         nextStepOutput: AgentFinish | AgentStep[],
-        runManager?: CombinedCallbackManager
+        runManager?: CallbackManagerForChainRun
     ): Promise<Record<string, string | AgentStep[]>> {
         if ('returnValues' in nextStepOutput) {
             const output = await this.agentExecutor._return(nextStepOutput as AgentFinish, this.intermediateSteps, runManager)
@@ -331,8 +253,8 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
     agent: BaseSingleActionAgent | BaseMultiActionAgent
 
     tools: this['agent']['ToolType'][]
-    //changed to true
-    returnIntermediateSteps = true
+
+    returnIntermediateSteps = false
 
     maxIterations?: number = 15
 
@@ -390,7 +312,7 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
               }
             }
         }*/
-        this.returnIntermediateSteps = this.returnIntermediateSteps
+        this.returnIntermediateSteps = input.returnIntermediateSteps ?? this.returnIntermediateSteps
         this.maxIterations = input.maxIterations ?? this.maxIterations
         this.earlyStoppingMethod = input.earlyStoppingMethod ?? this.earlyStoppingMethod
         this.sessionId = input.sessionId
@@ -424,7 +346,7 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         return this.maxIterations === undefined || iterations < this.maxIterations
     }
 
-    async _call(inputs: ChainValues, runManager?: CombinedCallbackManager, config?: RunnableConfig): Promise<AgentExecutorOutput> {
+    async _call(inputs: ChainValues, runManager?: CallbackManagerForChainRun, config?: RunnableConfig): Promise<AgentExecutorOutput> {
         const toolsByName = Object.fromEntries(this.tools.map((t) => [t.name?.toLowerCase(), t]))
 
         const steps: AgentStep[] = []
@@ -593,7 +515,7 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
         nameToolMap: Record<string, Tool>,
         inputs: ChainValues,
         intermediateSteps: AgentStep[],
-        runManager?: CombinedCallbackManager,
+        runManager?: CallbackManagerForChainRun,
         config?: RunnableConfig
     ): Promise<AgentFinish | AgentStep[]> {
         let output
@@ -701,7 +623,7 @@ export class AgentExecutor extends BaseChain<ChainValues, AgentExecutorOutput> {
     async _return(
         output: AgentFinish,
         intermediateSteps: AgentStep[],
-        runManager?: CombinedCallbackManager
+        runManager?: CallbackManagerForChainRun
     ): Promise<AgentExecutorOutput> {
         if (runManager) {
             await runManager.handleAgentEnd(output)
