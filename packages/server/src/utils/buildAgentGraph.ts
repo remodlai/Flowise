@@ -1039,10 +1039,31 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                 })
             }
         }
+        const shouldStreamResponse = true
+        const sseStreamer = options.sseStreamer
+        const chatId = options.chatId
+        const streamingGraphCallbacks = {
+            handleLLMNewToken(token: string) {
+                // Directly stream each token to the client
+                if (shouldStreamResponse && sseStreamer) {
+                    sseStreamer.streamTokenEvent(chatId, token);
+                }
+                return true; // Important: allows token to continue propagating
+            }
+        };
+        
+        // Add these callbacks to existing ones
+        const allCallbacks = [loggerHandler, streamingGraphCallbacks, ...callbacks];
+        
+        // Update the graph.stream call
         return await graph.stream(humanMsg, {
-            callbacks: [loggerHandler, ...callbacks],
-            configurable: config
-        })
+            callbacks: allCallbacks,
+            configurable: {
+                thread_id: threadId,
+                streaming: true, // Explicitly enable streaming
+                ...config
+            }
+        });
     } catch (e) {
         logger.error('Error compile graph', e)
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error compile graph - ${getErrorMessage(e)}`)
