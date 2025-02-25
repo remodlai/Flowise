@@ -104,6 +104,8 @@ export const buildAgentGraph = async ({
         let totalUsedTools: IUsedTool[] = []
         let totalArtifacts: ICommonObject[] = []
 
+        //a flag to check if the final result has been streamed to the client
+        let alreadyStreamedFinalResult = false;
         const workerNodes = initializedNodes.filter((node) => node.data.name === 'worker')
         const supervisorNodes = initializedNodes.filter((node) => node.data.name === 'supervisor')
         const seqAgentNodes = initializedNodes.filter((node) => node.data.category === 'Sequential Agents')
@@ -160,11 +162,36 @@ export const buildAgentGraph = async ({
 
             if (streamResults) {
                 let isStreamingStarted = false
+
+                const agentTokens = new Map();
                 for await (const output of await streamResults) {
                     if (!output?.__end__) {
                         for (const agentName of Object.keys(output)) {
-                            if (!mapNameToLabel[agentName]) continue
-
+                            if (!mapNameToLabel[agentName]) continue;
+                    
+                            let streamingMessages = output[agentName]?.messages || [];
+                            const lastMessage = streamingMessages.length > 0 ? streamingMessages[streamingMessages.length - 1] : null;
+                            
+                            if (lastMessage && lastMessage._getType && lastMessage._getType() === 'ai') {
+                                const content = lastMessage.content || '';
+                    
+                                // Track previous content to only stream new tokens
+                                const previousContent = agentTokens.get(agentName) || '';
+                                if (content.length > previousContent.length) {
+                                    const newContent = content.substring(previousContent.length);
+                                    
+                                    if (shouldStreamResponse && sseStreamer && newContent) {
+                                        // Don't stream if the message has tool calls
+                                        if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
+                                            sseStreamer.streamTokenEvent(chatId, newContent);
+                                        }
+                                    }
+                                    
+                                    // Update our tracking map with the full content
+                                    agentTokens.set(agentName, content);
+                                }
+                            }
+             
                             const nodeId = output[agentName]?.messages
                                 ? output[agentName].messages[output[agentName].messages.length - 1]?.additional_kwargs?.nodeId
                                 : ''

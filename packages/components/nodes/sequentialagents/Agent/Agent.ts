@@ -816,6 +816,7 @@ async function agentNode(
                         }
                         // Store token for final result
                         contentChunks.push(token);
+                        return true;
                     },
                     
                     // Standard LangChain handlers for stream events
