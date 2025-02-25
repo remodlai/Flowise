@@ -796,10 +796,18 @@ async function agentNode(
         if (abortControllerSignal.signal.aborted) {
             throw new Error('Aborted!')
         }
+        
+        // Log the incoming state to help debug
+        console.log("Agent received state:", JSON.stringify(state, null, 2));
+        
         const shouldStreamResponse = options.shouldStreamResponse
         const sseStreamer: IServerSideEventStreamer = options.sseStreamer
         const chatId = options.chatId
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
+        
+        // Store original state structure before any modifications
+        const originalState = { ...state };
+        
         // @ts-ignore
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
@@ -926,9 +934,15 @@ async function agentNode(
             // Add the streaming callback to the callbacks list
             callbacks.push(streamingCallback);
             
+            // Preserve all state fields and ensure signal is added properly
+            const fullState = { ...state, signal: abortControllerSignal.signal };
+            
+            // Log state being passed to agent
+            console.log("Passing state to agent:", JSON.stringify(fullState, null, 2));
+            
             // Invoke the agent with streaming
             result = await agent.invoke(
-                { ...state, signal: abortControllerSignal.signal }, 
+                fullState, 
                 { callbacks: [loggerHandler, ...callbacks], ...config }
             );
             
@@ -965,9 +979,15 @@ async function agentNode(
                 }
             }
         } else {
+            // Preserve all state fields and ensure signal is added properly
+            const fullState = { ...state, signal: abortControllerSignal.signal };
+            
+            // Log state being passed to agent
+            console.log("Passing state to agent:", JSON.stringify(fullState, null, 2));
+            
             // For non-streaming, just invoke normally
             result = await agent.invoke(
-                { ...state, signal: abortControllerSignal.signal }, 
+                fullState, 
                 { callbacks: [loggerHandler, ...callbacks], ...config }
             );
         }
@@ -1030,12 +1050,22 @@ async function agentNode(
                 content: outputContent
             };
             const returnedOutput = await getReturnOutput(nodeData, input, options, formattedOutput, state);
-            return {
+            
+            // Restore original state fields for proper state persistence
+            const finalState = {
+                ...originalState,
                 ...returnedOutput,
                 messages: convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
             };
+            
+            // Log the final state being returned
+            console.log("Agent returning state:", JSON.stringify(finalState, null, 2));
+            
+            return finalState;
         } else {
-            return {
+            // Preserve original state fields
+            const response = {
+                ...originalState,
                 messages: [
                     new HumanMessage({
                         content: outputContent,
@@ -1044,6 +1074,11 @@ async function agentNode(
                     })
                 ]
             };
+            
+            // Log the final state being returned
+            console.log("Agent returning state:", JSON.stringify(response, null, 2));
+            
+            return response;
         }
     } catch (error) {
         throw new Error(error);
