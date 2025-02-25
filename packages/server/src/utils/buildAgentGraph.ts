@@ -184,6 +184,7 @@ export const buildAgentGraph = async ({
                                         // Don't stream if the message has tool calls
                                         if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
                                             sseStreamer.streamTokenEvent(chatId, newContent);
+                                            alreadyStreamedFinalResult = true;
                                         }
                                     }
                                     
@@ -383,8 +384,8 @@ export const buildAgentGraph = async ({
                         totalUsedTools.push(...mappedToolCalls)
                     } else if (lastAgentReasoningMessage) {
                         finalResult = lastAgentReasoningMessage
-                        if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
+                        if (shouldStreamResponse && sseStreamer && !alreadyStreamedFinalResult) {
+                            sseStreamer.streamTokenEvent(chatId, finalResult);
                         }
                     }
                 }
@@ -392,7 +393,9 @@ export const buildAgentGraph = async ({
                 totalSourceDocuments = uniq(flatten(totalSourceDocuments))
                 totalUsedTools = uniq(flatten(totalUsedTools))
                 totalArtifacts = uniq(flatten(totalArtifacts))
-
+                if (!alreadyStreamedFinalResult && finalResult) {
+                    sseStreamer.streamTokenEvent(chatId, finalResult);
+                }
                 if (shouldStreamResponse && sseStreamer) {
                     sseStreamer.streamUsedToolsEvent(chatId, totalUsedTools)
                     sseStreamer.streamSourceDocumentsEvent(chatId, totalSourceDocuments)
@@ -1087,7 +1090,8 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
             callbacks: allCallbacks,
             configurable: {
                 thread_id: threadId,
-                streaming: true, // Explicitly enable streaming
+                streamMode: 'messages',
+                version: 'v2',
                 ...config
             }
         });
