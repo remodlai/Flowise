@@ -31,7 +31,8 @@ const CanvasNode = ({ data }) => {
     console.log('Node Data:', {
         name: data.name,
         category: data.category,
-        type: data.type
+        type: data.type,
+        label: data.label
     })
 
     const [showDialog, setShowDialog] = useState(false)
@@ -70,19 +71,23 @@ const CanvasNode = ({ data }) => {
         setShowDialog(true)
     }
 
-    const getNodeType = (category) => {
-        console.log('Node Category:', category)
+    const getNodeType = (label) => {
+        console.log('Node Type:', label)
         const nodeType = (() => {
-            const cat = category?.toLowerCase() || ''
+            const type = label?.toLowerCase() || ''
             switch (true) {
-                case cat.includes('memory'):
+                case label.includes('Start'):
+                    return 'start'
+                case label.includes('Memory'):
                     return 'memory'
-                case cat.includes('llm') || cat.includes('chat') || cat.includes('model'):
+                case label.includes('Chat Model'):
                     return 'llm'
-                case cat.includes('chain'):
+                case label.includes('Chain'):
                     return 'chain'
-                case cat.includes('tool'):
+                case label.includes('Tool'):
                     return 'tool'
+                case label.includes('End'):
+                    return 'end'
                 default:
                     return undefined
             }
@@ -113,7 +118,7 @@ const CanvasNode = ({ data }) => {
         <>
             <NodeCardWrapper
                 content={false}
-                nodeType={getNodeType(data.category)}
+                nodeType={getNodeType(data.type)}
                 sx={{
                     padding: 0,
                     borderColor: data.selected ? theme.palette.primary.main : theme.palette.text.secondary

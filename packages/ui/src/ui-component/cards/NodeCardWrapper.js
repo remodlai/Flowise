@@ -6,9 +6,14 @@ import MainCard from './MainCard'
 
 const getNodeColors = (theme, nodeType) => {
     switch (nodeType) {
+        case 'start':
+            return {
+                background: 'rgba(170, 255, 0, 8px)',
+                gradient: 'linear-gradient(45deg, rgba(103, 58, 183, 0.6) 0%, rgba(103, 58, 183, 0.4) 100%)'
+            }
         case 'memory':
             return {
-                background: 'rgba(103, 58, 183, 0.4)',
+                background: 'rgba(103, 58, 183, 0.8)',
                 gradient: 'linear-gradient(45deg, rgba(103, 58, 183, 0.6) 0%, rgba(103, 58, 183, 0.4) 100%)'
             }
         case 'llm':
@@ -25,6 +30,16 @@ const getNodeColors = (theme, nodeType) => {
             return {
                 background: 'rgba(255, 153, 0, 0.4)',
                 gradient: 'linear-gradient(45deg, rgba(255, 171, 46, 0.6) 0%, rgba(255, 152, 0, 0.4) 100%)'
+            }
+        case 'end':
+            return {
+                background: 'rgba(202, 12, 12, 0.4)',
+                gradient: 'linear-gradient(45deg, rgba(255, 0, 0, 0.6) 0%, rgba(255, 0, 0, 0.4) 100%)'
+            }
+        case 'agent':
+            return {
+                background: 'rgba(18, 187, 136, 0.8)',
+                gradient: 'linear-gradient(45deg, rgba(103, 58, 183, 0.6) 0%, rgba(103, 58, 183, 0.4) 100%)'
             }
         default:
             return {
@@ -77,7 +92,7 @@ const NodeCardWrapper = styled(MainCard)(({ theme, nodeType }) => {
 })
 
 NodeCardWrapper.propTypes = {
-    nodeType: PropTypes.oneOf(['memory', 'llm', 'chain', 'tool'])
+    nodeType: PropTypes.oneOf(['agentmemory', 'llm', 'chain', 'tool', 'start', 'end'])
 }
 
 export default NodeCardWrapper

@@ -189,6 +189,8 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
     const [imageUploadAllowedTypes, setImageUploadAllowedTypes] = useState('')
     const [fileUploadAllowedTypes, setFileUploadAllowedTypes] = useState('')
     const [inputHistory] = useState(new ChatInputHistory(10))
+    // Add a ref to store the current message being constructed from tokens
+    const lastMessageRef = useRef('')
 
     const inputRef = useRef(null)
     const getChatmessageApi = useApi(chatmessageApi.getInternalChatmessageFromChatflow)
@@ -509,7 +511,16 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
 
     const onChange = useCallback((e) => setUserInput(e.target.value), [setUserInput])
 
+    // Reset lastMessageRef when userInput is cleared
+    useEffect(() => {
+        if (!userInput) {
+            lastMessageRef.current = ''
+        }
+    }, [userInput])
+
+    // In the updateLastMessage function, track the accumulated message
     const updateLastMessage = (text) => {
+        lastMessageRef.current += text
         setMessages((prevMessages) => {
             let allMessages = [...cloneDeep(prevMessages)]
             if (allMessages[allMessages.length - 1].type === 'userMessage') return allMessages
@@ -878,6 +889,7 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
                 switch (payload.event) {
                     case 'start':
                         setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage' }])
+                        lastMessageRef.current = '' // Reset the tracking ref when starting a new message
                         break
                     case 'token':
                         updateLastMessage(payload.data)
@@ -914,6 +926,12 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
                         closeResponse()
                         break
                     case 'end':
+                        // In Canvas UI, token streaming has already built the message
+                        // So we just need to finalize without adding content again
+                        console.log("Canvas chat reached 'end' event")
+                        
+                        // Simply close the response without updating message content again
+                        // since we've already built it token by token
                         setLocalStorageChatflow(chatflowid, chatId)
                         closeResponse()
                         break

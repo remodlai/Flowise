@@ -92,6 +92,7 @@ const SearchInput = styled(OutlinedInput)(({ theme }) => ({
     '& .MuiOutlinedInput-input': {
         padding: '12px 16px',
         background: theme.palette.background.white,
+        color: theme.palette.text.primary,
         borderRadius: '8px'
     },
     '& .MuiOutlinedInput-notchedOutline': {
