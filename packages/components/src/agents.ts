@@ -5,7 +5,7 @@ import { BaseMessage, FunctionMessage, AIMessage, isBaseMessage } from '@langcha
 import { ToolCall } from '@langchain/core/messages/tool'
 import { OutputParserException, BaseOutputParser, BaseLLMOutputParser } from '@langchain/core/output_parsers'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
-import { CallbackManager, CallbackManagerForChainRun, Callbacks } from '@langchain/core/callbacks/manager'
+import { CallbackManager, CallbackManagerForChainRun, Callbacks, CallbackManagerForLLMRun } from '@langchain/core/callbacks/manager'
 import { ToolInputParsingException, Tool, StructuredToolInterface } from '@langchain/core/tools'
 import { Runnable, RunnableSequence, RunnablePassthrough, type RunnableConfig } from '@langchain/core/runnables'
 import { Serializable } from '@langchain/core/load/serializable'
@@ -13,6 +13,8 @@ import { renderTemplate } from '@langchain/core/prompts'
 import { ChatGeneration } from '@langchain/core/outputs'
 import { Document } from '@langchain/core/documents'
 import { BaseChain, SerializedLLMChain } from 'langchain/chains'
+import { SSEStreamer } from '../../server/src/utils/SSEStreamer'
+import { getErrorMessage} from '../../server/src/errors/utils'
 import {
     CreateReactAgentParams,
     AgentExecutorInput,
@@ -22,9 +24,10 @@ import {
     RunnableAgent,
     StoppingMethod
 } from 'langchain/agents'
+import { Serialized } from '@langchain/core/load/serializable'
 import { formatLogToString } from 'langchain/agents/format_scratchpad/log'
-import { IUsedTool } from './Interface'
-
+import { IUsedTool, IServerSideEventStreamer } from './Interface'
+import { LLMResult } from '@langchain/core/outputs'
 export const SOURCE_DOCUMENTS_PREFIX = '\n\n----FLOWISE_SOURCE_DOCUMENTS----\n\n'
 export const ARTIFACTS_PREFIX = '\n\n----FLOWISE_ARTIFACTS----\n\n'
 
@@ -42,6 +45,54 @@ interface AgentExecutorIteratorInput {
     metadata?: Record<string, unknown>
     runName?: string
     runManager?: CallbackManagerForChainRun
+}
+
+
+//custom Manager for callbacks
+class LLMChainCallbackManager extends CallbackManagerForChainRun {
+    private sseStreamer: IServerSideEventStreamer;
+    private chatId: string;
+
+    constructor(
+        runId: string | undefined,
+        parentRunId: string | undefined,
+        tags: string[] | undefined,
+        metadata: Record<string, unknown> | undefined,
+        sseStreamer: IServerSideEventStreamer,
+        chatId: string
+    ) {
+        super(runId, parentRunId, tags, metadata);
+        this.sseStreamer = sseStreamer;
+        this.chatId = chatId;
+    }
+
+    // Implement LLM methods
+    async handleLLMNewToken(token: string): Promise<void> {
+        if (this.sseStreamer) {
+            await this.sseStreamer.streamTokenEvent(this.chatId, token);
+        }
+    }
+
+    async handleLLMStart(
+        llm: Serialized,
+        prompts: string[],
+        runId?: string,
+        parentRunId?: string
+    ): Promise<CallbackManagerForLLMRun[]> {
+        // Return self since we handle both Chain and LLM callbacks
+        return [this as unknown as CallbackManagerForLLMRun];
+    }
+
+    async handleLLMEnd(output: LLMResult): Promise<void> {
+        // Handle LLM completion if needed
+    }
+    //removed by @brian
+    // async handleLLMError(err: Error): Promise<void> {
+    //     console.error('LLM Error:', err);
+    //     if (this.sseStreamer) {
+    //         await this.sseStreamer.streamErrorEvent(this.chatId, getErrorMessage(err));
+    //     }
+    // }
 }
 
 //TODO: stream tools back
