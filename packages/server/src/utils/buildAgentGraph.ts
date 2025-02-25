@@ -1070,9 +1070,11 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
                 })
             }
         }
+        
+
         return await graph.stream(humanMsg, {
             callbacks: [loggerHandler, ...callbacks],
-            configurable: config
+            ...config
         })
     } catch (e) {
         logger.error('Error compile graph', e)

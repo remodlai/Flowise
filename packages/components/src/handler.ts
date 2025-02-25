@@ -165,15 +165,12 @@ export class ConsoleCallbackHandler extends BaseTracer {
  */
 export class CustomChainHandler extends BaseCallbackHandler {
     name = 'custom_chain_handler'
-    
     isLLMStarted = false
     skipK = 0 // Skip streaming for first K numbers of handleLLMStart
     returnSourceDocuments = false
     cachedResponse = true
     chatId: string = ''
     sseStreamer: IServerSideEventStreamer | undefined
-    logger: Logger
-    
 
     constructor(sseStreamer: IServerSideEventStreamer | undefined, chatId: string, skipK?: number, returnSourceDocuments?: boolean) {
         super()
@@ -184,7 +181,6 @@ export class CustomChainHandler extends BaseCallbackHandler {
     }
 
     handleLLMStart() {
-        this.isLLMStarted = false
         this.cachedResponse = false
         if (this.skipK > 0) this.skipK -= 1
     }
@@ -204,14 +200,16 @@ export class CustomChainHandler extends BaseCallbackHandler {
                     this.sseStreamer.streamStartEvent(this.chatId, token)
                 }
             }
-            if (this.sseStreamer && token) {
-                const chunk = fields?.chunk as ChatGenerationChunk
-                const message = chunk?.message as AIMessageChunk
-                const toolCalls = message?.tool_call_chunks || []
+            if (this.sseStreamer) {
+                if (token) {
+                    const chunk = fields?.chunk as ChatGenerationChunk
+                    const message = chunk?.message as AIMessageChunk
+                    const toolCalls = message?.tool_call_chunks || []
 
-                // Only stream when token is not empty and not a tool call
-                if (toolCalls.length === 0) {
-                    this.sseStreamer.streamTokenEvent(this.chatId, token)
+                    // Only stream when token is not empty and not a tool call
+                    if (toolCalls.length === 0) {
+                        this.sseStreamer.streamTokenEvent(this.chatId, token)
+                    }
                 }
             }
         }
