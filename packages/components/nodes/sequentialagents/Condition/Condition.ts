@@ -55,6 +55,42 @@ const howToUseCode = `
 
 4. You can get custom variables: \`$vars.<variable-name>\`
 
+5. You can check for file uploads using \`$flow.uploads\`:
+    \`\`\`js
+    // Check if there are any uploads
+    if ($flow.uploads && $flow.uploads.length > 0) {
+        return "HasUploads";
+    }
+    
+    // Get the number of uploads
+    const uploadCount = $flow.uploads.length;
+    
+    // For specific file type checking
+    const hasImageUploads = $flow.uploads.some(file => file.mime.startsWith('image/'));
+    
+    // Working with the uploads array directly
+    if ($flow.uploads && $flow.uploads.length > 0) {
+        // Get the first upload
+        const firstUpload = $flow.uploads[0];
+        
+        // Access properties of the upload
+        const fileName = firstUpload.name;
+        const fileType = firstUpload.mime;
+        const fileData = firstUpload.data; // URL or base64 data
+        
+        // Filter for specific file types
+        const imageUploads = $flow.uploads.filter(file => file.mime.startsWith('image/'));
+        const audioUploads = $flow.uploads.filter(file => file.mime.startsWith('audio/'));
+        
+        // Make decisions based on file types
+        if (imageUploads.length > 0) {
+            return "HasImages";
+        } else if (audioUploads.length > 0) {
+            return "HasAudio";
+        }
+    }
+    \`\`\`
+
 `
 
 const defaultFunc = `const state = $flow.state;
@@ -96,7 +132,7 @@ class Condition_SeqAgents implements INode {
     constructor() {
         this.label = 'Condition'
         this.name = 'seqCondition'
-        this.version = 2.1
+        this.version = 2.3
         this.type = 'Condition'
         this.icon = 'condition.svg'
         this.category = 'Sequential Agents'
@@ -150,6 +186,26 @@ class Condition_SeqAgents implements INode {
                                     {
                                         label: 'Last Message Content (string)',
                                         value: '$flow.state.messages[-1].content'
+                                    },
+                                    {
+                                        label: 'Has Uploads (boolean)',
+                                        value: '$flow.uploads.length > 0'
+                                    },
+                                    {
+                                        label: 'Upload Count (number)',
+                                        value: '$flow.uploads.length'
+                                    },
+                                    {
+                                        label: 'All Uploads (array)',
+                                        value: '$flow.uploads'
+                                    },
+                                    {
+                                        label: 'Image Uploads (array)',
+                                        value: '$flow.uploads.filter(file => file.mime.startsWith("image/"))'
+                                    },
+                                    {
+                                        label: 'Audio Uploads (array)',
+                                        value: '$flow.uploads.filter(file => file.mime.startsWith("audio/"))'
                                     },
                                     {
                                         label: `Global variable (string)`,
@@ -275,7 +331,8 @@ const runCondition = async (nodeData: INodeData, input: string, options: ICommon
         chatId: options.chatId,
         input,
         state,
-        vars: prepareSandboxVars(variables)
+        vars: prepareSandboxVars(variables),
+        uploads: options.uploads || []
     }
 
     if (selectedTab === 'conditionFunction' && conditionFunction) {
