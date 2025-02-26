@@ -86,8 +86,12 @@ const CanvasNode = ({ data }) => {
                     return 'chain'
                 case label.includes('Tool'):
                     return 'tool'
-                case label.includes('End'):
-                    return 'end'
+                case label.includes('Condition'):
+                    return 'condition'
+                case label.includes('Loop'):
+                    return 'loop'
+                case label.includes('Model'):
+                    return 'model'
                 default:
                     return undefined
             }

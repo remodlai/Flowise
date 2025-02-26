@@ -3,6 +3,8 @@
  * @param {JsonObject} theme Theme customization object
  */
 
+import { Memory } from "@mui/icons-material";
+
 export default function themePalette(theme) {
     return {
         mode: theme?.customization?.navType,
@@ -39,6 +41,27 @@ export default function themePalette(theme) {
             200: theme.colors?.secondary200,
             800: theme.colors?.secondary800,
             900: theme.colors?.secondaryDarkBlue
+        },
+        cards: {
+            llm: theme.customization.isDarkMode ? theme.colors?.darkPrimaryMain : theme.colors?.primaryMain,
+            start: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            end: theme.customization.isDarkMode ? theme.colors?.darkSecondaryDark : theme.colors?.secondaryDark,
+            agent: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            memory: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            tool: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            chain: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            flow: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            condition: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            loop: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            model: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            cache: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            graph: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            prompt: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            retriever: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+            splitter: theme.customization.isDarkMode ? theme.colors?.darkSecondaryMain : theme.colors?.secondaryMain,
+       
+
+
         },
         error: {
             light: theme.colors?.errorLight,

@@ -4,12 +4,41 @@ import PropTypes from 'prop-types'
 // project imports
 import MainCard from './MainCard'
 
+const getNodeType = (label) => {
+    console.log('Node Type:', label)
+    const nodeType = (() => {
+        const type = label?.toLowerCase() || ''
+        switch (true) {
+            case label.includes('Start'):
+                return 'start'
+            case label.includes('Memory'):
+                return 'memory'
+            case label.includes('Chat Model'):
+                return 'llm'
+            case label.includes('Chain'):
+                return 'chain'
+            case label.includes('Tool'):
+                return 'tool'
+            case label.includes('Condition'):
+                return 'condition'
+            case label.includes('Loop'):
+                return 'loop'
+            case label.includes('Model'):
+                return 'model'
+            default:
+                return undefined
+        }
+    })()
+    console.log('Determined Node Type:', nodeType)
+    return nodeType
+}
+
 const getNodeColors = (theme, nodeType) => {
     switch (nodeType) {
-        case 'start':
+        case 'Start':
             return {
                 background: 'rgba(170, 255, 0, 8px)',
-                gradient: 'linear-gradient(45deg, rgba(103, 58, 183, 0.6) 0%, rgba(103, 58, 183, 0.4) 100%)'
+                gradient: 'linear-gradient(45deg, rgba(128, 255, 0, 0.6) 0%, rgba(75, 0, 203, 0.4) 100%)'
             }
         case 'memory':
             return {
@@ -92,7 +121,7 @@ const NodeCardWrapper = styled(MainCard)(({ theme, nodeType }) => {
 })
 
 NodeCardWrapper.propTypes = {
-    nodeType: PropTypes.oneOf(['agentmemory', 'llm', 'chain', 'tool', 'start', 'end'])
+    nodeType: PropTypes.oneOf(['agentmemory', 'llm', 'chain', 'tool', 'Start', 'end'])
 }
 
 export default NodeCardWrapper
