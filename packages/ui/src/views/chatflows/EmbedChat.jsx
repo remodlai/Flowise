@@ -1,14 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import PropTypes from 'prop-types'
-
 import { Tabs, Tab, Box } from '@mui/material'
 import { CopyBlock, atomOneDark } from 'react-code-blocks'
+import SafeCodeBlock from '@/ui-component/markdown/SafeCodeBlock'
 
 // Project import
 import { CheckboxInput } from '@/ui-component/checkbox/Checkbox'
 
 // Const
 import { baseURL } from '@/store/constant'
+import { HIDE_CANVAS_DIALOG, SHOW_CANVAS_DIALOG } from '@/store/actions'
+import useNotifier from '@/utils/useNotifier'
 
 function TabPanel(props) {
     const { children, value, index, ...other } = props
@@ -285,10 +288,24 @@ const App = () => {
 }`
 }
 
-const EmbedChat = ({ chatflowid }) => {
-    const codes = ['Popup Html', 'Fullpage Html', 'Popup React', 'Fullpage React']
+const EmbedChat = ({ chatflowid, isEmbed, isPrediction }) => {
+    useNotifier()
+    const dispatch = useDispatch()
     const [value, setValue] = useState(0)
     const [embedChatCheckboxVal, setEmbedChatCheckbox] = useState(false)
+    const [code, setCode] = useState('')
+
+    useEffect(() => {
+        dispatch({ type: HIDE_CANVAS_DIALOG })
+        return () => dispatch({ type: SHOW_CANVAS_DIALOG })
+    }, [dispatch])
+
+    useEffect(() => {
+        if (chatflowid) {
+            const embedCode = getEmbedCode()
+            setCode(embedCode)
+        }
+    }, [chatflowid, isEmbed, isPrediction])
 
     const onCheckBoxEmbedChatChanged = (newVal) => {
         setEmbedChatCheckbox(newVal)
@@ -296,6 +313,68 @@ const EmbedChat = ({ chatflowid }) => {
 
     const handleChange = (event, newValue) => {
         setValue(newValue)
+    }
+
+    const getEmbedCode = () => {
+        const integrationURL = isPrediction ? 'api/v1/prediction' : 'api/v1/chatflows'
+        const formURL = isEmbed ? 'api/v1/components' : integrationURL
+        const base = baseURL.length ? `${baseURL}/` : '/'
+        return `<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Embedded Chat</title>
+    </head>
+    <body>
+        <script type="module">
+            import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed@latest/dist/web.js"
+            Chatbot.init({
+                chatflowid: "${chatflowid}",
+                apiHost: "${base}",
+                chatflowConfig: {
+                    // topK: 2
+                },
+                theme: {
+                    button: {
+                        backgroundColor: "#3B81F6",
+                        right: 20,
+                        bottom: 20,
+                        size: "medium",
+                        iconColor: "white",
+                        customIconSrc: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/google-messages.svg",
+                    },
+                    chatWindow: {
+                        welcomeMessage: "Hello! This is custom welcome message",
+                        backgroundColor: "#ffffff",
+                        height: 700,
+                        width: 400,
+                        fontSize: 16,
+                        poweredByTextColor: "#303235",
+                        botMessage: {
+                            backgroundColor: "#f7f8ff",
+                            textColor: "#303235",
+                            showAvatar: true,
+                            avatarSrc: "https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/parroticon.png",
+                        },
+                        userMessage: {
+                            backgroundColor: "#3B81F6",
+                            textColor: "#ffffff",
+                            showAvatar: true,
+                            avatarSrc: "https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/usericon.png",
+                        },
+                        textInput: {
+                            placeholder: "Type your question",
+                            backgroundColor: "#ffffff",
+                            textColor: "#303235",
+                            sendButtonColor: "#3B81F6",
+                        }
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>`
     }
 
     const getCode = (codeLang) => {
@@ -333,14 +412,14 @@ const EmbedChat = ({ chatflowid }) => {
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                 <div style={{ flex: 80 }}>
                     <Tabs value={value} onChange={handleChange} aria-label='tabs'>
-                        {codes.map((codeLang, index) => (
+                        {['Popup Html', 'Fullpage Html', 'Popup React', 'Fullpage React'].map((codeLang, index) => (
                             <Tab key={index} label={codeLang} {...a11yProps(index)}></Tab>
                         ))}
                     </Tabs>
                 </div>
             </div>
             <div style={{ marginTop: 10 }}></div>
-            {codes.map((codeLang, index) => (
+            {['Popup Html', 'Fullpage Html', 'Popup React', 'Fullpage React'].map((codeLang, index) => (
                 <TabPanel key={index} value={value} index={index}>
                     {(value === 0 || value === 1) && (
                         <>
@@ -361,17 +440,25 @@ const EmbedChat = ({ chatflowid }) => {
                             <div style={{ height: 10 }}></div>
                         </>
                     )}
-                    <CopyBlock theme={atomOneDark} text={getCode(codeLang)} language='javascript' showLineNumbers={false} wrapLines />
+                    <SafeCodeBlock
+                        Component={CopyBlock}
+                        text={getCode(codeLang)}
+                        language='html'
+                        showLineNumbers
+                        wrapLines
+                        theme={atomOneDark}
+                    />
 
                     <CheckboxInput label='Show Embed Chat Config' value={embedChatCheckboxVal} onChange={onCheckBoxEmbedChatChanged} />
 
                     {embedChatCheckboxVal && (
-                        <CopyBlock
-                            theme={atomOneDark}
+                        <SafeCodeBlock
+                            Component={CopyBlock}
                             text={getCodeCustomization(codeLang)}
                             language='javascript'
                             showLineNumbers={false}
                             wrapLines
+                            theme={atomOneDark}
                         />
                     )}
                 </TabPanel>
@@ -381,7 +468,9 @@ const EmbedChat = ({ chatflowid }) => {
 }
 
 EmbedChat.propTypes = {
-    chatflowid: PropTypes.string
+    chatflowid: PropTypes.string,
+    isEmbed: PropTypes.bool,
+    isPrediction: PropTypes.bool
 }
 
 export default EmbedChat

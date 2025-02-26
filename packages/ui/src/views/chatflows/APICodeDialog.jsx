@@ -26,6 +26,7 @@ import { useTheme } from '@mui/material/styles'
 import { Dropdown } from '@/ui-component/dropdown/Dropdown'
 import ShareChatbot from './ShareChatbot'
 import EmbedChat from './EmbedChat'
+import SafeCodeBlock from '@/ui-component/markdown/SafeCodeBlock'
 
 // Const
 import { baseURL } from '@/store/constant'
@@ -716,13 +717,28 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                         {codeLang === 'Embed' && !chatflowApiKeyId && <EmbedChat chatflowid={dialogProps.chatflowid} />}
                         {codeLang !== 'Embed' && codeLang !== 'Share Chatbot' && codeLang !== 'Configuration' && (
                             <>
-                                <CopyBlock
-                                    theme={atomOneDark}
-                                    text={chatflowApiKeyId ? getCodeWithAuthorization(codeLang) : getCode(codeLang)}
-                                    language={getLang(codeLang)}
-                                    showLineNumbers={false}
-                                    wrapLines
-                                />
+                                <Box>
+                                    <Box sx={{ display: 'flex', flexGrow: 1, mb: 2 }}>
+                                        <Box sx={{ display: 'flex', flexGrow: 1 }}>
+                                            <Box component="img" src={getSVG(codeLang)} alt="Code" width="20" height="20" />
+                                            <Typography variant="h5" sx={{ ml: 1 }}>
+                                                {getLang(codeLang)}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <SafeCodeBlock
+                                        Component={CopyBlock}
+                                        text={
+                                            chatflowApiKeyId
+                                                ? getCodeWithAuthorization(codeLang)
+                                                : getCode(codeLang)
+                                        }
+                                        language={getLang(codeLang)}
+                                        showLineNumbers={false}
+                                        wrapLines
+                                        theme={atomOneDark}
+                                    />
+                                </Box>
                                 <CheckboxInput label='Show Override Config' value={checkboxVal} onChange={onCheckBoxChanged} />
                                 {checkboxVal && getConfigApi.data && getConfigApi.data.length > 0 && (
                                     <>
@@ -837,21 +853,31 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                 <TableViewOnly rows={variableOverrides} columns={['name', 'type', 'enabled']} />
                                             </Card>
                                         </Stack>
-                                        <CopyBlock
-                                            theme={atomOneDark}
-                                            text={
-                                                chatflowApiKeyId
-                                                    ? dialogProps.isFormDataRequired
-                                                        ? getConfigCodeWithFormDataWithAuth(codeLang, getConfigApi.data)
-                                                        : getConfigCodeWithAuthorization(codeLang, getConfigApi.data)
-                                                    : dialogProps.isFormDataRequired
-                                                    ? getConfigCodeWithFormData(codeLang, getConfigApi.data)
-                                                    : getConfigCode(codeLang, getConfigApi.data)
-                                            }
-                                            language={getLang(codeLang)}
-                                            showLineNumbers={false}
-                                            wrapLines
-                                        />
+                                        <Box>
+                                            <Box sx={{ display: 'flex', flexGrow: 1, mb: 2 }}>
+                                                <Box sx={{ display: 'flex', flexGrow: 1 }}>
+                                                    <Typography variant="h5" sx={{ ml: 1 }}>
+                                                        Config Code:
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <SafeCodeBlock
+                                                Component={CopyBlock}
+                                                text={
+                                                    chatflowApiKeyId
+                                                        ? dialogProps.isFormDataRequired
+                                                            ? getConfigCodeWithFormDataWithAuth(codeLang, getConfigApi.data)
+                                                            : getConfigCodeWithAuthorization(codeLang, getConfigApi.data)
+                                                        : dialogProps.isFormDataRequired
+                                                        ? getConfigCodeWithFormData(codeLang, getConfigApi.data)
+                                                        : getConfigCode(codeLang, getConfigApi.data)
+                                                }
+                                                language={getLang(codeLang)}
+                                                showLineNumbers={false}
+                                                wrapLines
+                                                theme={atomOneDark}
+                                            />
+                                        </Box>
                                         <div
                                             style={{
                                                 display: 'flex',

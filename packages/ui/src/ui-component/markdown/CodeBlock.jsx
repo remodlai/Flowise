@@ -36,6 +36,7 @@ export const CodeBlock = memo(({ language, chatflowid, isDialog, value }) => {
     const theme = useTheme()
     const [anchorEl, setAnchorEl] = useState(null)
     const openPopOver = Boolean(anchorEl)
+    const [syntaxError, setSyntaxError] = useState(false)
 
     const handleClosePopOver = () => {
         setAnchorEl(null)
@@ -75,6 +76,33 @@ export const CodeBlock = memo(({ language, chatflowid, isDialog, value }) => {
         URL.revokeObjectURL(url)
     }
 
+    const renderSyntaxHighlighter = () => {
+        try {
+            return (
+                <SyntaxHighlighter language={language} style={oneDark} customStyle={{ margin: 0 }}>
+                    {value}
+                </SyntaxHighlighter>
+            )
+        } catch (error) {
+            console.error('Error rendering syntax highlighter:', error)
+            if (!syntaxError) {
+                setSyntaxError(true)
+            }
+            // Fallback to plain text when syntax highlighting fails
+            return (
+                <pre style={{ 
+                    margin: 0, 
+                    padding: '1em', 
+                    overflow: 'auto',
+                    backgroundColor: '#282c34', 
+                    color: '#abb2bf'
+                }}>
+                    {value}
+                </pre>
+            )
+        }
+    }
+
     return (
         <div style={{ width: isDialog ? '' : 300 }}>
             <Box sx={{ color: 'white', background: theme.palette?.common.dark, p: 1, borderTopLeftRadius: 10, borderTopRightRadius: 10 }}>
@@ -107,9 +135,7 @@ export const CodeBlock = memo(({ language, chatflowid, isDialog, value }) => {
                 </div>
             </Box>
 
-            <SyntaxHighlighter language={language} style={oneDark} customStyle={{ margin: 0 }}>
-                {value}
-            </SyntaxHighlighter>
+            {renderSyntaxHighlighter()}
         </div>
     )
 })

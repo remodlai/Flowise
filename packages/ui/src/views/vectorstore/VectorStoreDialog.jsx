@@ -50,6 +50,8 @@ import { HIDE_CANVAS_DIALOG, SHOW_CANVAS_DIALOG } from '@/store/actions'
 import { baseURL } from '@/store/constant'
 import { enqueueSnackbar as enqueueSnackbarAction, closeSnackbar as closeSnackbarAction } from '@/store/actions'
 
+import SafeCodeBlock from '@/ui-component/markdown/SafeCodeBlock'
+
 function TabPanel(props) {
     const { children, value, index, ...other } = props
     return (
@@ -524,8 +526,8 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                     <div style={{ marginTop: 10 }}>
                                                         {['Python', 'JavaScript', 'cURL'].map((codeLang, index) => (
                                                             <TabPanel key={index} value={tabValue} index={index}>
-                                                                <CopyBlock
-                                                                    theme={atomOneDark}
+                                                                <SafeCodeBlock
+                                                                    Component={CopyBlock}
                                                                     text={
                                                                         isFormDataRequired[data.vectorNode.data.id]
                                                                             ? getCodeWithFormData(
@@ -544,6 +546,7 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                                     language={getLang(codeLang)}
                                                                     showLineNumbers={false}
                                                                     wrapLines
+                                                                    theme={atomOneDark}
                                                                 />
                                                                 <div
                                                                     style={{
@@ -611,8 +614,8 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                                         </span>
                                                                     </div>
                                                                     <div style={{ padding: 10 }}>
-                                                                        <CopyBlock
-                                                                            theme={atomOneDark}
+                                                                        <SafeCodeBlock
+                                                                            Component={CopyBlock}
                                                                             text={
                                                                                 isFormDataRequired
                                                                                     ? getMultiConfigCodeWithFormData(codeLang)
@@ -621,6 +624,7 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                                             language={getLang(codeLang)}
                                                                             showLineNumbers={false}
                                                                             wrapLines
+                                                                            theme={atomOneDark}
                                                                         />
                                                                     </div>
                                                                 </div>

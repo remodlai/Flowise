@@ -26,12 +26,12 @@ const MainCard = forwardRef(function MainCard(
         shadow,
         sx = {},
         title,
-        nodeType,
+        nodetype,
         ...others
     },
     ref
 ) {
-    const otherProps = { ...others, border: others.border === false ? undefined : others.border, nodeType }
+    const otherProps = { ...others, border: others.border === false ? undefined : others.border, nodetype }
     return (
         <Card
             ref={ref}
@@ -78,7 +78,7 @@ MainCard.propTypes = {
     shadow: PropTypes.string,
     sx: PropTypes.object,
     title: PropTypes.oneOfType([PropTypes.node, PropTypes.string, PropTypes.object]),
-    nodeType: PropTypes.string
+    nodetype: PropTypes.string
 }
 
 export default MainCard

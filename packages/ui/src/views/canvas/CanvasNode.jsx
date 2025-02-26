@@ -93,7 +93,7 @@ const CanvasNode = ({ data }) => {
             }
         })()
         console.log('Determined Node Type:', nodeType)
-        return nodeType
+        return type
     }
 
     useEffect(() => {
