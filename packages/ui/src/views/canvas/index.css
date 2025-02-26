@@ -1,5 +1,5 @@
 .edgebutton {
-    width: 20px;
+    width: 50;
     height: 20px;
     background: #eee;
     border: 1px solid #fff;
@@ -41,7 +41,28 @@
     background: #db4e4e !important;
 }
 
+.reactflow__edge {
+    stroke: #000;
+    stroke-width: 2;
+}
+
+/* Changing this one works because it directly targets the path element within the edge-path class */
+.chatflow-canvas .react-flow__edge-path {
+    stroke-width: 4;
+}
+
+.react-flow__edge-interaction {
+    stroke: #000;
+    stroke-width: 2;
+}
+
+/* Changing this one does not work because the selector is too specific and might not match any elements */
+.chatflow-canvas .reactflow__edge.animated path {
+    stroke-dasharray: 5;
+    animation: dashdraw 1s linear infinite;
+}
+
 .chatflow-canvas .react-flow__handle-valid {
     cursor: crosshair;
-    background: #5dba62 !important;
+    background: #5dba62  !important;
 }

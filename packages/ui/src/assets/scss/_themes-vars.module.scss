@@ -1,6 +1,6 @@
 // paper & background
-$paper: #ffffff;
-
+$paper: #F9F9FA;
+$white: #FFFFFF;
 // primary
 $primaryLight: #e3f2fd;
 $primaryMain: #2196f3;
@@ -8,10 +8,12 @@ $primaryDark: #1e88e5;
 $primary200: #90caf9;
 $primary800: #1565c0;
 
+
 // secondary
 $secondaryLight: #ede7f6;
 $secondaryMain: #673ab7;
 $secondaryDark: #5e35b1;
+$secondaryDarkBlue: #0277bd;
 $secondary200: #b39ddb;
 $secondary800: #4527a0;
 
@@ -58,7 +60,12 @@ $transparent: #ffffff00;
 
 // paper & background
 $darkBackground: #191b1f;
-$darkPaper: #191b1f;
+$darkPaper: #293447;
+
+// Glass effect for dark theme
+$darkGlass: rgba(41, 52, 71, 0.4);
+$darkGlassGradient: linear-gradient(45deg, rgba(41, 52, 71, 0.6) 0%, rgba(41, 52, 71, 0.4) 99%, rgba(41, 52, 71, 0.4) 100%);
+$darkGlassShadow: rgba(0, 0, 0, 0.2) 10px 10px 10px;
 
 // dark 800 & 900
 $darkLevel1: #252525; // level 1
@@ -144,6 +151,7 @@ $darkTextSecondary: #8492c4;
     // paper & background
     darkPaper: $darkPaper;
     darkBackground: $darkBackground;
+    white: $white;
 
     // dark 800 & 900
     darkLevel1: $darkLevel1;
@@ -170,4 +178,12 @@ $darkTextSecondary: #8492c4;
 
     // transparent
     transparent: $transparent;
+
+    // glass effects
+    darkGlass: $darkGlass;
+    darkGlassGradient: $darkGlassGradient;
+    darkGlassShadow: $darkGlassShadow;
+
+    // root styles
+
 }

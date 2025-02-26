@@ -71,13 +71,18 @@ const Sidebar = ({ drawerOpen, drawerToggle, window }) => {
                 sx={{
                     '& .MuiDrawer-paper': {
                         width: drawerWidth,
-                        background: theme.palette.background.default,
+                        background: theme.palette.secondary[900],
                         color: theme.palette.text.primary,
                         [theme.breakpoints.up('md')]: {
                             top: `${headerHeight}px`
                         },
-                        borderRight: drawerOpen ? '1px solid' : 'none',
+                        borderRight: drawerOpen ? 'none' : 'none',
+                        borderTopRightRadius: drawerOpen ? '50px' : '0px',
+                        borderBottomRightRadius: drawerOpen ? '50px' : '0px',
                         borderColor: drawerOpen ? theme.palette.primary[200] + 75 : 'transparent',
+                        maxHeight: 'calc(100vh - 100px)',
+                        overflow: 'visible',
+                        elevation: 16,
                         zIndex: 1000
                     }
                 }}

@@ -50,6 +50,8 @@ export interface IChatFlow {
     apiConfig?: string
     category?: string
     type?: ChatflowType
+    tenantId?: string
+    userId?: string
 }
 
 export interface IChatMessage {

@@ -131,18 +131,20 @@ const Chatflows = () => {
                 <ErrorBoundary error={error} />
             ) : (
                 <Stack flexDirection='column' sx={{ gap: 3 }}>
-                    <ViewHeader onSearchChange={onSearchChange} search={true} searchPlaceholder='Search Name or Category' title='Chatflows'>
+                    {/* NOTE: Location of title change for main view of chatflows */}
+                    <ViewHeader onSearchChange={onSearchChange} search={true} searchPlaceholder='Search Name or Category' title='Agent Chains'>
                         <ToggleButtonGroup
-                            sx={{ borderRadius: 2, maxHeight: 40 }}
+                            sx={{ borderRadius: 1, maxHeight: 40 }}
                             value={view}
                             color='primary'
                             exclusive
                             onChange={handleChange}
+                            
                         >
                             <ToggleButton
                                 sx={{
                                     borderColor: theme.palette.grey[900] + 25,
-                                    borderRadius: 2,
+                                    borderRadius: 1,
                                     color: theme?.customization?.isDarkMode ? 'white' : 'inherit'
                                 }}
                                 variant='contained'
@@ -153,8 +155,8 @@ const Chatflows = () => {
                             </ToggleButton>
                             <ToggleButton
                                 sx={{
-                                    borderColor: theme.palette.grey[900] + 25,
-                                    borderRadius: 2,
+                                    borderColor: theme.palette.grey[900]+ 25,
+                                    borderRadius: 1,
                                     color: theme?.customization?.isDarkMode ? 'white' : 'inherit'
                                 }}
                                 variant='contained'
@@ -164,8 +166,8 @@ const Chatflows = () => {
                                 <IconList />
                             </ToggleButton>
                         </ToggleButtonGroup>
-                        <StyledButton variant='contained' onClick={addNew} startIcon={<IconPlus />} sx={{ borderRadius: 2, height: 40 }}>
-                            Add New
+                        <StyledButton variant='contained' onClick={addNew} startIcon={<IconPlus />} sx={{ borderRadius: 1, height: 40 }}>
+                            Create New Agent
                         </StyledButton>
                     </ViewHeader>
                     {!view || view === 'card' ? (
@@ -203,7 +205,7 @@ const Chatflows = () => {
                                     alt='WorkflowEmptySVG'
                                 />
                             </Box>
-                            <div>No Chatflows Yet</div>
+                            <div>No Agent Chains Yet</div>
                         </Stack>
                     )}
                 </Stack>

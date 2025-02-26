@@ -236,7 +236,7 @@ export class E2BTool extends StructuredTool {
                             artifacts.push({ type: 'jpeg', data: res })
                         } else if (key === 'html' || key === 'markdown' || key === 'latex' || key === 'json' || key === 'javascript') {
                             artifacts.push({ type: key, data: (result as any)[key] })
-                        } //TODO: support for pdf
+                        } //TODO: support for pdf @Jim - lets work on this with one of the guys.
                     }
                 }
 

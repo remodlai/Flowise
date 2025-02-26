@@ -7,6 +7,7 @@ import { AIMessage, AIMessageChunk, BaseMessage, HumanMessage, ToolMessage } fro
 import { formatToOpenAIToolMessages } from 'langchain/agents/format_scratchpad/openai_tools'
 import { type ToolsAgentStep } from 'langchain/agents/openai/output_parser'
 import { StringOutputParser } from '@langchain/core/output_parsers'
+import { CustomChainHandler, ConsoleCallbackHandler, additionalCallbacks } from '../../../src/handler'
 import {
     INode,
     INodeData,
@@ -16,6 +17,7 @@ import {
     MessageContentImageUrl,
     INodeOutputsValue,
     ISeqAgentNode,
+    IServerSideEventStreamer,
     IDatabaseEntity,
     IUsedTool,
     IDocument,
@@ -44,7 +46,11 @@ import {
     checkMessageHistory
 } from '../commonUtils'
 import { END, StateGraph } from '@langchain/langgraph'
-import { StructuredTool } from '@langchain/core/tools'
+import { StructuredTool, Tool } from '@langchain/core/tools'
+import { ChainValues } from '@langchain/core/utils/types'
+import { BaseCallbackHandler, NewTokenIndices, HandleLLMNewTokenCallbackFields } from '@langchain/core/callbacks/base'
+import { ChatGenerationChunk } from '@langchain/core/outputs'
+import { AgentAction } from '@langchain/core/agents'
 
 const defaultApprovalPrompt = `You are about to execute tool: {tools}. Ask if user want to proceed`
 const examplePrompt = 'You are a research assistant who can search for up-to-date info using search engine.'
@@ -469,7 +475,7 @@ class Agent_SeqAgents implements INode {
         const promptValuesStr = nodeData.inputs?.promptValues
         const output = nodeData.outputs?.output as string
         const approvalPrompt = nodeData.inputs?.approvalPrompt as string
-
+        
         if (!agentLabel) throw new Error('Agent name is required!')
         const agentName = agentLabel.toLowerCase().replace(/\s/g, '_').trim()
 
@@ -489,7 +495,10 @@ class Agent_SeqAgents implements INode {
         const llm = model || startLLM
         if (nodeData.inputs) nodeData.inputs.model = llm
 
-        const multiModalMessageContent = sequentialNodes[0]?.multiModalMessageContent || (await processImageMessage(llm, nodeData, options))
+        // Extract multimodal content - important for handling images
+        const multiModalMessageContent = sequentialNodes[0]?.multiModalMessageContent || await processImageMessage(llm, nodeData, options)
+        console.log("Extracted multimodal content:", multiModalMessageContent);
+        
         const abortControllerSignal = options.signal as AbortController
         const agentInputVariables = uniq([...getInputVariables(agentSystemPrompt), ...getInputVariables(agentHumanPrompt)])
 
@@ -635,7 +644,9 @@ async function createAgent(
         let prompt = ChatPromptTemplate.fromMessages(promptArrays)
         prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
 
+        // Add multimodal content to the prompt
         if (multiModalMessageContent.length) {
+            console.log("Adding multimodal content to prompt:", multiModalMessageContent);
             const msg = HumanMessagePromptTemplate.fromTemplate([...multiModalMessageContent])
             prompt.promptMessages.splice(1, 0, msg)
         }
@@ -698,7 +709,9 @@ async function createAgent(
         let prompt = ChatPromptTemplate.fromMessages(promptArrays)
         prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
 
+        // Add multimodal content to the prompt
         if (multiModalMessageContent.length) {
+            console.log("Adding multimodal content to prompt:", multiModalMessageContent);
             const msg = HumanMessagePromptTemplate.fromTemplate([...multiModalMessageContent])
             prompt.promptMessages.splice(1, 0, msg)
         }
@@ -727,7 +740,9 @@ async function createAgent(
         let prompt = ChatPromptTemplate.fromMessages(promptArrays)
         prompt = await checkMessageHistory(nodeData, options, prompt, promptArrays, systemPrompt)
 
+        // Add multimodal content to the prompt
         if (multiModalMessageContent.length) {
+            console.log("Adding multimodal content to prompt:", multiModalMessageContent);
             const msg = HumanMessagePromptTemplate.fromTemplate([...multiModalMessageContent])
             prompt.promptMessages.splice(1, 0, msg)
         }
@@ -781,18 +796,205 @@ async function agentNode(
         if (abortControllerSignal.signal.aborted) {
             throw new Error('Aborted!')
         }
-
+        
+        // Log the incoming state to help debug
+        console.log("Agent received state:", JSON.stringify(state, null, 2));
+        
+        const shouldStreamResponse = options.shouldStreamResponse
+        const sseStreamer: IServerSideEventStreamer = options.sseStreamer
+        const chatId = options.chatId
         const historySelection = (nodeData.inputs?.conversationHistorySelection || 'all_messages') as ConversationHistorySelection
+        
+        // Store original state structure before any modifications
+        const originalState = { ...state };
+        
         // @ts-ignore
         state.messages = filterConversationHistory(historySelection, input, state)
         // @ts-ignore
         state.messages = restructureMessages(llm, state)
+        const loggerHandler = new ConsoleCallbackHandler(options.logger)
+        const callbacks = await additionalCallbacks(nodeData, options)
+        let result: any = {}
 
-        let result = await agent.invoke({ ...state, signal: abortControllerSignal.signal }, config)
+        // For streaming responses, we need to use a custom callback to handle the chunks
+        if (shouldStreamResponse && sseStreamer) {
+            // To collect various metadata and content
+            let sourceDocuments: any[] = []
+            let usedTools: any[] = [] 
+            let artifacts: any[] = []
+            let contentChunks: string[] = []
+            let isStarted = false
 
+            // Create a custom callback to handle the streaming
+            const streamingCallback = new class extends BaseCallbackHandler {
+                name = 'agent_streaming_handler';
+                
+                handleLLMStart() {
+                    console.log("LLM stream starting");
+                    return Promise.resolve();
+                }
+                
+                handleLLMNewToken(token: string, idx?: NewTokenIndices, runId?: string, parentRunId?: string, tags?: string[], fields?: HandleLLMNewTokenCallbackFields): Promise<void> {
+                    console.log(`Streaming token: ${token}`);
+                    
+                    // Initialize streaming if not started yet
+                    if (!isStarted) {
+                        isStarted = true;
+                        if (sseStreamer) {
+                            sseStreamer.streamStartEvent(chatId, token);
+                        }
+                    }
+                    
+                    // Check if this token is part of a tool call
+                    const chunk = fields?.chunk as ChatGenerationChunk;
+                    const message = chunk?.message as AIMessageChunk;
+                    const toolCalls = message?.tool_call_chunks || [];
+                    
+                    // Only stream token when it's not a tool call (to avoid streaming function call JSON)
+                    if (toolCalls.length === 0) {
+                        // Stream token to client
+                        if (sseStreamer) {
+                            sseStreamer.streamTokenEvent(chatId, token);
+                        }
+                    }
+                    
+                    // Store token for final result
+                    contentChunks.push(token);
+                    return Promise.resolve();
+                }
+                
+                handleLLMEnd() {
+                    console.log("LLM stream complete");
+                    return Promise.resolve();
+                }
+                
+                handleLLMError(error: Error) {
+                    console.error("LLM stream error:", error);
+                    return Promise.resolve();
+                }
+                
+                // Handle document sources
+                handleChainEnd(outputs: ChainValues) {
+                    if (outputs.sourceDocuments) {
+                        sourceDocuments = outputs.sourceDocuments;
+                        if (sseStreamer) {
+                            sseStreamer.streamSourceDocumentsEvent(chatId, flatten(sourceDocuments));
+                        }
+                    }
+                    return Promise.resolve();
+                }
+                
+                // Handle tool usage
+                handleToolEnd(output: string) {
+                    // Parse tool output for documents and artifacts
+                    let toolOutput = output;
+                    if (typeof toolOutput === 'string' && toolOutput.includes(SOURCE_DOCUMENTS_PREFIX)) {
+                        const outputArray = toolOutput.split(SOURCE_DOCUMENTS_PREFIX);
+                        toolOutput = outputArray[0];
+                        try {
+                            const docs = JSON.parse(outputArray[1]);
+                            sourceDocuments.push(docs);
+                            if (sseStreamer) {
+                                sseStreamer.streamSourceDocumentsEvent(chatId, flatten([docs]));
+                            }
+                        } catch (e) {
+                            console.error('Error parsing source documents from tool');
+                        }
+                    }
+                    
+                    if (typeof toolOutput === 'string' && toolOutput.includes(ARTIFACTS_PREFIX)) {
+                        const outputArray = toolOutput.split(ARTIFACTS_PREFIX);
+                        toolOutput = outputArray[0];
+                        try {
+                            const artfs = JSON.parse(outputArray[1]);
+                            artifacts.push(artfs);
+                            if (sseStreamer) {
+                                sseStreamer.streamArtifactsEvent(chatId, flatten([artfs]));
+                            }
+                        } catch (e) {
+                            console.error('Error parsing artifacts from tool');
+                        }
+                    }
+                    
+                    return Promise.resolve();
+                }
+                
+                // Handle agent actions (tools being used)
+                handleAgentAction(action: AgentAction) {
+                    const tool = {
+                        tool: action.tool,
+                        toolInput: action.toolInput,
+                        toolOutput: ''
+                    };
+                    usedTools.push(tool);
+                    return Promise.resolve();
+                }
+            }
+
+            // Add the streaming callback to the callbacks list
+            callbacks.push(streamingCallback);
+            
+            // Preserve all state fields and ensure signal is added properly
+            const fullState = { ...state, signal: abortControllerSignal.signal };
+            
+            // Log state being passed to agent
+            console.log("Passing state to agent:", JSON.stringify(fullState, null, 2));
+            
+            // Invoke the agent with streaming
+            result = await agent.invoke(
+                fullState, 
+                { callbacks: [loggerHandler, ...callbacks], ...config }
+            );
+            
+            // After streaming completes, format the result
+            if (typeof result === 'string') {
+                result = {
+                    content: result
+                };
+            } else if (contentChunks.length > 0 && (!result.content || result.content === '')) {
+                // If the result doesn't have content but we collected chunks, use those
+                result.content = contentChunks.join('');
+            }
+            
+            // Add collected data to the result
+            if (sourceDocuments.length > 0) {
+                result.sourceDocuments = flatten(sourceDocuments);
+            }
+            if (usedTools.length > 0) {
+                result.usedTools = flatten(usedTools);
+            }
+            if (artifacts.length > 0) {
+                result.artifacts = flatten(artifacts);
+            }
+            
+            // Process any tool outputs that should be directly streamed
+            if (usedTools.length > 0) {
+                let inputTools = nodeData.inputs?.tools;
+                inputTools = flatten(inputTools);
+                for (const tool of usedTools) {
+                    const inputTool = inputTools.find((inputTool: StructuredTool) => inputTool.name === tool.tool);
+                    if (inputTool && inputTool.returnDirect && shouldStreamResponse) {
+                        sseStreamer.streamTokenEvent(chatId, tool.toolOutput);
+                    }
+                }
+            }
+        } else {
+            // Preserve all state fields and ensure signal is added properly
+            const fullState = { ...state, signal: abortControllerSignal.signal };
+            
+            // Log state being passed to agent
+            console.log("Passing state to agent:", JSON.stringify(fullState, null, 2));
+            
+            // For non-streaming, just invoke normally
+            result = await agent.invoke(
+                fullState, 
+                { callbacks: [loggerHandler, ...callbacks], ...config }
+            );
+        }
+        
         if (interrupt) {
-            const messages = state.messages as unknown as BaseMessage[]
-            const lastMessage = messages.length ? messages[messages.length - 1] : null
+            const messages = state.messages as unknown as BaseMessage[];
+            const lastMessage = messages.length ? messages[messages.length - 1] : null;
 
             // If the last message is a tool message and is an interrupted message, format output into standard agent output
             if (lastMessage && lastMessage._getType() === 'tool' && lastMessage.additional_kwargs?.nodeId === nodeData.id) {
@@ -801,59 +1003,69 @@ async function agentNode(
                     usedTools?: IUsedTool[]
                     sourceDocuments?: IDocument[]
                     artifacts?: ICommonObject[]
-                } = {}
-                formattedAgentResult.output = result.content
+                } = {};
+                formattedAgentResult.output = result.content;
                 if (lastMessage.additional_kwargs?.usedTools) {
-                    formattedAgentResult.usedTools = lastMessage.additional_kwargs.usedTools as IUsedTool[]
+                    formattedAgentResult.usedTools = lastMessage.additional_kwargs.usedTools as IUsedTool[];
                 }
                 if (lastMessage.additional_kwargs?.sourceDocuments) {
-                    formattedAgentResult.sourceDocuments = lastMessage.additional_kwargs.sourceDocuments as IDocument[]
+                    formattedAgentResult.sourceDocuments = lastMessage.additional_kwargs.sourceDocuments as IDocument[];
                 }
                 if (lastMessage.additional_kwargs?.artifacts) {
-                    formattedAgentResult.artifacts = lastMessage.additional_kwargs.artifacts as ICommonObject[]
+                    formattedAgentResult.artifacts = lastMessage.additional_kwargs.artifacts as ICommonObject[];
                 }
-                result = formattedAgentResult
+                result = formattedAgentResult;
             } else {
-                result.name = name
-                result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true }
+                result.name = name;
+                result.additional_kwargs = { ...result.additional_kwargs, nodeId: nodeData.id, interrupt: true };
                 return {
                     messages: [result]
-                }
+                };
             }
         }
 
-        const additional_kwargs: ICommonObject = { nodeId: nodeData.id }
+        const additional_kwargs: ICommonObject = { nodeId: nodeData.id };
 
         if (result.usedTools) {
-            additional_kwargs.usedTools = result.usedTools
+            additional_kwargs.usedTools = result.usedTools;
         }
         if (result.sourceDocuments) {
-            additional_kwargs.sourceDocuments = result.sourceDocuments
+            additional_kwargs.sourceDocuments = result.sourceDocuments;
         }
         if (result.artifacts) {
-            additional_kwargs.artifacts = result.artifacts
+            additional_kwargs.artifacts = result.artifacts;
         }
         if (result.output) {
-            result.content = result.output
-            delete result.output
+            result.content = result.output;
+            delete result.output;
         }
 
-        let outputContent = typeof result === 'string' ? result : result.content || result.output
-        outputContent = extractOutputFromArray(outputContent)
-        outputContent = removeInvalidImageMarkdown(outputContent)
+        let outputContent = typeof result === 'string' ? result : result.content || result.output;
+        outputContent = extractOutputFromArray(outputContent);
+        outputContent = removeInvalidImageMarkdown(outputContent);
 
         if (nodeData.inputs?.updateStateMemoryUI || nodeData.inputs?.updateStateMemoryCode) {
             let formattedOutput = {
                 ...result,
                 content: outputContent
-            }
-            const returnedOutput = await getReturnOutput(nodeData, input, options, formattedOutput, state)
-            return {
+            };
+            const returnedOutput = await getReturnOutput(nodeData, input, options, formattedOutput, state);
+            
+            // Restore original state fields for proper state persistence
+            const finalState = {
+                ...originalState,
                 ...returnedOutput,
                 messages: convertCustomMessagesToBaseMessages([outputContent], name, additional_kwargs)
-            }
+            };
+            
+            // Log the final state being returned
+            console.log("Agent returning state:", JSON.stringify(finalState, null, 2));
+            
+            return finalState;
         } else {
-            return {
+            // Preserve original state fields
+            const response = {
+                ...originalState,
                 messages: [
                     new HumanMessage({
                         content: outputContent,
@@ -861,10 +1073,15 @@ async function agentNode(
                         additional_kwargs: Object.keys(additional_kwargs).length ? additional_kwargs : undefined
                     })
                 ]
-            }
+            };
+            
+            // Log the final state being returned
+            console.log("Agent returning state:", JSON.stringify(response, null, 2));
+            
+            return response;
         }
     } catch (error) {
-        throw new Error(error)
+        throw new Error(error);
     }
 }
 

@@ -26,17 +26,20 @@ const MainCard = forwardRef(function MainCard(
         shadow,
         sx = {},
         title,
+        nodeType,
         ...others
     },
     ref
 ) {
-    const otherProps = { ...others, border: others.border === false ? undefined : others.border }
+    const otherProps = { ...others, border: others.border === false ? undefined : others.border, nodeType }
     return (
         <Card
             ref={ref}
             {...otherProps}
             sx={{
                 background: 'transparent',
+                backgroundColor: 'transparent',
+                backgroundImage: 'none',
                 ':hover': {
                     boxShadow: boxShadow ? shadow || '0 2px 14px 0 rgb(32 40 45 / 8%)' : 'inherit'
                 },
@@ -74,7 +77,8 @@ MainCard.propTypes = {
     secondary: PropTypes.oneOfType([PropTypes.node, PropTypes.string, PropTypes.object]),
     shadow: PropTypes.string,
     sx: PropTypes.object,
-    title: PropTypes.oneOfType([PropTypes.node, PropTypes.string, PropTypes.object])
+    title: PropTypes.oneOfType([PropTypes.node, PropTypes.string, PropTypes.object]),
+    nodeType: PropTypes.string
 }
 
 export default MainCard

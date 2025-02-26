@@ -14,7 +14,7 @@ const ChatbotRoutes = {
     element: <MinimalLayout />,
     children: [
         {
-            path: '/chatbot/:id',
+            path: '/agent/:id',
             element: <ChatbotFull />
         }
     ]

@@ -683,6 +683,7 @@ export const getUserHome = (): string => {
  * Map ChatMessage to BaseMessage
  * @param {IChatMessage[]} chatmessages
  * @returns {BaseMessage[]}
+ * This is where file uploads are parsed and converted to base64
  */
 export const mapChatMessageToBaseMessage = async (chatmessages: any[] = []): Promise<BaseMessage[]> => {
     const chatHistory = []
@@ -702,6 +703,7 @@ export const mapChatMessageToBaseMessage = async (chatmessages: any[] = []): Pro
                         if (upload.type === 'stored-file' && upload.mime.startsWith('image')) {
                             const fileData = await getFileFromStorage(upload.name, message.chatflowid, message.chatId)
                             // as the image is stored in the server, read the file and convert it to base64
+                            //TODO - we need to resize the image to a MAX width of 1920px, and max dpi of 72
                             const bf = 'data:' + upload.mime + ';base64,' + fileData.toString('base64')
 
                             imageContents.push({

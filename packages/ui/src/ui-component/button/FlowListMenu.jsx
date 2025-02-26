@@ -53,7 +53,7 @@ const StyledMenu = styled((props) => (
     />
 ))(({ theme }) => ({
     '& .MuiPaper-root': {
-        borderRadius: 6,
+        borderRadius: 0,
         marginTop: theme.spacing(1),
         minWidth: 180,
         boxShadow:
@@ -100,7 +100,7 @@ export default function FlowListMenu({ chatflow, isAgentCanvas, setError, update
     const [exportTemplateDialogOpen, setExportTemplateDialogOpen] = useState(false)
     const [exportTemplateDialogProps, setExportTemplateDialogProps] = useState({})
 
-    const title = isAgentCanvas ? 'Agents' : 'Chatflow'
+    const title = isAgentCanvas ? 'LCEL' : 'Chatflow'
 
     const handleClick = (event) => {
         setAnchorEl(event.currentTarget)

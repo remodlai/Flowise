@@ -9,7 +9,7 @@ import { formatDataGridRows } from '@/utils/genericHelper'
 import { styled } from '@mui/material/styles'
 
 const StyledDataGrid = styled(MUIDataGrid)(({ theme }) => ({
-    border: `1px solid ${theme.palette.mode === 'light' ? '#b4b4b4' : '#303030'}`,
+    border: `0px solid ${theme.palette.mode === 'light' ? '#b4b4b4' : '#303030'}`,
 
     letterSpacing: 'normal',
     '& .MuiDataGrid-columnsContainer': {
@@ -19,7 +19,7 @@ const StyledDataGrid = styled(MUIDataGrid)(({ theme }) => ({
         display: 'none'
     },
     '& .MuiDataGrid-columnHeader, .MuiDataGrid-cell': {
-        borderRight: `1px solid ${theme.palette.mode === 'light' ? '#f0f0f0' : '#303030'}`
+        borderRight: `0px solid ${theme.palette.mode === 'light' ? '#f0f0f0' : '#303030'}`
     },
     '& .MuiDataGrid-columnsContainer, .MuiDataGrid-cell': {
         borderBottom: `1px solid ${theme.palette.mode === 'light' ? '#f0f0f0' : '#303030'}`

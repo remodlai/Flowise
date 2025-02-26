@@ -28,6 +28,13 @@ const CanvasNode = ({ data }) => {
     const canvas = useSelector((state) => state.canvas)
     const { deleteNode, duplicateNode } = useContext(flowContext)
 
+    console.log('Node Data:', {
+        name: data.name,
+        category: data.category,
+        type: data.type,
+        label: data.label
+    })
+
     const [showDialog, setShowDialog] = useState(false)
     const [dialogProps, setDialogProps] = useState({})
     const [showInfoDialog, setShowInfoDialog] = useState(false)
@@ -64,6 +71,31 @@ const CanvasNode = ({ data }) => {
         setShowDialog(true)
     }
 
+    const getNodeType = (label) => {
+        console.log('Node Type:', label)
+        const nodeType = (() => {
+            const type = label?.toLowerCase() || ''
+            switch (true) {
+                case label.includes('Start'):
+                    return 'start'
+                case label.includes('Memory'):
+                    return 'memory'
+                case label.includes('Chat Model'):
+                    return 'llm'
+                case label.includes('Chain'):
+                    return 'chain'
+                case label.includes('Tool'):
+                    return 'tool'
+                case label.includes('End'):
+                    return 'end'
+                default:
+                    return undefined
+            }
+        })()
+        console.log('Determined Node Type:', nodeType)
+        return nodeType
+    }
+
     useEffect(() => {
         const componentNode = canvas.componentNodes.find((nd) => nd.name === data.name)
         if (componentNode) {
@@ -86,6 +118,7 @@ const CanvasNode = ({ data }) => {
         <>
             <NodeCardWrapper
                 content={false}
+                nodeType={getNodeType(data.type)}
                 sx={{
                     padding: 0,
                     borderColor: data.selected ? theme.palette.primary.main : theme.palette.text.secondary

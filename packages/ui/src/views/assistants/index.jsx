@@ -26,13 +26,6 @@ const cards = [
         icon: <IconBrandOpenai />,
         iconText: 'OpenAI',
         gradient: 'linear-gradient(135deg, #c9ffd85f 0%, #a0f0b567 100%)'
-    },
-    {
-        title: 'Azure Assistant (Coming Soon)',
-        description: 'Create assistant using Azure Assistant API',
-        icon: <IconBrandAzure />,
-        iconText: 'Azure',
-        gradient: 'linear-gradient(135deg, #c4e1ff57 0%, #80b7ff5a 100%)'
     }
 ]
 
@@ -66,7 +59,7 @@ const FeatureCards = () => {
     const onCardClick = (index) => {
         if (index === 0) navigate('/assistants/custom')
         if (index === 1) navigate('/assistants/openai')
-        if (index === 2) alert('Under Development')
+        //if (index === 2) alert('Under Development')
     }
 
     return (
@@ -75,7 +68,7 @@ const FeatureCards = () => {
             direction='row'
             sx={{
                 width: '100%',
-                justifyContent: 'space-between'
+                justifyContent: 'flex-start'
             }}
         >
             {cards.map((card, index) => (

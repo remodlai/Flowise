@@ -34,7 +34,7 @@ const ItemCard = ({ data, images, onClick }) => {
     const customization = useSelector((state) => state.customization)
 
     return (
-        <CardWrapper content={false} onClick={onClick} sx={{ border: 1, borderColor: theme.palette.grey[900] + 25, borderRadius: 2 }}>
+        <CardWrapper content={false} onClick={onClick} sx={{ border: 0, borderColor: theme.palette.grey[900] + 25, borderRadius: 2 }}>
             <Box sx={{ height: '100%', p: 2.25 }}>
                 <Grid container justifyContent='space-between' direction='column' sx={{ height: '100%', gap: 3 }}>
                     <Box display='flex' flexDirection='column' sx={{ width: '100%' }}>
