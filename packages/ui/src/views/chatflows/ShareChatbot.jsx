@@ -425,13 +425,13 @@ const ShareChatbot = ({ isSessionMemory, isAgentCanvas }) => {
                     }}
                     variant='h5'
                 >
-                    {`${baseURL}/chatbot/${chatflowid}`}
+                    {`${baseURL}/agent/${chatflowid}`}
                 </Typography>
                 <IconButton
                     title='Copy Link'
                     color='success'
                     onClick={(event) => {
-                        navigator.clipboard.writeText(`${baseURL}/chatbot/${chatflowid}`)
+                        navigator.clipboard.writeText(`${baseURL}/agent/${chatflowid}`)
                         setCopyAnchorEl(event.currentTarget)
                         setTimeout(() => {
                             handleCloseCopyPopOver()
@@ -440,7 +440,7 @@ const ShareChatbot = ({ isSessionMemory, isAgentCanvas }) => {
                 >
                     <IconCopy />
                 </IconButton>
-                <IconButton title='Open New Tab' color='primary' onClick={() => window.open(`${baseURL}/chatbot/${chatflowid}`, '_blank')}>
+                <IconButton title='Open New Tab' color='primary' onClick={() => window.open(`${baseURL}/agent/${chatflowid}`, '_blank')}>
                     <IconArrowUpRightCircle />
                 </IconButton>
                 <div style={{ flex: 1 }} />
