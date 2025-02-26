@@ -31,7 +31,13 @@ const ButtonEdge = ({ id, sourceX, sourceY, targetX, targetY, sourcePosition, ta
 
     return (
         <>
-            <path id={id} style={style} className='react-flow__edge-path animated' d={edgePath} markerEnd={markerEnd} />
+            <path 
+                id={id} 
+                style={style} 
+                className='react-flow__edge-path animated' 
+                d={edgePath} 
+                markerEnd={markerEnd} 
+            />
             {data && data.label && (
                 <EdgeText
                     x={sourceX + 10}

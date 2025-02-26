@@ -57,7 +57,24 @@
 }
 
 /* Changing this one does not work because the selector is too specific and might not match any elements */
-.chatflow-canvas .reactflow__edge.animated path {
+/* Fixing the selector to target the path with animated class directly */
+.reactflow__edge-path.animated,
+.react-flow__edge-path.animated {
+    stroke-dasharray: 5;
+    animation: dashdraw 1s linear infinite;
+}
+
+@keyframes dashdraw {
+    from {
+        stroke-dashoffset: 10;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* This is already targeting the animated path directly, which is good */
+.chatflow-canvas .react-flow__edge-path.animated {
     stroke-dasharray: 5;
     animation: dashdraw 1s linear infinite;
 }
