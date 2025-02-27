@@ -3,6 +3,7 @@ import { lazy } from 'react'
 // project imports
 import MainLayout from '@/layout/MainLayout'
 import Loadable from '@/ui-component/loading/Loadable'
+import ProtectedRoute from './ProtectedRoute'
 
 // chatflows routing
 const Chatflows = Loadable(lazy(() => import('@/views/chatflows')))
@@ -43,7 +44,11 @@ const VectorStoreQuery = Loadable(lazy(() => import('@/views/docstore/VectorStor
 
 const MainRoutes = {
     path: '/',
-    element: <MainLayout />,
+    element: (
+        <ProtectedRoute>
+            <MainLayout />
+        </ProtectedRoute>
+    ),
     children: [
         {
             path: '/',
