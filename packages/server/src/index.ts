@@ -28,7 +28,7 @@ import { QueueManager } from './queue/QueueManager'
 import { RedisEventSubscriber } from './queue/RedisEventSubscriber'
 import { WHITELIST_URLS } from './utils/constants'
 import 'global-agent/bootstrap'
-
+import DescopeClient from '@descope/node-sdk'
 
 
 declare global {
@@ -52,6 +52,7 @@ declare global {
 
 export class App {
     app: express.Application
+    descopeClient: any
     nodesPool: NodesPool
     abortControllerPool: AbortControllerPool
     cachePool: CachePool
@@ -65,8 +66,15 @@ export class App {
 
     constructor() {
         this.app = express()
+        try {
+            this.descopeClient = DescopeClient({ 
+                projectId: process.env.DESCOPE_PROJECT_ID || 'P2qN8t4mIqaKVihBD18pVybYVukP' 
+            })
+            logger.info('📦 [server]: Descope client initialized')
+        } catch (error) {
+            logger.error('❌ [server]: Failed to initialize Descope client:', error)
+        }
     }
-
     async initDatabase() {
         // Initialize database
         try {
@@ -157,67 +165,51 @@ export class App {
         const whitelistURLs = WHITELIST_URLS
         const URL_CASE_INSENSITIVE_REGEX: RegExp = /\/api\/v1\//i
         const URL_CASE_SENSITIVE_REGEX: RegExp = /\/api\/v1\//
-
-        if (process.env.FLOWISE_USERNAME && process.env.FLOWISE_PASSWORD) {
-            const username = process.env.FLOWISE_USERNAME
-            const password = process.env.FLOWISE_PASSWORD
-            const basicAuthMiddleware = basicAuth({
-                users: { [username]: password }
-            })
-            this.app.use(async (req, res, next) => {
-                // Step 1: Check if the req path contains /api/v1 regardless of case
-                if (URL_CASE_INSENSITIVE_REGEX.test(req.path)) {
-                    // Step 2: Check if the req path is case sensitive
-                    if (URL_CASE_SENSITIVE_REGEX.test(req.path)) {
-                        // Step 3: Check if the req path is in the whitelist
-                        const isWhitelisted = whitelistURLs.some((url) => req.path.startsWith(url))
-                        if (isWhitelisted) {
-                            next()
-                        } else if (req.headers['x-request-from'] === 'internal') {
-                            basicAuthMiddleware(req, res, next)
-                        } else {
-                            const isKeyValidated = await validateAPIKey(req)
-                            if (!isKeyValidated) {
-                                return res.status(401).json({ error: 'Unauthorized Access' })
-                            }
-                            next()
+        
+        this.app.use(async (req, res, next) => {
+            // Step 1: Check if the req path contains /api/v1 regardless of case
+            if (URL_CASE_INSENSITIVE_REGEX.test(req.path)) {
+                // Step 2: Check if the req path is case sensitive
+                if (URL_CASE_SENSITIVE_REGEX.test(req.path)) {
+                    // Step 3: Check if the req path is in the whitelist
+                    const isWhitelisted = whitelistURLs.some((url) => req.path.startsWith(url))
+                    if (isWhitelisted) {
+                        return next()
+                    }
+                    
+                    try {
+                        // Extract token from Authorization header
+                        const authHeader = req.headers.authorization
+                        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                            return res.status(401).json({ error: 'Unauthorized Access' })
                         }
-                    } else {
+                        
+                        // Extract the token
+                        const sessionToken = authHeader.split(' ')[1]
+                        
+                        // Validate session token exactly as shown in the docs
+                        const authInfo = await this.descopeClient.validateSession(sessionToken)
+                        
+                        // Attach the user info to request for later use
+                        // req.user = authInfo.user
+                        // req.tenants = authInfo.tenants || []
+                        // req.roles = authInfo.roles || []
+                        // req.permissions = authInfo.permissions || []
+                        
+                        return next()
+                    } catch (error) {
+                        logger.error('Authentication error:', error)
                         return res.status(401).json({ error: 'Unauthorized Access' })
                     }
                 } else {
-                    // If the req path does not contain /api/v1, then allow the request to pass through, example: /assets, /canvas
-                    next()
+                    return res.status(401).json({ error: 'Unauthorized Access' })
                 }
-            })
-        } else {
-            this.app.use(async (req, res, next) => {
-                // Step 1: Check if the req path contains /api/v1 regardless of case
-                if (URL_CASE_INSENSITIVE_REGEX.test(req.path)) {
-                    // Step 2: Check if the req path is case sensitive
-                    if (URL_CASE_SENSITIVE_REGEX.test(req.path)) {
-                        // Step 3: Check if the req path is in the whitelist
-                        const isWhitelisted = whitelistURLs.some((url) => req.path.startsWith(url))
-                        if (isWhitelisted) {
-                            next()
-                        } else if (req.headers['x-request-from'] === 'internal') {
-                            next()
-                        } else {
-                            const isKeyValidated = await validateAPIKey(req)
-                            if (!isKeyValidated) {
-                                return res.status(401).json({ error: 'Unauthorized Access' })
-                            }
-                            next()
-                        }
-                    } else {
-                        return res.status(401).json({ error: 'Unauthorized Access' })
-                    }
-                } else {
-                    // If the req path does not contain /api/v1, then allow the request to pass through, example: /assets, /canvas
-                    next()
-                }
-            })
-        }
+            } else {
+                // If the req path does not contain /api/v1, allow the request
+                return next()
+            }
+        })
+    
 
         if (process.env.ENABLE_METRICS === 'true') {
             switch (process.env.METRICS_PROVIDER) {
