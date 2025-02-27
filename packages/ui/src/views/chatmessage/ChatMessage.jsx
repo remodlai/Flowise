@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, Fragment } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import { cloneDeep } from 'lodash'
 import rehypeMathjax from 'rehype-mathjax'
@@ -9,6 +10,7 @@ import remarkMath from 'remark-math'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import { EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
+import { getSessionToken } from '@descope/react-sdk'
 
 import {
     Box,
@@ -162,6 +164,7 @@ CardWithDeleteOverlay.propTypes = {
 export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, previews, setPreviews }) => {
     const theme = useTheme()
     const customization = useSelector((state) => state.customization)
+    const navigate = useNavigate()
 
     const ps = useRef()
 
@@ -867,8 +870,7 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
     const fetchResponseFromEventStream = async (chatflowid, params) => {
         const chatId = params.chatId
         const input = params.question
-        const username = localStorage.getItem('username')
-        const password = localStorage.getItem('password')
+        const sessionToken = getSessionToken()
         params.streaming = true
         await fetchEventSource(`${baseURL}/api/v1/internal-prediction/${chatflowid}`, {
             openWhenHidden: true,
@@ -876,7 +878,7 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
             body: JSON.stringify(params),
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: username && password ? `Basic ${btoa(`${username}:${password}`)}` : undefined,
+                ...(sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
                 'x-request-from': 'internal'
             },
             async onopen(response) {

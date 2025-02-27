@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FullPageChat } from 'flowise-embed-react'
 import { useNavigate } from 'react-router-dom'
+import { useSession } from '@descope/react-sdk'
 
 // Project import
 import LoginDialog from '@/ui-component/dialog/LoginDialog'
@@ -20,6 +21,7 @@ const ChatbotFull = () => {
     const URLpath = document.location.pathname.toString().split('/')
     const chatflowId = URLpath[URLpath.length - 1] === 'chatbot' ? '' : URLpath[URLpath.length - 1]
     const navigate = useNavigate()
+    const { isAuthenticated } = useSession()
 
     const [chatflow, setChatflow] = useState(null)
     const [chatbotTheme, setChatbotTheme] = useState({})
@@ -31,10 +33,8 @@ const ChatbotFull = () => {
     const getSpecificChatflowFromPublicApi = useApi(chatflowsApi.getSpecificChatflowFromPublicEndpoint)
     const getSpecificChatflowApi = useApi(chatflowsApi.getSpecificChatflow)
 
-    const onLoginClick = (username, password) => {
-        localStorage.setItem('username', username)
-        localStorage.setItem('password', password)
-        navigate(0)
+    const onLoginClick = () => {
+        navigate('/login')
     }
 
     useEffect(() => {
@@ -46,14 +46,10 @@ const ChatbotFull = () => {
     useEffect(() => {
         if (getSpecificChatflowFromPublicApi.error) {
             if (getSpecificChatflowFromPublicApi.error?.response?.status === 401) {
-                if (localStorage.getItem('username') && localStorage.getItem('password')) {
+                if (isAuthenticated) {
                     getSpecificChatflowApi.request(chatflowId)
                 } else {
-                    setLoginDialogProps({
-                        title: 'Login',
-                        confirmButtonName: 'Login'
-                    })
-                    setLoginDialogOpen(true)
+                    navigate('/login')
                 }
             }
         }
@@ -63,14 +59,10 @@ const ChatbotFull = () => {
     useEffect(() => {
         if (getSpecificChatflowApi.error) {
             if (getSpecificChatflowApi.error?.response?.status === 401) {
-                setLoginDialogProps({
-                    title: 'Login',
-                    confirmButtonName: 'Login'
-                })
-                setLoginDialogOpen(true)
+                navigate('/login')
             }
         }
-    }, [getSpecificChatflowApi.error])
+    }, [getSpecificChatflowApi.error, navigate])
 
     useEffect(() => {
         if (getSpecificChatflowFromPublicApi.data || getSpecificChatflowApi.data) {

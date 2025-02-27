@@ -11,23 +11,15 @@ const apiClient = axios.create({
 })
 
 apiClient.interceptors.request.use(function (config) {
-    // Try to get Descope session token first
+    // Get Descope session token
     const sessionToken = getSessionToken()
     
     if (sessionToken) {
         // Use Bearer token authentication with Descope token
         config.headers.Authorization = `Bearer ${sessionToken}`
     } else {
-        // Fall back to basic auth if no Descope token (for backward compatibility)
-        const username = localStorage.getItem('username')
-        const password = localStorage.getItem('password')
-
-        if (username && password) {
-            config.auth = {
-                username,
-                password
-            }
-        }
+        // No authentication token available
+        console.warn('No authentication token available. Request may fail if authentication is required.')
     }
 
     return config

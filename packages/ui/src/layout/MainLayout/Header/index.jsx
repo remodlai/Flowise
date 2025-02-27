@@ -83,10 +83,7 @@ const Header = ({ handleLeftDrawerToggle }) => {
     }
 
     const signOutClicked = () => {
-        localStorage.removeItem('username')
-        localStorage.removeItem('password')
-        navigate('/', { replace: true })
-        navigate(0)
+        logout()
     }
 
     return (
@@ -128,7 +125,7 @@ const Header = ({ handleLeftDrawerToggle }) => {
             <Box sx={{ flexGrow: 1 }} />
             <MaterialUISwitch checked={isDark} onChange={changeDarkMode} />
             <Box sx={{ ml: 2 }}></Box>
-            <ProfileSection handleLogout={signOutClicked} username={localStorage.getItem('username') ?? ''} />
+            <ProfileSection handleLogout={signOutClicked} />
         </>
     )
 }

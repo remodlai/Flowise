@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSession } from '@descope/react-sdk'
 
 // material-ui
 import { Box, Skeleton, Stack, ToggleButton, ToggleButtonGroup } from '@mui/material'
@@ -10,7 +11,6 @@ import MainCard from '@/ui-component/cards/MainCard'
 import ItemCard from '@/ui-component/cards/ItemCard'
 import { gridSpacing } from '@/store/constant'
 import AgentsEmptySVG from '@/assets/images/agents_empty.svg'
-import LoginDialog from '@/ui-component/dialog/LoginDialog'
 import ConfirmDialog from '@/ui-component/dialog/ConfirmDialog'
 import { FlowListTable } from '@/ui-component/table/FlowListTable'
 import { StyledButton } from '@/ui-component/button/StyledButton'
@@ -34,13 +34,12 @@ import { IconPlus, IconLayoutGrid, IconList } from '@tabler/icons-react'
 const Agentflows = () => {
     const navigate = useNavigate()
     const theme = useTheme()
+    const { isAuthenticated } = useSession()
 
     const [isLoading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [images, setImages] = useState({})
     const [search, setSearch] = useState('')
-    const [loginDialogOpen, setLoginDialogOpen] = useState(false)
-    const [loginDialogProps, setLoginDialogProps] = useState({})
 
     const getAllAgentflows = useApi(chatflowsApi.getAllAgentflows)
     const [view, setView] = useState(localStorage.getItem('flowDisplayStyle') || 'card')
@@ -63,18 +62,12 @@ const Agentflows = () => {
         )
     }
 
-    const onLoginClick = (username, password) => {
-        localStorage.setItem('username', username)
-        localStorage.setItem('password', password)
-        navigate(0)
-    }
-
     const addNew = () => {
-        navigate('/agentcanvas')
+        navigate('/canvas/agent')
     }
 
     const goToCanvas = (selectedAgentflow) => {
-        navigate(`/agentcanvas/${selectedAgentflow.id}`)
+        navigate(`/canvas/agent/${selectedAgentflow.id}`)
     }
 
     useEffect(() => {
@@ -86,16 +79,15 @@ const Agentflows = () => {
     useEffect(() => {
         if (getAllAgentflows.error) {
             if (getAllAgentflows.error?.response?.status === 401) {
-                setLoginDialogProps({
-                    title: 'Login',
-                    confirmButtonName: 'Login'
-                })
-                setLoginDialogOpen(true)
+                // Redirect to login page if not authenticated
+                if (!isAuthenticated) {
+                    navigate('/login')
+                }
             } else {
                 setError(getAllAgentflows.error)
             }
         }
-    }, [getAllAgentflows.error])
+    }, [getAllAgentflows.error, isAuthenticated, navigate])
 
     useEffect(() => {
         setLoading(getAllAgentflows.loading)
@@ -133,7 +125,7 @@ const Agentflows = () => {
                 <Stack flexDirection='column' sx={{ gap: 3 }}>
                     <ViewHeader onSearchChange={onSearchChange} search={true} searchPlaceholder='Search Name or Category' title='Agents'>
                         <ToggleButtonGroup
-                            sx={{ borderRadius: 2, maxHeight: 40 }}
+                            sx={{ borderRadius: 1, maxHeight: 40 }}
                             value={view}
                             color='primary'
                             exclusive
@@ -142,7 +134,7 @@ const Agentflows = () => {
                             <ToggleButton
                                 sx={{
                                     borderColor: theme.palette.grey[900] + 25,
-                                    borderRadius: 2,
+                                    borderRadius: 1,
                                     color: theme?.customization?.isDarkMode ? 'white' : 'inherit'
                                 }}
                                 variant='contained'
@@ -154,7 +146,7 @@ const Agentflows = () => {
                             <ToggleButton
                                 sx={{
                                     borderColor: theme.palette.grey[900] + 25,
-                                    borderRadius: 2,
+                                    borderRadius: 1,
                                     color: theme?.customization?.isDarkMode ? 'white' : 'inherit'
                                 }}
                                 variant='contained'
@@ -164,8 +156,8 @@ const Agentflows = () => {
                                 <IconList />
                             </ToggleButton>
                         </ToggleButtonGroup>
-                        <StyledButton variant='contained' onClick={addNew} startIcon={<IconPlus />} sx={{ borderRadius: 2, height: 40 }}>
-                            Add New
+                        <StyledButton variant='contained' onClick={addNew} startIcon={<IconPlus />} sx={{ borderRadius: 1, height: 40 }}>
+                            Create New Agent
                         </StyledButton>
                     </ViewHeader>
                     {!view || view === 'card' ? (
@@ -186,20 +178,20 @@ const Agentflows = () => {
                         </>
                     ) : (
                         <FlowListTable
-                            isAgentCanvas={true}
                             data={getAllAgentflows.data}
                             images={images}
                             isLoading={isLoading}
                             filterFunction={filterFlows}
                             updateFlowsApi={getAllAgentflows}
                             setError={setError}
+                            isAgentCanvas={true}
                         />
                     )}
                     {!isLoading && (!getAllAgentflows.data || getAllAgentflows.data.length === 0) && (
                         <Stack sx={{ alignItems: 'center', justifyContent: 'center' }} flexDirection='column'>
                             <Box sx={{ p: 2, height: 'auto' }}>
                                 <img
-                                    style={{ objectFit: 'cover', height: '12vh', width: 'auto' }}
+                                    style={{ objectFit: 'cover', height: '25vh', width: 'auto' }}
                                     src={AgentsEmptySVG}
                                     alt='AgentsEmptySVG'
                                 />
@@ -209,8 +201,6 @@ const Agentflows = () => {
                     )}
                 </Stack>
             )}
-
-            <LoginDialog show={loginDialogOpen} dialogProps={loginDialogProps} onConfirm={onLoginClick} />
             <ConfirmDialog />
         </MainCard>
     )

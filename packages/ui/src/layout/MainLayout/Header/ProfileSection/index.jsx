@@ -154,7 +154,7 @@ ExportDialog.propTypes = {
 
 // ==============================|| PROFILE MENU ||============================== //
 
-const ProfileSection = ({ username, handleLogout }) => {
+const ProfileSection = ({ handleLogout }) => {
     const theme = useTheme()
     const customization = useSelector((state) => state.customization)
     const navigate = useNavigate()
@@ -347,7 +347,7 @@ const ProfileSection = ({ username, handleLogout }) => {
                                             <Stack direction='row' spacing={0.5} alignItems='center'>
                                                 <Typography variant='h4'>Hello,</Typography>
                                                 <Typography component='span' variant='h4' sx={{ fontWeight: 400 }}>
-                                                    {user?.name || username || 'User'}
+                                                    {user?.name || 'User'}
                                                 </Typography>
                                             </Stack>
                                             <Typography variant='subtitle2'>{user?.email || 'user@example.com'}</Typography>
@@ -446,7 +446,6 @@ const ProfileSection = ({ username, handleLogout }) => {
 }
 
 ProfileSection.propTypes = {
-    username: PropTypes.string,
     handleLogout: PropTypes.func
 }
 

@@ -2,6 +2,7 @@ import { useState, useEffect, Fragment } from 'react'
 import { useSelector } from 'react-redux'
 import PropTypes from 'prop-types'
 import axios from 'axios'
+import { getSessionToken } from '@descope/react-sdk'
 
 // Material
 import Autocomplete, { autocompleteClasses } from '@mui/material/Autocomplete'
@@ -28,16 +29,18 @@ const StyledPopper = styled(Popper)({
 
 const fetchList = async ({ name, nodeData }) => {
     const loadMethod = nodeData.inputParams.find((param) => param.name === name)?.loadMethod
-    const username = localStorage.getItem('username')
-    const password = localStorage.getItem('password')
+    const sessionToken = getSessionToken()
 
     let lists = await axios
         .post(
             `${baseURL}/api/v1/node-load-method/${nodeData.name}`,
             { ...nodeData, loadMethod },
             {
-                auth: username && password ? { username, password } : undefined,
-                headers: { 'Content-type': 'application/json', 'x-request-from': 'internal' }
+                headers: { 
+                    'Content-type': 'application/json', 
+                    'x-request-from': 'internal',
+                    ...(sessionToken && { Authorization: `Bearer ${sessionToken}` })
+                }
             }
         )
         .then(async function (response) {

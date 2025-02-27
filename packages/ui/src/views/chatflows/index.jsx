@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSession } from '@descope/react-sdk'
 
 // material-ui
 import { Box, Skeleton, Stack, ToggleButton, ToggleButtonGroup } from '@mui/material'
@@ -10,7 +11,6 @@ import MainCard from '@/ui-component/cards/MainCard'
 import ItemCard from '@/ui-component/cards/ItemCard'
 import { gridSpacing } from '@/store/constant'
 import WorkflowEmptySVG from '@/assets/images/workflow_empty.svg'
-import LoginDialog from '@/ui-component/dialog/LoginDialog'
 import ConfirmDialog from '@/ui-component/dialog/ConfirmDialog'
 import { FlowListTable } from '@/ui-component/table/FlowListTable'
 import { StyledButton } from '@/ui-component/button/StyledButton'
@@ -34,13 +34,12 @@ import { IconPlus, IconLayoutGrid, IconList } from '@tabler/icons-react'
 const Chatflows = () => {
     const navigate = useNavigate()
     const theme = useTheme()
+    const { isAuthenticated } = useSession()
 
     const [isLoading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [images, setImages] = useState({})
     const [search, setSearch] = useState('')
-    const [loginDialogOpen, setLoginDialogOpen] = useState(false)
-    const [loginDialogProps, setLoginDialogProps] = useState({})
 
     const getAllChatflowsApi = useApi(chatflowsApi.getAllChatflows)
     const [view, setView] = useState(localStorage.getItem('flowDisplayStyle') || 'card')
@@ -63,12 +62,6 @@ const Chatflows = () => {
         )
     }
 
-    const onLoginClick = (username, password) => {
-        localStorage.setItem('username', username)
-        localStorage.setItem('password', password)
-        navigate(0)
-    }
-
     const addNew = () => {
         navigate('/canvas')
     }
@@ -86,16 +79,15 @@ const Chatflows = () => {
     useEffect(() => {
         if (getAllChatflowsApi.error) {
             if (getAllChatflowsApi.error?.response?.status === 401) {
-                setLoginDialogProps({
-                    title: 'Login',
-                    confirmButtonName: 'Login'
-                })
-                setLoginDialogOpen(true)
+                // Redirect to login page if not authenticated
+                if (!isAuthenticated) {
+                    navigate('/login')
+                }
             } else {
                 setError(getAllChatflowsApi.error)
             }
         }
-    }, [getAllChatflowsApi.error])
+    }, [getAllChatflowsApi.error, isAuthenticated, navigate])
 
     useEffect(() => {
         setLoading(getAllChatflowsApi.loading)
@@ -210,8 +202,6 @@ const Chatflows = () => {
                     )}
                 </Stack>
             )}
-
-            <LoginDialog show={loginDialogOpen} dialogProps={loginDialogProps} onConfirm={onLoginClick} />
             <ConfirmDialog />
         </MainCard>
     )
