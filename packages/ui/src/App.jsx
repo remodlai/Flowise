@@ -11,7 +11,10 @@ import themes from '@/themes'
 
 // project imports
 import NavigationScroll from '@/layout/NavigationScroll'
-import { AuthProvider } from '@/contexts/AuthContext'
+import { AuthProvider as CustomAuthProvider } from '@/contexts/AuthContext'
+
+// Descope import
+import { AuthProvider as DescopeAuthProvider } from '@descope/react-sdk'
 
 // ==============================|| APP ||============================== //
 
@@ -22,11 +25,13 @@ const App = () => {
         <StyledEngineProvider injectFirst>
             <ThemeProvider theme={themes(customization)}>
                 <CssBaseline />
-                <AuthProvider>
-                    <NavigationScroll>
-                        <Routes />
-                    </NavigationScroll>
-                </AuthProvider>
+                <DescopeAuthProvider projectId="P2qN8t4mIqaKVihBD18pVybYVukP">
+                    <CustomAuthProvider>
+                        <NavigationScroll>
+                            <Routes />
+                        </NavigationScroll>
+                    </CustomAuthProvider>
+                </DescopeAuthProvider>
             </ThemeProvider>
         </StyledEngineProvider>
     )

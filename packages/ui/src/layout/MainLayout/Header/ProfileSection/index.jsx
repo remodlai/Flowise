@@ -293,11 +293,8 @@ const ProfileSection = ({ username, handleLogout }) => {
     }
 
     const handleLogoutClick = () => {
-        handleClose()
-        if (handleLogout) {
-            handleLogout()
-        }
         logout()
+        setOpen(false)
     }
 
     return (

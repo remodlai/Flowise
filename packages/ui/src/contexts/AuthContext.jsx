@@ -1,46 +1,69 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSession, useUser, useDescope } from '@descope/react-sdk'
 
 // Create auth context
 const AuthContext = createContext(null)
 
 // Auth provider component
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const [appUser, setAppUser] = useState(null)
+    const [appLoading, setAppLoading] = useState(true)
     const navigate = useNavigate()
+    
+    // Get Descope authentication data
+    const { isAuthenticated, isSessionLoading } = useSession()
+    const { user: descopeUser, isUserLoading } = useUser()
+    const { logout: descopeLogout } = useDescope()
 
-    // Check if user is already logged in (from localStorage)
+    // Sync Descope user with our app's user state
     useEffect(() => {
-        const storedUser = localStorage.getItem('user')
-        if (storedUser) {
-            setUser(JSON.parse(storedUser))
+        if (!isSessionLoading && !isUserLoading) {
+            if (isAuthenticated && descopeUser) {
+                // Create our app's user object from Descope user data
+                const userData = {
+                    email: descopeUser.email,
+                    name: descopeUser.name || descopeUser.email?.split('@')[0] || 'User',
+                    // Add any other user properties you need
+                }
+                setAppUser(userData)
+                // Optionally store in localStorage for persistence
+                localStorage.setItem('user', JSON.stringify(userData))
+            } else {
+                setAppUser(null)
+                localStorage.removeItem('user')
+            }
+            setAppLoading(false)
         }
-        setLoading(false)
-    }, [])
+    }, [isAuthenticated, descopeUser, isSessionLoading, isUserLoading])
 
-    // Login function
+    // Login function - now just stores additional app-specific user data
+    // The actual authentication is handled by Descope
     const login = (userData) => {
-        // In a real app, this would make an API call to authenticate
-        // For now, just store the user data in localStorage
-        setUser(userData)
+        setAppUser(userData)
         localStorage.setItem('user', JSON.stringify(userData))
     }
 
-    // Logout function
+    // Logout function - uses Descope's logout
     const logout = () => {
-        setUser(null)
+        // Clear our app's user state
+        setAppUser(null)
         localStorage.removeItem('user')
+        
+        // Call Descope's logout
+        descopeLogout()
+        
+        // Navigate to login page
         navigate('/login')
     }
 
     // Auth context value
     const value = {
-        user,
-        loading,
+        user: appUser,
+        loading: appLoading || isSessionLoading || isUserLoading,
         login,
         logout,
-        isAuthenticated: !!user
+        isAuthenticated: isAuthenticated && !!appUser
     }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

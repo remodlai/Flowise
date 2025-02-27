@@ -29,6 +29,8 @@ import { RedisEventSubscriber } from './queue/RedisEventSubscriber'
 import { WHITELIST_URLS } from './utils/constants'
 import 'global-agent/bootstrap'
 
+
+
 declare global {
     namespace Express {
         namespace Multer {
@@ -258,8 +260,8 @@ export class App {
         // ----------------------------------------
         // Serve UI static
         // ----------------------------------------
-
-        const packagePath = getNodeModulesPackagePath('flowise-ui')
+        //const packagePath = getNodeModulesPackagePath('flowise-ui')
+        const packagePath = getNodeModulesPackagePath('remodl-platform-ui')
         const uiBuildPath = path.join(packagePath, 'build')
         const uiHtmlPath = path.join(packagePath, 'build', 'index.html')
 

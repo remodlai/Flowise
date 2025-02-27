@@ -2,7 +2,7 @@ import React from 'react'
 import App from '@/App'
 import { store } from '@/store'
 import { createRoot } from 'react-dom/client'
-
+import { AuthProvider } from '@descope/react-sdk'
 // style + assets
 import '@/assets/scss/style.scss'
 
@@ -18,16 +18,18 @@ const root = createRoot(container)
 
 root.render(
     <React.StrictMode>
-        <Provider store={store}>
-            <BrowserRouter>
-                <SnackbarProvider>
+        <AuthProvider projectId="P2qN8t4mIqaKVihBD18pVybYVukP">
+            <Provider store={store}>
+                <BrowserRouter>
+                    <SnackbarProvider>
                     <ConfirmContextProvider>
                         <ReactFlowContext>
                             <App />
                         </ReactFlowContext>
                     </ConfirmContextProvider>
                 </SnackbarProvider>
-            </BrowserRouter>
-        </Provider>
+                </BrowserRouter>
+            </Provider>
+        </AuthProvider>
     </React.StrictMode>
 )
