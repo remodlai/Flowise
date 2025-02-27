@@ -166,7 +166,7 @@ const ProfileSection = ({ username, handleLogout }) => {
     const [showExportDialog, setShowExportDialog] = useState(false)
     const [showAboutDialog, setShowAboutDialog] = useState(false)
     const anchorRef = useRef(null)
-    const { exportImport } = useApi()
+    const { exportImport } = useApi(exportImportApi)
     const [isImporting, setIsImporting] = useState(false)
     const fileInputRef = useRef(null)
     
@@ -251,7 +251,7 @@ const ProfileSection = ({ username, handleLogout }) => {
     }
 
     useEffect(() => {
-        if (exportImport.data) {
+        if (exportImport && exportImport.data) {
             setShowExportDialog(false)
             try {
                 const dataStr = stringify(exportData(exportImport.data))
@@ -268,10 +268,10 @@ const ProfileSection = ({ username, handleLogout }) => {
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [exportImport.data])
+    }, [exportImport && exportImport.data])
 
     useEffect(() => {
-        if (exportImport.error) {
+        if (exportImport && exportImport.error) {
             setShowExportDialog(false)
             let errMsg = 'Internal Server Error'
             let error = exportImport.error
@@ -281,7 +281,7 @@ const ProfileSection = ({ username, handleLogout }) => {
             errorFailed(`Failed to export: ${errMsg}`)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [exportImport.error])
+    }, [exportImport && exportImport.error])
 
     const handleListItemClick = (event, index, route = '') => {
         setSelectedIndex(index)

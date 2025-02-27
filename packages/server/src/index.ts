@@ -1,5 +1,4 @@
-import express from 'express'
-import { Request, Response } from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import path from 'path'
 import cors from 'cors'
 import http from 'http'
@@ -30,6 +29,17 @@ import { WHITELIST_URLS } from './utils/constants'
 import 'global-agent/bootstrap'
 import DescopeClient from '@descope/node-sdk'
 
+// Extend Express Request type
+declare global {
+    namespace Express {
+        interface Request {
+            user?: any
+            tenants?: any[]
+            roles?: any[]
+            permissions?: any[]
+        }
+    }
+}
 
 declare global {
     namespace Express {
@@ -191,10 +201,10 @@ export class App {
                         const authInfo = await this.descopeClient.validateSession(sessionToken)
                         
                         // Attach the user info to request for later use
-                        // req.user = authInfo.user
-                        // req.tenants = authInfo.tenants || []
-                        // req.roles = authInfo.roles || []
-                        // req.permissions = authInfo.permissions || []
+                        req.user = authInfo.user
+                        req.tenants = authInfo.tenants || []
+                        req.roles = authInfo.roles || []
+                        req.permissions = authInfo.permissions || []
                         
                         return next()
                     } catch (error) {
