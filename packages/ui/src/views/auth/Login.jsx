@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Logo from '@/ui-component/extended/Logo'
 // material-ui
@@ -29,6 +29,9 @@ import { useAuth } from '@/contexts/AuthContext'
 // assets
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
+
+// Force Graph
+import ForceGraph from '@/ui-component/graphs/ForceGraph'
 
 // ===========================|| LOGIN ||=========================== //
 
@@ -105,25 +108,45 @@ const Login = () => {
     }
 
     return (
-        <Grid container justifyContent="center" alignItems="center" sx={{ minHeight: '100vh', backgroundColor: colors.darkPaper }}>
-            <Grid item xs={11} sm={7} md={5} lg={4}>
+        <Box sx={{ 
+            display: 'flex', 
+            minHeight: '100vh', 
+            backgroundColor: colors.darkPaper,
+            overflow: 'hidden'
+        }}>
+<Box sx={{ 
+                display: 'flex',
+                flexDirection: 'column',
+                width: { xs: '100%', md: '40vw' },
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: { xs: 2, sm: 4 },
+                backgroundColor: theme.palette.mode === 'dark' ? colors.darkPaper : colors.paper
+            }}>
                 <MainCard
                     sx={{
+                        width: '100%',
+                        maxWidth: '40vw',
                         p: 4,
                         boxShadow: '0 0px 0px 0 rgba(0,0,0,0.1)'
                     }}
                 >
-                    <Grid container spacing={2} direction="column" alignItems="center">
-                        <Grid item xs={12}>
+                    <Grid container spacing={2} direction="column">
+                        {/* Show logo on mobile only */}
+                        <Grid item xs={12} sx={{ display: { xs: 'block', md: 'none' }, textAlign: 'center', mb: 2 }}>
                             <Logo width={180} height="auto" forceDarkMode={true} objectFit="contain" />
-                            <Typography variant="h2" align="center" gutterBottom>
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                            <Typography variant="h2" gutterBottom>
                                 Sign in to the platform
                             </Typography>
-                            <Typography variant="body2" align="center" color="textSecondary">
+                            <Typography variant="body2" color="textSecondary">
                                 Enter your credentials to continue
                             </Typography>
                         </Grid>
-                        <Grid item xs={12} sx={{ width: '100%' }}>
+                        <Grid item xs={12}>
+                            <Logo width={180} height="auto" forceDarkMode={true} objectFit="contain" />
                             <form onSubmit={handleSubmit}>
                                 <FormControl fullWidth sx={{ mb: 2 }} error={Boolean(errors.email)}>
                                     <InputLabel htmlFor="email-login">Email Address</InputLabel>
@@ -227,8 +250,36 @@ const Login = () => {
                         </Grid>
                     </Grid>
                 </MainCard>
-            </Grid>
-        </Grid>
+            </Box>
+
+            {/* Force Graph Section - Left Side */}
+            <Box sx={{ 
+                display: { xs: 'none', md: 'flex' },
+                position: 'relative',
+                flex: '1 1 auto',
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                <Box sx={{ 
+                    position: 'relative',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    overflow: 'hidden',
+                    maxWidth: '60vw',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <ForceGraph />
+                </Box>
+               
+            </Box>
+
+            
+            
+        </Box>
     )
 }
 
