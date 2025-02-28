@@ -104,6 +104,8 @@ export const buildAgentGraph = async ({
                 filterNodeTypes: string[] = [];
                 currentNodeType: string = '';
                 
+
+                
                 constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer, filterNodeTypes: string[] = []) {
                     super();
                     this.filterNodeTypes = filterNodeTypes;
@@ -115,6 +117,21 @@ export const buildAgentGraph = async ({
                 
                 handleLLMNewToken(token: string, options?: any): Promise<void> {
                     // Extract node information if available
+                    const currentReasoningNode = agentReasoning?.length ? agentReasoning[agentReasoning.length - 1].nodeName : null;
+                   console.log('currentReasoningNode', currentReasoningNode)
+                    // Get the source node ID from the current reasoning
+                    let sourceNodeId = currentReasoningNode || '';
+                    let edgesToCheck = edges.filter(edge => edge.source.includes(sourceNodeId));
+                    console.log('edgesToCheck', edgesToCheck[0].target)
+                    // Find the target node that this token is flowing to
+                    let targetNodeId = edgesToCheck.length === 1 ? edgesToCheck[0].target : 'error';
+                    if (sourceNodeId) {
+                        // Find an edge where this node is the source
+                        const outgoingEdge = edges.find(edge => edge.source === sourceNodeId);
+                        if (outgoingEdge) {
+                            targetNodeId = outgoingEdge.target;
+                        }
+                    }
                     const nodeType = this.currentNodeType || '';
                     
                     if (!this.isLLMStarted) {
@@ -122,8 +139,11 @@ export const buildAgentGraph = async ({
                         this.sseStreamer.streamStartEvent(this.chatId, token);
                     }
                     
+                    
                     // Pass the node type as the third parameter
-                    this.sseStreamer.streamTokenEvent(this.chatId, token, agentReasoning[agentReasoning.length - 1].nodeName);
+                    if (targetNodeId !== 'error') { 
+                        this.sseStreamer.streamTokenEvent(this.chatId, token, targetNodeId);
+                    }
                     return Promise.resolve();
                 }
             }
@@ -329,8 +349,9 @@ export const buildAgentGraph = async ({
                     } else {
                         finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
                         if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
+                        let currentNodeNameRef = edges.find((edge) => edge.source === lastMessageRaw.additional_kwargs.nodeId)?.target
                         if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult, JSON.stringify(agentReasoning[agentReasoning.length].nodeName))
+                            sseStreamer.streamTokenEvent(chatId, finalResult, currentNodeNameRef)
                         }
                     }
                 }
