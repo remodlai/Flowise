@@ -63,11 +63,11 @@ const Agentflows = () => {
     }
 
     const addNew = () => {
-        navigate('/canvas/agent')
+        navigate('/agentcanvas')
     }
 
     const goToCanvas = (selectedAgentflow) => {
-        navigate(`/canvas/agent/${selectedAgentflow.id}`)
+        navigate(`/agentcanvas/${selectedAgentflow.id}`)
     }
 
     useEffect(() => {

@@ -100,25 +100,36 @@ export const buildAgentGraph = async ({
             class DirectTokenStreamingHandler extends BaseCallbackHandler {
                 name = 'direct_token_streaming_handler';
                 isLLMStarted = false;
+
+                filterNodeTypes: string[] = [];
+                currentNodeType: string = '';
                 
-                constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer) {
+                constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer, filterNodeTypes: string[] = []) {
                     super();
+                    this.filterNodeTypes = filterNodeTypes;
                 }
                 
-                handleLLMNewToken(token: string): Promise<void> {
-                    console.log(`Direct token streaming: ${token}`);
+                setCurrentNodeType(nodeType: string): void {
+                    this.currentNodeType = nodeType;
+                }
+                
+                handleLLMNewToken(token: string, options?: any): Promise<void> {
+                    // Extract node information if available
+                    const nodeType = this.currentNodeType || '';
                     
                     if (!this.isLLMStarted) {
                         this.isLLMStarted = true;
                         this.sseStreamer.streamStartEvent(this.chatId, token);
                     }
                     
-                    this.sseStreamer.streamTokenEvent(this.chatId, token);
+                    // Pass the node type as the third parameter
+                    this.sseStreamer.streamTokenEvent(this.chatId, token, agentReasoning[agentReasoning.length - 1].nodeName);
                     return Promise.resolve();
                 }
             }
+            const nodeTypesToFilter: string[] = ['seqConditionAgent']; // e.g. ['seqCustomFunction', 'seqToolNode']
             
-            const tokenHandler = new DirectTokenStreamingHandler(chatId, sseStreamer);
+            const tokenHandler = new DirectTokenStreamingHandler(chatId, sseStreamer, nodeTypesToFilter);
             
             // Add tokenHandler to the options so it gets passed to the LLM
             options.callbacks.push(tokenHandler);
@@ -270,6 +281,7 @@ export const buildAgentGraph = async ({
                                 sourceDocuments: flatten(sourceDocuments) as Document[],
                                 artifacts: flatten(artifacts) as ICommonObject[],
                                 state,
+                                type: isSequential ? output[agentName]?.type : undefined,
                                 nodeName: isSequential ? mapNameToLabel[agentName].nodeName : undefined,
                                 nodeId
                             }
@@ -301,13 +313,24 @@ export const buildAgentGraph = async ({
                                         sseStreamer.streamNextAgentEvent(chatId, mapNameToLabel[reasoning.next]?.label || reasoning.next)
                                     }
                                 }
+
+                                // Get the node name for token streaming
+                                const nodeName = mapNameToLabel[agentName]?.nodeName || '';
+                                
+                                // Set the current node type for the token handler
+                                if (shouldStreamResponse && options.callbacks.length > 0) {
+                                    const tokenHandler = options.callbacks.find(cb => cb.name === 'direct_token_streaming_handler');
+                                    if (tokenHandler && typeof (tokenHandler as any).setCurrentNodeType === 'function') {
+                                        (tokenHandler as any).setCurrentNodeType(nodeName);
+                                    }
+                                }
                             }
                         }
                     } else {
                         finalResult = output.__end__.messages.length ? output.__end__.messages.pop()?.content : ''
                         if (Array.isArray(finalResult)) finalResult = output.__end__.instructions
                         if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
+                            sseStreamer.streamTokenEvent(chatId, finalResult, JSON.stringify(agentReasoning[agentReasoning.length].nodeName))
                         }
                     }
                 }
@@ -317,7 +340,7 @@ export const buildAgentGraph = async ({
                  * 1.) Provide lastWorkerResult as final result if available
                  * 2.) Provide summary as final result if available
                  */
-                if (!isSequential && !finalResult) {
+                if (!isSequential && !finalResult && agentReasoning[agentReasoning.length - 1].nodeName === 'seqAgent') {
                     if (lastWorkerResult) finalResult = lastWorkerResult
                     else if (finalSummarization) finalResult = finalSummarization
                     if (shouldStreamResponse && sseStreamer) {
@@ -391,7 +414,7 @@ export const buildAgentGraph = async ({
                     } else if (lastAgentReasoningMessage) {
                         finalResult = lastAgentReasoningMessage
                         if (shouldStreamResponse && sseStreamer) {
-                            sseStreamer.streamTokenEvent(chatId, finalResult)
+                            sseStreamer.streamTokenEvent(chatId, '', 'isFinalResult')
                         }
                     }
                 }

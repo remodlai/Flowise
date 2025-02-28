@@ -58,12 +58,13 @@ export class SSEStreamer implements IServerSideEventStreamer {
         }
     }
 
-    streamTokenEvent(chatId: string, data: string) {
+    streamTokenEvent(chatId: string, data: string, type?: string) {
         const client = this.clients[chatId]
         if (client) {
             const clientResponse = {
                 event: 'token',
-                data: data
+                data: data,
+                type: type || ''
             }
             client.response.write('message:\ndata:' + JSON.stringify(clientResponse) + '\n\n')
         }

@@ -235,6 +235,7 @@ export interface IAgentReasoning {
     sourceDocuments?: ICommonObject[]
     state?: ICommonObject
     nodeName?: string
+    type?: string
 }
 
 export interface IAction {
@@ -409,7 +410,7 @@ export interface IStateWithMessages extends ICommonObject {
 
 export interface IServerSideEventStreamer {
     streamStartEvent(chatId: string, data: any): void
-    streamTokenEvent(chatId: string, data: string): void
+    streamTokenEvent(chatId: string, data: string, type?: string): void //testing adding type to the token event
     streamCustomEvent(chatId: string, eventType: string, data: any): void
     streamSourceDocumentsEvent(chatId: string, data: any): void
     streamUsedToolsEvent(chatId: string, data: any): void
