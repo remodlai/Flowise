@@ -2,10 +2,11 @@ import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
+import { useDescope, useSession, useUser } from '@descope/react-sdk'
+import { useAuth } from '@/contexts/AuthContext'
 // material-ui
 import { useTheme } from '@mui/material/styles'
-import { Avatar, Box, ButtonBase, Switch } from '@mui/material'
+import { Avatar, Box, ButtonBase, Switch, Typography } from '@mui/material'
 import { styled } from '@mui/material/styles'
 
 // project imports
@@ -86,6 +87,8 @@ const Header = ({ handleLeftDrawerToggle }) => {
         logout()
     }
 
+    const { user } = useUser()
+
     return (
         <>
             {/* logo & toggler button */}
@@ -101,6 +104,7 @@ const Header = ({ handleLeftDrawerToggle }) => {
                 <Box component='span' sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1 }}>
                     <LogoSection />
                 </Box>
+               
                 <ButtonBase sx={{ borderRadius: '2px', overflow: 'hidden' }}>
                     <Avatar
                         variant='rounded'
