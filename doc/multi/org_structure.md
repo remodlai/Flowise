@@ -58,3 +58,13 @@ Store the file using the hierarchy path
 Generate a URL to that storage location
 Return the URL reference instead of the raw data
 This hierarchy also maps cleanly to your ReBac schema, allowing for precise access controls based on the natural structure of your application.
+
+**places to modify**
+packages/server/src/utils/storageUtils.ts
+packages/server/src/utils/multiModalUtils.ts
+packages/server/src/utils/buildAgentGraph.ts
+packages/server/src/utils/sseStreamer.ts
+packages/server/src/utils/authUtils.ts
+packages/server/src/utils/authZ.ts
+*the specific message handling for a given model.
+
