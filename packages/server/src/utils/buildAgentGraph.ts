@@ -106,9 +106,9 @@ export const buildAgentGraph = async ({
                 
 
                 
-                constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer, filterNodeTypes: string[] = []) {
+                constructor(private chatId: string, private sseStreamer: IServerSideEventStreamer) {
                     super();
-                    this.filterNodeTypes = filterNodeTypes;
+                    
                 }
                 
                 setCurrentNodeType(nodeType: string): void {
@@ -124,7 +124,7 @@ export const buildAgentGraph = async ({
                     let edgesToCheck = edges.filter(edge => edge.source.includes(sourceNodeId));
                     console.log('edgesToCheck', edgesToCheck[0].target)
                     // Find the target node that this token is flowing to
-                    let targetNodeId = edgesToCheck.length === 1 ? edgesToCheck[0].target : 'error';
+                    let targetNodeId = edgesToCheck.length === 1 ? edgesToCheck[0].target : '';
                     if (sourceNodeId) {
                         // Find an edge where this node is the source
                         const outgoingEdge = edges.find(edge => edge.source === sourceNodeId);
@@ -147,9 +147,9 @@ export const buildAgentGraph = async ({
                     return Promise.resolve();
                 }
             }
-            const nodeTypesToFilter: string[] = ['seqConditionAgent']; // e.g. ['seqCustomFunction', 'seqToolNode']
+            //const nodeTypesToFilter: string[] = ['seqConditionAgent']; // e.g. ['seqCustomFunction', 'seqToolNode']
             
-            const tokenHandler = new DirectTokenStreamingHandler(chatId, sseStreamer, nodeTypesToFilter);
+            const tokenHandler = new DirectTokenStreamingHandler(chatId, sseStreamer);
             
             // Add tokenHandler to the options so it gets passed to the LLM
             options.callbacks.push(tokenHandler);
