@@ -254,6 +254,7 @@ export const buildAgentGraph = async ({
                             if (usedTools && usedTools.length) {
                                 const cleanedTools = usedTools.filter((tool: IUsedTool) => tool)
                                 if (cleanedTools.length) totalUsedTools.push(...cleanedTools)
+                                  
                             }
 
                             if (sourceDocuments && sourceDocuments.length) {
@@ -287,6 +288,8 @@ export const buildAgentGraph = async ({
                                                 nodeId: parentNode.data.id
                                             }
                                             agentReasoning.push(reasoning)
+                                            console.log('reasoning', reasoning)
+                                            
                                         }
                                     }
                                 })
@@ -306,6 +309,7 @@ export const buildAgentGraph = async ({
                                 nodeId
                             }
                             agentReasoning.push(reasoning)
+                           
 
                             finalSummarization = output[agentName]?.summarization ?? ''
 
