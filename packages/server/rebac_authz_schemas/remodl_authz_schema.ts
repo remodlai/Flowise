@@ -101,6 +101,7 @@ const schema = {
         relation credential_admin: user | credential_owner
         relation credential_user: user | credential_admin | parent.org_admin | parent.app_admin | parent.platform_admin
         
+        permission can_create: parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
         permission can_view: credential_owner | credential_admin | parent.org_owner | parent.app_owner | parent.platform_owner
         permission can_edit: credential_owner | credential_admin | parent.org_owner | parent.app_owner | parent.platform_owner
         permission can_delete: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner
