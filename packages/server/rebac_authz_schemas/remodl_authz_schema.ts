@@ -195,6 +195,37 @@ const schema = {
         permission can_add_documents: store_owner | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | document_store_admin#can_manage_all_stores
         permission can_edit_chunks: store_owner | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | document_store_admin#can_manage_all_stores
         permission can_manage_vectorstore: store_owner | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | document_store_admin#can_manage_all_stores
+
+    type document_loader
+        relation parent: document_store
+        relation loader_owner: user | parent.store_owner
+        
+        permission can_create: loader_owner | parent.store_owner | parent.can_edit | document_store_admin#can_manage_all_stores
+        permission can_view: loader_owner | parent.can_view
+        permission can_edit: loader_owner | parent.store_owner | parent.can_edit
+        permission can_delete: loader_owner | parent.store_owner | parent.can_edit
+        permission can_process: loader_owner | parent.store_owner | parent.can_edit
+        permission can_refresh: loader_owner | parent.store_owner | parent.can_edit
+
+    type document_chunk
+        relation parent: document_loader
+        relation chunk_owner: user | parent.loader_owner
+        
+        permission can_view: chunk_owner | parent.can_view
+        permission can_edit: chunk_owner | parent.loader_owner | parent.can_edit
+        permission can_delete: chunk_owner | parent.loader_owner | parent.can_edit
+
+    type vector_store
+        relation parent: document_store
+        relation vectorstore_owner: user | parent.store_owner
+        
+        permission can_create: vectorstore_owner | parent.store_owner | parent.can_edit | document_store_admin#can_manage_all_stores
+        permission can_view: vectorstore_owner | parent.can_view
+        permission can_edit: vectorstore_owner | parent.store_owner | parent.can_edit
+        permission can_delete: vectorstore_owner | parent.store_owner | parent.can_edit
+        permission can_query: vectorstore_owner | parent.can_view | parent.can_use
+        permission can_insert: vectorstore_owner | parent.store_owner | parent.can_edit
+        permission can_update_config: vectorstore_owner | parent.store_owner | parent.can_edit
     `
 };
 
