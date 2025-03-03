@@ -6,6 +6,13 @@ const schema = {
         relation platform_admin: platform
         
         permission is_platform_admin: platform_admin
+        permission is_app_admin: app_admin
+        permission is_org_admin: org_admin
+        permission is_workspace_admin: workspace_admin
+        permission is_project_admin: project_admin
+        permission is_conversation_admin: conversation_admin
+        permission is_session_admin: session_admin
+        permission is_chatflow_admin: chatflow_admin
 
     type platform
         relation platform_owner: user
