@@ -14,6 +14,34 @@ const schema = {
         permission is_session_admin: session_admin
         permission is_chatflow_admin: chatflow_admin
 
+        permission can_create_user: platform_admin | app_admin | org_admin
+        permission can_edit_user: platform_admin | app_admin | org_admin
+        permission can_delete_user: platform_admin | app_admin | org_admin
+        permission can_view_user: platform_admin | app_admin | org_admin | workspace_admin | project_admin
+
+        permission can_create_app: platform_admin
+        permission can_edit_app: platform_admin
+        permission can_delete_app: platform_admin
+        permission can_view_app: platform_admin
+
+        permission can_create_org: platform_admin | app_admin
+        permission can_edit_org: platform_admin | app_admin | org_admin
+        permission can_delete_org: platform_admin | app_admin
+        permission can_view_org: platform_admin | app_admin | org_admin
+
+        permission can_create_workspace: platform_admin | app_admin | org_admin | workspace_admin
+        permission can_edit_workspace: platform_admin | app_admin | org_admin | workspace_admin
+        permission can_delete_workspace: platform_admin | app_admin | org_admin | workspace_admin
+        permission can_view_workspace: platform_admin | app_admin | org_admin | workspace_admin
+        
+        permission can_create_project: platform_admin | app_admin | org_admin | workspace_admin | project_admin
+        permission can_edit_project: platform_admin | app_admin | org_admin | workspace_admin | project_admin
+        permission can_delete_project: platform_admin | app_admin | org_admin | workspace_admin
+        permission can_view_project: platform_admin | app_admin | org_admin | workspace_admin | project_admin
+        
+        permission can_create_credential: platform_admin | app_admin | credential_admin
+        
+        
     type platform
         relation platform_owner: user
         relation platform_admin: user | platform_owner
@@ -102,21 +130,26 @@ const schema = {
         permission can_deploy: chatflow_owner | parent.org_owner | parent.org_admin
         
 
+    type credential_admin
+        relation parent: organization | app | platform
+        relation admin_user: user
+        
+        permission can_manage_all_credentials: admin_user | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
+
     type credential
         relation parent: organization | app | platform
         relation credential_owner: user | parent.org_owner | parent.app_owner | parent.platform_owner
-        relation credential_admin: user | credential_owner
-        relation credential_user: user | credential_admin | parent.org_admin | parent.app_admin | parent.platform_admin
         relation shared_with_user: user
         relation shared_with_workspace: workspace
         relation shared_with_project: project
         relation shared_with_organization: organization
+        relation administered_by: credential_admin
         
-        permission can_create: parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
-        permission can_view: credential_owner | credential_admin | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.app_owner | parent.platform_owner
-        permission can_edit: credential_owner | credential_admin | parent.org_owner | parent.app_owner | parent.platform_owner
-        permission can_delete: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner
-        permission can_use: credential_user | credential_owner | credential_admin | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
+        permission can_create: parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | credential_admin#can_manage_all_credentials
+        permission can_view: credential_owner | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.app_owner | parent.platform_owner | credential_admin#can_manage_all_credentials
+        permission can_edit: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner | credential_admin#can_manage_all_credentials
+        permission can_delete: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner | credential_admin#can_manage_all_credentials
+        permission can_use: credential_owner | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
         permission can_share: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_project.project_owner | shared_with_workspace.workspace_owner
 
     type file_asset
