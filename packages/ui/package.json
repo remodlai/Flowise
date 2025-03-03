@@ -126,7 +126,6 @@
     "rimraf": "^5.0.5",
     "sass": "^1.42.1",
     "storybook": "^8.5.8",
-    "supabase": "^2.15.8",
     "typescript": "^5.4.5",
     "vite": "^5.0.2",
     "vite-plugin-pwa": "^0.17.0",

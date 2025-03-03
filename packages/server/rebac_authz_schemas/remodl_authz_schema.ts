@@ -41,7 +41,7 @@ const schema = {
         
         permission can_create_credential: platform_admin | app_admin | credential_admin
         
-        
+
     type platform
         relation platform_owner: user
         relation platform_admin: user | platform_owner
@@ -53,7 +53,7 @@ const schema = {
         relation parent: platform
         relation app_owner: user | parent.platform_owner
         relation app_admin: user | app_owner | parent.platform_admin
-        
+
         permission manage_orgs: app_owner | app_admin | parent.manage_apps
         permission view_all: app_owner | app_admin | parent.view_all
         permission create_org: app_owner | app_admin | parent.manage_apps
@@ -64,7 +64,7 @@ const schema = {
         relation org_admin: user | group#super_admin | org_owner
         relation finance: user | group#super_admin | org_owner
         relation member: user | group#member
-        
+
         permission can_create: org_owner | org_admin | parent.app_owner | parent.app_admin | parent.create_org
         permission can_edit: org_owner | org_admin | parent.app_owner | parent.app_admin
         permission can_delete: org_owner | org_admin | parent.app_owner | parent.app_admin
