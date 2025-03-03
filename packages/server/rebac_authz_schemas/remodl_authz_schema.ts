@@ -170,6 +170,31 @@ const schema = {
         
         permission can_manage: storage_owner | manager | parent.app_owner | parent.org_owner
         permission can_view: storage_owner | manager | parent.app_admin | parent.org_admin | parent.app_owner | parent.org_owner
+
+    type document_store_admin
+        relation parent: organization | app | platform
+        relation admin_user: user
+        
+        permission can_manage_all_stores: admin_user | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
+
+    type document_store
+        relation parent: organization | app | platform
+        relation store_owner: user | parent.org_owner | parent.app_owner | parent.platform_owner
+        relation shared_with_user: user
+        relation shared_with_workspace: workspace
+        relation shared_with_project: project
+        relation shared_with_organization: organization
+        relation administered_by: document_store_admin
+        
+        permission can_create: parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | document_store_admin#can_manage_all_stores
+        permission can_view: store_owner | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.app_owner | parent.platform_owner | document_store_admin#can_manage_all_stores
+        permission can_edit: store_owner | parent.org_owner | parent.app_owner | parent.platform_owner | document_store_admin#can_manage_all_stores
+        permission can_delete: store_owner | parent.org_owner | parent.app_owner | parent.platform_owner | document_store_admin#can_manage_all_stores
+        permission can_use: store_owner | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
+        permission can_share: store_owner | parent.org_owner | parent.app_owner | parent.platform_owner | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_project.project_owner | shared_with_workspace.workspace_owner
+        permission can_add_documents: store_owner | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | document_store_admin#can_manage_all_stores
+        permission can_edit_chunks: store_owner | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | document_store_admin#can_manage_all_stores
+        permission can_manage_vectorstore: store_owner | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin | document_store_admin#can_manage_all_stores
     `
 };
 
