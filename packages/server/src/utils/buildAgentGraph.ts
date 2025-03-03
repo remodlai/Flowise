@@ -124,7 +124,7 @@ export const buildAgentGraph = async ({
                     let edgesToCheck = edges.filter(edge => edge.source.includes(sourceNodeId));
                     console.log('edgesToCheck', edgesToCheck[0].target)
                     // Find the target node that this token is flowing to
-                    let targetNodeId = edgesToCheck.length === 1 ? edgesToCheck[0].target : '';
+                    let targetNodeId = edgesToCheck.length === 1 ? edgesToCheck[0].target : 'error';
                     if (sourceNodeId) {
                         // Find an edge where this node is the source
                         const outgoingEdge = edges.find(edge => edge.source === sourceNodeId);
