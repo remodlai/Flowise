@@ -128,6 +128,7 @@
         "run-script-os": "^1.1.6",
         "shx": "^0.3.3",
         "start-server-and-test": "^2.0.3",
+        "supabase": "^2.15.8",
         "ts-node": "^10.7.0",
         "tsc-watch": "^6.0.4",
         "typescript": "^5.4.5"
