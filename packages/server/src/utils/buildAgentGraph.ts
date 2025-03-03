@@ -356,6 +356,7 @@ export const buildAgentGraph = async ({
                         let currentNodeNameRef = edges.find((edge) => edge.source === lastMessageRaw.additional_kwargs.nodeId)?.target
                         if (shouldStreamResponse && sseStreamer) {
                             sseStreamer.streamTokenEvent(chatId, finalResult, currentNodeNameRef)
+                            console.log('currentNodeNameRef', currentNodeNameRef)
                         }
                     }
                 }
