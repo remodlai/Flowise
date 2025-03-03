@@ -147,7 +147,7 @@ export const buildAgentGraph = async ({
                     return Promise.resolve();
                 }
             }
-            const nodeTypesToFilter: string[] = ['seqConditionAgent']; // e.g. ['seqCustomFunction', 'seqToolNode']
+            const nodeTypesToFilter: string[] = ['seqConditionAgent', 'seqCondition']; // e.g. ['seqCustomFunction', 'seqToolNode']
             
             const tokenHandler = new DirectTokenStreamingHandler(chatId, sseStreamer, nodeTypesToFilter);
             
