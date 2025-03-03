@@ -100,13 +100,17 @@ const schema = {
         relation credential_owner: user | parent.org_owner | parent.app_owner | parent.platform_owner
         relation credential_admin: user | credential_owner
         relation credential_user: user | credential_admin | parent.org_admin | parent.app_admin | parent.platform_admin
+        relation shared_with_user: user
+        relation shared_with_workspace: workspace
+        relation shared_with_project: project
+        relation shared_with_organization: organization
         
         permission can_create: parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
-        permission can_view: credential_owner | credential_admin | parent.org_owner | parent.app_owner | parent.platform_owner
+        permission can_view: credential_owner | credential_admin | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.app_owner | parent.platform_owner
         permission can_edit: credential_owner | credential_admin | parent.org_owner | parent.app_owner | parent.platform_owner
         permission can_delete: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner
-        permission can_use: credential_user | credential_owner | credential_admin | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
-        permission can_share: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner
+        permission can_use: credential_user | credential_owner | credential_admin | shared_with_user | shared_with_workspace.editor | shared_with_workspace.viewer | shared_with_project.admin | shared_with_project.member | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_organization.member | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
+        permission can_share: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner | shared_with_organization.org_owner | shared_with_organization.org_admin | shared_with_project.project_owner | shared_with_workspace.workspace_owner
 
     type file_asset
         relation parent: organization | conversation | session
