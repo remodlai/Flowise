@@ -36,41 +36,46 @@ const schema = {
         permission can_view: org_owner | org_admin | finance | member | parent.app_owner | parent.app_admin | parent.view_all
 
     type group
-        relation parent: organization | group | project
-        relation member: user
+        relation parent: organization
         relation group_owner: user | parent.org_owner | parent.org_admin
+        relation super_admin: user | group_owner
+        relation member: user | super_admin
         
-        permission can_add_member: group_owner | parent.org_owner | parent.org_admin
-        permission can_remove_member: group_owner | parent.org_owner | parent.org_admin
-        permission can_view: member | group_owner | parent.org_owner | parent.org_admin | parent.can_view
-        
+        permission can_edit: group_owner | super_admin | parent.org_owner | parent.org_admin
+        permission can_add_member: group_owner | super_admin | parent.org_owner | parent.org_admin
+        permission can_view: group_owner | super_admin | member | parent.org_owner | parent.org_admin | parent.finance | parent.can_view
+
     type project
         relation parent: organization
         relation project_owner: user | parent.org_owner | parent.org_admin
-        relation editor: user | project_owner | group#member
-        relation viewer: user | editor
+        relation admin: user | project_owner
+        relation member: user | admin | parent.member | group#member
         
-        permission can_edit: project_owner | editor | parent.org_owner | parent.org_admin
-        permission can_view: project_owner | editor | viewer | parent.org_owner | parent.org_admin | parent.member | parent.can_view
-        
+        permission can_create: project_owner | admin | parent.org_owner | parent.org_admin
+        permission can_edit: project_owner | admin | parent.org_owner | parent.org_admin
+        permission can_delete: project_owner | parent.org_owner | parent.org_admin
+        permission can_view: project_owner | admin | member | parent.org_owner | parent.org_admin | parent.finance | parent.can_view
+
     type workspace
         relation parent: project
-        relation workspace_owner: user | parent.project_owner 
-        relation editor: user | workspace_owner | group#member | parent.editor
-        relation viewer: user | editor | parent.viewer
+        relation workspace_owner: user | parent.project_owner | parent.admin
+        relation editor: user | workspace_owner
+        relation viewer: user | editor | parent.member
         
-        permission can_edit: workspace_owner | editor | parent.project_owner | parent.can_edit
-        permission can_view: workspace_owner | editor | viewer | parent.project_owner | parent.can_view
-        
+        permission can_create: workspace_owner | editor | parent.can_create
+        permission can_edit: workspace_owner | editor | parent.can_edit
+        permission can_delete: workspace_owner | parent.project_owner | parent.admin | parent.can_delete
+        permission can_view: workspace_owner | editor | viewer | parent.can_view
+
     type conversation
-        relation parent: organization
-        relation conversation_owner: user | parent.org_owner | parent.org_admin
+        relation parent: organization | workspace
+        relation conversation_owner: user
         relation participant: user | parent.member
         
-        permission can_view: conversation_owner | participant | parent.org_owner | parent.org_admin
+        permission can_view: conversation_owner | participant | parent.org_owner | parent.org_admin | parent.workspace_owner
         permission can_edit: conversation_owner | parent.org_owner | parent.org_admin
         permission can_delete: conversation_owner | parent.org_owner | parent.org_admin
-        
+
     type session
         relation parent: conversation
         relation session_owner: user
@@ -89,6 +94,19 @@ const schema = {
         permission can_view: chatflow_owner | editor | viewer | parent.can_view
         permission can_deploy: chatflow_owner | parent.org_owner | parent.org_admin
         
+
+    type credential
+        relation parent: organization | app | platform
+        relation credential_owner: user | parent.org_owner | parent.app_owner | parent.platform_owner
+        relation credential_admin: user | credential_owner
+        relation credential_user: user | credential_admin | parent.org_admin | parent.app_admin | parent.platform_admin
+        
+        permission can_view: credential_owner | credential_admin | parent.org_owner | parent.app_owner | parent.platform_owner
+        permission can_edit: credential_owner | credential_admin | parent.org_owner | parent.app_owner | parent.platform_owner
+        permission can_delete: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner
+        permission can_use: credential_user | credential_owner | credential_admin | parent.org_owner | parent.org_admin | parent.app_owner | parent.app_admin | parent.platform_owner | parent.platform_admin
+        permission can_share: credential_owner | parent.org_owner | parent.app_owner | parent.platform_owner
+
     type file_asset
         relation parent: organization | conversation | session
         relation file_owner: user
@@ -105,8 +123,8 @@ const schema = {
         relation storage_owner: user | parent.app_owner | parent.org_owner
         relation manager: user | storage_owner
         
-        permission can_manage: storage_owner | manager | parent.app_owner | parent.org_admin
-        permission can_view: storage_owner | manager | parent.app_owner | parent.org_admin | parent.can_view
+        permission can_manage: storage_owner | manager | parent.app_owner | parent.org_owner
+        permission can_view: storage_owner | manager | parent.app_admin | parent.org_admin | parent.app_owner | parent.org_owner
     `
 };
 
