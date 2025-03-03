@@ -50,7 +50,7 @@ function getStoragePath(context: {
   conversationId: string,
   sessionId: string
 }, fileName: string): string {
-  return `${appId}/${orgId}/conversations/${conversationId}/sessions/${sessionId}/${fileName}`;
+  return `${appId}/${orgId}/conversations/${conversationId}/users/${userId}/sessions/${sessionId}/${fileName}`;
 }```
 
 For multiModalUtils.ts, instead of embedding base64 data, we'd:
