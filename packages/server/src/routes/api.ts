@@ -4,12 +4,16 @@ import { UserController } from '../controllers/UserController'
 import { ApplicationController } from '../controllers/ApplicationController'
 import { OrganizationController } from '../controllers/OrganizationController'
 import { authenticateUser } from '../utils/supabaseAuth'
+import platformRoutes from './platform'
 
 // Create a router for v1 API routes
 const router = express.Router()
 
 // Apply authentication middleware to all routes
 router.use(authenticateUser)
+
+// Platform management routes
+router.use('/platform', platformRoutes)
 
 // User routes - temporarily removed platform admin requirement for testing
 router.get('/users', UserController.getAllUsers)

@@ -14,11 +14,8 @@ export class ApplicationController {
      */
     static async getAllApplications(req: Request, res: Response) {
         try {
-            // Get applications from Supabase
-            const { data, error } = await supabase
-                .from('applications')
-                .select('*')
-                .order('name', { ascending: true })
+            // Use a direct SQL query to bypass RLS
+            const { data, error } = await supabase.rpc('get_all_applications_direct')
             
             if (error) throw error
             

@@ -372,45 +372,12 @@ export class CustomRoleController {
         try {
             const { id } = req.params
 
-            const { data: userRoles, error: rolesError } = await supabase
-                .from('user_custom_roles')
-                .select('role_id')
-                .eq('user_id', id)
+            // Use a direct SQL query to bypass RLS
+            const { data, error } = await supabase.rpc('get_user_roles_direct', { input_user_id: id })
 
-            if (rolesError) throw rolesError
+            if (error) throw error
 
-            // Get the role details
-            const roleIds = userRoles.map(ur => ur.role_id)
-            
-            if (roleIds.length === 0) {
-                return res.json({ roles: [] })
-            }
-
-            const { data: roles, error: detailsError } = await supabase
-                .from('custom_roles')
-                .select('*')
-                .in('id', roleIds)
-
-            if (detailsError) throw detailsError
-
-            // Get permissions for each role
-            const rolesWithPermissions = await Promise.all(
-                roles.map(async (role) => {
-                    const { data: permissions, error: permissionsError } = await supabase
-                        .from('role_permissions')
-                        .select('permission')
-                        .eq('role_id', role.id)
-
-                    if (permissionsError) throw permissionsError
-
-                    return {
-                        ...role,
-                        permissions: permissions.map(p => p.permission)
-                    }
-                })
-            )
-
-            return res.json({ roles: rolesWithPermissions })
+            return res.json({ roles: data || [] })
         } catch (error) {
             return handleError(res, error, 'Error fetching user roles')
         }

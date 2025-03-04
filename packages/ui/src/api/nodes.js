@@ -1,15 +1,9 @@
 import client from './client'
 
-const getAllNodes = () => client.get('/nodes')
+export const getAllNodes = () => client.get('/nodes')
 
-const getSpecificNode = (name) => client.get(`/nodes/${name}`)
-const getNodesByCategory = (name) => client.get(`/nodes/category/${name}`)
+export const getSpecificNode = (id) => client.get(`/nodes/${id}`)
 
-const executeCustomFunctionNode = (body) => client.post(`/node-custom-function`, body)
+export const getNodesByCategory = (category) => client.get(`/nodes/category/${category}`)
 
-export default {
-    getAllNodes,
-    getSpecificNode,
-    executeCustomFunctionNode,
-    getNodesByCategory
-}
+export const executeCustomFunctionNode = (body) => client.post('/nodes/customfunction', body)
