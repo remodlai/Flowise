@@ -350,3 +350,279 @@ After implementing the core platform -> app -> organization structure:
 - `doc/multi/implementation_plan.md` - Implementation strategy document
 - `doc/multi/org_structure.md` - Organizational structure documentation
 - `API_TESTING.md` - Guide for testing the Supabase Auth API endpoints 
+
+## Authentication Improvements
+
+**Goal:** Fix authentication issues with token expiration and implement token refresh mechanism.
+
+### Problem Addressed
+
+Users were experiencing frequent logouts and were being redirected to the login page on page refresh due to:
+1. Short-lived tokens (1 hour expiration)
+2. No token refresh mechanism
+3. No persistence of authentication state across page refreshes
+
+### Solution Implemented
+
+#### Step 1: Extended Token Lifetime
+
+1. **Modified Token Expiration**
+   ```javascript
+   // packages/server/src/routes/auth/supabase-token.ts
+   const jwt = await new jose.SignJWT({ 
+     sub: user.userId,
+     role: 'authenticated',
+   })
+     .setProtectedHeader({ alg: 'HS256' })
+     .setIssuedAt()
+     .setExpirationTime('7d')  // Changed from '1h' to '7d'
+     .sign(secret);
+   ```
+
+#### Step 2: Added Token Refresh Mechanism
+
+1. **Created Refresh Token Endpoint**
+   ```javascript
+   // packages/server/src/routes/auth/refresh-token.ts
+   import express from 'express';
+   import { supabase } from '../../utils/supabase';
+
+   const router = express.Router();
+
+   router.post('/', async (req, res) => {
+     try {
+       const { refresh_token } = req.body;
+       
+       if (!refresh_token) {
+         return res.status(400).json({ error: 'Refresh token is required' });
+       }
+       
+       // Exchange refresh token for a new session
+       const { data, error } = await supabase.auth.refreshSession({
+         refresh_token
+       });
+       
+       if (error) {
+         console.error('Token refresh error:', error);
+         return res.status(401).json({ error: error.message });
+       }
+       
+       if (!data.session) {
+         return res.status(401).json({ error: 'Invalid refresh token' });
+       }
+       
+       return res.json({
+         session: {
+           access_token: data.session.access_token,
+           refresh_token: data.session.refresh_token,
+           expires_at: data.session.expires_at
+         }
+       });
+     } catch (error) {
+       console.error('Error refreshing token:', error);
+       return res.status(500).json({ error: 'Failed to refresh token' });
+     }
+   });
+
+   export default router;
+   ```
+
+2. **Updated Auth Response Schema**
+   - Modified login response to include the refresh token 
+   ```javascript
+   // packages/server/src/routes/auth/login.ts
+   return res.json({
+     user,
+     session: {
+       access_token: data.session.access_token,
+       refresh_token: data.session.refresh_token,  // Added refresh token
+       expires_at: data.session.expires_at
+     }
+   });
+   ```
+
+   - Modified callback exchange response to include the refresh token
+   ```javascript
+   // packages/server/src/routes/auth/callback.ts
+   return res.json({
+     user,
+     session: {
+       access_token: data.session.access_token,
+       refresh_token: data.session.refresh_token,  // Added refresh token
+       expires_at: data.session.expires_at
+     }
+   });
+   ```
+
+3. **Registered the Refresh Token Route**
+   ```javascript
+   // packages/server/src/routes/index.ts
+   import refreshTokenRouter from './auth/refresh-token';
+   // ...
+   router.use('/auth/refresh-token', refreshTokenRouter);
+   ```
+
+#### Step 3: Enhanced Client-Side Authentication
+
+1. **Updated API Client with Token Refresh Logic**
+   ```javascript
+   // packages/ui/src/api/client.js
+   // Added refresh token functionality to the API client
+   
+   // Flag to prevent multiple refresh token requests
+   let isRefreshing = false;
+   // Queue of requests to retry after token refresh
+   let refreshSubscribers = [];
+
+   // Function to process queue of failed requests
+   const processQueue = (error, token = null) => {
+     refreshSubscribers.forEach(callback => {
+       if (error) {
+         callback(error);
+       } else {
+         callback(token);
+       }
+     });
+     refreshSubscribers = [];
+   };
+
+   // Function to refresh the token
+   const refreshToken = async () => {
+     try {
+       const refreshToken = localStorage.getItem('refresh_token');
+       if (!refreshToken) {
+         throw new Error('No refresh token available');
+       }
+       
+       const response = await axios.post(`${baseURL}/api/v1/auth/refresh-token`, {
+         refresh_token: refreshToken
+       });
+       
+       const { access_token, refresh_token, expires_at } = response.data;
+       
+       // Update tokens in local storage
+       localStorage.setItem('access_token', access_token);
+       localStorage.setItem('refresh_token', refresh_token);
+       localStorage.setItem('token_expiry', expires_at.toString());
+       
+       return access_token;
+     } catch (error) {
+       // Clear auth data and redirect to login
+       localStorage.removeItem('access_token');
+       localStorage.removeItem('refresh_token');
+       localStorage.removeItem('token_expiry');
+       localStorage.removeItem('user');
+       
+       window.location.href = '/login';
+       throw error;
+     }
+   };
+
+   // Response interceptor to handle token expiration
+   apiClient.interceptors.response.use(
+     response => response,
+     async error => {
+       const originalRequest = error.config;
+       
+       // If unauthorized error (401) and not already retrying
+       if (error.response?.status === 401 && !originalRequest._retry) {
+         if (isRefreshing) {
+           // Add request to queue to retry later
+           return new Promise((resolve, reject) => {
+             refreshSubscribers.push(token => {
+               originalRequest.headers.Authorization = `Bearer ${token}`;
+               resolve(axios(originalRequest));
+             });
+           });
+         }
+         
+         originalRequest._retry = true;
+         isRefreshing = true;
+         
+         try {
+           const newToken = await refreshToken();
+           processQueue(null, newToken);
+           originalRequest.headers.Authorization = `Bearer ${newToken}`;
+           return axios(originalRequest);
+         } catch (refreshError) {
+           processQueue(refreshError, null);
+           return Promise.reject(refreshError);
+         } finally {
+           isRefreshing = false;
+         }
+       }
+       
+       return Promise.reject(error);
+     }
+   );
+   ```
+
+2. **Enhanced Auth Context with Refresh Token Handling**
+   ```javascript
+   // packages/ui/src/contexts/AuthContext.jsx
+   
+   // Modified token expiration handling to attempt refresh
+   if (isTokenValid) {
+     setUser(JSON.parse(storedUser));
+     setIsAuthenticated(true);
+   } else {
+     // Token expired, try to refresh it if we have a refresh token
+     const refreshToken = localStorage.getItem('refresh_token');
+     if (refreshToken) {
+       // We'll let the API client handle the token refresh
+       // This will happen automatically on the next API call
+     } else {
+       // No refresh token, clear storage
+       localStorage.removeItem('user');
+       localStorage.removeItem('access_token');
+       localStorage.removeItem('token_expiry');
+     }
+   }
+   
+   // Updated login function to store refresh token
+   const login = (userData) => {
+     // ... existing code ...
+     
+     // Store refresh token if available
+     if (userData.refreshToken) {
+       localStorage.setItem('refresh_token', userData.refreshToken);
+     }
+     
+     // ... existing code ...
+   };
+   
+   // Updated logout function to remove refresh token
+   const logout = async () => {
+     // ... existing code ...
+     localStorage.removeItem('refresh_token');
+     // ... existing code ...
+   };
+   ```
+
+3. **Updated Login Component**
+   ```javascript
+   // packages/ui/src/views/auth/Login.jsx
+   
+   // Added refresh token handling to login process
+   login({
+     email: data.user.email,
+     accessToken: data.session.access_token,
+     refreshToken: data.session.refresh_token,
+     expiresAt: data.session.expires_at,
+     userId: data.user.userId,
+     provider: data.user.provider,
+     userMetadata: data.user.userMetadata
+   });
+   ```
+
+### Results
+
+The implemented solution resolves the authentication issues by:
+
+1. **Extending token lifetime** from 1 hour to 7 days, significantly reducing the frequency of required refreshes
+2. **Adding automatic token refresh** when tokens expire, preventing unwanted logouts
+3. **Maintaining session state** across page refreshes
+4. **Handling multiple concurrent requests** during token refresh, avoiding race conditions
+5. **Gracefully handling refresh failures** by redirecting to login only when absolutely necessary
+
+This approach ensures a seamless user experience while maintaining proper security protocols. 
