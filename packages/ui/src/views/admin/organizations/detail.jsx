@@ -48,13 +48,30 @@ const OrganizationHeader = ({ organization, onBack, onEdit }) => {
                     />
                     <StatusChip status={organization?.status} />
                 </Box>
-                <Button 
-                    variant="contained" 
-                    startIcon={<EditIcon />}
-                    onClick={onEdit}
-                >
-                    Edit Organization
-                </Button>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box 
+                        sx={{ 
+                            border: '2px solid #FF5722', 
+                            borderRadius: '4px', 
+                            px: 2, 
+                            py: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                        }}
+                    >
+                        <Typography variant="body1" fontWeight="500">
+                            Application: {organization?.application?.name || 'RemodlAI'}
+                        </Typography>
+                    </Box>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<EditIcon />}
+                        onClick={onEdit}
+                    >
+                        Edit Organization
+                    </Button>
+                </Box>
             </Box>
         </Box>
     );

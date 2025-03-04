@@ -6,157 +6,128 @@ import {
     Typography,
     Button,
     Divider,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    IconButton,
-    Menu,
-    MenuItem,
-    ListItemIcon,
-    ListItemText,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
     Grid,
+    TextField,
     Paper,
-    Chip
+    Slider,
+    Switch,
+    FormControlLabel,
+    InputAdornment,
+    Chip,
+    Alert,
+    IconButton,
+    Tooltip
 } from '@mui/material';
 import {
-    IconPlus,
-    IconEdit,
-    IconTrash,
-    IconDotsVertical,
-    IconBrandChrome,
-    IconDeviceDesktop,
-    IconRocket,
+    IconInfoCircle,
+    IconDeviceFloppy,
+    IconRefresh,
     IconSettings,
-    IconExternalLink
+    IconUsers,
+    IconDatabase,
+    IconApi,
+    IconCpu,
+    IconCloudUpload
 } from '@tabler/icons-react';
-import StatusChip from '../../../../ui-component/extended/StatusChip';
 
-// Sample applications data
-const sampleApplications = [
-    {
-        id: 1,
-        name: 'Customer Portal',
-        description: 'Customer self-service portal for account management',
-        type: 'Web App',
-        status: 'Active',
-        createdAt: '2023-01-25',
-        url: 'https://portal.acmecorp.com'
+// Sample application settings data
+const sampleAppSettings = {
+    id: 'app-123',
+    name: 'RemodlAI',
+    version: '2.2.4',
+    limits: {
+        apiCalls: {
+            daily: 10000,
+            monthly: 300000,
+            current: {
+                daily: 2540,
+                monthly: 45600
+            }
+        },
+        storage: {
+            maxGB: 50,
+            currentGB: 12.4
+        },
+        users: {
+            max: 25,
+            current: 24
+        },
+        models: {
+            enabled: ['gpt-3.5-turbo', 'gpt-4', 'claude-3-sonnet', 'claude-3-opus'],
+            available: ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo', 'claude-3-haiku', 'claude-3-sonnet', 'claude-3-opus', 'gemini-pro', 'llama-3']
+        }
     },
-    {
-        id: 2,
-        name: 'Sales Dashboard',
-        description: 'Internal sales performance tracking application',
-        type: 'Dashboard',
-        status: 'Active',
-        createdAt: '2023-02-10',
-        url: 'https://sales.acmecorp.com'
-    },
-    {
-        id: 3,
-        name: 'Inventory Manager',
-        description: 'Warehouse inventory tracking system',
-        type: 'Desktop App',
-        status: 'Inactive',
-        createdAt: '2023-03-15',
-        url: 'https://inventory.acmecorp.com'
+    features: {
+        fileUploads: true,
+        customDomains: true,
+        sso: true,
+        apiAccess: true,
+        advancedAnalytics: false
     }
-];
+};
 
-const OrganizationApplications = ({ organizationId, applications = sampleApplications }) => {
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [selectedApp, setSelectedApp] = useState(null);
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [dialogMode, setDialogMode] = useState('add'); // 'add' or 'edit'
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        type: 'Web App',
-        status: 'Active',
-        url: ''
-    });
-    
-    // Handle menu open
-    const handleMenuOpen = (event, app) => {
-        event.stopPropagation();
-        setAnchorEl(event.currentTarget);
-        setSelectedApp(app);
-    };
-    
-    // Handle menu close
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
-    
-    // Handle dialog open for adding
-    const handleAddApp = () => {
-        setDialogMode('add');
-        setFormData({
-            name: '',
-            description: '',
-            type: 'Web App',
-            status: 'Active',
-            url: ''
-        });
-        setDialogOpen(true);
-    };
-    
-    // Handle dialog open for editing
-    const handleEditApp = () => {
-        setDialogMode('edit');
-        setFormData({
-            name: selectedApp.name,
-            description: selectedApp.description,
-            type: selectedApp.type,
-            status: selectedApp.status,
-            url: selectedApp.url
-        });
-        setDialogOpen(true);
-        handleMenuClose();
-    };
-    
-    // Handle dialog close
-    const handleDialogClose = () => {
-        setDialogOpen(false);
-    };
+const OrganizationApplications = ({ organizationId, appSettings = sampleAppSettings }) => {
+    const [settings, setSettings] = useState(appSettings);
+    const [isEditing, setIsEditing] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
     
     // Handle form input change
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value
+    const handleInputChange = (section, field, value) => {
+        setSettings({
+            ...settings,
+            [section]: {
+                ...settings[section],
+                [field]: value
+            }
         });
     };
     
-    // Handle form submit
-    const handleSubmit = () => {
-        // Here you would typically save the data to your backend
-        console.log('Form submitted:', formData);
-        
-        // Close the dialog
-        handleDialogClose();
+    // Handle nested input change
+    const handleNestedInputChange = (section, subsection, field, value) => {
+        setSettings({
+            ...settings,
+            [section]: {
+                ...settings[section],
+                [subsection]: {
+                    ...settings[section][subsection],
+                    [field]: value
+                }
+            }
+        });
     };
     
-    // Get icon for application type
-    const getAppTypeIcon = (type) => {
-        switch (type) {
-            case 'Web App':
-                return <IconBrandChrome size={20} stroke={1.5} />;
-            case 'Desktop App':
-                return <IconDeviceDesktop size={20} stroke={1.5} />;
-            case 'Dashboard':
-                return <IconRocket size={20} stroke={1.5} />;
-            default:
-                return <IconRocket size={20} stroke={1.5} />;
-        }
+    // Handle feature toggle
+    const handleFeatureToggle = (feature) => {
+        setSettings({
+            ...settings,
+            features: {
+                ...settings.features,
+                [feature]: !settings.features[feature]
+            }
+        });
+    };
+    
+    // Handle save settings
+    const handleSaveSettings = () => {
+        // Here you would typically save the data to your backend
+        console.log('Settings saved:', settings);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+    };
+    
+    // Toggle edit mode
+    const toggleEditMode = () => {
+        setIsEditing(!isEditing);
+    };
+    
+    // Format number with commas
+    const formatNumber = (num) => {
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    };
+    
+    // Calculate percentage
+    const calculatePercentage = (current, max) => {
+        return (current / max) * 100;
     };
     
     return (
@@ -164,223 +135,337 @@ const OrganizationApplications = ({ organizationId, applications = sampleApplica
             <Card>
                 <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h4">
-                            Applications
-                        </Typography>
-                        <Button 
-                            variant="contained" 
-                            startIcon={<IconPlus size={18} />}
-                            onClick={handleAddApp}
-                        >
-                            Add Application
-                        </Button>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <IconSettings size={24} stroke={1.5} style={{ marginRight: '8px' }} />
+                            <Typography variant="h4">
+                                Application Settings
+                            </Typography>
+                        </Box>
+                        <Box>
+                            {saveSuccess && (
+                                <Alert 
+                                    severity="success" 
+                                    sx={{ 
+                                        py: 0, 
+                                        mr: 2, 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center' 
+                                    }}
+                                >
+                                    Settings saved successfully
+                                </Alert>
+                            )}
+                            <Button 
+                                variant="contained" 
+                                startIcon={<IconDeviceFloppy size={18} />}
+                                onClick={handleSaveSettings}
+                                disabled={!isEditing}
+                                sx={{ mr: 1 }}
+                            >
+                                Save Changes
+                            </Button>
+                            <Button 
+                                variant={isEditing ? "outlined" : "contained"}
+                                color={isEditing ? "secondary" : "primary"}
+                                onClick={toggleEditMode}
+                            >
+                                {isEditing ? 'Cancel' : 'Edit Settings'}
+                            </Button>
+                        </Box>
                     </Box>
-                    <Divider sx={{ mb: 2 }} />
+                    <Divider sx={{ mb: 3 }} />
                     
-                    {applications.length === 0 ? (
-                        <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center', py: 4 }}>
-                            No applications found for this organization.
+                    {/* Application Info */}
+                    <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                        <Typography variant="h5" gutterBottom>
+                            Application Information
                         </Typography>
-                    ) : (
-                        <TableContainer component={Paper} elevation={0} variant="outlined">
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Application</TableCell>
-                                        <TableCell>Type</TableCell>
-                                        <TableCell>Status</TableCell>
-                                        <TableCell>Created</TableCell>
-                                        <TableCell align="right">Actions</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {applications.map((app) => (
-                                        <TableRow key={app.id}>
-                                            <TableCell>
-                                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                                                        {app.name}
-                                                    </Typography>
-                                                    <Typography variant="caption" color="textSecondary">
-                                                        {app.description}
-                                                    </Typography>
-                                                </Box>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    icon={getAppTypeIcon(app.type)}
-                                                    label={app.type}
-                                                    size="small"
-                                                    variant="outlined"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <StatusChip status={app.status} />
-                                            </TableCell>
-                                            <TableCell>
-                                                {new Date(app.createdAt).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <IconButton 
-                                                    size="small"
-                                                    href={app.url}
-                                                    target="_blank"
-                                                    sx={{ mr: 1 }}
-                                                >
-                                                    <IconExternalLink size={18} stroke={1.5} />
-                                                </IconButton>
-                                                <IconButton 
-                                                    size="small" 
-                                                    onClick={(e) => handleMenuOpen(e, app)}
-                                                >
-                                                    <IconDotsVertical size={18} stroke={1.5} />
-                                                </IconButton>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    )}
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    Application Name
+                                </Typography>
+                                <Typography variant="body1">
+                                    {settings.name}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    Application ID
+                                </Typography>
+                                <Typography variant="body1">
+                                    {settings.id}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Typography variant="subtitle2" color="textSecondary">
+                                    Version
+                                </Typography>
+                                <Typography variant="body1">
+                                    {settings.version}
+                                </Typography>
+                            </Grid>
+                        </Grid>
+                    </Paper>
+                    
+                    {/* Resource Limits */}
+                    <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                        <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                            Resource Limits
+                            <Tooltip title="These limits define the maximum resources available to this organization">
+                                <IconButton size="small" sx={{ ml: 1 }}>
+                                    <IconInfoCircle size={18} />
+                                </IconButton>
+                            </Tooltip>
+                        </Typography>
+                        
+                        <Grid container spacing={3}>
+                            {/* API Calls */}
+                            <Grid item xs={12} md={4}>
+                                <Box sx={{ mb: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <IconApi size={20} style={{ marginRight: '8px' }} />
+                                        <Typography variant="subtitle1">API Calls</Typography>
+                                    </Box>
+                                    
+                                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                                        Daily Limit
+                                    </Typography>
+                                    {isEditing ? (
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            type="number"
+                                            value={settings.limits.apiCalls.daily}
+                                            onChange={(e) => handleNestedInputChange('limits', 'apiCalls', 'daily', parseInt(e.target.value))}
+                                            InputProps={{
+                                                endAdornment: <InputAdornment position="end">calls</InputAdornment>,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                            <Typography variant="body1">
+                                                {formatNumber(settings.limits.apiCalls.current.daily)} / {formatNumber(settings.limits.apiCalls.daily)}
+                                            </Typography>
+                                            <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                                                ({Math.round(calculatePercentage(settings.limits.apiCalls.current.daily, settings.limits.apiCalls.daily))}%)
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                    
+                                    <Box sx={{ mt: 2 }}>
+                                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                                            Monthly Limit
+                                        </Typography>
+                                        {isEditing ? (
+                                            <TextField
+                                                fullWidth
+                                                size="small"
+                                                type="number"
+                                                value={settings.limits.apiCalls.monthly}
+                                                onChange={(e) => handleNestedInputChange('limits', 'apiCalls', 'monthly', parseInt(e.target.value))}
+                                                InputProps={{
+                                                    endAdornment: <InputAdornment position="end">calls</InputAdornment>,
+                                                }}
+                                            />
+                                        ) : (
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                <Typography variant="body1">
+                                                    {formatNumber(settings.limits.apiCalls.current.monthly)} / {formatNumber(settings.limits.apiCalls.monthly)}
+                                                </Typography>
+                                                <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                                                    ({Math.round(calculatePercentage(settings.limits.apiCalls.current.monthly, settings.limits.apiCalls.monthly))}%)
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Box>
+                            </Grid>
+                            
+                            {/* Storage */}
+                            <Grid item xs={12} md={4}>
+                                <Box sx={{ mb: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <IconDatabase size={20} style={{ marginRight: '8px' }} />
+                                        <Typography variant="subtitle1">Storage</Typography>
+                                    </Box>
+                                    
+                                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                                        Storage Limit
+                                    </Typography>
+                                    {isEditing ? (
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            type="number"
+                                            value={settings.limits.storage.maxGB}
+                                            onChange={(e) => handleNestedInputChange('limits', 'storage', 'maxGB', parseFloat(e.target.value))}
+                                            InputProps={{
+                                                endAdornment: <InputAdornment position="end">GB</InputAdornment>,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <Typography variant="body1">
+                                                {settings.limits.storage.currentGB.toFixed(1)} / {settings.limits.storage.maxGB} GB
+                                            </Typography>
+                                            <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                                                ({Math.round(calculatePercentage(settings.limits.storage.currentGB, settings.limits.storage.maxGB))}%)
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Grid>
+                            
+                            {/* Users */}
+                            <Grid item xs={12} md={4}>
+                                <Box sx={{ mb: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                        <IconUsers size={20} style={{ marginRight: '8px' }} />
+                                        <Typography variant="subtitle1">Users</Typography>
+                                    </Box>
+                                    
+                                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                                        User Limit
+                                    </Typography>
+                                    {isEditing ? (
+                                        <TextField
+                                            fullWidth
+                                            size="small"
+                                            type="number"
+                                            value={settings.limits.users.max}
+                                            onChange={(e) => handleNestedInputChange('limits', 'users', 'max', parseInt(e.target.value))}
+                                            InputProps={{
+                                                endAdornment: <InputAdornment position="end">users</InputAdornment>,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <Typography variant="body1">
+                                                {settings.limits.users.current} / {settings.limits.users.max} users
+                                            </Typography>
+                                            <Typography variant="body2" color="textSecondary" sx={{ ml: 1 }}>
+                                                ({Math.round(calculatePercentage(settings.limits.users.current, settings.limits.users.max))}%)
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </Paper>
+                    
+                    {/* Features */}
+                    <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                        <Typography variant="h5" gutterBottom>
+                            Features
+                        </Typography>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} md={4}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={settings.features.fileUploads}
+                                            onChange={() => isEditing && handleFeatureToggle('fileUploads')}
+                                            disabled={!isEditing}
+                                        />
+                                    }
+                                    label="File Uploads"
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={settings.features.customDomains}
+                                            onChange={() => isEditing && handleFeatureToggle('customDomains')}
+                                            disabled={!isEditing}
+                                        />
+                                    }
+                                    label="Custom Domains"
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={settings.features.sso}
+                                            onChange={() => isEditing && handleFeatureToggle('sso')}
+                                            disabled={!isEditing}
+                                        />
+                                    }
+                                    label="Single Sign-On (SSO)"
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={settings.features.apiAccess}
+                                            onChange={() => isEditing && handleFeatureToggle('apiAccess')}
+                                            disabled={!isEditing}
+                                        />
+                                    }
+                                    label="API Access"
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={settings.features.advancedAnalytics}
+                                            onChange={() => isEditing && handleFeatureToggle('advancedAnalytics')}
+                                            disabled={!isEditing}
+                                        />
+                                    }
+                                    label="Advanced Analytics"
+                                />
+                            </Grid>
+                        </Grid>
+                    </Paper>
+                    
+                    {/* Enabled Models */}
+                    <Paper variant="outlined" sx={{ p: 2 }}>
+                        <Typography variant="h5" gutterBottom>
+                            Enabled AI Models
+                        </Typography>
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="textSecondary" gutterBottom>
+                                Models available to this organization:
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                {settings.limits.models.available.map((model) => (
+                                    <Chip
+                                        key={model}
+                                        label={model}
+                                        color={settings.limits.models.enabled.includes(model) ? "primary" : "default"}
+                                        variant={settings.limits.models.enabled.includes(model) ? "filled" : "outlined"}
+                                        onClick={() => {
+                                            if (isEditing) {
+                                                const newEnabled = settings.limits.models.enabled.includes(model)
+                                                    ? settings.limits.models.enabled.filter(m => m !== model)
+                                                    : [...settings.limits.models.enabled, model];
+                                                
+                                                setSettings({
+                                                    ...settings,
+                                                    limits: {
+                                                        ...settings.limits,
+                                                        models: {
+                                                            ...settings.limits.models,
+                                                            enabled: newEnabled
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                        clickable={isEditing}
+                                        sx={{ mb: 1 }}
+                                    />
+                                ))}
+                            </Box>
+                        </Box>
+                    </Paper>
                 </CardContent>
             </Card>
-            
-            {/* Action Menu */}
-            <Menu
-                anchorEl={anchorEl}
-                open={Boolean(anchorEl)}
-                onClose={handleMenuClose}
-                PaperProps={{
-                    elevation: 3,
-                    sx: { minWidth: 180, borderRadius: '8px' }
-                }}
-            >
-                <MenuItem onClick={handleEditApp}>
-                    <ListItemIcon>
-                        <IconEdit size={18} stroke={1.5} />
-                    </ListItemIcon>
-                    <ListItemText>Edit Application</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleMenuClose}>
-                    <ListItemIcon>
-                        <IconSettings size={18} stroke={1.5} />
-                    </ListItemIcon>
-                    <ListItemText>Configure</ListItemText>
-                </MenuItem>
-                {selectedApp?.status === 'Active' ? (
-                    <MenuItem onClick={handleMenuClose}>
-                        <ListItemIcon>
-                            <IconTrash size={18} stroke={1.5} />
-                        </ListItemIcon>
-                        <ListItemText>Deactivate</ListItemText>
-                    </MenuItem>
-                ) : (
-                    <MenuItem onClick={handleMenuClose}>
-                        <ListItemIcon>
-                            <IconRocket size={18} stroke={1.5} />
-                        </ListItemIcon>
-                        <ListItemText>Activate</ListItemText>
-                    </MenuItem>
-                )}
-                <MenuItem 
-                    onClick={handleMenuClose}
-                    sx={{ color: 'error.main' }}
-                >
-                    <ListItemIcon sx={{ color: 'error.main' }}>
-                        <IconTrash size={18} stroke={1.5} />
-                    </ListItemIcon>
-                    <ListItemText>Delete</ListItemText>
-                </MenuItem>
-            </Menu>
-            
-            {/* Add/Edit Application Dialog */}
-            <Dialog 
-                open={dialogOpen} 
-                onClose={handleDialogClose}
-                maxWidth="sm"
-                fullWidth
-            >
-                <DialogTitle>
-                    {dialogMode === 'add' ? 'Add New Application' : 'Edit Application'}
-                </DialogTitle>
-                <DialogContent>
-                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                        <Grid item xs={12}>
-                            <TextField
-                                name="name"
-                                label="Application Name"
-                                fullWidth
-                                value={formData.name}
-                                onChange={handleInputChange}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                name="description"
-                                label="Description"
-                                fullWidth
-                                multiline
-                                rows={2}
-                                value={formData.description}
-                                onChange={handleInputChange}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                name="type"
-                                label="Application Type"
-                                select
-                                fullWidth
-                                value={formData.type}
-                                onChange={handleInputChange}
-                            >
-                                <MenuItem value="Web App">Web App</MenuItem>
-                                <MenuItem value="Desktop App">Desktop App</MenuItem>
-                                <MenuItem value="Dashboard">Dashboard</MenuItem>
-                                <MenuItem value="Mobile App">Mobile App</MenuItem>
-                                <MenuItem value="API">API</MenuItem>
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                name="status"
-                                label="Status"
-                                select
-                                fullWidth
-                                value={formData.status}
-                                onChange={handleInputChange}
-                            >
-                                <MenuItem value="Active">Active</MenuItem>
-                                <MenuItem value="Inactive">Inactive</MenuItem>
-                                <MenuItem value="Development">Development</MenuItem>
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                name="url"
-                                label="Application URL"
-                                fullWidth
-                                value={formData.url}
-                                onChange={handleInputChange}
-                                InputProps={{
-                                    startAdornment: (
-                                        <IconBrandChrome size={20} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                                    )
-                                }}
-                            />
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={handleDialogClose}>Cancel</Button>
-                    <Button 
-                        variant="contained" 
-                        onClick={handleSubmit}
-                    >
-                        {dialogMode === 'add' ? 'Create Application' : 'Save Changes'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
         </>
     );
 };
