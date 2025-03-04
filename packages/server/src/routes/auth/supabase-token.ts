@@ -1,5 +1,4 @@
 import express from 'express';
-import * as jose from 'jose';
 
 const router = express.Router();
 
@@ -11,6 +10,9 @@ router.get('/supabase-token', async (req, res) => {
     if (!user || !user.userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+    
+    // Dynamically import jose
+    const jose = await import('jose');
     
     // Create a JWT that Supabase will accept
     const secret = new TextEncoder().encode(
