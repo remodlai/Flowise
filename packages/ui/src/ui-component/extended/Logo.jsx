@@ -7,7 +7,7 @@ import { useSelector } from 'react-redux'
 
 const Logo = (props) => {
     const customization = useSelector((state) => state.customization)
-    const isDarkMode = props.forceDarkMode !== undefined ? props.forceDarkMode : customization.isDarkMode
+    const isDarkMode = customization.isDarkMode
 
     return (
         <div style={{ 

@@ -250,7 +250,7 @@ export async function start(): Promise<void> {
     await serverApp.config()
 
     server.listen(port, host, () => {
-        logger.info(`⚡️ [server]: Flowise Server is listening at ${host ? 'http://' + host : ''}:${port}`)
+        logger.info(`⚡️ [server]: Remodl AI Platform Server is listening at ${host ? 'http://' + host : ''}:${port}`)
     })
 }
 

@@ -2,6 +2,7 @@ import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { store } from '@/store'
 import { useDescope, useSession, useUser } from '@descope/react-sdk'
 import { useAuth } from '@/contexts/AuthContext'
 // material-ui

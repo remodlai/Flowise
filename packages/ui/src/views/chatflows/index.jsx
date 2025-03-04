@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useSession } from '@descope/react-sdk'
+import { useAuth } from '@/contexts/AuthContext'
 
 // material-ui
 import { Box, Skeleton, Stack, ToggleButton, ToggleButtonGroup } from '@mui/material'
@@ -34,7 +34,7 @@ import { IconPlus, IconLayoutGrid, IconList } from '@tabler/icons-react'
 const Chatflows = () => {
     const navigate = useNavigate()
     const theme = useTheme()
-    const { isAuthenticated } = useSession()
+    const { isAuthenticated } = useAuth()
 
     const [isLoading, setLoading] = useState(true)
     const [error, setError] = useState(null)

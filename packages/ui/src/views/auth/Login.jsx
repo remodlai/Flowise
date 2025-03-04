@@ -1,11 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Logo from '@/ui-component/extended/Logo'
-import { Descope, useSession } from '@descope/react-sdk'
-import colors from '@/assets/scss/_themes-vars.module.scss'
 import { useTheme } from '@mui/material/styles'
-import { Box, CircularProgress, Typography } from '@mui/material'
+import { useSelector, useDispatch } from 'react-redux'
+import Logo from '@/ui-component/extended/Logo'
+import colors from '@/assets/scss/_themes-vars.module.scss'
+import { SET_DARKMODE } from '@/store/actions'
+
+import { 
+  Box, 
+  CircularProgress, 
+  Typography, 
+  TextField, 
+  Button, 
+  Divider, 
+  Link,
+  Paper,
+  InputAdornment,
+  IconButton,
+  Alert,
+  Stack 
+} from '@mui/material'
 import { useAuth } from '@/contexts/AuthContext'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
+import EmailIcon from '@mui/icons-material/Email'
 
 // Force Graph
 import ForceGraph from '@/ui-component/graphs/ForceGraph'
@@ -15,8 +33,36 @@ import ForceGraph from '@/ui-component/graphs/ForceGraph'
 const Login = () => {
     const theme = useTheme()
     const navigate = useNavigate()
-    const { login } = useAuth()
-    const { isAuthenticated, isSessionLoading } = useSession()
+    const customization = useSelector((state) => state.customization)
+    const { isAuthenticated, login, isLoading } = useAuth()
+
+    // Default to light mode (isDark = false)
+    const [isDark, setIsDark] = useState(false)
+    const dispatch = useDispatch()
+
+    // Set Redux state to match local state on component mount
+    useEffect(() => {
+        if (customization.isDarkMode !== isDark) {
+            dispatch({ type: SET_DARKMODE, isDarkMode: isDark })
+        }
+    }, [])
+
+    const changeDarkMode = () => {
+        dispatch({ type: SET_DARKMODE, isDarkMode: !isDark })
+        setIsDark((isDark) => !isDark)
+        localStorage.setItem('isDarkMode', !isDark)
+    }
+
+    
+    const [formData, setFormData] = useState({
+        email: '',
+        password: ''
+    })
+    const [showPassword, setShowPassword] = useState(false)
+    const [error, setError] = useState(null)
+    const [successMessage, setSuccessMessage] = useState(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [authMode, setAuthMode] = useState('password') // 'password' or 'magic-link'
     
     // Redirect if already authenticated
     useEffect(() => {
@@ -25,11 +71,98 @@ const Login = () => {
       }
     }, [isAuthenticated, navigate])
 
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        })
+        // Clear errors when user types
+        setError(null)
+    }
+
+    const handleTogglePassword = () => {
+        setShowPassword(!showPassword)
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setIsSubmitting(true)
+        setError(null)
+        
+        try {
+            if (authMode === 'password') {
+                // Handle email/password login
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: formData.email,
+                        password: formData.password
+                    })
+                })
+                
+                const data = await response.json()
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed')
+                }
+                
+                // Login successful
+                login({
+                    email: data.user.email,
+                    accessToken: data.session.access_token,
+                    userId: data.user.userId,
+                    provider: data.user.provider,
+                    userMetadata: data.user.userMetadata
+                })
+                
+                navigate('/chatflows')
+            } else {
+                // Handle magic link request
+                const response = await fetch('/api/v1/auth/magic-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: formData.email,
+                        redirectTo: `${window.location.origin}/auth/callback`
+                    })
+                })
+                
+                const data = await response.json()
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to send magic link')
+                }
+                
+                // Show success message
+                setSuccessMessage('Magic link sent! Check your email to log in.')
+                setFormData({
+                    ...formData,
+                    password: ''
+                })
+            }
+        } catch (err) {
+            setError(err.message)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const switchAuthMode = (mode) => {
+        setAuthMode(mode)
+        setError(null)
+        setSuccessMessage(null)
+    }
+
     return (
         <Box sx={{
             display: 'flex',
             minHeight: '100vh',
-            backgroundColor: colors.darkPaper,
+            backgroundColor: customization.isDarkMode ? colors.darkPaper : colors.paper,
             overflow: 'hidden'
         }}>
             {/* Login Form - Right Side */}
@@ -40,39 +173,118 @@ const Login = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 p: { xs: 2, sm: 4 },
-                backgroundColor: theme.palette.mode === 'dark' ? colors.darkPaper : colors.paper
+                backgroundColor: colors.paper
             }}>
                 <Logo />
                 
                 <Typography variant="h4" sx={{ mt: 2, mb: 4 }}>
-                    Welcome to Flowise
+                    Welcome to Remodl AI Platform
                 </Typography>
                 
-                {isSessionLoading ? (
+                {isLoading ? (
                     <CircularProgress sx={{ mt: 4 }} />
                 ) : (
-                    <Box sx={{ width: '100%', maxWidth: 400 }}>
-                        <Descope
-                            flowId='sign-in'
-                            theme={theme.palette.mode}
-                            appearance={{
-                                theme: {
-                                    primaryColor: theme.palette.primary.main,
-                                },
-                            }}
-                            onSuccess={(e) => {
-                                // Use your app's login function with Descope user data
-                                login({
-                                    email: e.detail.user.email,
-                                    name: e.detail.user.name || e.detail.user.email.split('@')[0]
-                                });
-                                navigate('/');
-                            }}
-                            onError={(err) => {
-                                console.log('Error!', err);
-                            }}
-                        />
-                    </Box>
+                    <Paper elevation={0} sx={{ width: '100%', maxWidth: 400, p: 3 }}>
+                        {error && (
+                            <Alert severity="error" sx={{ mb: 2 }}>
+                                {error}
+                            </Alert>
+                        )}
+                        
+                        {successMessage && (
+                            <Alert severity="success" sx={{ mb: 2 }}>
+                                {successMessage}
+                            </Alert>
+                        )}
+                        
+                        <form onSubmit={handleSubmit}>
+                            <Stack spacing={2}>
+                                <TextField
+                                    fullWidth
+                                    label="Email"
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <EmailIcon />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                                
+                                {authMode === 'password' && (
+                                    <TextField
+                                        fullWidth
+                                        label="Password"
+                                        name="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        required
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton
+                                                        onClick={handleTogglePassword}
+                                                        edge="end"
+                                                    >
+                                                        {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
+                                )}
+                                
+                                <Button
+                                    type="submit"
+                                    variant="contained"
+                                    color="primary"
+                                    fullWidth
+                                    size="large"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? (
+                                        <CircularProgress size={24} />
+                                    ) : (
+                                        authMode === 'password' ? 'Sign In' : 'Send Magic Link'
+                                    )}
+                                </Button>
+                            </Stack>
+                        </form>
+                        
+                        <Divider sx={{ my: 2 }}>
+                            <Typography variant="body2" color="textSecondary">
+                                OR
+                            </Typography>
+                        </Divider>
+                        
+                        <Box sx={{ textAlign: 'center' }}>
+                            {authMode === 'password' ? (
+                                <Link
+                                    component="button"
+                                    variant="body2"
+                                    onClick={() => switchAuthMode('magic-link')}
+                                    underline="hover"
+                                >
+                                    Sign in with Magic Link
+                                </Link>
+                            ) : (
+                                <Link
+                                    component="button"
+                                    variant="body2"
+                                    onClick={() => switchAuthMode('password')}
+                                    underline="hover"
+                                >
+                                    Sign in with Password
+                                </Link>
+                            )}
+                        </Box>
+                    </Paper>
                 )}
             </Box>
 

@@ -16,6 +16,7 @@ router.post('/', async (req, res) => {
     }
     
     // Send magic link email
+    //Set the redirect url to the platform url
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {

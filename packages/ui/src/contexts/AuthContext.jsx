@@ -1,69 +1,118 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useSession, useUser, useDescope } from '@descope/react-sdk'
 
 // Create auth context
 const AuthContext = createContext(null)
 
 // Auth provider component
 export const AuthProvider = ({ children }) => {
-    const [appUser, setAppUser] = useState(null)
-    const [appLoading, setAppLoading] = useState(true)
+    const [user, setUser] = useState(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
     const navigate = useNavigate()
     
-    // Get Descope authentication data
-    const { isAuthenticated, isSessionLoading } = useSession()
-    const { user: descopeUser, isUserLoading } = useUser()
-    const { logout: descopeLogout } = useDescope()
-
-    // Sync Descope user with our app's user state
+    // Check for existing session on mount
     useEffect(() => {
-        if (!isSessionLoading && !isUserLoading) {
-            if (isAuthenticated && descopeUser) {
-                // Create our app's user object from Descope user data
-                const userData = {
-                    email: descopeUser.email,
-                    name: descopeUser.name || descopeUser.email?.split('@')[0] || 'User',
-                    // Add any other user properties you need
+        const checkExistingSession = () => {
+            try {
+                // Check for user data in localStorage
+                const storedUser = localStorage.getItem('user')
+                const storedToken = localStorage.getItem('access_token')
+                
+                if (storedUser && storedToken) {
+                    // Check if token is expired
+                    const tokenExpiry = localStorage.getItem('token_expiry')
+                    const isTokenValid = tokenExpiry && new Date(parseInt(tokenExpiry) * 1000) > new Date()
+                    
+                    if (isTokenValid) {
+                        setUser(JSON.parse(storedUser))
+                        setIsAuthenticated(true)
+                    } else {
+                        // Token expired, clear storage
+                        localStorage.removeItem('user')
+                        localStorage.removeItem('access_token')
+                        localStorage.removeItem('token_expiry')
+                    }
                 }
-                setAppUser(userData)
-                // Optionally store in localStorage for persistence
-                localStorage.setItem('user', JSON.stringify(userData))
-            } else {
-                setAppUser(null)
-                localStorage.removeItem('user')
+            } catch (error) {
+                console.error('Error checking authentication:', error)
+            } finally {
+                setIsLoading(false)
             }
-            setAppLoading(false)
         }
-    }, [isAuthenticated, descopeUser, isSessionLoading, isUserLoading])
+        
+        checkExistingSession()
+    }, [])
 
-    // Login function - now just stores additional app-specific user data
-    // The actual authentication is handled by Descope
+    // Login function
     const login = (userData) => {
-        setAppUser(userData)
-        localStorage.setItem('user', JSON.stringify(userData))
+        if (!userData || !userData.accessToken) {
+            console.error('Invalid login data')
+            return
+        }
+        
+        // Store user data
+        const userToStore = {
+            email: userData.email,
+            userId: userData.userId,
+            provider: userData.provider || 'email',
+            userMetadata: userData.userMetadata || {}
+        }
+        
+        // Save to state and localStorage
+        setUser(userToStore)
+        setIsAuthenticated(true)
+        
+        // Store in localStorage for persistence
+        localStorage.setItem('user', JSON.stringify(userToStore))
+        localStorage.setItem('access_token', userData.accessToken)
+        
+        if (userData.expiresAt) {
+            localStorage.setItem('token_expiry', userData.expiresAt.toString())
+        }
     }
 
-    // Logout function - uses Descope's logout
-    const logout = () => {
-        // Clear our app's user state
-        setAppUser(null)
-        localStorage.removeItem('user')
-        
-        // Call Descope's logout
-        descopeLogout()
-        
-        // Navigate to login page
-        navigate('/login')
+    // Logout function
+    const logout = async () => {
+        try {
+            // Call logout API endpoint
+            await fetch('/api/v1/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+        } catch (error) {
+            console.error('Error during logout:', error)
+        } finally {
+            // Clear user data regardless of API success
+            setUser(null)
+            setIsAuthenticated(false)
+            
+            // Clear localStorage
+            localStorage.removeItem('user')
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('token_expiry')
+            
+            // Navigate to login page
+            navigate('/login')
+        }
+    }
+
+    // Get auth token for API requests
+    const getAuthToken = () => {
+        return localStorage.getItem('access_token')
     }
 
     // Auth context value
     const value = {
-        user: appUser,
-        loading: appLoading || isSessionLoading || isUserLoading,
+        user,
+        isLoading,
+        isAuthenticated,
         login,
         logout,
-        isAuthenticated: isAuthenticated && !!appUser
+        getAuthToken
     }
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,16 +1,15 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useSession, useUser } from '@descope/react-sdk'
 import { CircularProgress, Box } from '@mui/material'
+import { useAuth } from '../contexts/AuthContext'
 
 // ==============================|| PROTECTED ROUTE ||============================== //
 
 const ProtectedRoute = ({ children }) => {
     const location = useLocation()
-    const { isAuthenticated, isSessionLoading } = useSession()
-    const { user, isUserLoading } = useUser()
+    const { isAuthenticated, isLoading } = useAuth()
     
     // If still loading, show a loading indicator
-    if (isSessionLoading || isUserLoading) {
+    if (isLoading) {
         return (
             <Box sx={{ 
                 display: 'flex', 
