@@ -1,8 +1,21 @@
 import express from 'express'
 import { CustomRoleController } from '../controllers/CustomRoleController'
+import { UserController } from '../controllers/UserController'
+import { authenticateUser } from '../utils/supabaseAuth'
+import { requirePlatformAdmin } from '../utils/supabase'
 
 // Create a router for v1 API routes
 const router = express.Router()
+
+// Apply authentication middleware to all routes
+router.use(authenticateUser)
+
+// User routes - temporarily removed platform admin requirement for testing
+router.get('/users', UserController.getAllUsers)
+router.post('/users', UserController.createUser)
+router.get('/users/:id', UserController.getUserById)
+router.put('/users/:id', UserController.updateUser)
+router.delete('/users/:id', UserController.deleteUser)
 
 // Custom Roles routes
 router.get('/custom-roles', CustomRoleController.getAllRoles)

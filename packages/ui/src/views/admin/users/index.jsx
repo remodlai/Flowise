@@ -1,6 +1,8 @@
-import React from 'react'
-import { Box, Button, IconButton } from '@mui/material'
+import React, { useState, useEffect } from 'react'
+import { Box, Button, IconButton, CircularProgress } from '@mui/material'
 import { IconPlus, IconEdit, IconTrash, IconFilter } from '@tabler/icons-react'
+import { useSnackbar } from 'notistack'
+import { useNavigate } from 'react-router-dom'
 
 // Import reusable components
 import DataTable from '@/ui-component/table/DataTable'
@@ -9,65 +11,58 @@ import StatusChip from '@/ui-component/extended/StatusChip'
 import OrganizationChip from '@/ui-component/extended/OrganizationChip'
 import RoleChip from '@/ui-component/extended/RoleChip'
 
-// Sample data - replace with actual data fetching
-const sampleUsers = [
-    { 
-        id: 1, 
-        name: 'John Doe', 
-        email: 'john@example.com', 
-        role: 'Admin', 
-        status: 'Active', 
-        lastLogin: '2023-05-15',
-        organization: 'Acme Inc.'
-    },
-    { 
-        id: 2, 
-        name: 'Jane Smith', 
-        email: 'jane@example.com', 
-        role: 'User', 
-        status: 'Active', 
-        lastLogin: '2023-05-14',
-        organization: 'Acme Inc.'
-    },
-    { 
-        id: 3, 
-        name: 'Robert Johnson', 
-        email: 'robert@example.com', 
-        role: 'Editor', 
-        status: 'Inactive', 
-        lastLogin: '2023-04-20',
-        organization: 'TechCorp'
-    },
-    { 
-        id: 4, 
-        name: 'Emily Davis', 
-        email: 'emily@example.com', 
-        role: 'User', 
-        status: 'Active', 
-        lastLogin: '2023-05-10',
-        organization: 'TechCorp'
-    },
-    { 
-        id: 5, 
-        name: 'Michael Wilson', 
-        email: 'michael@example.com', 
-        role: 'Admin', 
-        status: 'Active', 
-        lastLogin: '2023-05-12',
-        organization: 'Remodl'
-    },
-    { 
-        id: 6, 
-        name: 'Sarah Brown', 
-        email: 'sarah@example.com', 
-        role: 'User', 
-        status: 'Pending', 
-        lastLogin: 'Never',
-        organization: 'Remodl'
-    },
-];
+// Import API
+import { getAllUsers, deleteUser } from '@/api/users'
 
 const UsersAdmin = () => {
+    const [users, setUsers] = useState([])
+    const [loading, setLoading] = useState(true)
+    const { enqueueSnackbar } = useSnackbar()
+    const navigate = useNavigate()
+
+    // Fetch users on component mount
+    useEffect(() => {
+        fetchUsers()
+    }, [])
+
+    // Function to fetch users
+    const fetchUsers = async () => {
+        try {
+            setLoading(true)
+            const response = await getAllUsers()
+            setUsers(response.data.users || [])
+        } catch (error) {
+            console.error('Error fetching users:', error)
+            enqueueSnackbar('Failed to load users', { variant: 'error' })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Function to handle user deletion
+    const handleDeleteUser = async (userId) => {
+        if (window.confirm('Are you sure you want to delete this user?')) {
+            try {
+                await deleteUser(userId)
+                enqueueSnackbar('User deleted successfully', { variant: 'success' })
+                fetchUsers() // Refresh the list
+            } catch (error) {
+                console.error('Error deleting user:', error)
+                enqueueSnackbar('Failed to delete user', { variant: 'error' })
+            }
+        }
+    }
+
+    // Function to handle user edit
+    const handleEditUser = (userId) => {
+        navigate(`/admin/users/${userId}`)
+    }
+
+    // Function to handle user creation
+    const handleCreateUser = () => {
+        navigate('/admin/users/new')
+    }
+
     // Define table columns
     const columns = [
         {
@@ -75,7 +70,7 @@ const UsersAdmin = () => {
             label: 'User',
             render: (row) => (
                 <UserAvatar
-                    name={row.name}
+                    name={row.name || 'Unknown User'}
                     subtitle={row.email}
                     color={getOrgColor(row.organization)}
                 />
@@ -85,21 +80,21 @@ const UsersAdmin = () => {
             field: 'organization',
             label: 'Organization',
             render: (row) => (
-                <OrganizationChip name={row.organization} />
+                <OrganizationChip name={row.organization || 'No Organization'} />
             )
         },
         {
             field: 'role',
             label: 'Role',
             render: (row) => (
-                <RoleChip role={row.role} />
+                <RoleChip role={row.role || 'No Role'} />
             )
         },
         {
             field: 'status',
             label: 'Status',
             render: (row) => (
-                <StatusChip status={row.status} />
+                <StatusChip status={row.status || 'Unknown'} />
             )
         },
         {
@@ -112,10 +107,16 @@ const UsersAdmin = () => {
             align: 'right',
             render: (row) => (
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <IconButton size="small">
+                    <IconButton 
+                        size="small"
+                        onClick={() => handleEditUser(row.id)}
+                    >
                         <IconEdit size={18} stroke={1.5} />
                     </IconButton>
-                    <IconButton size="small">
+                    <IconButton 
+                        size="small"
+                        onClick={() => handleDeleteUser(row.id)}
+                    >
                         <IconTrash size={18} stroke={1.5} />
                     </IconButton>
                 </Box>
@@ -128,6 +129,7 @@ const UsersAdmin = () => {
         <Button 
             variant="contained" 
             startIcon={<IconPlus size={18} />}
+            onClick={handleCreateUser}
         >
             Add User
         </Button>
@@ -157,17 +159,26 @@ const UsersAdmin = () => {
         }
     };
 
+    // Show loading state
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+                <CircularProgress />
+            </Box>
+        )
+    }
+
     return (
         <DataTable
             columns={columns}
-            data={sampleUsers}
+            data={users}
             title="Users & Access Management"
             description="Manage platform users, roles, and permissions"
             searchPlaceholder="Search users..."
-            searchFields={['name', 'email', 'organization']}
+            searchFields={['name', 'email', 'organization', 'role']}
             headerActions={headerActions}
             tableActions={tableActions}
-            initialRowsPerPage={5}
+            initialRowsPerPage={10}
             sx={{ p: { xs: 2, md: 3 } }}
         />
     );

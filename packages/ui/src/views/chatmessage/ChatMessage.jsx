@@ -10,7 +10,6 @@ import remarkMath from 'remark-math'
 import axios from 'axios'
 import { v4 as uuidv4 } from 'uuid'
 import { EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
-import { getSessionToken } from '@descope/react-sdk'
 
 import {
     Box,
@@ -870,7 +869,8 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
     const fetchResponseFromEventStream = async (chatflowid, params) => {
         const chatId = params.chatId
         const input = params.question
-        const sessionToken = getSessionToken()
+        // Use localStorage to get the token instead of Descope
+        const accessToken = localStorage.getItem('access_token')
         params.streaming = true
         await fetchEventSource(`${baseURL}/api/v1/internal-prediction/${chatflowid}`, {
             openWhenHidden: true,
@@ -878,8 +878,7 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
             body: JSON.stringify(params),
             headers: {
                 'Content-Type': 'application/json',
-                ...(sessionToken ? { 'Authorization': `Bearer ${sessionToken}` } : {}),
-                'x-request-from': 'internal'
+                'Authorization': accessToken ? `Bearer ${accessToken}` : ''
             },
             async onopen(response) {
                 if (response.ok && response.headers.get('content-type') === EventStreamContentType) {

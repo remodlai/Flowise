@@ -53,6 +53,7 @@ import adminRouter from './admin'
 import customRolesRouter from './custom-roles'
 import permissionsRouter from './permissions'
 import usersCustomRolesRouter from './users'
+import apiRouter from './api'
 
 const router = express.Router()
 
@@ -110,5 +111,6 @@ router.use('/admin', adminRouter)
 router.use('/custom-roles', customRolesRouter)
 router.use('/permissions', permissionsRouter)
 router.use('/users', usersCustomRolesRouter)
+router.use('/api/v1', apiRouter)
 
 export default router

@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from 'express'
 import { supabase } from './supabase'
 import { IUser } from '../Interface'
 
+/**
+ * Middleware to authenticate user with Supabase
+ */
 export const authenticateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Skip authentication for public routes and login-related routes
@@ -51,4 +54,68 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
     res.status(500).json({ error: 'Server error during authentication' })
     return
   }
-} 
+}
+
+/**
+ * SQL function to add custom claims to JWT
+ * This needs to be executed in your Supabase database
+ */
+export const createCustomAccessTokenHook = `
+-- Create the auth hook function
+create or replace function public.custom_access_token_hook(event jsonb)
+returns jsonb
+language plpgsql
+stable
+as $$
+declare
+  claims jsonb;
+  user_metadata jsonb;
+begin
+  -- Get the user metadata from the users table or any other source
+  select meta into user_metadata 
+  from public.user_profiles 
+  where user_id = (event->>'user_id')::uuid;
+
+  claims := event->'claims';
+
+  if user_metadata is not null then
+    -- Add first_name
+    if user_metadata->>'first_name' is not null then
+      claims := jsonb_set(claims, '{first_name}', to_jsonb(user_metadata->>'first_name'));
+    end if;
+    
+    -- Add last_name
+    if user_metadata->>'last_name' is not null then
+      claims := jsonb_set(claims, '{last_name}', to_jsonb(user_metadata->>'last_name'));
+    end if;
+    
+    -- Add organization
+    if user_metadata->>'organization' is not null then
+      claims := jsonb_set(claims, '{organization}', to_jsonb(user_metadata->>'organization'));
+    end if;
+    
+    -- Add role
+    if user_metadata->>'role' is not null then
+      claims := jsonb_set(claims, '{user_role}', to_jsonb(user_metadata->>'role'));
+    end if;
+  end if;
+
+  -- Update the 'claims' object in the original event
+  event := jsonb_set(event, '{claims}', claims);
+
+  -- Return the modified event
+  return event;
+end;
+$$;
+
+-- Grant necessary permissions
+grant usage on schema public to supabase_auth_admin;
+
+grant execute
+  on function public.custom_access_token_hook
+  to supabase_auth_admin;
+
+revoke execute
+  on function public.custom_access_token_hook
+  from authenticated, anon, public;
+` 

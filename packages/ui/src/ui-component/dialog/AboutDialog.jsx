@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogTitle, TableContainer, Table, TableHead, T
 import moment from 'moment'
 import axios from 'axios'
 import { baseURL } from '@/store/constant'
-import { getSessionToken } from '@descope/react-sdk'
 
 const AboutDialog = ({ show, onCancel }) => {
     const portalElement = document.getElementById('portal')
@@ -14,17 +13,13 @@ const AboutDialog = ({ show, onCancel }) => {
 
     useEffect(() => {
         if (show) {
-            const sessionToken = getSessionToken()
+            const accessToken = localStorage.getItem('access_token')
 
             const config = {
                 headers: {
-                    'Content-type': 'application/json',
-                    'x-request-from': 'internal'
+                    'Content-Type': 'application/json',
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : ''
                 }
-            }
-            
-            if (sessionToken) {
-                config.headers.Authorization = `Bearer ${sessionToken}`
             }
             
             const latestReleaseReq = axios.get('https://api.github.com/repos/FlowiseAI/Flowise/releases/latest')
