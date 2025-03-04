@@ -56,6 +56,15 @@ export const getRolePermissions = (id) => {
 }
 
 /**
+ * Get permissions for a role using direct SQL
+ * @param {string} id - Role ID
+ * @returns {Promise}
+ */
+export const getRolePermissionsDirect = (id) => {
+    return client.get(`/api/v1/custom-roles/${id}/permissions-direct`)
+}
+
+/**
  * Add permissions to a role
  * @param {string} id - Role ID
  * @param {Array} permissions - Array of permission strings

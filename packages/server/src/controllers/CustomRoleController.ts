@@ -515,4 +515,27 @@ export class CustomRoleController {
             return handleError(res, error, 'Error fetching permission categories')
         }
     }
+
+    /**
+     * Get permissions for a role using direct SQL query
+     * @param req Request
+     * @param res Response
+     */
+    static async getRolePermissionsDirectSQL(req: Request, res: Response) {
+        try {
+            const { id } = req.params
+
+            // Use a direct SQL query to bypass RLS
+            const { data, error } = await supabase.rpc('get_role_permissions_direct', { input_role_id: id })
+
+            if (error) throw error
+
+            return res.json({ 
+                permissions: data || [],
+                message: 'Permissions fetched using direct SQL query'
+            })
+        } catch (error) {
+            return handleError(res, error, 'Error fetching role permissions with direct SQL')
+        }
+    }
 } 

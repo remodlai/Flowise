@@ -15,6 +15,9 @@ router.get('/:id/permissions', CustomRoleController.getRolePermissions)
 router.post('/:id/permissions', CustomRoleController.addRolePermissions)
 router.delete('/:id/permissions/:permission', CustomRoleController.removeRolePermission)
 
+// Direct SQL route for permissions
+router.get('/:id/permissions-direct', CustomRoleController.getRolePermissionsDirectSQL)
+
 // Role users routes
 router.get('/:id/users', CustomRoleController.getRoleUsers)
 router.post('/:id/users', CustomRoleController.assignRoleToUser)
