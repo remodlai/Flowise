@@ -62,6 +62,50 @@ The UI now properly reflects the organizational structure where:
 
 This hierarchy is displayed in the UI with the parent application shown in the organization header and the "Application Settings" tab providing management capabilities for the organization's application settings.
 
+## Role Builder Implementation
+
+We've successfully implemented a comprehensive role builder system for the Remodl Platform that allows administrators to create and manage custom roles with specific permission sets. The implementation includes:
+
+### Database Schema
+- Created SQL migration file (`packages/server/src/migrations/20240305_create_role_builder_tables.sql`) that defines:
+  - `custom_roles` table for storing role definitions
+  - `role_permissions` table for mapping permissions to roles
+  - `user_custom_roles` table for assigning roles to users
+  - `permission_categories` table for organizing permissions
+  - `permissions` table for defining available permissions
+  - Row Level Security (RLS) policies to enforce permissions
+  - RPC functions for permission checking
+
+### Server-Side Implementation
+- Created a controller (`packages/server/src/controllers/CustomRoleController.ts`) with methods for:
+  - Managing custom roles (CRUD operations)
+  - Managing role permissions
+  - Assigning roles to users
+  - Checking user permissions
+
+- Set up API routes under the `/api/v1` prefix:
+  - `/custom-roles` endpoints for role management
+  - `/permissions` endpoints for permission management
+  - `/users/:id/custom-roles` endpoints for user role management
+
+### Client-Side Implementation
+- Created an API client module (`packages/ui/src/api/roles.js`) with functions for:
+  - Fetching, creating, updating, and deleting roles
+  - Managing role permissions
+  - Assigning roles to users
+  - Checking permissions
+
+- Implemented a Role Builder UI component (`packages/ui/src/views/admin/roles/index.jsx`) that provides:
+  - A form for creating new custom roles
+  - A list of existing roles with edit/delete capabilities
+  - Permission selection interface organized by categories
+  - Context selection (platform, application, organization)
+
+### Integration
+- The role builder is accessible via the admin navigation at `/admin/roles`
+- API endpoints use the `/api/v1` prefix for consistency with the rest of the platform
+- The UI properly handles loading states, error messages, and success notifications
+
 ## Next Steps
 
 1. **API Integration**
@@ -76,4 +120,9 @@ This hierarchy is displayed in the UI with the parent application shown in the o
 3. **Testing**
    - Test UI components across different screen sizes
    - Verify dark/light mode compatibility
-   - Test with various data scenarios (empty states, error states, etc.) 
+   - Test with various data scenarios (empty states, error states, etc.)
+
+4. **Add unit and integration tests for the role builder functionality**
+5. **Implement permission checking in the frontend to conditionally render UI elements**
+6. **Add audit logging for role management actions**
+7. **Create a user interface for viewing a user's assigned roles and permissions** 
