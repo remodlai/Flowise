@@ -3,6 +3,7 @@ import { Grid, Box, Button, Card, CardContent, Checkbox, Chip, CircularProgress,
 import MainCard from '@/ui-component/cards/MainCard'
 import { useTheme } from '@mui/material/styles'
 import { toast } from 'react-toastify'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
 // API
 import * as rolesApi from '@/api/roles'
@@ -12,6 +13,9 @@ import * as organizationsApi from '@/api/organizations'
 // Types
 const RoleBuilderView = () => {
     const theme = useTheme()
+    const navigate = useNavigate()
+    const { roleId } = useParams()
+    const location = useLocation()
     
     const [loading, setLoading] = useState(true)
     const [permissionCategories, setPermissionCategories] = useState([])
@@ -40,7 +44,27 @@ const RoleBuilderView = () => {
         fetchRoles()
         fetchApplications()
         fetchOrganizations()
-    }, [])
+        
+        // Check if we're in edit mode from URL
+        if (roleId && location.pathname.includes('/edit')) {
+            // Set active tab to "Manage Roles"
+            setActiveTab(1)
+        }
+    }, [roleId, location])
+    
+    // Effect to handle role editing based on URL
+    useEffect(() => {
+        if (roleId && roles.length > 0 && location.pathname.includes('/edit')) {
+            const roleToEdit = roles.find(role => role.id === roleId)
+            if (roleToEdit) {
+                setEditingRole(roleToEdit)
+            } else {
+                // Role not found, redirect to roles list
+                navigate('/admin/roles')
+                toast.error('Role not found')
+            }
+        }
+    }, [roleId, roles, location, navigate])
     
     const fetchPermissions = async () => {
         try {
@@ -265,6 +289,9 @@ const RoleBuilderView = () => {
             toast.success('Role updated successfully')
             setEditingRole(null)
             fetchRoles()
+            
+            // Reset URL to roles list
+            navigate('/admin/roles')
         } catch (error) {
             console.error('Error updating role:', error)
             toast.error('Failed to update role')
@@ -654,7 +681,11 @@ const RoleBuilderView = () => {
                                             
                                             <Button
                                                 variant="outlined"
-                                                onClick={() => setEditingRole(null)}
+                                                onClick={() => {
+                                                    setEditingRole(null);
+                                                    // Reset URL to roles list
+                                                    navigate('/admin/roles');
+                                                }}
                                             >
                                                 Cancel
                                             </Button>
@@ -773,6 +804,9 @@ const RoleBuilderView = () => {
                                                                 };
                                                                 console.log('Role to edit:', roleToEdit);
                                                                 setEditingRole(roleToEdit);
+                                                                
+                                                                // Update URL to reflect editing state
+                                                                navigate(`/admin/roles/${role.id}/edit`);
                                                             }}
                                                         >
                                                             Edit

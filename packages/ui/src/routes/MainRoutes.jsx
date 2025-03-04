@@ -173,6 +173,10 @@ const MainRoutes = {
                     element: <RoleBuilderAdmin />
                 },
                 {
+                    path: 'roles/:roleId/edit',
+                    element: <RoleBuilderAdmin />
+                },
+                {
                     path: 'platform',
                     element: <PlatformAdmin />,
                     children: [
