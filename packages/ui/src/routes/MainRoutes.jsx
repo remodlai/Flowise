@@ -46,6 +46,7 @@ const UsersAdmin = Loadable(lazy(() => import('@/views/admin/users')))
 const OrganizationsAdmin = Loadable(lazy(() => import('@/views/admin/organizations')))
 const OrganizationDetail = Loadable(lazy(() => import('@/views/admin/organizations/detail')))
 const ApplicationsAdmin = Loadable(lazy(() => import('@/views/admin/applications')))
+const RoleBuilderAdmin = Loadable(lazy(() => import('@/views/admin/roles')))
 const PlatformAdmin = Loadable(lazy(() => import('@/views/admin/platform')))
 const PlatformFiles = Loadable(lazy(() => import('@/views/admin/platform/files')))
 const ToolsAndNodes = Loadable(lazy(() => import('@/views/admin/platform/tools')))
@@ -166,6 +167,10 @@ const MainRoutes = {
                 {
                     path: 'applications',
                     element: <ApplicationsAdmin />
+                },
+                {
+                    path: 'roles',
+                    element: <RoleBuilderAdmin />
                 },
                 {
                     path: 'platform',

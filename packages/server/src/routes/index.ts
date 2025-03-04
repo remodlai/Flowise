@@ -50,6 +50,9 @@ import callbackRouter from './auth/callback'
 import logoutRouter from './auth/logout'
 import refreshTokenRouter from './auth/refresh-token'
 import adminRouter from './admin'
+import customRolesRouter from './custom-roles'
+import permissionsRouter from './permissions'
+import usersCustomRolesRouter from './users'
 
 const router = express.Router()
 
@@ -104,5 +107,8 @@ router.use('/auth/logout', logoutRouter)
 router.use('/auth/refresh-token', refreshTokenRouter)
 router.use('/auth', supabaseTokenRouter)
 router.use('/admin', adminRouter)
+router.use('/custom-roles', customRolesRouter)
+router.use('/permissions', permissionsRouter)
+router.use('/users', usersCustomRolesRouter)
 
 export default router

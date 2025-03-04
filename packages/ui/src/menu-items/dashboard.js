@@ -15,7 +15,8 @@ import {
     IconBuildingSkyscraper,
     IconApps,
     IconCreditCard,
-    IconServer
+    IconServer,
+    IconShieldLock
 } from '@tabler/icons-react'
 
 // constant
@@ -35,7 +36,8 @@ const icons = {
     IconBuildingSkyscraper,
     IconApps,
     IconCreditCard,
-    IconServer
+    IconServer,
+    IconShieldLock
 }
 
 // ==============================|| DASHBOARD MENU ITEMS ||============================== //
@@ -80,7 +82,7 @@ const dashboard = {
         },
         {
             id: 'marketplaces',
-            title: 'Marketplaces',
+            title: 'Vault',
             type: 'item',
             url: '/marketplaces',
             icon: icons.IconBuildingStore,
@@ -178,6 +180,14 @@ const dashboard = {
                     type: 'item',
                     url: '/admin/applications',
                     icon: icons.IconApps,
+                    breadcrumbs: true
+                },
+                {
+                    id: 'roles',
+                    title: 'Role Builder',
+                    type: 'item',
+                    url: '/admin/roles',
+                    icon: icons.IconShieldLock,
                     breadcrumbs: true
                 },
                 {

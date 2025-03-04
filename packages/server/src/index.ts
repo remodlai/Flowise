@@ -29,6 +29,7 @@ import 'global-agent/bootstrap'
 import { authenticateUser } from './utils/supabaseAuth'
 import { IUser } from './Interface'
 import { setupSupabaseStorage } from './utils/setupSupabaseStorage'
+import apiRoutes from './routes/api'
 
 // Extend Express Request type
 declare global {
@@ -190,6 +191,10 @@ export class App {
         }
 
         this.app.use('/api/v1', flowiseApiV1Router)
+        
+        // Custom roles API routes are now integrated into the main router
+        // this.app.use('/api/v1', apiRoutes)
+        // this.app.use('/api', apiRoutes)
 
         // ----------------------------------------
         // Configure number of proxies in Host Environment
