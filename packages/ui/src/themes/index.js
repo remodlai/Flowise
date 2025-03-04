@@ -16,7 +16,10 @@ import themeTypography from './typography'
 export const theme = (customization) => {
     const color = colors
 
-    const themeOption = customization.isDarkMode
+    // Ensure isDarkMode is a boolean
+    const isDarkMode = customization.isDarkMode === true
+
+    const themeOption = isDarkMode
         ? {
               colors: color,
               heading: color.paper,
@@ -30,7 +33,7 @@ export const theme = (customization) => {
               menuSelectedBack: color.darkSecondaryLight,
               divider: color.darkPaper,
               darkGlass: color.darkGlass,
-              customization
+              customization: { ...customization, isDarkMode: true }
           }
         : {
               colors: color,
@@ -44,7 +47,7 @@ export const theme = (customization) => {
               menuSelected: color.secondaryDark,
               menuSelectedBack: color.secondaryLight,
               divider: color.grey200,
-              customization
+              customization: { ...customization, isDarkMode: false }
           }
 
     const themeOptions = {

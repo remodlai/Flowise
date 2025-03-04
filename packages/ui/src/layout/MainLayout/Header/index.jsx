@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { store } from '@/store'
 import { useAuth } from '@/contexts/AuthContext'
@@ -73,15 +73,16 @@ const Header = ({ handleLeftDrawerToggle }) => {
     const navigate = useNavigate()
 
     const customization = useSelector((state) => state.customization)
-
-    const [isDark, setIsDark] = useState(customization.isDarkMode)
     const dispatch = useDispatch()
     const { logout, user } = useAuth()
 
+    // Use the Redux state directly instead of local state
+    const isDark = customization.isDarkMode
+
     const changeDarkMode = () => {
-        dispatch({ type: SET_DARKMODE, isDarkMode: !isDark })
-        setIsDark((isDark) => !isDark)
-        localStorage.setItem('isDarkMode', !isDark)
+        const newDarkMode = !isDark
+        dispatch({ type: SET_DARKMODE, isDarkMode: newDarkMode })
+        localStorage.setItem('isDarkMode', newDarkMode)
     }
 
     const signOutClicked = () => {

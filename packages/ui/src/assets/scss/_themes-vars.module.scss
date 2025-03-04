@@ -59,36 +59,36 @@ $transparent: #ffffff00;
 // ==============================|| DARK THEME VARIANTS ||============================== //
 
 // paper & background
-$darkBackground: #191b1f;
-$darkPaper: #293447;
+$darkBackground: #0F1117; // Darker background like in the screenshots
+$darkPaper: #171A23; // Slightly lighter than background for cards
 
 // Glass effect for dark theme
-$darkGlass: rgba(41, 52, 71, 0.4);
-$darkGlassGradient: linear-gradient(45deg, rgba(41, 52, 71, 0.6) 0%, rgba(41, 52, 71, 0.4) 99%, rgba(41, 52, 71, 0.4) 100%);
-$darkGlassShadow: rgba(0, 0, 0, 0.2) 10px 10px 10px;
+$darkGlass: rgba(23, 26, 35, 0.7); // More transparent glass effect
+$darkGlassGradient: linear-gradient(45deg, rgba(23, 26, 35, 0.8) 0%, rgba(23, 26, 35, 0.6) 99%, rgba(23, 26, 35, 0.6) 100%);
+$darkGlassShadow: rgba(0, 0, 0, 0.25) 0px 10px 20px;
 
 // dark 800 & 900
-$darkLevel1: #252525; // level 1
-$darkLevel2: #242424; // level 2
+$darkLevel1: #1A1E27; // level 1 - slightly lighter than background
+$darkLevel2: #21263A; // level 2 - for cards and elevated surfaces
 
-// primary dark
-$darkPrimaryLight: #23262c;
-$darkPrimaryMain: #23262c;
-$darkPrimaryDark: #191b1f;
-$darkPrimary200: #c9d4e9;
-$darkPrimary800: #32353b;
+// primary dark - keeping navy blue tones
+$darkPrimaryLight: #1A1E27;
+$darkPrimaryMain: #1E2330; // Main background for components
+$darkPrimaryDark: #0F1117; // Darker shade for contrast
+$darkPrimary200: #2C3347; // Lighter shade for hover states
+$darkPrimary800: #262B3D; // For selected items
 
-// secondary dark
+// secondary dark - vibrant accent colors like in screenshots
 $darkSecondaryLight: #454c59;
-$darkSecondaryMain: #7c4dff;
+$darkSecondaryMain: #7c4dff; // Vibrant purple from screenshots
 $darkSecondaryDark: #ffffff;
 $darkSecondary200: #32353b;
 $darkSecondary800: #6200ea;
 
 // text variants
-$darkTextTitle: #d7dcec;
-$darkTextPrimary: #bdc8f0;
-$darkTextSecondary: #8492c4;
+$darkTextTitle: #ffffff; // Brighter white for titles
+$darkTextPrimary: #e0e0e0; // Light gray for primary text
+$darkTextSecondary: #9e9e9e; // Medium gray for secondary text
 
 // ==============================|| JAVASCRIPT ||============================== //
 

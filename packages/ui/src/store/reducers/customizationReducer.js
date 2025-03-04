@@ -4,13 +4,19 @@ import config from '@/config'
 // action - state management
 import * as actionTypes from '../actions'
 
+// Parse localStorage value to boolean
+const isDarkModeFromStorage = () => {
+    const storedValue = localStorage.getItem('isDarkMode')
+    return storedValue === 'true' ? true : false
+}
+
 export const initialState = {
     isOpen: [], // for active default menu
     fontFamily: config.fontFamily,
     borderRadius: config.borderRadius,
     opened: true,
     isHorizontal: localStorage.getItem('isHorizontal') === 'true' ? true : false,
-    isDarkMode: localStorage.getItem('isDarkMode') === 'true' ? true : false
+    isDarkMode: isDarkModeFromStorage()
 }
 
 // ==============================|| CUSTOMIZATION REDUCER ||============================== //
@@ -45,9 +51,13 @@ const customizationReducer = (state = initialState, action) => {
                 isHorizontal: action.isHorizontal
             }
         case actionTypes.SET_DARKMODE:
+            // Ensure we're storing a boolean in state
+            const isDarkMode = action.isDarkMode === true
+            // Update localStorage
+            localStorage.setItem('isDarkMode', isDarkMode)
             return {
                 ...state,
-                isDarkMode: action.isDarkMode
+                isDarkMode
             }
         default:
             return state

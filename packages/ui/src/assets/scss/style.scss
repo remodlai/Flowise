@@ -4,6 +4,12 @@
 // third-party
 @import 'react-perfect-scrollbar/dist/css/styles.css';
 
+// ==============================|| DARK MODE STYLES ||============================== //
+body.dark-mode {
+    background-color: #0F1117;
+    color: #e0e0e0;
+}
+
 // ==============================|| LIGHT BOX ||============================== //
 .fullscreen .react-images__blanket {
     z-index: 1200;

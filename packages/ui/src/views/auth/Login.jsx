@@ -36,23 +36,22 @@ const Login = () => {
     const customization = useSelector((state) => state.customization)
     const { isAuthenticated, login, isLoading } = useAuth()
 
-    // Default to light mode (isDark = false)
-    const [isDark, setIsDark] = useState(false)
+    // Initialize dark mode from localStorage
+    const storedDarkMode = localStorage.getItem('isDarkMode') === 'true'
     const dispatch = useDispatch()
 
-    // Set Redux state to match local state on component mount
+    // Set Redux state to match localStorage on component mount
     useEffect(() => {
-        if (customization.isDarkMode !== isDark) {
-            dispatch({ type: SET_DARKMODE, isDarkMode: isDark })
+        if (customization.isDarkMode !== storedDarkMode) {
+            dispatch({ type: SET_DARKMODE, isDarkMode: storedDarkMode })
         }
     }, [])
 
     const changeDarkMode = () => {
-        dispatch({ type: SET_DARKMODE, isDarkMode: !isDark })
-        setIsDark((isDark) => !isDark)
-        localStorage.setItem('isDarkMode', !isDark)
+        const newDarkMode = !customization.isDarkMode
+        dispatch({ type: SET_DARKMODE, isDarkMode: newDarkMode })
+        localStorage.setItem('isDarkMode', newDarkMode)
     }
-
     
     const [formData, setFormData] = useState({
         email: '',
