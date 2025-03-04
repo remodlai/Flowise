@@ -10,6 +10,7 @@ import {
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'
+import { Request } from 'express'
 
 export type MessageType = 'apiMessage' | 'userMessage'
 
@@ -31,6 +32,26 @@ export enum ChatMessageRatingType {
     THUMBS_UP = 'THUMBS_UP',
     THUMBS_DOWN = 'THUMBS_DOWN'
 }
+
+/**
+ * Auth related interfaces
+ */
+export interface IUser {
+    userId: string
+    email?: string
+    provider?: string
+    userMetadata?: Record<string, any>
+}
+
+// Augment Express Request interface
+declare global {
+    namespace Express {
+        interface Request {
+            user?: IUser
+        }
+    }
+}
+
 /**
  * Databases
  */

@@ -42,6 +42,11 @@ import variablesRouter from './variables'
 import vectorRouter from './vectors'
 import verifyRouter from './verify'
 import versionRouter from './versions'
+import loginRouter from './auth/login'
+import usersRouter from './auth/users'
+import supabaseTokenRouter from './auth/supabase-token'
+import magicLinkRouter from './auth/magic-link'
+import callbackRouter from './auth/callback'
 
 const router = express.Router()
 
@@ -88,5 +93,10 @@ router.use('/vector', vectorRouter)
 router.use('/verify', verifyRouter)
 router.use('/version', versionRouter)
 router.use('/upsert-history', upsertHistoryRouter)
+router.use('/auth/login', loginRouter)
+router.use('/auth/users', usersRouter)
+router.use('/auth/magic-link', magicLinkRouter)
+router.use('/auth/callback', callbackRouter)
+router.use('/auth', supabaseTokenRouter)
 
 export default router

@@ -27,12 +27,13 @@ import { RedisEventSubscriber } from './queue/RedisEventSubscriber'
 import { WHITELIST_URLS } from './utils/constants'
 import 'global-agent/bootstrap'
 import DescopeClient from '@descope/node-sdk'
+import { IUser } from './Interface'
 
 // Extend Express Request type
 declare global {
     namespace Express {
         interface Request {
-            user?: any
+            user?: IUser
             tenants?: any[]
             roles?: any[]
             permissions?: any[]
