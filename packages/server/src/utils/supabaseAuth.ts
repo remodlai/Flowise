@@ -10,7 +10,8 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
       req.path === '/login' || 
       req.path === '/auth/login' || 
       req.path === '/auth/magic-link' ||
-      req.path.includes('/auth/callback')
+      req.path.includes('/auth/callback') ||
+      req.path.includes('/node-icon/')
     ) {
       return next()
     }

@@ -7,6 +7,7 @@ import { Box, Grid, Typography, useTheme } from '@mui/material'
 
 // project imports
 import MainCard from '@/ui-component/cards/MainCard'
+import AuthImage from '@/ui-component/image/AuthImage'
 
 const CardWrapper = styled(MainCard)(({ theme }) => ({
     background: theme.palette.card.main,
@@ -127,7 +128,11 @@ const ItemCard = ({ data, images, onClick }) => {
                                             : theme.palette.grey[300] + 75
                                     }}
                                 >
-                                    <img style={{ width: '100%', height: '100%', padding: 5, objectFit: 'contain' }} alt='' src={img} />
+                                    <AuthImage 
+                                        src={img} 
+                                        alt="" 
+                                        sx={{ width: '100%', height: '100%', padding: 5, objectFit: 'contain' }} 
+                                    />
                                 </Box>
                             ))}
                             {images.length > 3 && (
