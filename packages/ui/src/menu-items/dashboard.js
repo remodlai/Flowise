@@ -117,6 +117,48 @@ const dashboard = {
                     breadcrumbs: true
                 }
             ]
+        },
+        {
+            id: 'admin',
+            title: 'Admin',
+            type: 'collapse',
+            icon: icons.IconGear,
+            children: [
+                {
+                    id: 'users',
+                    title: 'Users',
+                    type: 'item',
+                    url: '/users',
+                    icon: icons.SomeIcon,
+                    breadcrumbs: true
+                },
+                {
+                    id: 'roles',
+                    title: 'Roles',
+                    type: 'item',
+                    url: '/roles',
+                    icon: icons.AnotherIcon,
+                    breadcrumbs: true
+                },
+                {
+                    id: 'permissions',
+                    title: 'Permissions',
+                    type: 'item',
+                    url: '/permissions',
+                },
+                {
+                    id: 'organizations',
+                    title: 'Organizations',
+                    type: 'item',
+                    url: '/organizations',
+                },
+                {
+                    id: 'apps',
+                    title: 'Apps',
+                    type: 'item',
+                    url: '/apps',
+                }
+            ]
         }
     ]
 }

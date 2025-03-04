@@ -32,6 +32,7 @@ router.post('/', async (req, res) => {
       user,
       session: {
         access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
         expires_at: data.session.expires_at
       }
     })

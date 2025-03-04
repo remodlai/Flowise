@@ -28,10 +28,17 @@ export const AuthProvider = ({ children }) => {
                         setUser(JSON.parse(storedUser))
                         setIsAuthenticated(true)
                     } else {
-                        // Token expired, clear storage
-                        localStorage.removeItem('user')
-                        localStorage.removeItem('access_token')
-                        localStorage.removeItem('token_expiry')
+                        // Token expired, try to refresh it if we have a refresh token
+                        const refreshToken = localStorage.getItem('refresh_token')
+                        if (refreshToken) {
+                            // We'll let the API client handle the token refresh
+                            // This will happen automatically on the next API call
+                        } else {
+                            // No refresh token, clear storage
+                            localStorage.removeItem('user')
+                            localStorage.removeItem('access_token')
+                            localStorage.removeItem('token_expiry')
+                        }
                     }
                 }
             } catch (error) {
@@ -67,6 +74,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userToStore))
         localStorage.setItem('access_token', userData.accessToken)
         
+        // Store refresh token if available
+        if (userData.refreshToken) {
+            localStorage.setItem('refresh_token', userData.refreshToken)
+        }
+        
         if (userData.expiresAt) {
             localStorage.setItem('token_expiry', userData.expiresAt.toString())
         }
@@ -93,6 +105,7 @@ export const AuthProvider = ({ children }) => {
             // Clear localStorage
             localStorage.removeItem('user')
             localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
             localStorage.removeItem('token_expiry')
             
             // Navigate to login page

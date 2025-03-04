@@ -113,6 +113,8 @@ const Login = () => {
                 login({
                     email: data.user.email,
                     accessToken: data.session.access_token,
+                    refreshToken: data.session.refresh_token,
+                    expiresAt: data.session.expires_at,
                     userId: data.user.userId,
                     provider: data.user.provider,
                     userMetadata: data.user.userMetadata

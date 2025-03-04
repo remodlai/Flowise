@@ -25,7 +25,7 @@ router.get('/supabase-token', async (req, res) => {
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('1h')
+      .setExpirationTime('7d')
       .sign(secret);
     
     return res.json({ token: jwt });
