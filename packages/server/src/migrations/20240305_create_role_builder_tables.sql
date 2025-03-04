@@ -1,6 +1,6 @@
 -- Role Builder System Migration
 -- This migration creates the necessary tables for the dynamic role builder system
-
+CREATE SCHEMA IF NOT EXISTS rpc;
 -- Create tables for custom roles
 CREATE TABLE IF NOT EXISTS public.custom_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -53,7 +53,52 @@ CREATE TABLE IF NOT EXISTS public.permissions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(name)
 );
+CREATE OR REPLACE FUNCTION rpc.is_platform_admin()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.user_roles
+        WHERE user_id = auth.uid()
+        AND role = 'admin'
+        AND resource_type = 'platform'
+    );
+END;
+$$;
 
+CREATE OR REPLACE FUNCTION rpc.is_app_owner(app_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.user_roles
+        WHERE user_id = auth.uid()
+        AND role = 'owner'
+        AND resource_type = 'application'
+        AND resource_id = app_id
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION rpc.is_org_admin(org_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.user_roles
+        WHERE user_id = auth.uid()
+        AND role = 'admin'
+        AND resource_type = 'organization'
+        AND resource_id = org_id
+    );
+END;
+$$;
 -- Enable RLS on all tables
 ALTER TABLE public.custom_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
@@ -473,9 +518,7 @@ BEGIN
 END;
 $$;
 
--- Seed initial permission categories
-INSERT INTO public.permission_categories (name, description)
-VALUES 
+INSERT INTO public.permission_categories (name, description) VALUES 
 ('Platform', 'Platform-level permissions'),
 ('Application', 'Application-level permissions'),
 ('Organization', 'Organization-level permissions'),
@@ -566,5 +609,5 @@ BEGIN
     ('chatflow.export', 'Export chatflows', chatflow_cat_id, ARRAY['platform', 'application', 'organization']),
     ('chatflow.import', 'Import chatflows', chatflow_cat_id, ARRAY['platform', 'application', 'organization']);
     
-    -- Add more permissions as needed...
+  
 END $$; 
