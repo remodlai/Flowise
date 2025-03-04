@@ -15,6 +15,7 @@ DECLARE
     user_roles jsonb = '[]'::jsonb;
     user_custom_roles jsonb = '[]'::jsonb;
     is_admin boolean = false;
+    legacy_role text;
 BEGIN
     -- Extract user_id from the event
     user_id := (event->>'user_id')::uuid;
@@ -46,6 +47,12 @@ BEGIN
             -- Add organization
             IF user_metadata->>'organization' IS NOT NULL THEN
                 new_claims := jsonb_set(new_claims, '{organization}', to_jsonb(user_metadata->>'organization'));
+            END IF;
+            
+            -- Get legacy role from metadata
+            legacy_role := user_metadata->>'role';
+            IF legacy_role IS NOT NULL THEN
+                new_claims := jsonb_set(new_claims, '{user_role}', to_jsonb(legacy_role));
             END IF;
         END IF;
     EXCEPTION WHEN OTHERS THEN
@@ -79,15 +86,32 @@ BEGIN
             FROM public.user_roles
             WHERE user_roles.user_id = user_id;
             
+            -- Get custom roles directly
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'id', cr.id,
+                    'name', cr.name,
+                    'description', cr.description,
+                    'context_type', cr.context_type,
+                    'context_id', cr.context_id
+                )
+            ) INTO user_custom_roles
+            FROM public.user_custom_roles ucr
+            JOIN public.custom_roles cr ON ucr.role_id = cr.id
+            WHERE ucr.user_id = user_id;
+            
             -- Default empty array for custom roles if we can't get them
-            user_custom_roles := '[]'::jsonb;
+            IF user_custom_roles IS NULL THEN
+                user_custom_roles := '[]'::jsonb;
+            END IF;
         END;
         
         -- Add RBAC metadata
         new_claims := jsonb_set(new_claims, '{app_metadata}', jsonb_build_object(
             'roles', COALESCE(user_roles, '[]'::jsonb),
             'custom_roles', COALESCE(user_custom_roles, '[]'::jsonb),
-            'is_platform_admin', is_admin
+            'is_platform_admin', is_admin,
+            'legacy_role', legacy_role
         ));
     EXCEPTION WHEN OTHERS THEN
         -- If RBAC tables don't exist, just continue

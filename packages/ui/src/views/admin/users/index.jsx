@@ -87,7 +87,20 @@ const UsersAdmin = () => {
             field: 'role',
             label: 'Role',
             render: (row) => (
-                <RoleChip role={row.role || 'No Role'} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <RoleChip role={row.role || 'No Role'} />
+                    {row.custom_roles && row.custom_roles.length > 0 && (
+                        row.custom_roles.map((customRole, index) => (
+                            <RoleChip 
+                                key={index} 
+                                role={customRole.name} 
+                                variant="outlined" 
+                                size="small" 
+                                color="secondary"
+                            />
+                        ))
+                    )}
+                </div>
             )
         },
         {

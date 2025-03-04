@@ -37,6 +37,25 @@ export class UserController {
                 console.error('Error fetching user profiles:', profilesError)
             }
             
+            // Get custom roles for users
+            const { data: userCustomRoles, error: customRolesError } = await supabase
+                .from('user_custom_roles')
+                .select(`
+                    user_id,
+                    custom_roles:role_id (
+                        id,
+                        name,
+                        description,
+                        context_type,
+                        context_id
+                    )
+                `)
+                .in('user_id', userIds)
+            
+            if (customRolesError) {
+                console.error('Error fetching custom roles:', customRolesError)
+            }
+            
             // Create a map of user_id to profile
             const profileMap = new Map()
             if (profiles) {
@@ -45,10 +64,22 @@ export class UserController {
                 })
             }
             
+            // Create a map of user_id to custom roles
+            const customRolesMap = new Map()
+            if (userCustomRoles) {
+                userCustomRoles.forEach(ucr => {
+                    if (!customRolesMap.has(ucr.user_id)) {
+                        customRolesMap.set(ucr.user_id, [])
+                    }
+                    customRolesMap.get(ucr.user_id).push(ucr.custom_roles)
+                })
+            }
+            
             // Format the response
             const users = authUsers.users.map(user => {
                 const profile = profileMap.get(user.id)
                 const meta = profile?.meta || {}
+                const customRoles = customRolesMap.get(user.id) || []
                 
                 return {
                     id: user.id,
@@ -60,6 +91,7 @@ export class UserController {
                     lastName: meta.last_name || user.user_metadata?.last_name || '',
                     organization: meta.organization || user.user_metadata?.organization || '',
                     role: meta.role || user.user_metadata?.role || '',
+                    custom_roles: customRoles,
                     lastLogin: user.last_sign_in_at || 'Never',
                     status: user.email_confirmed_at ? 'Active' : 'Pending',
                     createdAt: user.created_at
