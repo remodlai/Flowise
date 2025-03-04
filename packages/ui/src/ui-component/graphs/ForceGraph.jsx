@@ -62,7 +62,9 @@ const ForceGraph = () => {
     
     return () => {
       clearInterval(interval);
-      fgRef.current.controls().removeEventListener('start', handleInteraction);
+      if (fgRef.current && fgRef.current.controls()) {
+        fgRef.current.controls().removeEventListener('start', handleInteraction);
+      }
     };
   }, [graphData]);
   
