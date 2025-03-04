@@ -355,7 +355,7 @@ const OrganizationApplications = ({ organizationId, appSettings = sampleAppSetti
                     </Paper>
                     
                     {/* Features */}
-                    <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+                    <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'background.paper' }}>
                         <Typography variant="h5" gutterBottom>
                             Features
                         </Typography>
@@ -370,6 +370,7 @@ const OrganizationApplications = ({ organizationId, appSettings = sampleAppSetti
                                         />
                                     }
                                     label="File Uploads"
+                                    sx={{ color: 'text.primary' }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={4}>
@@ -382,6 +383,7 @@ const OrganizationApplications = ({ organizationId, appSettings = sampleAppSetti
                                         />
                                     }
                                     label="Custom Domains"
+                                    sx={{ color: 'text.primary' }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={4}>
@@ -394,6 +396,7 @@ const OrganizationApplications = ({ organizationId, appSettings = sampleAppSetti
                                         />
                                     }
                                     label="Single Sign-On (SSO)"
+                                    sx={{ color: 'text.primary' }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={4}>
@@ -406,6 +409,7 @@ const OrganizationApplications = ({ organizationId, appSettings = sampleAppSetti
                                         />
                                     }
                                     label="API Access"
+                                    sx={{ color: 'text.primary' }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={4}>
@@ -418,6 +422,7 @@ const OrganizationApplications = ({ organizationId, appSettings = sampleAppSetti
                                         />
                                     }
                                     label="Advanced Analytics"
+                                    sx={{ color: 'text.primary' }}
                                 />
                             </Grid>
                         </Grid>
