@@ -44,6 +44,7 @@ const VectorStoreQuery = Loadable(lazy(() => import('@/views/docstore/VectorStor
 const AdminLayout = Loadable(lazy(() => import('@/views/admin/AdminLayout')))
 const UsersAdmin = Loadable(lazy(() => import('@/views/admin/users')))
 const OrganizationsAdmin = Loadable(lazy(() => import('@/views/admin/organizations')))
+const OrganizationDetail = Loadable(lazy(() => import('@/views/admin/organizations/detail')))
 const ApplicationsAdmin = Loadable(lazy(() => import('@/views/admin/applications')))
 const PlatformAdmin = Loadable(lazy(() => import('@/views/admin/platform')))
 const PlatformFiles = Loadable(lazy(() => import('@/views/admin/platform/files')))
@@ -157,6 +158,10 @@ const MainRoutes = {
                 {
                     path: 'organizations',
                     element: <OrganizationsAdmin />
+                },
+                {
+                    path: 'organizations/:id',
+                    element: <OrganizationDetail />
                 },
                 {
                     path: 'applications',

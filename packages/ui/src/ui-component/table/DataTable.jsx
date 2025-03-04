@@ -31,6 +31,7 @@ const DataTable = ({
     headerActions,
     tableActions,
     emptyStateMessage = 'No data available',
+    onRowClick,
     sx = {}
 }) => {
     const [page, setPage] = useState(0)
@@ -80,6 +81,13 @@ const DataTable = ({
         setRowsPerPage(parseInt(event.target.value, 10))
         setPage(0)
     }
+
+    // Handle row click if provided
+    const handleRowClick = (row) => {
+        if (onRowClick) {
+            onRowClick(row);
+        }
+    };
 
     return (
         <Box sx={{ 
@@ -190,49 +198,45 @@ const DataTable = ({
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredData.length > 0 ? (
-                            filteredData
-                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                                .map((row, rowIndex) => (
-                                    <TableRow 
-                                        key={rowIndex} 
-                                        hover
-                                        sx={{ 
-                                            '&:hover': {
-                                                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : undefined
-                                            },
-                                            '&:last-child td': {
-                                                borderBottom: 0
-                                            }
-                                        }}
-                                    >
-                                        {columns.map((column, colIndex) => (
-                                            <TableCell 
-                                                key={colIndex}
-                                                align={column.align || 'left'}
-                                                sx={{ 
-                                                    borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : undefined,
-                                                    ...column.cellSx
-                                                }}
-                                            >
-                                                {column.render ? column.render(row) : row[column.field]}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))
-                        ) : (
+                        {filteredData.length === 0 ? (
                             <TableRow>
                                 <TableCell 
                                     colSpan={columns.length} 
                                     align="center"
-                                    sx={{ 
-                                        py: 4,
-                                        color: isDark ? 'rgba(255, 255, 255, 0.5)' : 'text.secondary'
-                                    }}
+                                    sx={{ py: 4 }}
                                 >
-                                    {emptyStateMessage}
+                                    <Typography variant="body1" color="textSecondary">
+                                        {emptyStateMessage}
+                                    </Typography>
                                 </TableCell>
                             </TableRow>
+                        ) : (
+                            filteredData
+                                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                .map((row, index) => (
+                                    <TableRow 
+                                        key={row.id || index}
+                                        hover
+                                        onClick={() => handleRowClick(row)}
+                                        sx={{ 
+                                            cursor: onRowClick ? 'pointer' : 'default',
+                                            '&:last-child td, &:last-child th': { border: 0 }
+                                        }}
+                                    >
+                                        {columns.map((column) => (
+                                            <TableCell 
+                                                key={column.field} 
+                                                align={column.align || 'left'}
+                                                sx={column.sx}
+                                            >
+                                                {column.render 
+                                                    ? column.render(row) 
+                                                    : row[column.field]
+                                                }
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))
                         )}
                     </TableBody>
                 </Table>
@@ -274,6 +278,7 @@ DataTable.propTypes = {
     headerActions: PropTypes.node,
     tableActions: PropTypes.node,
     emptyStateMessage: PropTypes.node,
+    onRowClick: PropTypes.func,
     sx: PropTypes.object
 }
 

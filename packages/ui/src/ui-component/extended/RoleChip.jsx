@@ -3,91 +3,84 @@ import PropTypes from 'prop-types'
 import { Chip, useTheme } from '@mui/material'
 
 /**
- * A reusable role chip component with predefined role types
+ * A component for displaying user roles as chips with appropriate styling
  */
-const RoleChip = ({
-    role,
-    customRoles,
-    size = 'small',
-    variant = 'outlined',
-    sx = {}
-}) => {
+const RoleChip = ({ role, size = 'small', variant = 'filled', sx = {} }) => {
     const theme = useTheme()
     const isDark = theme.palette.mode === 'dark'
     
-    // Default role configurations
-    const defaultRoles = {
-        admin: {
-            label: 'Admin',
-            color: 'primary',
-            darkBg: 'rgba(33, 150, 243, 0.15)',
-            darkColor: '#90caf9',
-            darkBorder: 'rgba(33, 150, 243, 0.5)'
-        },
-        owner: {
+    // Define role configurations with colors
+    const roleConfigs = {
+        Owner: {
             label: 'Owner',
-            color: 'secondary',
-            darkBg: 'rgba(156, 39, 176, 0.15)',
-            darkColor: '#ce93d8',
-            darkBorder: 'rgba(156, 39, 176, 0.5)'
+            color: '#9c27b0', // purple
+            darkBg: '#4a148c',
+            darkColor: '#e1bee7'
         },
-        editor: {
-            label: 'Editor',
-            color: 'info',
-            darkBg: 'rgba(3, 169, 244, 0.15)',
-            darkColor: '#81d4fa',
-            darkBorder: 'rgba(3, 169, 244, 0.5)'
+        Admin: {
+            label: 'Admin',
+            color: '#f44336', // red
+            darkBg: '#b71c1c',
+            darkColor: '#ffcdd2'
         },
-        user: {
-            label: 'User',
-            color: 'default',
-            darkBg: 'rgba(255, 255, 255, 0.08)',
-            darkColor: 'rgba(255, 255, 255, 0.7)',
-            darkBorder: 'rgba(255, 255, 255, 0.15)'
+        Manager: {
+            label: 'Manager',
+            color: '#ff9800', // orange
+            darkBg: '#e65100',
+            darkColor: '#ffe0b2'
         },
-        viewer: {
-            label: 'Viewer',
-            color: 'default',
-            darkBg: 'rgba(255, 255, 255, 0.08)',
-            darkColor: 'rgba(255, 255, 255, 0.7)',
-            darkBorder: 'rgba(255, 255, 255, 0.15)'
+        Member: {
+            label: 'Member',
+            color: '#2196f3', // blue
+            darkBg: '#0d47a1',
+            darkColor: '#bbdefb'
         },
-        guest: {
+        Guest: {
             label: 'Guest',
-            color: 'default',
-            darkBg: 'rgba(255, 255, 255, 0.08)',
-            darkColor: 'rgba(255, 255, 255, 0.7)',
-            darkBorder: 'rgba(255, 255, 255, 0.15)'
+            color: '#757575', // grey
+            darkBg: '#424242',
+            darkColor: '#e0e0e0'
+        },
+        Viewer: {
+            label: 'Viewer',
+            color: '#4caf50', // green
+            darkBg: '#1b5e20',
+            darkColor: '#c8e6c9'
         }
     }
     
-    // Merge default roles with custom roles
-    const allRoles = { ...defaultRoles, ...customRoles }
-    
     // Get role config or use a default
-    const roleKey = role?.toLowerCase() || 'default'
-    const roleConfig = allRoles[roleKey] || {
-        label: role || 'Unknown',
-        color: 'default',
-        darkBg: 'rgba(255, 255, 255, 0.08)',
-        darkColor: 'rgba(255, 255, 255, 0.7)',
-        darkBorder: 'rgba(255, 255, 255, 0.15)'
+    const roleConfig = roleConfigs[role] || {
+        label: role,
+        color: '#757575',
+        darkBg: '#424242',
+        darkColor: '#e0e0e0'
+    }
+    
+    // Determine styles based on variant and theme
+    const getChipStyle = () => {
+        if (variant === 'outlined') {
+            return {
+                color: isDark ? roleConfig.darkColor : roleConfig.color,
+                borderColor: isDark ? roleConfig.darkColor : roleConfig.color,
+                backgroundColor: 'transparent'
+            }
+        }
+        
+        return {
+            color: '#fff',
+            backgroundColor: isDark ? roleConfig.darkBg : roleConfig.color
+        }
     }
     
     return (
         <Chip 
             label={roleConfig.label}
             size={size}
-            color={roleConfig.color}
             variant={variant}
-            sx={{ 
-                borderRadius: '6px',
+            sx={{
                 fontWeight: 500,
-                backgroundColor: variant === 'filled' && isDark ? roleConfig.darkBg : undefined,
-                color: isDark ? 
-                    (variant === 'filled' ? roleConfig.darkColor : roleConfig.darkColor) : 
-                    undefined,
-                borderColor: variant === 'outlined' && isDark ? roleConfig.darkBorder : undefined,
+                ...getChipStyle(),
                 ...sx
             }}
         />
@@ -96,7 +89,6 @@ const RoleChip = ({
 
 RoleChip.propTypes = {
     role: PropTypes.string.isRequired,
-    customRoles: PropTypes.object,
     size: PropTypes.oneOf(['small', 'medium']),
     variant: PropTypes.oneOf(['filled', 'outlined']),
     sx: PropTypes.object
