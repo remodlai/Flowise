@@ -28,6 +28,7 @@ import { WHITELIST_URLS } from './utils/constants'
 import 'global-agent/bootstrap'
 import { authenticateUser } from './utils/supabaseAuth'
 import { IUser } from './Interface'
+import { setupSupabaseStorage } from './utils/setupSupabaseStorage'
 
 // Extend Express Request type
 declare global {
@@ -240,17 +241,26 @@ export class App {
 let serverApp: App | undefined
 
 export async function start(): Promise<void> {
-    serverApp = new App()
-
-    const host = process.env.HOST
-    const port = parseInt(process.env.PORT || '', 10) || 3000
-    const server = http.createServer(serverApp.app)
-
+    const serverApp = new App()
     await serverApp.initDatabase()
     await serverApp.config()
 
-    server.listen(port, host, () => {
-        logger.info(`⚡️ [server]: Remodl AI Platform Server is listening at ${host ? 'http://' + host : ''}:${port}`)
+    // Initialize Supabase Storage buckets if Supabase credentials are available
+    // This ensures all required storage buckets exist with proper RLS policies
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
+        try {
+            await setupSupabaseStorage()
+            logger.info('Supabase Storage buckets initialized successfully')
+        } catch (error) {
+            logger.error('Failed to initialize Supabase Storage buckets:', error)
+        }
+    }
+
+    const host = process.env.HOST || '0.0.0.0'
+    const port = parseInt(process.env.PORT || '3000', 10)
+
+    serverApp.app.listen(port, host, () => {
+        logger.info(`Remodl AI Platform Server running at http://${host}:${port}`)
     })
 }
 
