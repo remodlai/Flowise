@@ -1,8 +1,9 @@
 import express from 'express'
 import { CustomRoleController } from '../controllers/CustomRoleController'
 import { UserController } from '../controllers/UserController'
+import { ApplicationController } from '../controllers/ApplicationController'
+import { OrganizationController } from '../controllers/OrganizationController'
 import { authenticateUser } from '../utils/supabaseAuth'
-import { requirePlatformAdmin } from '../utils/supabase'
 
 // Create a router for v1 API routes
 const router = express.Router()
@@ -16,6 +17,20 @@ router.post('/users', UserController.createUser)
 router.get('/users/:id', UserController.getUserById)
 router.put('/users/:id', UserController.updateUser)
 router.delete('/users/:id', UserController.deleteUser)
+
+// Application routes
+router.get('/applications', ApplicationController.getAllApplications)
+router.post('/applications', ApplicationController.createApplication)
+router.get('/applications/:id', ApplicationController.getApplicationById)
+router.put('/applications/:id', ApplicationController.updateApplication)
+router.delete('/applications/:id', ApplicationController.deleteApplication)
+
+// Organization routes
+router.get('/organizations', OrganizationController.getAllOrganizations)
+router.post('/organizations', OrganizationController.createOrganization)
+router.get('/organizations/:id', OrganizationController.getOrganizationById)
+router.put('/organizations/:id', OrganizationController.updateOrganization)
+router.delete('/organizations/:id', OrganizationController.deleteOrganization)
 
 // Custom Roles routes
 router.get('/custom-roles', CustomRoleController.getAllRoles)

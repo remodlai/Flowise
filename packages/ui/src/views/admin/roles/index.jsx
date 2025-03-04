@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { Grid, Box, Button, Card, CardContent, Checkbox, Chip, CircularProgress, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Tab, Tabs, TextField, Typography } from '@mui/material'
+import { Grid, Box, Button, Card, CardContent, Checkbox, Chip, CircularProgress, Divider, FormControl, InputLabel, MenuItem, Paper, Select, Tab, Tabs, TextField, Typography, ListSubheader } from '@mui/material'
 import MainCard from '@/ui-component/cards/MainCard'
 import { useTheme } from '@mui/material/styles'
 import { toast } from 'react-toastify'
 
 // API
 import * as rolesApi from '@/api/roles'
+import * as applicationsApi from '@/api/applications'
+import * as organizationsApi from '@/api/organizations'
 
 // Types
 const RoleBuilderView = () => {
@@ -80,25 +82,39 @@ const RoleBuilderView = () => {
     
     const fetchApplications = async () => {
         try {
-            // Use the client API
-            const response = await fetch('/api/v1/applications')
-            const data = await response.json()
+            const response = await applicationsApi.getAllApplications()
+            const apps = response.data?.applications || []
+            setApplications(apps)
             
-            setApplications(data.applications || [])
+            if (apps.length === 0) {
+                console.log('No applications found')
+                // If creating a new role with application context but no apps exist
+                if (newRole.context_type === 'application') {
+                    toast.info('No applications available. Please create an application first or select a different context type.')
+                }
+            }
         } catch (error) {
             console.error('Error fetching applications:', error)
+            toast.error('Failed to load applications')
         }
     }
     
     const fetchOrganizations = async () => {
         try {
-            // Use the client API
-            const response = await fetch('/api/v1/organizations')
-            const data = await response.json()
+            const response = await organizationsApi.getAllOrganizations()
+            const orgs = response.data?.organizations || []
+            setOrganizations(orgs)
             
-            setOrganizations(data.organizations || [])
+            if (orgs.length === 0) {
+                console.log('No organizations found')
+                // If creating a new role with organization context but no orgs exist
+                if (newRole.context_type === 'organization') {
+                    toast.info('No organizations available. Please create an organization first or select a different context type.')
+                }
+            }
         } catch (error) {
             console.error('Error fetching organizations:', error)
+            toast.error('Failed to load organizations')
         }
     }
     
@@ -111,9 +127,25 @@ const RoleBuilderView = () => {
                 return
             }
             
-            if (newRole.context_type !== 'platform' && !newRole.context_id) {
-                toast.error('Please select a context')
-                return
+            // For application and organization contexts, ensure context_id exists
+            if (newRole.context_type === 'application') {
+                if (!newRole.context_id) {
+                    if (applications.length === 0) {
+                        toast.error('No applications available. Please create an application first or use platform context.')
+                    } else {
+                        toast.error('Please select an application')
+                    }
+                    return
+                }
+            } else if (newRole.context_type === 'organization') {
+                if (!newRole.context_id) {
+                    if (organizations.length === 0) {
+                        toast.error('No organizations available. Please create an organization first or use platform context.')
+                    } else {
+                        toast.error('Please select an organization')
+                    }
+                    return
+                }
             }
             
             const response = await rolesApi.createRole(newRole)
@@ -184,75 +216,79 @@ const RoleBuilderView = () => {
     }
     
     const handlePermissionToggle = (permission) => {
+        if (!permission) return;
+        
         if (editingRole) {
             // Editing existing role
-            const permissions = [...editingRole.permissions]
+            const permissions = [...(editingRole.permissions || [])];
             
             if (permissions.includes(permission)) {
                 setEditingRole({
                     ...editingRole,
                     permissions: permissions.filter(p => p !== permission)
-                })
+                });
             } else {
                 setEditingRole({
                     ...editingRole,
                     permissions: [...permissions, permission]
-                })
+                });
             }
         } else {
             // Creating new role
-            const permissions = [...newRole.permissions]
+            const permissions = [...(newRole.permissions || [])];
             
             if (permissions.includes(permission)) {
                 setNewRole({
                     ...newRole,
                     permissions: permissions.filter(p => p !== permission)
-                })
+                });
             } else {
                 setNewRole({
                     ...newRole,
                     permissions: [...permissions, permission]
-                })
+                });
             }
         }
     }
     
     const handleCategoryToggle = (category) => {
-        const currentPermissions = editingRole ? [...editingRole.permissions] : [...newRole.permissions]
-        const categoryPermissions = category.permissions.map(p => p.name)
+        if (!category || !category.permissions) return;
+        
+        const currentPermissions = editingRole ? [...(editingRole.permissions || [])] : [...(newRole.permissions || [])];
+        const categoryPermissions = category.permissions.map(p => p.name);
         
         // Check if all permissions in this category are already selected
-        const allSelected = categoryPermissions.every(p => currentPermissions.includes(p))
+        const allSelected = categoryPermissions.every(p => currentPermissions.includes(p));
         
         if (allSelected) {
             // Remove all permissions from this category
-            const newPermissions = currentPermissions.filter(p => !categoryPermissions.includes(p))
+            const newPermissions = currentPermissions.filter(p => !categoryPermissions.includes(p));
             
             if (editingRole) {
                 setEditingRole({
                     ...editingRole,
                     permissions: newPermissions
-                })
+                });
             } else {
                 setNewRole({
                     ...newRole,
                     permissions: newPermissions
-                })
+                });
             }
         } else {
             // Add all permissions from this category
-            const newPermissions = [...new Set([...currentPermissions, ...categoryPermissions])]
+            const newPermissions = [...new Set([...currentPermissions, ...categoryPermissions])];
             
             if (editingRole) {
                 setEditingRole({
                     ...editingRole,
                     permissions: newPermissions
-                })
+                });
             } else {
                 setNewRole({
                     ...newRole,
                     permissions: newPermissions
-                })
+                });
             }
         }
     }
@@ -262,25 +298,33 @@ const RoleBuilderView = () => {
         const contextType = editingRole ? editingRole.context_type : newRole.context_type
         
         // Keep categories that have at least one permission applicable to this context
-        return category.permissions.some(permission => 
-            permission.context_types.includes(contextType)
+        return category.permissions && category.permissions.some(permission => 
+            permission.context_types && permission.context_types.includes(contextType)
         )
     })
     
     const getContextName = (role) => {
-        if (role.context_type === 'platform') return 'Platform'
+        if (!role) return 'Unknown';
+        
+        if (role.context_type === 'platform') return 'Platform';
         
         if (role.context_type === 'application') {
-            const app = applications.find(a => a.id === role.context_id)
-            return app ? `App: ${app.name}` : 'Unknown App'
+            const app = applications.find(a => a && a.id === role.context_id);
+            return app ? `App: ${app.name}` : 'Unknown App';
         }
         
         if (role.context_type === 'organization') {
-            const org = organizations.find(o => o.id === role.context_id)
-            return org ? `Org: ${org.name}` : 'Unknown Org'
+            const org = organizations.find(o => o && o.id === role.context_id);
+            if (!org) return 'Unknown Org';
+            
+            // Find the application this organization belongs to
+            const app = applications.find(a => a && a.id === org.application_id);
+            const appName = app ? app.name : 'Unknown App';
+            
+            return `Org: ${org.name} (in ${appName})`;
         }
         
-        return 'Unknown'
+        return 'Unknown';
     }
     
     if (loading && permissionCategories.length === 0) {
@@ -352,10 +396,19 @@ const RoleBuilderView = () => {
                                             label="Application"
                                             onChange={(e) => setNewRole({ ...newRole, context_id: e.target.value })}
                                         >
-                                            {applications.map(app => (
-                                                <MenuItem key={app.id} value={app.id}>{app.name}</MenuItem>
-                                            ))}
+                                            {applications.length === 0 ? (
+                                                <MenuItem value="" disabled>No applications available</MenuItem>
+                                            ) : (
+                                                applications.map(app => (
+                                                    <MenuItem key={app.id} value={app.id}>{app.name}</MenuItem>
+                                                ))
+                                            )}
                                         </Select>
+                                        {applications.length === 0 && (
+                                            <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                                                No applications available. Please create an application first.
+                                            </Typography>
+                                        )}
                                     </FormControl>
                                 )}
                                 
@@ -367,10 +420,30 @@ const RoleBuilderView = () => {
                                             label="Organization"
                                             onChange={(e) => setNewRole({ ...newRole, context_id: e.target.value })}
                                         >
-                                            {organizations.map(org => (
-                                                <MenuItem key={org.id} value={org.id}>{org.name}</MenuItem>
-                                            ))}
+                                            {organizations.length === 0 ? (
+                                                <MenuItem value="" disabled>No organizations available</MenuItem>
+                                            ) : (
+                                                // Group organizations by application
+                                                applications.map(app => {
+                                                    const appOrgs = organizations.filter(org => org.application_id === app.id);
+                                                    if (appOrgs.length === 0) return null;
+                                                    
+                                                    return [
+                                                        <ListSubheader key={`app-${app.id}`}>
+                                                            {app.name}
+                                                        </ListSubheader>,
+                                                        ...appOrgs.map(org => (
+                                                            <MenuItem key={org.id} value={org.id}>{org.name}</MenuItem>
+                                                        ))
+                                                    ];
+                                                })
+                                            )}
                                         </Select>
+                                        {organizations.length === 0 && (
+                                            <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                                                No organizations available. Please create an organization first.
+                                            </Typography>
+                                        )}
                                     </FormControl>
                                 )}
                                 
@@ -401,16 +474,16 @@ const RoleBuilderView = () => {
                                 
                                 {filteredPermissionCategories.map((category) => {
                                     // Filter permissions by context type
-                                    const applicablePermissions = category.permissions.filter(
-                                        permission => permission.context_types.includes(newRole.context_type)
-                                    )
+                                    const applicablePermissions = category.permissions ? category.permissions.filter(
+                                        permission => permission.context_types && permission.context_types.includes(newRole.context_type)
+                                    ) : [];
                                     
-                                    if (applicablePermissions.length === 0) return null
+                                    if (!applicablePermissions || applicablePermissions.length === 0) return null;
                                     
                                     // Check if all permissions in this category are selected
                                     const allSelected = applicablePermissions.every(
-                                        permission => newRole.permissions.includes(permission.name)
-                                    )
+                                        permission => newRole.permissions && newRole.permissions.includes(permission.name)
+                                    );
                                     
                                     return (
                                         <Box key={category.name} sx={{ mb: 3 }}>
@@ -462,6 +535,8 @@ const RoleBuilderView = () => {
                     {editingRole ? (
                         // Edit role view
                         <>
+                            {console.log('Editing role:', editingRole)}
+                            {console.log('Filtered permission categories:', filteredPermissionCategories)}
                             <Grid item xs={12} md={4}>
                                 <Card>
                                     <CardContent>
@@ -521,16 +596,16 @@ const RoleBuilderView = () => {
                                         
                                         {filteredPermissionCategories.map((category) => {
                                             // Filter permissions by context type
-                                            const applicablePermissions = category.permissions.filter(
-                                                permission => permission.context_types.includes(editingRole.context_type)
-                                            )
+                                            const applicablePermissions = category.permissions ? category.permissions.filter(
+                                                permission => permission.context_types && permission.context_types.includes(editingRole.context_type)
+                                            ) : [];
                                             
-                                            if (applicablePermissions.length === 0) return null
+                                            if (!applicablePermissions || applicablePermissions.length === 0) return null;
                                             
                                             // Check if all permissions in this category are selected
                                             const allSelected = applicablePermissions.every(
-                                                permission => editingRole.permissions.includes(permission.name)
-                                            )
+                                                permission => editingRole.permissions && editingRole.permissions.includes(permission.name)
+                                            );
                                             
                                             return (
                                                 <Box key={category.name} sx={{ mb: 3 }}>
@@ -607,14 +682,22 @@ const RoleBuilderView = () => {
                                                     </Typography>
                                                     
                                                     <Typography variant="body2" sx={{ mb: 1 }}>
-                                                        Permissions: {role.permissions.length}
+                                                        Permissions: {role.permissions && role.permissions.length || 0}
                                                     </Typography>
                                                     
                                                     <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
                                                         <Button
                                                             variant="outlined"
                                                             size="small"
-                                                            onClick={() => setEditingRole(role)}
+                                                            onClick={() => {
+                                                                // Ensure the role has all required properties before editing
+                                                                const roleToEdit = {
+                                                                    ...role,
+                                                                    permissions: role.permissions || []
+                                                                };
+                                                                console.log('Role to edit:', roleToEdit);
+                                                                setEditingRole(roleToEdit);
+                                                            }}
                                                         >
                                                             Edit
                                                         </Button>
