@@ -49,6 +49,7 @@ import magicLinkRouter from './auth/magic-link'
 import callbackRouter from './auth/callback'
 import logoutRouter from './auth/logout'
 import refreshTokenRouter from './auth/refresh-token'
+import adminRouter from './admin'
 
 const router = express.Router()
 
@@ -102,5 +103,6 @@ router.use('/auth/callback', callbackRouter)
 router.use('/auth/logout', logoutRouter)
 router.use('/auth/refresh-token', refreshTokenRouter)
 router.use('/auth', supabaseTokenRouter)
+router.use('/admin', adminRouter)
 
 export default router

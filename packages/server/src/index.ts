@@ -241,7 +241,7 @@ export class App {
 let serverApp: App | undefined
 
 export async function start(): Promise<void> {
-    const serverApp = new App()
+    serverApp = new App()
     await serverApp.initDatabase()
     await serverApp.config()
 

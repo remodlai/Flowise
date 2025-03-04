@@ -22,29 +22,37 @@ const dashboard = {
     type: 'group',
     children: [
         {
-            id: 'chatflows',
-            title: 'Agent Chains',
-            type: 'item',
-            url: '/chatflows',
-            icon: icons.IconHierarchy,
-            breadcrumbs: true,
-        },
-        {
-            id: 'agentflows',
-            title: 'Agent Teams',
-            type: 'item',
-            url: '/agentflows',
-            icon: icons.IconUsersGroup,
-            breadcrumbs: true,
-            isBeta: false
-        },
-        {
-            id: 'assistants',
-            title: 'Assistants',
-            type: 'item',
-            url: '/assistants',
-            icon: icons.IconRobot,
-            breadcrumbs: true
+            id: 'agents',
+            title: 'Agents',
+            type: 'collapse',
+            icon: icons.IconGear,
+            children: [
+                {
+                    id: 'chatflows',
+                    title: 'Agent Chains',
+                    type: 'item',
+                    url: '/chatflows',
+                    icon: icons.IconHierarchy,
+                    breadcrumbs: true,
+                },
+                {
+                    id: 'agentflows',
+                    title: 'Agent Teams',
+                    type: 'item',
+                    url: '/agentflows',
+                    icon: icons.IconUsersGroup,
+                    breadcrumbs: true,
+                    isBeta: false
+                },
+                {
+                    id: 'assistants',
+                    title: 'Assistants',
+                    type: 'item',
+                    url: '/assistants',
+                    icon: icons.IconRobot,
+                    breadcrumbs: true
+                }
+            ]
         },
         {
             id: 'marketplaces',

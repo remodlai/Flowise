@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { Request, Response, NextFunction } from 'express'
+import { IUser } from '../Interface'
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
@@ -46,7 +47,7 @@ export const isAppOwner = async (userId: string, appId: string): Promise<boolean
 
 // Middleware to check if user is platform admin
 export const requirePlatformAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const { user } = req;
+  const user = req.user as IUser | undefined;
   
   if (!user || !user.userId) {
     res.status(401).json({ error: 'Unauthorized' });
@@ -65,7 +66,7 @@ export const requirePlatformAdmin = async (req: Request, res: Response, next: Ne
 
 // Middleware to check if user is org admin
 export const requireOrgAdmin = (orgId: string) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  const { user } = req;
+  const user = req.user as IUser | undefined;
   const targetOrgId = orgId || req.params.orgId;
   
   if (!user || !user.userId) {
