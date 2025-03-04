@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.get('/supabase-token', async (req, res) => {
   try {
-    // The user is already authenticated via Descope middleware
+    // The user is already authenticated via middleware
     const { user } = req;
     
     if (!user || !user.userId) {

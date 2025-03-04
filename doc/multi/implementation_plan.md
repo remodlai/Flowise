@@ -1,10 +1,8 @@
-# Incremental Implementation Plan: Row Level Security (RLS) Implementation
-
-This document outlines the phased approach for implementing Row Level Security (RLS) to manage authorizations in the Flowise platform.
+# Platform Implementation Plan
 
 ## Implementation Philosophy
 
-Rather than implementing a complex external ReBac schema, we'll follow an incremental approach using database Row Level Security:
+Rather than implementing a complex external authorization schema, we'll follow an incremental approach using database Row Level Security:
 1. Start with the core hierarchical structure (platform -> app -> organization)
 2. Implement and test RLS policies at each level
 3. Build the UI components to manage these relationships
@@ -61,7 +59,7 @@ This approach provides clear visibility into authorization rules while maintaini
    ```
 
 3. **Authentication Integration**
-   - Configure Descope authentication
+   - Configure Supabase authentication
    - Set up JWT token generation with claims
    - Implement JWT verification middleware
 
@@ -282,7 +280,7 @@ This approach provides clear visibility into authorization rules while maintaini
 
 1. **JWT Claims for Authorization**
    - Include user ID in JWT
-   - Use Descope for authentication
+   - Use Supabase for authentication
    - Add server middleware to verify JWT
 
 2. **Roles and Claims Propagation**
@@ -324,3 +322,31 @@ After implementing the core platform -> app -> organization structure:
 - Simplified debugging of permission issues
 - Reduced authorization complexity
 - Improved development experience 
+
+## Files Implemented/Modified
+
+### Authentication Backend
+- `packages/server/src/routes/auth/login.ts` - Email/password authentication endpoint
+- `packages/server/src/routes/auth/magic-link.ts` - Passwordless authentication
+- `packages/server/src/routes/auth/callback.ts` - OAuth callback handling
+- `packages/server/src/routes/auth/logout.ts` - User logout functionality
+- `packages/server/src/routes/auth/users.ts` - User management endpoints
+- `packages/server/src/routes/auth/supabase-token.ts` - JWT token generation
+- `packages/server/src/utils/supabaseAuth.ts` - Authentication middleware
+- `packages/server/src/utils/supabase.ts` - Supabase client configuration
+- `packages/server/src/routes/index.ts` - API routes registration
+
+### Frontend Components
+- `packages/ui/src/views/auth/Login.jsx` - Login form and authentication UI
+- `packages/ui/src/contexts/AuthContext.jsx` - Authentication state management
+- `packages/ui/src/routes/ProtectedRoute.jsx` - Route protection based on auth state
+- `packages/ui/src/api/client.js` - API client with auth token handling
+- `packages/ui/src/App.jsx` - Main application with auth provider
+- `packages/ui/src/utils/ImageUtils.js` - Authenticated image loading utilities
+- `packages/ui/src/ui-component/image/AuthImage.jsx` - Component for loading authenticated images
+- `packages/ui/src/ui-component/cards/ItemCard.jsx` - Updated to use AuthImage for secure image loading
+
+### Documentation
+- `doc/multi/implementation_plan.md` - Implementation strategy document
+- `doc/multi/org_structure.md` - Organizational structure documentation
+- `API_TESTING.md` - Guide for testing the Supabase Auth API endpoints 

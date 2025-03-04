@@ -13,7 +13,7 @@ Expected behavior:
 Basic in-session image or file upload:
  - upload to default bucket
 - get public url
-- update auth relationships via ReBac
+- update auth relationships with appropriate permissions
 I'll pause before moving on to more compleex file handling
 
 Primary Hierarchy Structure
@@ -21,23 +21,23 @@ appId (App/Platform)
 Super-tenant level
 Controls global permissions and settings
 Example path prefix: /apps/{appId}/
-ReBac relation: Would be a "platform" type in your schema
+relation: Would be a "platform" type in your schema
 orgId (Organization)
 Tenant level within an app
 Example path prefix: /apps/{appId}/orgs/{orgId}/
-ReBac relation: Your existing "organization" type with parent:platform
+relation: Your existing "organization" type with parent:platform
 userId (User)
 Individual identity
-ReBac relation: Your "user" type, with membership in organizations
+relation: Your "user" type, with membership in organizations
 Permissions flow through organization relationships
 conversationId (Conversation)
 Group of related sessions
 Example path prefix: /apps/{appId}/orgs/{orgId}/conversations/{conversationId}/
-ReBac relation: Could be a new type with parent:organization
+relation: Could be a new type with parent:organization
 sessionId (Session)
 Individual interaction context
 Example path prefix: /apps/{appId}/orgs/{orgId}/conversations/{conversationId}/sessions/{sessionId}/
-ReBac relation: Could be a type with parent:conversation
+relation: Could be a type with parent:conversation
 Implementing This In Storage
 For the storageUtils.ts update, we'd create a function that builds paths following this hierarchy:
 }
@@ -57,7 +57,7 @@ For multiModalUtils.ts, instead of embedding base64 data, we'd:
 Store the file using the hierarchy path
 Generate a URL to that storage location
 Return the URL reference instead of the raw data
-This hierarchy also maps cleanly to your ReBac schema, allowing for precise access controls based on the natural structure of your application.
+This hierarchy also maps cleanly to your access control schema, allowing for precise access controls based on the natural structure of your application.
 
 **places to modify**
 packages/server/src/utils/storageUtils.ts
