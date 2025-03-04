@@ -40,6 +40,21 @@ const LoaderConfigPreviewChunks = Loadable(lazy(() => import('@/views/docstore/L
 const VectorStoreConfigure = Loadable(lazy(() => import('@/views/docstore/VectorStoreConfigure')))
 const VectorStoreQuery = Loadable(lazy(() => import('@/views/docstore/VectorStoreQuery')))
 
+// admin routing
+const AdminLayout = Loadable(lazy(() => import('@/views/admin/AdminLayout')))
+const UsersAdmin = Loadable(lazy(() => import('@/views/admin/users')))
+const OrganizationsAdmin = Loadable(lazy(() => import('@/views/admin/organizations')))
+const ApplicationsAdmin = Loadable(lazy(() => import('@/views/admin/applications')))
+const PlatformAdmin = Loadable(lazy(() => import('@/views/admin/platform')))
+const PlatformFiles = Loadable(lazy(() => import('@/views/admin/platform/files')))
+const ToolsAndNodes = Loadable(lazy(() => import('@/views/admin/platform/tools')))
+const SystemSettings = Loadable(lazy(() => import('@/views/admin/platform/settings')))
+const BillingAdmin = Loadable(lazy(() => import('@/views/admin/billing')))
+const PlansAndPricing = Loadable(lazy(() => import('@/views/admin/billing/plans')))
+const Subscriptions = Loadable(lazy(() => import('@/views/admin/billing/subscriptions')))
+const Invoices = Loadable(lazy(() => import('@/views/admin/billing/invoices')))
+const UsageReports = Loadable(lazy(() => import('@/views/admin/billing/usage')))
+
 // ==============================|| MAIN ROUTING ||============================== //
 
 const MainRoutes = {
@@ -125,6 +140,77 @@ const MainRoutes = {
         {
             path: '/document-stores/query/:storeId',
             element: <VectorStoreQuery />
+        },
+        // Admin routes
+        {
+            path: '/admin',
+            element: <AdminLayout />,
+            children: [
+                {
+                    path: '',
+                    element: <UsersAdmin />
+                },
+                {
+                    path: 'users',
+                    element: <UsersAdmin />
+                },
+                {
+                    path: 'organizations',
+                    element: <OrganizationsAdmin />
+                },
+                {
+                    path: 'applications',
+                    element: <ApplicationsAdmin />
+                },
+                {
+                    path: 'platform',
+                    element: <PlatformAdmin />,
+                    children: [
+                        {
+                            path: '',
+                            element: <PlatformFiles />
+                        },
+                        {
+                            path: 'files',
+                            element: <PlatformFiles />
+                        },
+                        {
+                            path: 'tools',
+                            element: <ToolsAndNodes />
+                        },
+                        {
+                            path: 'settings',
+                            element: <SystemSettings />
+                        }
+                    ]
+                },
+                {
+                    path: 'billing',
+                    element: <BillingAdmin />,
+                    children: [
+                        {
+                            path: '',
+                            element: <PlansAndPricing />
+                        },
+                        {
+                            path: 'plans',
+                            element: <PlansAndPricing />
+                        },
+                        {
+                            path: 'subscriptions',
+                            element: <Subscriptions />
+                        },
+                        {
+                            path: 'invoices',
+                            element: <Invoices />
+                        },
+                        {
+                            path: 'usage',
+                            element: <UsageReports />
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

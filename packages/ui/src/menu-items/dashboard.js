@@ -8,11 +8,35 @@ import {
     IconLock,
     IconRobot,
     IconVariable,
-    IconFiles
+    IconFiles,
+    IconSettings,
+    IconUser,
+    IconUsers,
+    IconBuildingSkyscraper,
+    IconApps,
+    IconCreditCard,
+    IconServer
 } from '@tabler/icons-react'
 
 // constant
-const icons = { IconUsersGroup, IconHierarchy, IconBuildingStore, IconKey, IconTool, IconLock, IconRobot, IconVariable, IconFiles }
+const icons = { 
+    IconUsersGroup, 
+    IconHierarchy, 
+    IconBuildingStore, 
+    IconKey, 
+    IconTool, 
+    IconLock, 
+    IconRobot, 
+    IconVariable, 
+    IconFiles,
+    IconSettings,
+    IconUser,
+    IconUsers,
+    IconBuildingSkyscraper,
+    IconApps,
+    IconCreditCard,
+    IconServer
+}
 
 // ==============================|| DASHBOARD MENU ITEMS ||============================== //
 
@@ -130,41 +154,47 @@ const dashboard = {
             id: 'admin',
             title: 'Admin',
             type: 'collapse',
-            icon: icons.IconGear,
+            icon: icons.IconSettings,
             children: [
                 {
                     id: 'users',
-                    title: 'Users',
+                    title: 'Users & Access',
                     type: 'item',
-                    url: '/users',
-                    icon: icons.SomeIcon,
+                    url: '/admin/users',
+                    icon: icons.IconUsers,
                     breadcrumbs: true
-                },
-                {
-                    id: 'roles',
-                    title: 'Roles',
-                    type: 'item',
-                    url: '/roles',
-                    icon: icons.AnotherIcon,
-                    breadcrumbs: true
-                },
-                {
-                    id: 'permissions',
-                    title: 'Permissions',
-                    type: 'item',
-                    url: '/permissions',
                 },
                 {
                     id: 'organizations',
                     title: 'Organizations',
                     type: 'item',
-                    url: '/organizations',
+                    url: '/admin/organizations',
+                    icon: icons.IconBuildingSkyscraper,
+                    breadcrumbs: true
                 },
                 {
-                    id: 'apps',
-                    title: 'Apps',
+                    id: 'applications',
+                    title: 'Applications',
                     type: 'item',
-                    url: '/apps',
+                    url: '/admin/applications',
+                    icon: icons.IconApps,
+                    breadcrumbs: true
+                },
+                {
+                    id: 'platform',
+                    title: 'Platform',
+                    type: 'item',
+                    url: '/admin/platform',
+                    icon: icons.IconServer,
+                    breadcrumbs: true
+                },
+                {
+                    id: 'billing',
+                    title: 'Billing',
+                    type: 'item',
+                    url: '/admin/billing',
+                    icon: icons.IconCreditCard,
+                    breadcrumbs: true
                 }
             ]
         }
