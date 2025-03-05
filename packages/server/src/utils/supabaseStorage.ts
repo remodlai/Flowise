@@ -369,11 +369,11 @@ const getFileExtension = (mimeType: string): string => {
 }
 
 /**
- * Generates a storage path based on access level and ID
+ * Generates a storage path and bucket based on the context
  * 
  * @param options - Options for generating the storage path
- * @param options.level - Access level ('platform', 'app', 'organization', or 'user')
- * @param options.id - ID of the entity (platform, app, organization, or user)
+ * @param options.level - The level of the storage path (platform, app, organization, user)
+ * @param options.id - The ID of the entity (application ID, organization ID, user ID)
  * @param options.subPath - Optional sub-path within the entity's storage
  * @returns Object containing the bucket and path
  */
@@ -381,35 +381,91 @@ export const generateStoragePath = (options: {
   level: 'platform' | 'app' | 'organization' | 'user';
   id: string;
   subPath?: string;
+  application_id?: string;
 }): { bucket: string; path: string } => {
-  const { level, id, subPath } = options
   let bucket: string
-  let basePath: string
+  let path: string
 
-  // Determine the appropriate bucket and base path based on access level
-  switch (level) {
+  switch (options.level) {
     case 'platform':
       bucket = STORAGE_BUCKETS.PLATFORM
-      basePath = ''
+      path = options.subPath ? options.subPath : ''
       break
     case 'app':
       bucket = STORAGE_BUCKETS.APPS
-      basePath = id
+      path = `app/${options.id}${options.subPath ? '/' + options.subPath : ''}`
       break
     case 'organization':
       bucket = STORAGE_BUCKETS.ORGANIZATIONS
-      basePath = id
+      path = `org/${options.id}${options.subPath ? '/' + options.subPath : ''}`
       break
     case 'user':
       bucket = STORAGE_BUCKETS.USER_FILES
-      basePath = id
+      path = `user/${options.id}${options.subPath ? '/' + options.subPath : ''}`
       break
     default:
-      throw new Error(`Invalid access level: ${level}`)
+      throw new Error(`Invalid storage level: ${options.level}`)
   }
 
-  // Combine the base path with the sub-path if provided
-  const fullPath = subPath ? `${basePath}/${subPath}` : basePath
+  return { bucket, path }
+}
 
-  return { bucket, path: fullPath }
+/**
+ * Generates a storage path for application-specific files
+ * 
+ * @param applicationId - The ID of the application
+ * @param subPath - Optional sub-path within the application's storage
+ * @returns Object containing the bucket and path
+ */
+export const generateApplicationStoragePath = (
+  applicationId: string,
+  subPath?: string
+): { bucket: string; path: string } => {
+  return generateStoragePath({
+    level: 'app',
+    id: applicationId,
+    subPath
+  })
+}
+
+/**
+ * Generates a storage path for organization-specific files
+ * 
+ * @param organizationId - The ID of the organization
+ * @param applicationId - Optional application ID for context
+ * @param subPath - Optional sub-path within the organization's storage
+ * @returns Object containing the bucket and path
+ */
+export const generateOrganizationStoragePath = (
+  organizationId: string,
+  applicationId?: string,
+  subPath?: string
+): { bucket: string; path: string } => {
+  return generateStoragePath({
+    level: 'organization',
+    id: organizationId,
+    subPath,
+    application_id: applicationId
+  })
+}
+
+/**
+ * Generates a storage path for user-specific files
+ * 
+ * @param userId - The ID of the user
+ * @param applicationId - Optional application ID for context
+ * @param subPath - Optional sub-path within the user's storage
+ * @returns Object containing the bucket and path
+ */
+export const generateUserStoragePath = (
+  userId: string,
+  applicationId?: string,
+  subPath?: string
+): { bucket: string; path: string } => {
+  return generateStoragePath({
+    level: 'user',
+    id: userId,
+    subPath,
+    application_id: applicationId
+  })
 } 

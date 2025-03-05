@@ -1,96 +1,115 @@
 -- Fix for infinite recursion in RLS policies
--- This migration adds direct SQL functions to bypass RLS when fetching data
+-- This migration fixes the infinite recursion in the RLS policies for custom_roles and user_custom_roles tables
 
--- Function to get all applications directly
-CREATE OR REPLACE FUNCTION rpc.get_all_applications_direct()
-RETURNS jsonb[]
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    result jsonb[];
-BEGIN
-    SELECT array_agg(
-        jsonb_build_object(
-            'id', a.id,
-            'name', a.name,
-            'description', a.description,
-            'created_at', a.created_at,
-            'updated_at', a.updated_at,
-            'created_by', a.created_by,
-            'status', a.status,
-            'settings', a.settings
-        )
-    )
-    INTO result
-    FROM public.applications a
-    ORDER BY a.name ASC;
-    
-    RETURN COALESCE(result, '{}'::jsonb[]);
-END;
-$$;
-
--- Function to get all organizations directly
-CREATE OR REPLACE FUNCTION rpc.get_all_organizations_direct()
-RETURNS jsonb[]
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    result jsonb[];
-BEGIN
-    SELECT array_agg(
-        jsonb_build_object(
-            'id', o.id,
-            'name', o.name,
-            'description', o.description,
-            'application_id', o.application_id,
-            'created_at', o.created_at,
-            'updated_at', o.updated_at,
-            'created_by', o.created_by,
-            'settings', o.settings
-        )
-    )
-    INTO result
-    FROM public.organizations o
-    ORDER BY o.name ASC;
-    
-    RETURN COALESCE(result, '{}'::jsonb[]);
-END;
-$$;
-
--- Function to get all custom roles directly
+-- Create a function to get all custom roles directly without using RLS
 CREATE OR REPLACE FUNCTION rpc.get_all_custom_roles_direct()
-RETURNS jsonb[]
+RETURNS TABLE (
+    id UUID,
+    name TEXT,
+    description TEXT,
+    base_role TEXT,
+    context_type TEXT,
+    context_id UUID,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ
+)
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
-DECLARE
-    result jsonb[];
 BEGIN
-    SELECT array_agg(
-        jsonb_build_object(
-            'id', cr.id,
-            'name', cr.name,
-            'description', cr.description,
-            'base_role', cr.base_role,
-            'context_type', cr.context_type,
-            'context_id', cr.context_id,
-            'created_at', cr.created_at,
-            'updated_at', cr.updated_at,
-            'created_by', cr.created_by
-        )
-    )
-    INTO result
-    FROM public.custom_roles cr
-    ORDER BY cr.name ASC;
-    
-    RETURN COALESCE(result, '{}'::jsonb[]);
+    RETURN QUERY
+    SELECT 
+        cr.id,
+        cr.name,
+        cr.description,
+        cr.base_role,
+        cr.context_type,
+        cr.context_id,
+        cr.created_at,
+        cr.updated_at
+    FROM public.custom_roles cr;
 END;
 $$;
+
+-- Create a function to get all user custom roles directly without using RLS
+CREATE OR REPLACE FUNCTION rpc.get_all_user_custom_roles_direct()
+RETURNS TABLE (
+    id UUID,
+    user_id UUID,
+    role_id UUID,
+    created_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        ucr.id,
+        ucr.user_id,
+        ucr.role_id,
+        ucr.created_at
+    FROM public.user_custom_roles ucr;
+END;
+$$;
+
+-- Drop the problematic policies that cause infinite recursion
+DROP POLICY IF EXISTS "Users can view roles they have been assigned" ON public.custom_roles;
+DROP POLICY IF EXISTS "App owners can assign app-level roles" ON public.user_custom_roles;
+DROP POLICY IF EXISTS "Org admins can assign org-level roles" ON public.user_custom_roles;
+
+-- Create new policies that don't cause infinite recursion
+-- For custom_roles
+CREATE POLICY "Users can view roles they have been assigned (fixed)"
+ON public.custom_roles
+FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM rpc.get_all_user_custom_roles_direct() ucr
+        WHERE ucr.role_id = public.custom_roles.id AND ucr.user_id = auth.uid()
+    )
+);
+
+-- For user_custom_roles
+CREATE POLICY "App owners can assign app-level roles (fixed)"
+ON public.user_custom_roles
+USING (
+    EXISTS (
+        SELECT 1 FROM rpc.get_all_custom_roles_direct() cr
+        WHERE cr.id = public.user_custom_roles.role_id
+        AND cr.context_type = 'application' 
+        AND EXISTS (SELECT 1 FROM rpc.is_app_owner(cr.context_id))
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM rpc.get_all_custom_roles_direct() cr
+        WHERE cr.id = public.user_custom_roles.role_id
+        AND cr.context_type = 'application' 
+        AND EXISTS (SELECT 1 FROM rpc.is_app_owner(cr.context_id))
+    )
+);
+
+CREATE POLICY "Org admins can assign org-level roles (fixed)"
+ON public.user_custom_roles
+USING (
+    EXISTS (
+        SELECT 1 FROM rpc.get_all_custom_roles_direct() cr
+        WHERE cr.id = public.user_custom_roles.role_id
+        AND cr.context_type = 'organization' 
+        AND EXISTS (SELECT 1 FROM rpc.is_org_admin(cr.context_id))
+    )
+)
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM rpc.get_all_custom_roles_direct() cr
+        WHERE cr.id = public.user_custom_roles.role_id
+        AND cr.context_type = 'organization' 
+        AND EXISTS (SELECT 1 FROM rpc.is_org_admin(cr.context_id))
+    )
+);
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA rpc TO authenticated;
-GRANT EXECUTE ON FUNCTION rpc.get_all_applications_direct() TO authenticated;
-GRANT EXECUTE ON FUNCTION rpc.get_all_organizations_direct() TO authenticated;
-GRANT EXECUTE ON FUNCTION rpc.get_all_custom_roles_direct() TO authenticated; 
+GRANT EXECUTE ON FUNCTION rpc.get_all_custom_roles_direct() TO authenticated;
+GRANT EXECUTE ON FUNCTION rpc.get_all_user_custom_roles_direct() TO authenticated; 

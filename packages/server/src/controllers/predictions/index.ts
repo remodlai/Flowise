@@ -9,7 +9,7 @@ import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { v4 as uuidv4 } from 'uuid'
 import { getErrorMessage } from '../../errors/utils'
 import { MODE } from '../../Interface'
-
+import { createRandomName } from '../../utils/randomNameGenerator'
 // Send input message and get prediction result (External)
 const createPrediction = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -59,7 +59,7 @@ const createPrediction = async (req: Request, res: Response, next: NextFunction)
 
                 
                
-             /*   
+               
              //REMODL TODO: add the handling in supabase here
                let appId = req.body.appId
                 //REMODL TODO: add increment up for runs on the application and chatflow in supabase
@@ -67,14 +67,14 @@ const createPrediction = async (req: Request, res: Response, next: NextFunction)
                     return res.status(StatusCodes.BAD_REQUEST).send("Application ID is required")
                 }
                 
-                let userId: string | undefined = req.body.userId? req.body.userId : "anonymous"
+                let userId: string | undefined = req.body.userId? req.body.userId : `${createRandomName}`
                 //REMODL TODO: Add the userId to the supabase table for chat messages for a given application and/or organization and user. If no user is present, then generate random user id, named "anonymous"
                 let orgId = req.body.orgId
 
                 if (!orgId) {
                     return res.status(StatusCodes.BAD_REQUEST).send("Organization ID is required")
                 } 
- */
+
 
                 let chatId = req.body.chatId
             

@@ -12,3 +12,6 @@ You never take it upon yourself to "improve" code, without permission.  You alwa
 You present clear, concise solutions to problems.
 
 You always fully read files before attempting to edit them.
+
+
+for any changes to supabase custom access hooks, they must be added to /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/migrations/custom_access_hooks, incrementing the version. You must also update /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/migrations/custom_access_hooks/custom_access_hooks_changelog.md with each changes details.
