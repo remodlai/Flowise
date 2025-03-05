@@ -97,7 +97,7 @@ export const utilGetUploadsConfig = async (chatflowid: string): Promise<IUploadC
         nodes.forEach((node: IReactFlowNode) => {
             const data = node.data
             if (data.category === 'Chat Models' && data.inputs?.['allowImageUploads'] === true) {
-                // TODO: for now the maxUploadSize is hardcoded to 5MB, we need to add it to the node properties
+                // TODO: for now the maxUploadSize is hardcoded to 5MB, we need to add it to the node properties, and ensure 
                 node.data.inputParams.map((param: INodeParams) => {
                     if (param.name === 'allowImageUploads' && node.data.inputs?.['allowImageUploads']) {
                         imgUploadSizeAndTypes.push({

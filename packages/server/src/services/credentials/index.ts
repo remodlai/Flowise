@@ -13,6 +13,7 @@ const createCredential = async (requestBody: any) => {
         const newCredential = await transformToCredentialEntity(requestBody)
         const credential = await appServer.AppDataSource.getRepository(Credential).create(newCredential)
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
+        // REMODL TODO: Add the credential to the supabase table for credentials for a given application and/or organization
         return dbResponse
     } catch (error) {
         throw new InternalFlowiseError(
@@ -30,6 +31,7 @@ const deleteCredentials = async (credentialId: string): Promise<any> => {
         if (!dbResponse) {
             throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Credential ${credentialId} not found`)
         }
+        // REMODL TODO: Delete the credential from the supabase table for credentials for a given application and/or organization
         return dbResponse
     } catch (error) {
         throw new InternalFlowiseError(
@@ -116,6 +118,7 @@ const updateCredential = async (credentialId: string, requestBody: any): Promise
         const updateCredential = await transformToCredentialEntity(requestBody)
         await appServer.AppDataSource.getRepository(Credential).merge(credential, updateCredential)
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
+        // REMODL TODO: Update the credential in the supabase table for credentials for a given application and/or organization
         return dbResponse
     } catch (error) {
         throw new InternalFlowiseError(

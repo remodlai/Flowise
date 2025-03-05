@@ -104,7 +104,7 @@ const deleteChatflow = async (chatflowId: string): Promise<any> => {
         )
     }
 }
-/*TODO: modify this to allow for multi-tenant check again database*/
+/*REMODL TODO: modify this to allow for multi-tenant check again database*/
 const getAllChatflows = async (type?: ChatflowType): Promise<ChatFlow[]> => {
     try {
         const appServer = getRunningExpressApp()
@@ -256,7 +256,7 @@ const importChatflows = async (newChatflows: Partial<ChatFlow>[], queryRunner?: 
         )
     }
 }
-
+//REMODL TODO: add the updateChatflow to the supabase table for chatflows for a given application and/or organization. We should be able to thus have "undo and redo" for chatflows
 const updateChatflow = async (chatflow: ChatFlow, updateChatFlow: ChatFlow): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()

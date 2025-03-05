@@ -17,6 +17,8 @@ export const getAPIKeyPath = (): string => {
 /**
  * Generate the api key
  * @returns {string}
+ * 
+ * 
  */
 export const generateAPIKey = (): string => {
     const buffer = randomBytes(32)
@@ -79,6 +81,8 @@ export const getAPIKeys = async (): Promise<ICommonObject[]> => {
  * Add new API key
  * @param {string} keyName
  * @returns {Promise<ICommonObject[]>}
+ * 
+ * REMODL TODO: When an api key is added, we need to add it to the supabase table for api keys for a given application and/or organization
  */
 export const addAPIKey = async (keyName: string): Promise<ICommonObject[]> => {
     const existingAPIKeys = await getAPIKeys()
@@ -95,6 +99,7 @@ export const addAPIKey = async (keyName: string): Promise<ICommonObject[]> => {
         }
     ]
     await fs.promises.writeFile(getAPIKeyPath(), JSON.stringify(content), 'utf8')
+    // REMODL TODO: Add the api key to the supabase table for api keys for a given application and/or organization
     return content
 }
 
@@ -136,6 +141,7 @@ export const importKeys = async (keys: any[], importMode: string): Promise<IComm
         allApiKeys.push(key)
     }
     await fs.promises.writeFile(getAPIKeyPath(), JSON.stringify(allApiKeys), 'utf8')
+    // REMODL TODO: Add the api keys to the supabase table for api keys for a given application and/or organization
     return allApiKeys
 }
 
@@ -148,6 +154,7 @@ export const getApiKey = async (apiKey: string) => {
     const existingAPIKeys = await getAPIKeys()
     const keyIndex = existingAPIKeys.findIndex((key) => key.apiKey === apiKey)
     if (keyIndex < 0) return undefined
+    // REMODL TODO: Get the api key from the supabase table for api keys for a given application and/or organization
     return existingAPIKeys[keyIndex]
 }
 
@@ -163,6 +170,7 @@ export const updateAPIKey = async (keyIdToUpdate: string, newKeyName: string): P
     if (keyIndex < 0) return []
     existingAPIKeys[keyIndex].keyName = newKeyName
     await fs.promises.writeFile(getAPIKeyPath(), JSON.stringify(existingAPIKeys), 'utf8')
+    // REMODL TODO: Update the api key in the supabase table for api keys for a given application and/or organization
     return existingAPIKeys
 }
 
@@ -175,6 +183,7 @@ export const deleteAPIKey = async (keyIdToDelete: string): Promise<ICommonObject
     const existingAPIKeys = await getAPIKeys()
     const result = existingAPIKeys.filter((key) => key.id !== keyIdToDelete)
     await fs.promises.writeFile(getAPIKeyPath(), JSON.stringify(result), 'utf8')
+    // REMODL TODO: Delete the api key from the supabase table for api keys for a given application and/or organization
     return result
 }
 

@@ -684,6 +684,7 @@ export const getUserHome = (): string => {
  * @param {IChatMessage[]} chatmessages
  * @returns {BaseMessage[]}
  * This is where file uploads are parsed and converted to base64
+ * TODO: we need to add integration with @SupabaseStorage here, based on @supabase/storage-js and our @supabaseStorage.ts implementation.
  */
 export const mapChatMessageToBaseMessage = async (chatmessages: any[] = []): Promise<BaseMessage[]> => {
     const chatHistory = []
@@ -704,6 +705,10 @@ export const mapChatMessageToBaseMessage = async (chatmessages: any[] = []): Pro
                             const fileData = await getFileFromStorage(upload.name, message.chatflowid, message.chatId)
                             // as the image is stored in the server, read the file and convert it to base64
                             //TODO - we need to resize the image to a MAX width of 1920px, and max dpi of 72
+                            //TODO - we need to add the image to the supabase storage bucket for the given organization>user
+                            //TODO - we need to return the url of the image from supabase storage
+                            //TODO - we need to store the url of the image in the chat message history (this should be already handled automatically by the @mapChatMessageToBaseMessage function)
+
                             const bf = 'data:' + upload.mime + ';base64,' + fileData.toString('base64')
 
                             imageContents.push({
