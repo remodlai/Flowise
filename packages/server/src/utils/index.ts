@@ -1779,7 +1779,7 @@ const getOrgId = () => {
         return ''
     }
 }
-
+/*TODO: update this to use supabase storage */
 export const getMulterStorage = () => {
     const storageType = process.env.STORAGE_TYPE ? process.env.STORAGE_TYPE : 'local'
 

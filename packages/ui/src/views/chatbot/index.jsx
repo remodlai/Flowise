@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FullPageChat } from 'flowise-embed-react'
-import { useNavigate } from 'react-router-dom'
-import { useSession } from '@descope/react-sdk'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 
 // Project import
 import LoginDialog from '@/ui-component/dialog/LoginDialog'
@@ -21,7 +21,7 @@ const ChatbotFull = () => {
     const URLpath = document.location.pathname.toString().split('/')
     const chatflowId = URLpath[URLpath.length - 1] === 'chatbot' ? '' : URLpath[URLpath.length - 1]
     const navigate = useNavigate()
-    const { isAuthenticated } = useSession()
+    const { isAuthenticated } = useAuth()
 
     const [chatflow, setChatflow] = useState(null)
     const [chatbotTheme, setChatbotTheme] = useState({})

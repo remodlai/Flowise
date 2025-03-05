@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 
 // material-ui
 import { Box, Stack, Button, ButtonGroup, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material'
@@ -28,6 +30,8 @@ import { useTheme } from '@mui/material/styles'
 
 const Tools = () => {
     const theme = useTheme()
+    const navigate = useNavigate()
+    const { isAuthenticated } = useAuth()
     const getAllToolsApi = useApi(toolsApi.getAllTools)
 
     const [isLoading, setLoading] = useState(true)
@@ -127,9 +131,16 @@ const Tools = () => {
 
     useEffect(() => {
         if (getAllToolsApi.error) {
-            setError(getAllToolsApi.error)
+            if (getAllToolsApi.error?.response?.status === 401) {
+                // Redirect to login page if not authenticated
+                if (!isAuthenticated) {
+                    navigate('/login')
+                }
+            } else {
+                setError(getAllToolsApi.error)
+            }
         }
-    }, [getAllToolsApi.error])
+    }, [getAllToolsApi.error, isAuthenticated, navigate])
 
     return (
         <>
