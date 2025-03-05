@@ -44,7 +44,7 @@ import ExpandTextDialog from '@/ui-component/dialog/ExpandTextDialog'
 // API
 import assistantsApi from '@/api/assistants'
 import chatflowsApi from '@/api/chatflows'
-import nodesApi from '@/api/nodes'
+import * as nodesApi from '@/api/nodes'
 import documentstoreApi from '@/api/documentstore'
 
 // Const

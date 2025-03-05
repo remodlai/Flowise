@@ -17,7 +17,7 @@ import { CodeEditor } from '@/ui-component/editor/CodeEditor'
 import { HIDE_CANVAS_DIALOG, SHOW_CANVAS_DIALOG } from '@/store/actions'
 
 // API
-import nodesApi from '@/api/nodes'
+import * as nodesApi from '@/api/nodes'
 import useApi from '@/hooks/useApi'
 
 import './ExpandTextDialog.css'

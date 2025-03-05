@@ -29,7 +29,7 @@ import { VectorStorePopUp } from '@/views/vectorstore/VectorStorePopUp'
 import { flowContext } from '@/store/context/ReactFlowContext'
 
 // API
-import nodesApi from '@/api/nodes'
+import * as nodesApi from '@/api/nodes'
 import chatflowsApi from '@/api/chatflows'
 
 // Hooks

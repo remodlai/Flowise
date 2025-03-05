@@ -181,7 +181,7 @@ const CanvasNode = ({ data }) => {
                                         ...theme.typography.commonAvatar,
                                         ...theme.typography.largeAvatar,
                                         borderRadius: '50%',
-                                        backgroundColor: 'white',
+                                        backgroundColor: 'transparent',
                                         cursor: 'grab'
                                     }}
                                 >
@@ -232,7 +232,7 @@ const CanvasNode = ({ data }) => {
                         </div>
                         {(data.inputAnchors.length > 0 || data.inputParams.length > 0) && (
                             <>
-                                <Divider />
+                                
                                 <Box sx={{ background: theme.palette.asyncSelect.main, p: 1 }}>
                                     <Typography
                                         sx={{
@@ -243,7 +243,7 @@ const CanvasNode = ({ data }) => {
                                         Inputs
                                     </Typography>
                                 </Box>
-                                <Divider />
+                                
                             </>
                         )}
                         {data.inputAnchors.map((inputAnchor, index) => (
@@ -281,7 +281,7 @@ const CanvasNode = ({ data }) => {
                                 </Button>
                             </div>
                         )}
-                        {data.outputAnchors.length > 0 && <Divider />}
+                        {data.outputAnchors.length > 0 }
                         {data.outputAnchors.length > 0 && (
                             <Box sx={{ background: theme.palette.asyncSelect.main, p: 1 }}>
                                 <Typography
@@ -294,7 +294,7 @@ const CanvasNode = ({ data }) => {
                                 </Typography>
                             </Box>
                         )}
-                        {data.outputAnchors.length > 0 && <Divider />}
+                        {data.outputAnchors.length > 0 }
                         {data.outputAnchors.length > 0 &&
                             data.outputAnchors.map((outputAnchor) => (
                                 <NodeOutputHandler key={JSON.stringify(data)} outputAnchor={outputAnchor} data={data} />

@@ -28,7 +28,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 // const
 import { baseURL } from '@/store/constant'
-import nodesApi from '@/api/nodes'
+import * as nodesApi from '@/api/nodes'
 
 // Hooks
 import useApi from '@/hooks/useApi'

@@ -24,7 +24,7 @@ import ErrorBoundary from '@/ErrorBoundary'
 import ExpandedChunkDialog from './ExpandedChunkDialog'
 
 // API
-import nodesApi from '@/api/nodes'
+import * as nodesApi from '@/api/nodes'
 import documentStoreApi from '@/api/documentstore'
 import documentsApi from '@/api/documentstore'
 
