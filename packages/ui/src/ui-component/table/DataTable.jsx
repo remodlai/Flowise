@@ -101,13 +101,13 @@ const DataTable = ({
                 <Box sx={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
-                    alignItems: 'center', 
+                    alignItems: { xs: 'flex-start', md: 'center' }, 
                     mb: 3,
-                    flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                    flexDirection: { xs: 'column', md: 'row' },
                     gap: 2
                 }}>
                     {title && (
-                        <Box>
+                        <Box sx={{ width: { xs: '100%', md: 'auto' } }}>
                             <Typography 
                                 variant="h4" 
                                 gutterBottom 
@@ -132,7 +132,10 @@ const DataTable = ({
                         </Box>
                     )}
                     {headerActions && (
-                        <Box>
+                        <Box sx={{ 
+                            mt: { xs: 1, md: 0 },
+                            width: { xs: '100%', md: 'auto' }
+                        }}>
                             {headerActions}
                         </Box>
                     )}
@@ -144,7 +147,8 @@ const DataTable = ({
                 <Box sx={{ 
                     display: 'flex', 
                     mb: 2,
-                    flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                    flexDirection: { xs: 'column', md: 'row' },
+                    alignItems: { xs: 'flex-start', md: 'center' },
                     gap: 2
                 }}>
                     {searchFields.length > 0 && (
@@ -153,11 +157,16 @@ const DataTable = ({
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onClear={() => setSearchTerm('')}
-                            sx={{ maxWidth: 400 }}
+                            sx={{ maxWidth: { xs: '100%', md: 400 }, width: { xs: '100%', md: 'auto' } }}
                         />
                     )}
                     {tableActions && (
-                        <Box>
+                        <Box sx={{ 
+                            display: 'flex', 
+                            flexWrap: 'wrap',
+                            gap: 1,
+                            width: { xs: '100%', md: 'auto' }
+                        }}>
                             {tableActions}
                         </Box>
                     )}

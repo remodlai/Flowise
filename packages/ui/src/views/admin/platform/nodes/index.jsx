@@ -29,6 +29,8 @@ const PlatformNodesView = () => {
     const [error, setError] = useState(null)
     const [updating, setUpdating] = useState(false)
     const [filterAnchorEl, setFilterAnchorEl] = useState(null)
+    const [llamaIndexFilter, setLlamaIndexFilter] = useState('non-llama') // Default to showing non-LlamaIndex nodes
+    const [llamaFilterAnchorEl, setLlamaFilterAnchorEl] = useState(null)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -97,7 +99,16 @@ const PlatformNodesView = () => {
 
     const filteredNodes = nodes.filter(node => {
         const categoryMatch = selectedCategory === 'All' || node.category === selectedCategory
-        return categoryMatch
+        
+        // LlamaIndex filtering
+        let llamaIndexMatch = true;
+        if (llamaIndexFilter === 'non-llama') {
+            llamaIndexMatch = !node.name.includes('LlamaIndex');
+        } else if (llamaIndexFilter === 'llama-only') {
+            llamaIndexMatch = node.name.includes('LlamaIndex');
+        }
+        
+        return categoryMatch && llamaIndexMatch;
     })
 
     // Handle filter menu
@@ -112,6 +123,34 @@ const PlatformNodesView = () => {
     const handleCategorySelect = (category) => {
         setSelectedCategory(category)
         handleFilterClose()
+    }
+
+    // Handle LlamaIndex filter menu
+    const handleLlamaFilterClick = (event) => {
+        setLlamaFilterAnchorEl(event.currentTarget)
+    }
+
+    const handleLlamaFilterClose = () => {
+        setLlamaFilterAnchorEl(null)
+    }
+
+    const handleLlamaFilterSelect = (filter) => {
+        setLlamaIndexFilter(filter)
+        handleLlamaFilterClose()
+    }
+
+    // Get display text for current LlamaIndex filter
+    const getLlamaFilterText = () => {
+        switch (llamaIndexFilter) {
+            case 'all':
+                return 'All Nodes';
+            case 'non-llama':
+                return 'Non-LlamaIndex Nodes';
+            case 'llama-only':
+                return 'LlamaIndex Nodes Only';
+            default:
+                return 'Non-LlamaIndex Nodes';
+        }
     }
 
     // Define table columns
@@ -139,7 +178,7 @@ const PlatformNodesView = () => {
                             {row.name}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
-                            {row.description?.substring(0, 60)}{row.description?.length > 60 ? '...' : ''}
+                            {row.description}
                         </Typography>
                     </Box>
                 </Box>
@@ -216,6 +255,7 @@ const PlatformNodesView = () => {
         <Button 
             variant="contained" 
             startIcon={<IconSettings size={18} />}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
         >
             Manage Node Settings
         </Button>
@@ -228,8 +268,17 @@ const PlatformNodesView = () => {
                 variant="outlined" 
                 startIcon={<IconFilter size={18} />}
                 onClick={handleFilterClick}
+                sx={{ mr: { xs: 1, sm: 2 }, mb: { xs: 1, md: 0 } }}
             >
                 {selectedCategory === 'All' ? 'All Categories' : selectedCategory}
+            </Button>
+            <Button
+                variant="outlined"
+                startIcon={<IconFilter size={18} />}
+                onClick={handleLlamaFilterClick}
+                sx={{ mr: { xs: 1, sm: 2 }, mb: { xs: 1, md: 0 } }}
+            >
+                {getLlamaFilterText()}
             </Button>
             <Menu
                 anchorEl={filterAnchorEl}
@@ -249,6 +298,34 @@ const PlatformNodesView = () => {
                         {category}
                     </MenuItem>
                 ))}
+            </Menu>
+            <Menu
+                anchorEl={llamaFilterAnchorEl}
+                open={Boolean(llamaFilterAnchorEl)}
+                onClose={handleLlamaFilterClose}
+                PaperProps={{
+                    elevation: 3,
+                    sx: { minWidth: 180, borderRadius: '8px' }
+                }}
+            >
+                <MenuItem 
+                    onClick={() => handleLlamaFilterSelect('all')}
+                    selected={llamaIndexFilter === 'all'}
+                >
+                    All Nodes
+                </MenuItem>
+                <MenuItem 
+                    onClick={() => handleLlamaFilterSelect('non-llama')}
+                    selected={llamaIndexFilter === 'non-llama'}
+                >
+                    Non-LlamaIndex Nodes
+                </MenuItem>
+                <MenuItem 
+                    onClick={() => handleLlamaFilterSelect('llama-only')}
+                    selected={llamaIndexFilter === 'llama-only'}
+                >
+                    LlamaIndex Nodes Only
+                </MenuItem>
             </Menu>
         </>
     )
