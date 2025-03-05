@@ -5,45 +5,15 @@ import { Outlet } from 'react-router-dom'
 import { IconFolder, IconTools, IconSettings } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 
-// material-ui
-import { Tabs, Tab } from '@mui/material'
-
-// project imports
-import MainCard from '../../../ui-component/cards/MainCard'
+// Platform views
 import PlatformNodesView from './nodes'
-import PlatformToolsView from './tools'
-
-// icons
-import ExtensionIcon from '@mui/icons-material/Extension'
-import BuildIcon from '@mui/icons-material/Build'
-
-// tab panel
-function TabPanel({ children, value, index, ...other }) {
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`platform-tabpanel-${index}`}
-            aria-labelledby={`platform-tab-${index}`}
-            {...other}
-        >
-            {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-        </div>
-    )
-}
-
-function a11yProps(index) {
-    return {
-        id: `platform-tab-${index}`,
-        'aria-controls': `platform-tabpanel-${index}`
-    }
-}
+import PlatformToolsView from './tools/ToolsView'
 
 // Platform admin navigation items
 const platformNavItems = [
     { label: 'Platform Files', path: '/admin/platform/files', icon: <IconFolder size={20} /> },
-    { label: 'Tools & Nodes', path: '/admin/platform/tools', icon: <IconTools size={20} /> },
-    { label: 'System Settings', path: '/admin/platform/settings', icon: <IconSettings size={20} /> }
+    { label: 'Nodes', path: '/admin/platform/nodes', icon: <IconTools size={20} /> },
+    { label: 'Tools', path: '/admin/platform/tools', icon: <IconSettings size={20} /> }
 ]
 
 const PlatformAdmin = () => {
@@ -51,16 +21,11 @@ const PlatformAdmin = () => {
     const location = useLocation()
     const currentPath = location.pathname
     const theme = useTheme()
-    const [value, setValue] = useState(0)
 
     // Find the active item based on the current path
     const activeItem = platformNavItems.findIndex(
         (item) => currentPath.startsWith(item.path)
     )
-
-    const handleChange = (event, newValue) => {
-        setValue(newValue)
-    }
 
     return (
         <Box sx={{ display: 'flex', height: '100%' }}>
@@ -106,77 +71,20 @@ const PlatformAdmin = () => {
             
             {/* Content Area */}
             <Box sx={{ flexGrow: 1, p: 3, overflow: 'auto' }}>
-                <Box sx={{ mb: 3 }}>
-                    <Typography variant="h3" gutterBottom sx={{ mb: 0.5 }}>
-                        Platform Management
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                        Manage platform files, tools, nodes, and system settings
-                    </Typography>
-                </Box>
-                
                 {activeItem === -1 ? (
                     <Typography variant="body1">
                         Select a platform section from the menu to get started.
                     </Typography>
                 ) : (
-                    <MainCard title="Platform Management">
-                        <Typography variant="body1" sx={{ mb: 3 }}>
-                            Control which nodes and tools are available to users when building chatflows.
-                        </Typography>
-
-                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                            <Tabs
-                                value={value}
-                                onChange={handleChange}
-                                aria-label="platform management tabs"
-                                variant="scrollable"
-                                scrollButtons="auto"
-                            >
-                                <Tab
-                                    icon={<ExtensionIcon />}
-                                    label="Nodes"
-                                    {...a11yProps(0)}
-                                    sx={{
-                                        minHeight: 'auto',
-                                        minWidth: 'auto',
-                                        px: 2,
-                                        py: 1.5,
-                                        mr: 2,
-                                        color: theme.palette.mode === 'dark' ? theme.palette.grey[600] : theme.palette.grey[600],
-                                        borderRadius: '12px 12px 0 0',
-                                        '&.Mui-selected': {
-                                            color: theme.palette.primary.main
-                                        }
-                                    }}
-                                />
-                                <Tab
-                                    icon={<BuildIcon />}
-                                    label="Tools"
-                                    {...a11yProps(1)}
-                                    sx={{
-                                        minHeight: 'auto',
-                                        minWidth: 'auto',
-                                        px: 2,
-                                        py: 1.5,
-                                        mr: 2,
-                                        color: theme.palette.mode === 'dark' ? theme.palette.grey[600] : theme.palette.grey[600],
-                                        borderRadius: '12px 12px 0 0',
-                                        '&.Mui-selected': {
-                                            color: theme.palette.primary.main
-                                        }
-                                    }}
-                                />
-                            </Tabs>
-                        </Box>
-
-                        <TabPanel value={value} index={0}>
-                            <PlatformNodesView />
-                        </TabPanel>
-                        <TabPanel value={value} index={1}>
-                            <PlatformToolsView />
-                        </TabPanel>
-                    </MainCard>
+                    <>
+                        {currentPath.includes('/nodes') && <PlatformNodesView />}
+                        {currentPath.includes('/tools') && <PlatformToolsView />}
+                        {currentPath.includes('/files') && (
+                            <Typography variant="body1">
+                                Platform Files management will be implemented soon.
+                            </Typography>
+                        )}
+                    </>
                 )}
             </Box>
         </Box>
