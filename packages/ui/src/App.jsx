@@ -13,6 +13,7 @@ import themes from '@/themes'
 // project imports
 import NavigationScroll from '@/layout/NavigationScroll'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ApplicationProvider } from '@/contexts/ApplicationContext'
 
 // ==============================|| APP ||============================== //
 
@@ -41,9 +42,11 @@ const App = () => {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <AuthProvider>
-                    <NavigationScroll>
-                        <Routes />
-                    </NavigationScroll>
+                    <ApplicationProvider>
+                        <NavigationScroll>
+                            <Routes />
+                        </NavigationScroll>
+                    </ApplicationProvider>
                 </AuthProvider>
             </ThemeProvider>
         </StyledEngineProvider>

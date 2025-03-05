@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { ApplicationContext } from '@/contexts/ApplicationContext'
 
 // material-ui
 import { Box, Stack, Button, ButtonGroup, Skeleton, ToggleButtonGroup, ToggleButton } from '@mui/material'
@@ -32,7 +33,10 @@ const Tools = () => {
     const theme = useTheme()
     const navigate = useNavigate()
     const { isAuthenticated } = useAuth()
-    const getAllToolsApi = useApi(toolsApi.getAllTools)
+    const { applicationId } = useContext(ApplicationContext)
+    
+    // Pass applicationId to the API call
+    const getAllToolsApi = useApi(() => toolsApi.getAllTools(applicationId))
 
     const [isLoading, setLoading] = useState(true)
     const [error, setError] = useState(null)

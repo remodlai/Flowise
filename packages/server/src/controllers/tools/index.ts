@@ -25,7 +25,14 @@ const deleteTool = async (req: Request, res: Response, next: NextFunction) => {
         if (typeof req.params === 'undefined' || !req.params.id) {
             throw new InternalFlowiseError(StatusCodes.PRECONDITION_FAILED, `Error: toolsController.deleteTool - id not provided!`)
         }
-        const apiResponse = await toolsService.deleteTool(req.params.id)
+        
+        // Get applicationId from query parameters if provided
+        const applicationId = req.query.applicationId as string
+        
+        // Log the request for debugging
+        logger.debug('Deleting tool with applicationId:', applicationId)
+        
+        const apiResponse = await toolsService.deleteTool(req.params.id, applicationId)
         return res.json(apiResponse)
     } catch (error) {
         next(error)
@@ -52,7 +59,14 @@ const getToolById = async (req: Request, res: Response, next: NextFunction) => {
         if (typeof req.params === 'undefined' || !req.params.id) {
             throw new InternalFlowiseError(StatusCodes.PRECONDITION_FAILED, `Error: toolsController.getToolById - id not provided!`)
         }
-        const apiResponse = await toolsService.getToolById(req.params.id)
+        
+        // Get applicationId from query parameters if provided
+        const applicationId = req.query.applicationId as string
+        
+        // Log the request for debugging
+        logger.debug('Getting tool by ID with applicationId:', applicationId)
+        
+        const apiResponse = await toolsService.getToolById(req.params.id, applicationId)
         return res.json(apiResponse)
     } catch (error) {
         next(error)

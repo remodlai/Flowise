@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { enqueueSnackbar as enqueueSnackbarAction, closeSnackbar as closeSnackbarAction } from '@/store/actions'
 import { cloneDeep } from 'lodash'
+import { useContext } from 'react'
 
 import { Box, Button, Typography, Dialog, DialogActions, DialogContent, DialogTitle, Stack, OutlinedInput } from '@mui/material'
 import { StyledButton } from '@/ui-component/button/StyledButton'
@@ -30,6 +31,7 @@ import useNotifier from '@/utils/useNotifier'
 import { generateRandomGradient, formatDataGridRows } from '@/utils/genericHelper'
 import { HIDE_CANVAS_DIALOG, SHOW_CANVAS_DIALOG } from '@/store/actions'
 import ExportAsTemplateDialog from '@/ui-component/dialog/ExportAsTemplateDialog'
+import { ApplicationContext } from '@/contexts/ApplicationContext'
 
 const exampleAPIFunc = `/*
 * You can use any libraries imported in Flowise
@@ -70,7 +72,11 @@ const ToolDialog = ({ show, dialogProps, onUseTemplate, onCancel, onConfirm, set
     const enqueueSnackbar = (...args) => dispatch(enqueueSnackbarAction(...args))
     const closeSnackbar = (...args) => dispatch(closeSnackbarAction(...args))
 
-    const getSpecificToolApi = useApi(toolsApi.getSpecificTool)
+    // Get the current application ID from localStorage or context
+    const { applicationId } = useContext(ApplicationContext)
+    const currentApplicationId = applicationId || localStorage.getItem('selectedApplicationId') || ''
+
+    const getSpecificToolApi = useApi((id) => toolsApi.getSpecificTool(id, currentApplicationId))
 
     const [toolId, setToolId] = useState('')
     const [toolName, setToolName] = useState('')
@@ -233,7 +239,7 @@ const ToolDialog = ({ show, dialogProps, onUseTemplate, onCancel, onConfirm, set
 
     const exportTool = async () => {
         try {
-            const toolResp = await toolsApi.getSpecificTool(toolId)
+            const toolResp = await toolsApi.getSpecificTool(toolId, currentApplicationId)
             if (toolResp.data) {
                 const toolData = toolResp.data
                 delete toolData.id
@@ -279,7 +285,8 @@ const ToolDialog = ({ show, dialogProps, onUseTemplate, onCancel, onConfirm, set
                 color: generateRandomGradient(),
                 schema: JSON.stringify(toolSchema),
                 func: toolFunc,
-                iconSrc: toolIcon
+                iconSrc: toolIcon,
+                applicationId: currentApplicationId
             }
             const createResp = await toolsApi.createNewTool(obj)
             if (createResp.data) {
@@ -319,13 +326,16 @@ const ToolDialog = ({ show, dialogProps, onUseTemplate, onCancel, onConfirm, set
 
     const saveTool = async () => {
         try {
-            const saveResp = await toolsApi.updateTool(toolId, {
+            const obj = {
                 name: toolName,
                 description: toolDesc,
+                color: toolColor,
                 schema: JSON.stringify(toolSchema),
                 func: toolFunc,
-                iconSrc: toolIcon
-            })
+                iconSrc: toolIcon,
+                applicationId: currentApplicationId
+            }
+            const saveResp = await toolsApi.updateTool(toolId, obj)
             if (saveResp.data) {
                 enqueueSnackbar({
                     message: 'Tool saved',
@@ -372,7 +382,7 @@ const ToolDialog = ({ show, dialogProps, onUseTemplate, onCancel, onConfirm, set
 
         if (isConfirmed) {
             try {
-                const delResp = await toolsApi.deleteTool(toolId)
+                const delResp = await toolsApi.deleteTool(toolId, currentApplicationId)
                 if (delResp.data) {
                     enqueueSnackbar({
                         message: 'Tool deleted',

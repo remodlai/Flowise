@@ -33,8 +33,8 @@ const PlatformToolsView = () => {
         const fetchData = async () => {
             setIsLoading(true)
             try {
-                // Fetch all tools
-                const toolsResponse = await toolsApi.getAllTools()
+                // Fetch all tools - platform admins should see all tools, so pass 'global'
+                const toolsResponse = await toolsApi.getAllTools('global')
                 const allTools = toolsResponse.data || []
                 
                 // Fetch enabled status

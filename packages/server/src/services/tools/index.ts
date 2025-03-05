@@ -63,7 +63,7 @@ const createTool = async (requestBody: any): Promise<any> => {
     }
 }
 
-const deleteTool = async (toolId: string): Promise<any> => {
+const deleteTool = async (toolId: string, applicationId?: string): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
         
@@ -118,7 +118,7 @@ const getAllTools = async (applicationId?: string): Promise<Tool[]> => {
     }
 }
 
-const getToolById = async (toolId: string): Promise<any> => {
+const getToolById = async (toolId: string, applicationId?: string): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
         const dbResponse = await appServer.AppDataSource.getRepository(Tool).findOneBy({
@@ -132,9 +132,15 @@ const getToolById = async (toolId: string): Promise<any> => {
         try {
             const applicationTools = await importApplicationTools()
             if (applicationTools) {
-                const applicationId = await applicationTools.getApplicationIdForTool(toolId)
-                if (applicationId) {
-                    return { ...dbResponse, applicationId }
+                const toolApplicationId = await applicationTools.getApplicationIdForTool(toolId)
+                
+                // If applicationId is provided, check if tool belongs to that application
+                if (applicationId && applicationId !== 'global' && toolApplicationId !== applicationId) {
+                    throw new InternalFlowiseError(StatusCodes.FORBIDDEN, `Tool ${toolId} does not belong to application ${applicationId}`)
+                }
+                
+                if (toolApplicationId) {
+                    return { ...dbResponse, applicationId: toolApplicationId }
                 }
             }
         } catch (error) {
