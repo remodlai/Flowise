@@ -156,15 +156,13 @@ const StatCard = ({ icon, value, label, iconColor, hasMenu = false }) => {
 
 const ApplicationDashboardRow = ({ 
     application, 
-    onView, 
-    onEdit, 
-    onDelete,
-    formatDate
+    onView
 }) => {
     const theme = useTheme();
     
     return (
         <Box
+            onClick={() => onView(application.id)}
             sx={{
                 backgroundColor: '#181A23',
                 width: "100%",
@@ -172,7 +170,14 @@ const ApplicationDashboardRow = ({
                 overflow: 'hidden',
                 p: 3,
                 mb: 3,
-                position: 'relative'
+                position: 'relative',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                    backgroundColor: '#1E2029',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                }
             }}
         >
             <Grid container spacing={3}>
@@ -213,6 +218,7 @@ const ApplicationDashboardRow = ({
                         href={application.website}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         sx={{
                             color: '#3B82F6',
                             fontSize: '14px',
@@ -358,51 +364,6 @@ const ApplicationDashboardRow = ({
                     </Grid>
                 </Grid>
             </Grid>
-
-            {/* Action Buttons - positioned absolutely */}
-            <Box sx={{ 
-                position: 'absolute', 
-                top: 16, 
-                right: 16,
-                display: 'flex',
-                gap: 1
-            }}>
-                <Tooltip title="View Details">
-                    <IconButton 
-                        onClick={() => onView(application.id)}
-                        sx={{ 
-                            color: '#fff',
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                        }}
-                    >
-                        <IconEye size={20} stroke={1.5} />
-                    </IconButton>
-                </Tooltip>
-                
-                <Tooltip title="Edit Application">
-                    <IconButton 
-                        onClick={() => onEdit(application)}
-                        sx={{ 
-                            color: '#fff',
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                        }}
-                    >
-                        <IconEdit size={20} stroke={1.5} />
-                    </IconButton>
-                </Tooltip>
-                
-                <Tooltip title="Delete Application">
-                    <IconButton 
-                        onClick={() => onDelete(application.id)}
-                        sx={{ 
-                            color: '#fff',
-                            '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                        }}
-                    >
-                        <IconTrash size={20} stroke={1.5} />
-                    </IconButton>
-                </Tooltip>
-            </Box>
         </Box>
     );
 };
@@ -437,10 +398,7 @@ ApplicationDashboardRow.propTypes = {
         updatedAt: PropTypes.string,
         status: PropTypes.string.isRequired
     }).isRequired,
-    onView: PropTypes.func.isRequired,
-    onEdit: PropTypes.func.isRequired,
-    onDelete: PropTypes.func.isRequired,
-    formatDate: PropTypes.func.isRequired
+    onView: PropTypes.func.isRequired
 };
 
 export default ApplicationDashboardRow; 

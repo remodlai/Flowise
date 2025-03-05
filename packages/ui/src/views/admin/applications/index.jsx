@@ -38,6 +38,7 @@ import StatusChip from '@/ui-component/extended/StatusChip'
 import MainCard from '@/ui-component/cards/MainCard'
 import ApplicationDashboardRow from './ApplicationDashboardRow'
 
+
 // Mock API functions - will be replaced with actual API calls
 const getAllApplications = () => {
     return new Promise((resolve) => {
@@ -301,7 +302,7 @@ const ApplicationsAdmin = () => {
                     sx={{ 
                         maxWidth: 400,
                         '& .MuiOutlinedInput-root': {
-                            bgcolor: '#111',
+                            bgcolor: '#262B3E',
                             borderRadius: '8px',
                             color: '#fff',
                             '& fieldset': {
@@ -351,9 +352,6 @@ const ApplicationsAdmin = () => {
                     key={app.id}
                     application={app}
                     onView={handleViewApplication}
-                    onEdit={handleEditApplication}
-                    onDelete={handleDeleteApplication}
-                    formatDate={formatDate}
                 />
             ))}
             
