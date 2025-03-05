@@ -292,17 +292,24 @@ FINAL THOUGHT:
 We should be able to implement this with minimal required chagnes to the core codebase, as everything should be able to be implemented on a layer above.
 
 ## Implementation Checklist
+Intercept Service:
+We have created an intercept service on the server to allow us to, in a non-intrusive way, intercept core chatflows actions, and update our admin layer and supabase at packages/server/src/services/applicationchatflows
+
+We have also created an intercept service for credentials at packages/server/src/services/applicationcredentials to track which credentials belong to which applications.
+
+We need to do similar for other intercept needs.
 
 ### Database Schema
 - [x] Create organization_users table to link users to organizations
-- [ ] Update custom_access_token_hook to include organization_id in JWT claims
+- [x] Update custom_access_token_hook to include organization_id in JWT claims
 - [x] Create application_folders table with proper RLS policies
-- [ ] Add application_tools table to track which tools are available in which applications
-- [ ] Add application_billing_plans table to manage different pricing tiers
-- [ ] Add application_branding table for customization options
-- [ ] Add application_api_keys table for API access management
-- [ ] Create chat_sessions table linked to applications
-- [ ] Create flow_runs table to track execution metrics
+- [x] Add application_tools table to track which tools are available in which applications
+- [x] Add application_billing_plans table to manage different pricing tiers
+- [x] Add application_branding table for customization options
+- [x] Add application_api_keys table for API access management
+- [x] Create chat_sessions table linked to applications
+- [x] Create flow_runs table to track execution metrics
+- [x] Add application_credentials table to track which credentials belong to which applications
 - [ ] Add triggers to update application_stats when related entities change
 
 ### API Implementation
@@ -312,6 +319,8 @@ We should be able to implement this with minimal required chagnes to the core co
 - [ ] Create API methods for application branding
 - [ ] Create API methods for application API keys
 - [ ] Create API methods for chat sessions
+- [x] Create API interceptor methods for chatflows
+- [x] Create API interceptor methods for credentials
 - [ ] Create API methods for flow runs
 - [ ] Update existing API methods to include application context
 

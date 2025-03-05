@@ -51,8 +51,9 @@ export interface IUser {
 export interface IApplication {
     id: string
     name: string
-    description?: string
-    logo_url?: string
+    description: string | null
+    logo_url: string | null
+    is_admin: boolean
 }
 
 // Augment Express Request interface

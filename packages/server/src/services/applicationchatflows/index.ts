@@ -3,15 +3,8 @@ import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'
 import logger from '../../utils/logger'
 import { supabase, isPlatformAdmin } from '../../utils/supabase'
-
+import { IApplication } from '../../Interface'
 // Define interfaces for type safety
-interface IApplication {
-    id: string
-    name: string
-    description: string | null
-    logo_url: string | null
-    is_admin: boolean
-}
 
 /**
  * Get the application ID for a chatflow
