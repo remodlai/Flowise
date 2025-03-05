@@ -51,6 +51,57 @@ export class ApplicationController {
     }
 
     /**
+     * Get applications for the current user
+     * @param req Request
+     * @param res Response
+     */
+    static async getUserApplications(req: Request, res: Response) {
+        try {
+            if (!req.user || !req.user.userId) {
+                return res.status(401).json({ error: 'Unauthorized' })
+            }
+            
+            const userId = req.user.userId
+            const isPlatformAdmin = req.user.isPlatformAdmin || 
+                                   req.user.app_metadata?.is_platform_admin || 
+                                   req.user.userMetadata?.role === 'platform_admin' ||
+                                   req.user.userMetadata?.role === 'superadmin'
+            
+            console.log('User requesting applications:', { 
+                userId, 
+                isPlatformAdmin,
+                userMetadata: req.user.userMetadata,
+                app_metadata: req.user.app_metadata,
+                role: req.user.userMetadata?.role
+            })
+            
+            // For platform admins, return all applications
+            const { data, error } = await supabase
+                .from('applications')
+                .select('id, name, description, logo_url, url, version, type, status')
+                .order('name')
+            
+            if (error) {
+                console.error('Error fetching applications:', error)
+                throw error
+            }
+            
+            console.log(`Found ${data.length} applications`)
+            
+            // For platform admins, mark all applications as admin
+            const applications = data.map((app: any) => ({
+                ...app,
+                is_admin: isPlatformAdmin
+            }))
+            
+            return res.json(applications)
+        } catch (error) {
+            console.error('Error in getUserApplications:', error)
+            return handleError(res, error, 'Error fetching user applications')
+        }
+    }
+
+    /**
      * Create a new application
      * @param req Request
      * @param res Response

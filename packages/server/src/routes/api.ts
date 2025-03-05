@@ -5,6 +5,7 @@ import { ApplicationController } from '../controllers/ApplicationController'
 import { OrganizationController } from '../controllers/OrganizationController'
 import { authenticateUser } from '../utils/supabaseAuth'
 import platformRoutes from './platform'
+import { supabase } from '../utils/supabase'
 
 // Create a router for v1 API routes
 const router = express.Router()
@@ -28,6 +29,7 @@ router.post('/applications', ApplicationController.createApplication)
 router.get('/applications/:id', ApplicationController.getApplicationById)
 router.put('/applications/:id', ApplicationController.updateApplication)
 router.delete('/applications/:id', ApplicationController.deleteApplication)
+router.get('/user/applications', ApplicationController.getUserApplications)
 
 // Organization routes
 router.get('/organizations', OrganizationController.getAllOrganizations)
@@ -63,5 +65,87 @@ router.get('/users/:id/custom-roles', CustomRoleController.getUserRoles)
 router.get('/permissions', CustomRoleController.getAllPermissions)
 router.get('/permissions/categories', CustomRoleController.getPermissionCategories)
 router.get('/permissions/check', CustomRoleController.checkUserPermission)
+
+// Debug routes
+router.get('/debug/user', (req, res) => {
+    if (!req.user) {
+        return res.json({ authenticated: false, message: 'User not authenticated' })
+    }
+    
+    return res.json({
+        authenticated: true,
+        userId: req.user.userId,
+        isPlatformAdmin: req.user.isPlatformAdmin,
+        app_metadata: req.user.app_metadata,
+        userMetadata: req.user.userMetadata
+    })
+})
+
+router.get('/debug/applications', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('applications')
+            .select('*')
+        
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
+        
+        return res.json({
+            count: data.length,
+            applications: data
+        })
+    } catch (err) {
+        return res.status(500).json({ error: 'Error fetching applications' })
+    }
+})
+
+// Public debug routes
+router.get('/public/debug', (req, res) => {
+    return res.json({
+        message: 'Public debug endpoint',
+        headers: {
+            authorization: req.headers.authorization ? 'Present' : 'Not present'
+        }
+    })
+})
+
+router.get('/public/debug/applications', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('applications')
+            .select('*')
+        
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
+        
+        return res.json({
+            count: data.length,
+            applications: data
+        })
+    } catch (err) {
+        return res.status(500).json({ error: 'Error fetching applications' })
+    }
+})
+
+router.get('/public/debug/roles', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('custom_roles')
+            .select('*')
+        
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
+        
+        return res.json({
+            count: data.length,
+            roles: data
+        })
+    } catch (err) {
+        return res.status(500).json({ error: 'Error fetching roles' })
+    }
+})
 
 export default router 

@@ -73,9 +73,19 @@ apiClient.interceptors.request.use(function (config) {
     if (accessToken) {
         // Use Bearer token authentication with Supabase token
         config.headers.Authorization = `Bearer ${accessToken}`
+        console.log(`Adding Authorization header for request to ${config.url}`)
     } else {
         // No authentication token available
-        console.warn('No authentication token available. Request may fail if authentication is required.')
+        console.warn(`No authentication token available for request to ${config.url}. Request may fail if authentication is required.`)
+    }
+
+    // Add application context if available
+    const applicationId = localStorage.getItem('selectedApplicationId')
+    if (applicationId && applicationId !== 'global') {
+        config.headers['X-Application-ID'] = applicationId
+        console.log(`Adding X-Application-ID header: ${applicationId}`)
+    } else if (applicationId === 'global') {
+        console.log('Using global application context (no X-Application-ID header)')
     }
 
     return config
@@ -84,9 +94,18 @@ apiClient.interceptors.request.use(function (config) {
 // Response interceptor to handle token expiration
 apiClient.interceptors.response.use(
     response => {
+        console.log(`Response from ${response.config.url}:`, {
+            status: response.status,
+            data: response.data
+        })
         return response
     },
     async error => {
+        console.error(`Error response from ${error.config?.url}:`, {
+            status: error.response?.status,
+            data: error.response?.data
+        })
+        
         const originalRequest = error.config
         
         // If unauthorized error (401) and not already retrying

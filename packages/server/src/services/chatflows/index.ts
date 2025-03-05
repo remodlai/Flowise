@@ -15,6 +15,7 @@ import { utilGetUploadsConfig } from '../../utils/getUploadsConfig'
 import logger from '../../utils/logger'
 import { FLOWISE_METRIC_COUNTERS, FLOWISE_COUNTER_STATUS } from '../../Interface.Metrics'
 import { QueryRunner } from 'typeorm'
+import { Request } from 'express'
 
 // Check if chatflow valid for streaming
 const checkIfChatflowIsValidForStreaming = async (chatflowId: string): Promise<any> => {
@@ -79,6 +80,15 @@ const checkIfChatflowIsValidForUploads = async (chatflowId: string): Promise<any
 const deleteChatflow = async (chatflowId: string): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
+        
+        // INTERCEPT: Remove the chatflow's association with any application
+        try {
+            const applicationChatflowsService = await import('../applicationchatflows')
+            await applicationChatflowsService.default.removeChatflowAssociation(chatflowId)
+        } catch (error) {
+            logger.error(`[chatflowsService.deleteChatflow] Error removing chatflow association: ${getErrorMessage(error)}`)
+        }
+        
         const dbResponse = await appServer.AppDataSource.getRepository(ChatFlow).delete({ id: chatflowId })
         try {
             // Delete all uploads corresponding to this chatflow
@@ -105,16 +115,39 @@ const deleteChatflow = async (chatflowId: string): Promise<any> => {
     }
 }
 /*REMODL TODO: modify this to allow for multi-tenant check again database*/
-const getAllChatflows = async (type?: ChatflowType): Promise<ChatFlow[]> => {
+const getAllChatflows = async (type?: ChatflowType, req?: Request): Promise<ChatFlow[]> => {
     try {
         const appServer = getRunningExpressApp()
-        const dbResponse = await appServer.AppDataSource.getRepository(ChatFlow).find()
+        let dbResponse = await appServer.AppDataSource.getRepository(ChatFlow).find()
+        
+        // Filter by type if specified
         if (type === 'MULTIAGENT') {
-            return dbResponse.filter((chatflow) => chatflow.type === 'MULTIAGENT')
+            dbResponse = dbResponse.filter((chatflow) => chatflow.type === 'MULTIAGENT')
         } else if (type === 'CHATFLOW') {
             // fetch all chatflows that are not agentflow
-            return dbResponse.filter((chatflow) => chatflow.type === 'CHATFLOW' || !chatflow.type)
+            dbResponse = dbResponse.filter((chatflow) => chatflow.type === 'CHATFLOW' || !chatflow.type)
         }
+        
+        // INTERCEPT: Filter chatflows based on current application context
+        try {
+            // Get the current application ID from the request
+            const applicationId = req?.applicationId
+            
+            if (applicationId) {
+                if (applicationId === 'global') {
+                    // Platform admin with "Global" option selected - show all chatflows
+                    return dbResponse
+                } else {
+                    // Filter chatflows based on the selected application
+                    const applicationChatflowsService = await import('../applicationchatflows')
+                    const chatflowIds = await applicationChatflowsService.default.getChatflowIdsForApplication(applicationId)
+                    return dbResponse.filter(chatflow => chatflowIds.includes(chatflow.id))
+                }
+            }
+        } catch (error) {
+            logger.error(`[chatflowsService.getAllChatflows] Error filtering chatflows: ${getErrorMessage(error)}`)
+        }
+        
         return dbResponse
     } catch (error) {
         throw new InternalFlowiseError(
@@ -166,7 +199,7 @@ const getChatflowById = async (chatflowId: string): Promise<any> => {
     }
 }
 
-const saveChatflow = async (newChatFlow: ChatFlow): Promise<any> => {
+const saveChatflow = async (newChatFlow: ChatFlow, req?: Request): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
         let dbResponse: ChatFlow
@@ -182,20 +215,52 @@ const saveChatflow = async (newChatFlow: ChatFlow): Promise<any> => {
             const chatflow = appServer.AppDataSource.getRepository(ChatFlow).create(newChatFlow)
             //REMODL NOTE: this saves the chatflow entity to the database.
             const step1Results = await appServer.AppDataSource.getRepository(ChatFlow).save(chatflow)
-            //REMODL TODO: THIS IS WHERE WE INTERCEPT AND GET THE UUID OF THE CHATFLOW
-
-            //STOP ANALYSIS HERE FOR DISCUSSION
             
+            // INTERCEPT: Associate the chatflow with the application
+            try {
+                const applicationId = req?.applicationId
+                if (applicationId && applicationId !== 'global') {
+                    // Associate with the specified application
+                    const applicationChatflowsService = await import('../applicationchatflows')
+                    await applicationChatflowsService.default.associateChatflowWithApplication(step1Results.id, applicationId)
+                } else {
+                    // Associate with the default application
+                    const applicationChatflowsService = await import('../applicationchatflows')
+                    const defaultAppId = await applicationChatflowsService.default.getDefaultApplicationId()
+                    if (defaultAppId) {
+                        await applicationChatflowsService.default.associateChatflowWithApplication(step1Results.id, defaultAppId)
+                    }
+                }
+            } catch (error) {
+                logger.error(`[chatflowsService.saveChatflow] Error associating chatflow with application: ${getErrorMessage(error)}`)
+            }
+
             // step 2 - convert base64 to file paths and update the chatflow
-            //REMODL NOTE: this converts the base64 data of the chatflow to file paths and updates the chatflow entity.
             step1Results.flowData = await updateFlowDataWithFilePaths(step1Results.id, incomingFlowData)
-            //REMODL NOTE: this checks and updates the document store usage for the chatflow.
             await _checkAndUpdateDocumentStoreUsage(step1Results)
-            //REMODL NOTE: this saves the chatflow entity to the database.
             dbResponse = await appServer.AppDataSource.getRepository(ChatFlow).save(step1Results)
         } else {
             const chatflow = appServer.AppDataSource.getRepository(ChatFlow).create(newChatFlow)
             dbResponse = await appServer.AppDataSource.getRepository(ChatFlow).save(chatflow)
+            
+            // INTERCEPT: Associate the chatflow with the application
+            try {
+                const applicationId = req?.applicationId
+                if (applicationId && applicationId !== 'global') {
+                    // Associate with the specified application
+                    const applicationChatflowsService = await import('../applicationchatflows')
+                    await applicationChatflowsService.default.associateChatflowWithApplication(dbResponse.id, applicationId)
+                } else {
+                    // Associate with the default application
+                    const applicationChatflowsService = await import('../applicationchatflows')
+                    const defaultAppId = await applicationChatflowsService.default.getDefaultApplicationId()
+                    if (defaultAppId) {
+                        await applicationChatflowsService.default.associateChatflowWithApplication(dbResponse.id, defaultAppId)
+                    }
+                }
+            } catch (error) {
+                logger.error(`[chatflowsService.saveChatflow] Error associating chatflow with application: ${getErrorMessage(error)}`)
+            }
         }
         await appServer.telemetry.sendTelemetry('chatflow_created', {
             version: await getAppVersion(),
@@ -266,7 +331,7 @@ const importChatflows = async (newChatflows: Partial<ChatFlow>[], queryRunner?: 
     }
 }
 //REMODL TODO: add the updateChatflow to the supabase table for chatflows for a given application and/or organization. We should be able to thus have "undo and redo" for chatflows
-const updateChatflow = async (chatflow: ChatFlow, updateChatFlow: ChatFlow): Promise<any> => {
+const updateChatflow = async (chatflow: ChatFlow, updateChatFlow: ChatFlow, req?: Request): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
         if (updateChatFlow.flowData && containsBase64File(updateChatFlow)) {
@@ -275,6 +340,29 @@ const updateChatflow = async (chatflow: ChatFlow, updateChatFlow: ChatFlow): Pro
         const newDbChatflow = appServer.AppDataSource.getRepository(ChatFlow).merge(chatflow, updateChatFlow)
         await _checkAndUpdateDocumentStoreUsage(newDbChatflow)
         const dbResponse = await appServer.AppDataSource.getRepository(ChatFlow).save(newDbChatflow)
+        
+        // INTERCEPT: Ensure the chatflow is associated with an application
+        try {
+            const applicationChatflowsService = await import('../applicationchatflows')
+            const applicationId = req?.applicationId
+            
+            if (applicationId && applicationId !== 'global') {
+                // Associate with the specified application
+                await applicationChatflowsService.default.associateChatflowWithApplication(dbResponse.id, applicationId)
+            } else {
+                // Check if already associated with an application
+                const currentAppId = await applicationChatflowsService.default.getApplicationIdForChatflow(dbResponse.id)
+                if (!currentAppId) {
+                    // If not associated with any application, associate with the default
+                    const defaultAppId = await applicationChatflowsService.default.getDefaultApplicationId()
+                    if (defaultAppId) {
+                        await applicationChatflowsService.default.associateChatflowWithApplication(dbResponse.id, defaultAppId)
+                    }
+                }
+            }
+        } catch (error) {
+            logger.error(`[chatflowsService.updateChatflow] Error ensuring chatflow association: ${getErrorMessage(error)}`)
+        }
 
         return dbResponse
     } catch (error) {

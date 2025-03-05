@@ -12,6 +12,7 @@ import { styled } from '@mui/material/styles'
 // project imports
 import LogoSection from '../LogoSection'
 import ProfileSection from './ProfileSection'
+import ApplicationChooser from '../../../components/ApplicationChooser'
 
 // assets
 import { IconMenu2 } from '@tabler/icons-react'
@@ -74,7 +75,9 @@ const Header = ({ handleLeftDrawerToggle }) => {
 
     const customization = useSelector((state) => state.customization)
     const dispatch = useDispatch()
-    const { logout, user } = useAuth()
+    const { logout, user, isAuthenticated } = useAuth()
+
+    console.log('Header rendering with user:', { user, isAuthenticated })
 
     // Use the Redux state directly instead of local state
     const isDark = customization.isDarkMode
@@ -127,6 +130,19 @@ const Header = ({ handleLeftDrawerToggle }) => {
                 </ButtonBase>
             </Box>
             <Box sx={{ flexGrow: 1 }} />
+            
+            {/* Application Chooser */}
+            {isAuthenticated && (
+                <>
+                    <Typography variant="body2" sx={{ mr: 1, color: 'text.secondary' }}>
+                        Debug: User is authenticated
+                        {user?.isPlatformAdmin && " (Platform Admin)"}
+                        {user?.userMetadata?.role === 'platform_admin' && " (Role: Platform Admin)"}
+                    </Typography>
+                    <ApplicationChooser />
+                </>
+            )}
+            
             <MaterialUISwitch checked={isDark} onChange={changeDarkMode} />
             <Box sx={{ ml: 2 }}></Box>
             <ProfileSection handleLogout={signOutClicked} />

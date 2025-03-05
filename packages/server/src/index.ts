@@ -30,6 +30,7 @@ import { authenticateUser } from './utils/supabaseAuth'
 import { IUser } from './Interface'
 import { setupSupabaseStorage } from './utils/setupSupabaseStorage'
 import apiRoutes from './routes/api'
+import { applicationContextMiddleware } from './middlewares/applicationContextMiddleware'
 
 // Extend Express Request type
 declare global {
@@ -167,6 +168,9 @@ export class App {
 
         // Use Supabase authentication middleware for API routes
         this.app.use('/api/v1', authenticateUser)
+        
+        // Use application context middleware for API routes
+        this.app.use('/api/v1', applicationContextMiddleware)
 
         if (process.env.ENABLE_METRICS === 'true') {
             switch (process.env.METRICS_PROVIDER) {

@@ -41,6 +41,18 @@ export interface IUser {
     email?: string
     provider?: string
     userMetadata?: Record<string, any>
+    isPlatformAdmin?: boolean
+    app_metadata?: {
+        is_platform_admin?: boolean
+        roles?: any[]
+        [key: string]: any
+    }
+}
+export interface IApplication {
+    id: string
+    name: string
+    description?: string
+    logo_url?: string
 }
 
 // Augment Express Request interface

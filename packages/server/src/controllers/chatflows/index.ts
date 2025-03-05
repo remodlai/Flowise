@@ -51,7 +51,7 @@ const deleteChatflow = async (req: Request, res: Response, next: NextFunction) =
 
 const getAllChatflows = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const apiResponse = await chatflowsService.getAllChatflows(req.query?.type as ChatflowType)
+        const apiResponse = await chatflowsService.getAllChatflows(req.query?.type as ChatflowType, req)
         return res.json(apiResponse)
     } catch (error) {
         next(error)
@@ -98,7 +98,7 @@ const saveChatflow = async (req: Request, res: Response, next: NextFunction) => 
         const body = req.body
         const newChatFlow = new ChatFlow()
         Object.assign(newChatFlow, body)
-        const apiResponse = await chatflowsService.saveChatflow(newChatFlow)
+        const apiResponse = await chatflowsService.saveChatflow(newChatFlow, req)
         return res.json(apiResponse)
     } catch (error) {
         next(error)
@@ -133,7 +133,7 @@ const updateChatflow = async (req: Request, res: Response, next: NextFunction) =
         const rateLimiterManager = RateLimiterManager.getInstance()
         await rateLimiterManager.updateRateLimiter(updateChatFlow)
 
-        const apiResponse = await chatflowsService.updateChatflow(chatflow, updateChatFlow)
+        const apiResponse = await chatflowsService.updateChatflow(chatflow, updateChatFlow, req)
         return res.json(apiResponse)
     } catch (error) {
         next(error)

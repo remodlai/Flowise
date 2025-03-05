@@ -43,8 +43,19 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
       userId: data.user.id,
       email: data.user.email,
       provider: data.user.app_metadata?.provider || 'email',
-      userMetadata: data.user.user_metadata || {}
+      userMetadata: data.user.user_metadata || {},
+      isPlatformAdmin: data.user.app_metadata?.is_platform_admin || 
+                      data.user.user_metadata?.role === 'platform_admin' || 
+                      data.user.user_metadata?.role === 'superadmin',
+      app_metadata: data.user.app_metadata || {}
     }
+    
+    console.log('User authenticated:', {
+      userId: data.user.id,
+      isPlatformAdmin: user.isPlatformAdmin,
+      role: data.user.user_metadata?.role,
+      app_metadata: data.user.app_metadata
+    })
     
     req.user = user
     

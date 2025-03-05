@@ -7,6 +7,12 @@ import client from './client'
 export const getAllApplications = () => client.get('/applications')
 
 /**
+ * Get applications for the current user
+ * @returns {Promise} Promise object that resolves to an array of applications the user has access to
+ */
+export const getUserApplications = () => client.get('/user/applications')
+
+/**
  * Get a specific application by ID
  * @param {string} id - The application ID
  * @returns {Promise} Promise object that resolves to the application data

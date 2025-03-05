@@ -25,6 +25,14 @@
 - Created a view and triggers to map between the new `user_custom_roles`/`custom_roles` tables and the expected `user_roles` structure
 - This ensures existing code continues to work while the application is updated to use the new schema
 
+### v5 - Enhanced Superadmin Detection
+- Enhanced superadmin detection to ensure platform admins are properly identified
+- Added explicit check for 'superadmin' role in user metadata
+- Improved handling of base_role assignment for superadmins
+- Ensured superadmins are always marked as platform_admin in user_role
+- Added direct update to auth.users table to ensure UI reflects correct role
+- Fixed issue where superadmins might not have access to global context
+
 ## v1_custom_access_token_hook.sql - [Date: YYYY-MM-DD]
 - Initial versioned implementation of the custom_access_token_hook
 - Based on the original working version
@@ -48,3 +56,15 @@
 - Removed debugging log statements for cleaner execution
 - More robust handling of metadata updates
 - Works with the fixed RLS policies to avoid circular dependencies
+
+## v5_custom_access_token_hook.sql
+
+**Date:** 2023-03-05
+
+**Changes:**
+- Enhanced superadmin detection to ensure platform admins are properly identified
+- Added explicit check for 'superadmin' role in user metadata
+- Improved handling of base_role assignment for superadmins
+- Ensured superadmins are always marked as platform_admin in user_role
+- Added direct update to auth.users table to ensure UI reflects correct role
+- Fixed issue where superadmins might not have access to global context

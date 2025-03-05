@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
     const navigate = useNavigate()
     
     // Function to refresh the token
@@ -99,14 +100,24 @@ export const AuthProvider = ({ children }) => {
                 const storedUser = localStorage.getItem('user')
                 const storedToken = localStorage.getItem('access_token')
                 
+                console.log('Checking existing session:', { storedUser, hasToken: !!storedToken })
+                
                 if (storedUser && storedToken) {
                     // Check if token is expired
                     const tokenExpiry = localStorage.getItem('token_expiry')
                     const isTokenValid = tokenExpiry && new Date(parseInt(tokenExpiry) * 1000) > new Date()
                     
                     if (isTokenValid) {
-                        setUser(JSON.parse(storedUser))
+                        const parsedUser = JSON.parse(storedUser)
+                        console.log('Valid token, setting user:', parsedUser)
+                        
+                        setUser(parsedUser)
                         setIsAuthenticated(true)
+                        
+                        // Check if user is platform admin
+                        const userRole = parsedUser.userMetadata?.role
+                        setIsPlatformAdmin(userRole === 'platform_admin' || userRole === 'superadmin')
+                        console.log('Is platform admin:', userRole === 'platform_admin' || userRole === 'superadmin')
                     } else {
                         // Token expired, try to refresh it if we have a refresh token
                         const refreshToken = localStorage.getItem('refresh_token')
@@ -125,6 +136,8 @@ export const AuthProvider = ({ children }) => {
                             clearAuthData()
                         }
                     }
+                } else {
+                    console.log('No stored user or token found')
                 }
             } catch (error) {
                 console.error('Error checking authentication:', error)
@@ -141,6 +154,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('token_expiry')
             setUser(null)
             setIsAuthenticated(false)
+            setIsPlatformAdmin(false)
         }
         
         checkExistingSession()
@@ -153,6 +167,8 @@ export const AuthProvider = ({ children }) => {
             return
         }
         
+        console.log('Login with userData:', userData)
+        
         // Store user data
         const userToStore = {
             email: userData.email,
@@ -161,9 +177,14 @@ export const AuthProvider = ({ children }) => {
             userMetadata: userData.userMetadata || {}
         }
         
+        // Check if user is platform admin
+        const isPlatformAdmin = userToStore.userMetadata?.role === 'platform_admin' || userToStore.userMetadata?.role === 'superadmin'
+        console.log('Setting isPlatformAdmin:', isPlatformAdmin, 'based on role:', userToStore.userMetadata?.role)
+        
         // Save to state and localStorage
         setUser(userToStore)
         setIsAuthenticated(true)
+        setIsPlatformAdmin(isPlatformAdmin)
         
         // Store in localStorage for persistence
         localStorage.setItem('user', JSON.stringify(userToStore))
@@ -218,10 +239,18 @@ export const AuthProvider = ({ children }) => {
         user,
         isLoading,
         isAuthenticated,
+        isPlatformAdmin,
         login,
         logout,
         getAuthToken
     }
+
+    console.log('Auth context value:', { 
+        hasUser: !!user, 
+        isLoading, 
+        isAuthenticated, 
+        isPlatformAdmin 
+    })
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
