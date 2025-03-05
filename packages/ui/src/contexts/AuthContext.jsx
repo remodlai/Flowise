@@ -11,9 +11,89 @@ export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const navigate = useNavigate()
     
+    // Function to refresh the token
+    const refreshAuthToken = async () => {
+        try {
+            const refreshToken = localStorage.getItem('refresh_token')
+            if (!refreshToken) {
+                throw new Error('No refresh token available')
+            }
+            
+            const response = await fetch(`${window.location.origin}/api/v1/auth/refresh-token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ refresh_token: refreshToken })
+            })
+            
+            if (response.ok) {
+                const data = await response.json()
+                if (data.session && data.session.access_token) {
+                    // Update tokens in localStorage
+                    localStorage.setItem('access_token', data.session.access_token)
+                    localStorage.setItem('refresh_token', data.session.refresh_token)
+                    localStorage.setItem('token_expiry', data.session.expires_at.toString())
+                    return true
+                }
+            }
+            return false
+        } catch (error) {
+            console.error('Error refreshing token:', error)
+            return false
+        }
+    }
+    
+    // Setup token refresh timer
+    useEffect(() => {
+        let refreshTimer = null
+        
+        const setupRefreshTimer = () => {
+            // Clear any existing timer
+            if (refreshTimer) clearTimeout(refreshTimer)
+            
+            // Only setup timer if authenticated
+            if (!isAuthenticated) return
+            
+            const tokenExpiry = localStorage.getItem('token_expiry')
+            if (!tokenExpiry) return
+            
+            const expiryTime = new Date(parseInt(tokenExpiry) * 1000)
+            const now = new Date()
+            
+            // Calculate time until token expires (in milliseconds)
+            const timeUntilExpiry = expiryTime.getTime() - now.getTime()
+            
+            // If token is already expired or will expire in less than 5 minutes, refresh now
+            if (timeUntilExpiry < 5 * 60 * 1000) {
+                refreshAuthToken()
+                return
+            }
+            
+            // Schedule refresh for 5 minutes before expiry
+            const refreshTime = timeUntilExpiry - (5 * 60 * 1000)
+            
+            refreshTimer = setTimeout(async () => {
+                const success = await refreshAuthToken()
+                if (success) {
+                    // Setup the next refresh timer
+                    setupRefreshTimer()
+                }
+            }, refreshTime)
+        }
+        
+        // Setup initial timer
+        setupRefreshTimer()
+        
+        // Cleanup timer on unmount
+        return () => {
+            if (refreshTimer) clearTimeout(refreshTimer)
+        }
+    }, [isAuthenticated])
+    
     // Check for existing session on mount
     useEffect(() => {
-        const checkExistingSession = () => {
+        const checkExistingSession = async () => {
             try {
                 // Check for user data in localStorage
                 const storedUser = localStorage.getItem('user')
@@ -31,21 +111,36 @@ export const AuthProvider = ({ children }) => {
                         // Token expired, try to refresh it if we have a refresh token
                         const refreshToken = localStorage.getItem('refresh_token')
                         if (refreshToken) {
-                            // We'll let the API client handle the token refresh
-                            // This will happen automatically on the next API call
+                            const success = await refreshAuthToken()
+                            if (success) {
+                                // Set user as authenticated
+                                setUser(JSON.parse(storedUser))
+                                setIsAuthenticated(true)
+                            } else {
+                                // Failed to refresh token, clear storage
+                                clearAuthData()
+                            }
                         } else {
                             // No refresh token, clear storage
-                            localStorage.removeItem('user')
-                            localStorage.removeItem('access_token')
-                            localStorage.removeItem('token_expiry')
+                            clearAuthData()
                         }
                     }
                 }
             } catch (error) {
                 console.error('Error checking authentication:', error)
+                clearAuthData()
             } finally {
                 setIsLoading(false)
             }
+        }
+        
+        const clearAuthData = () => {
+            localStorage.removeItem('user')
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('token_expiry')
+            setUser(null)
+            setIsAuthenticated(false)
         }
         
         checkExistingSession()

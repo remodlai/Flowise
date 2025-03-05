@@ -39,14 +39,19 @@ const refreshToken = async () => {
             refresh_token: refreshToken
         })
         
-        const { access_token, refresh_token, expires_at } = response.data
+        // Extract session data from the response
+        const { session } = response.data
+        
+        if (!session || !session.access_token) {
+            throw new Error('Invalid response from refresh token endpoint')
+        }
         
         // Update tokens in local storage
-        localStorage.setItem('access_token', access_token)
-        localStorage.setItem('refresh_token', refresh_token)
-        localStorage.setItem('token_expiry', expires_at.toString())
+        localStorage.setItem('access_token', session.access_token)
+        localStorage.setItem('refresh_token', session.refresh_token)
+        localStorage.setItem('token_expiry', session.expires_at.toString())
         
-        return access_token
+        return session.access_token
     } catch (error) {
         console.error('Error refreshing token:', error)
         // Clear auth data
