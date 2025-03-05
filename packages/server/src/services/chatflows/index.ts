@@ -176,13 +176,22 @@ const saveChatflow = async (newChatFlow: ChatFlow): Promise<any> => {
 
             // step 1 - save with empty flowData
             const incomingFlowData = newChatFlow.flowData
+            //REMODL NOTE: this stringifys the JSON data of the chatflow. 
             newChatFlow.flowData = JSON.stringify({})
+            //REMODL NOTE: this creates a new chatflow entity in the database.
             const chatflow = appServer.AppDataSource.getRepository(ChatFlow).create(newChatFlow)
+            //REMODL NOTE: this saves the chatflow entity to the database.
             const step1Results = await appServer.AppDataSource.getRepository(ChatFlow).save(chatflow)
+            //REMODL TODO: THIS IS WHERE WE INTERCEPT AND GET THE UUID OF THE CHATFLOW
 
+            //STOP ANALYSIS HERE FOR DISCUSSION
+            
             // step 2 - convert base64 to file paths and update the chatflow
+            //REMODL NOTE: this converts the base64 data of the chatflow to file paths and updates the chatflow entity.
             step1Results.flowData = await updateFlowDataWithFilePaths(step1Results.id, incomingFlowData)
+            //REMODL NOTE: this checks and updates the document store usage for the chatflow.
             await _checkAndUpdateDocumentStoreUsage(step1Results)
+            //REMODL NOTE: this saves the chatflow entity to the database.
             dbResponse = await appServer.AppDataSource.getRepository(ChatFlow).save(step1Results)
         } else {
             const chatflow = appServer.AppDataSource.getRepository(ChatFlow).create(newChatFlow)

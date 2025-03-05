@@ -295,25 +295,25 @@ We should be able to implement this with minimal required chagnes to the core co
 
 ### Database Schema
 - [x] Create organization_users table to link users to organizations
-- [x] Update custom_access_token_hook to include organization_id in JWT claims
+- [ ] Update custom_access_token_hook to include organization_id in JWT claims
 - [x] Create application_folders table with proper RLS policies
-- [x] Add application_tools table to track which tools are available in which applications
-- [x] Add application_billing_plans table to manage different pricing tiers
-- [x] Add application_branding table for customization options
-- [x] Add application_api_keys table for API access management
-- [x] Create chat_sessions table linked to applications
-- [x] Create flow_runs table to track execution metrics
-- [x] Add triggers to update application_stats when related entities change
+- [ ] Add application_tools table to track which tools are available in which applications
+- [ ] Add application_billing_plans table to manage different pricing tiers
+- [ ] Add application_branding table for customization options
+- [ ] Add application_api_keys table for API access management
+- [ ] Create chat_sessions table linked to applications
+- [ ] Create flow_runs table to track execution metrics
+- [ ] Add triggers to update application_stats when related entities change
 
 ### API Implementation
-- [x] Create API methods for application folders (get, create, update, delete)
-- [x] Create API methods for application tools
-- [x] Create API methods for application billing plans
-- [x] Create API methods for application branding
-- [x] Create API methods for application API keys
-- [x] Create API methods for chat sessions
-- [x] Create API methods for flow runs
-- [x] Update existing API methods to include application context
+- [x] Create API methods for application folders (get, create, update, delete) //verify this
+- [ ] Create API methods for application tools
+- [ ] Create API methods for application billing plans
+- [ ] Create API methods for application branding
+- [ ] Create API methods for application API keys
+- [ ] Create API methods for chat sessions
+- [ ] Create API methods for flow runs
+- [ ] Update existing API methods to include application context
 
 ### UI Implementation
 - [ ] Create folder browser component for application content
@@ -325,7 +325,7 @@ We should be able to implement this with minimal required chagnes to the core co
 - [ ] Implement API key management interface
 
 ### Security & Access Control
-- [x] Implement RLS policies for application folders
+- [ ] Implement RLS policies for application folders
 - [ ] Implement RLS policies for all other application-related tables
 - [ ] Create role-based access control for application management
 - [ ] Add organization-level permissions
