@@ -51,13 +51,14 @@ export const ApplicationProvider = ({ children }) => {
                 console.log('Processed apps:', apps)
                 setApplications(apps)
                 
-                // If no application is selected, select the first one or 'global' for platform admins
+                // If no application is selected, select the appropriate default
                 if (!applicationId) {
-                    if (apps.length > 0) {
-                        updateApplicationId(apps[0].id)
-                    } else if (isPlatformAdmin) {
-                        // For platform admins with no apps, use 'global'
+                    if (isPlatformAdmin) {
+                        // For platform admins, default to 'global'
                         updateApplicationId('global')
+                    } else if (apps.length > 0) {
+                        // For regular users, use the first available app
+                        updateApplicationId(apps[0].id)
                     }
                 }
             } catch (error) {

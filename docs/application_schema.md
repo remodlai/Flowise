@@ -297,6 +297,8 @@ We have created an intercept service on the server to allow us to, in a non-intr
 
 We have also created an intercept service for credentials at packages/server/src/services/applicationcredentials to track which credentials belong to which applications.
 
+We have created an intercept service for tools at packages/server/src/services/applicationtools to track which tools belong to which applications.
+
 We need to do similar for other intercept needs.
 
 ### Database Schema
@@ -310,38 +312,57 @@ We need to do similar for other intercept needs.
 - [x] Create chat_sessions table linked to applications
 - [x] Create flow_runs table to track execution metrics
 - [x] Add application_credentials table to track which credentials belong to which applications
-- [ ] Add triggers to update application_stats when related entities change
+- [x] Add triggers to update application_stats when credentials change
+- [x] Add triggers to update application_stats when tools change
+- [x] Add triggers to update application_stats when chatflows change
+- [ ] Add triggers to update application_stats when databases change
+- [ ] Add triggers to update application_stats when document stores change
 
 ### API Implementation
-- [x] Create API methods for application folders (get, create, update, delete) //verify this
-- [ ] Create API methods for application tools
+- [x] Create API methods for application folders (get, create, update, delete)
+- [x] Create API methods for application tools (get, associate, dissociate)
+- [x] Create API interceptor methods for chatflows
+- [x] Create API interceptor methods for credentials
+- [x] Create API interceptor methods for tools
 - [ ] Create API methods for application billing plans
 - [ ] Create API methods for application branding
 - [ ] Create API methods for application API keys
 - [ ] Create API methods for chat sessions
-- [x] Create API interceptor methods for chatflows
-- [x] Create API interceptor methods for credentials
 - [ ] Create API methods for flow runs
-- [ ] Update existing API methods to include application context
+- [x] Update existing API methods to include application context for tools
+- [x] Update existing API methods to include application context for credentials
+- [x] Update existing API methods to include application context for chatflows
+- [ ] Update existing API methods to include application context for databases
 
 ### UI Implementation
+- [x] Create ApplicationContext for managing application state
+- [x] Update ToolDialog to use ApplicationContext
+- [x] Update tools view to filter by applicationId
 - [ ] Create folder browser component for application content
 - [ ] Implement application settings page
 - [ ] Add application metrics dashboard
 - [ ] Create application user management interface
-- [ ] Implement application tool management
+- [x] Implement application tool management
 - [ ] Create application branding customization UI
 - [ ] Implement API key management interface
 
 ### Security & Access Control
+- [x] Implement RLS policies for application_credentials table
+- [x] Implement RLS policies for application_tools table
+- [x] Implement RLS policies for application_chatflows table
+- [x] Create role-based access control for credentials (platform admin, app admin, org user)
+- [x] Create role-based access control for tools (platform admin, app admin, org user)
+- [x] Create role-based access control for chatflows (platform admin, app admin, org user)
 - [ ] Implement RLS policies for application folders
-- [ ] Implement RLS policies for all other application-related tables
-- [ ] Create role-based access control for application management
-- [ ] Add organization-level permissions
+- [ ] Implement RLS policies for other application-related tables
+- [ ] Add organization-level permissions for additional resources
 
 ### Documentation
 - [x] Document application schema and relationships
 - [x] Document application folders implementation
+- [x] Document multi-tenant architecture in README.md
+- [x] Document application_credentials implementation
+- [x] Document application_tools implementation
 - [ ] Document API endpoints for application management
 - [ ] Create user guide for application features
 - [ ] Document security model and access control

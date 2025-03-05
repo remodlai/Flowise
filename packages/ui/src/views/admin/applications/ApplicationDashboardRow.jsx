@@ -288,7 +288,7 @@ const ApplicationDashboardRow = ({
                     </Grid>
                     
                     {/* Additional info */}
-                    <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', color: '#10B981' }}>
+                    {/* <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', color: '#10B981' }}>
                         <IconArrowDownRight size={16} />
                         <Typography sx={{ ml: 1, fontSize: '14px', fontWeight: 'medium' }}>
                             +4.5%
@@ -296,7 +296,7 @@ const ApplicationDashboardRow = ({
                         <Typography sx={{ ml: 2, color: '#aaa', fontSize: '14px' }}>
                             • $3,440
                         </Typography>
-                    </Box>
+                    </Box> */}
                 </Grid>
                 
                 {/* Right section - Additional Stats (3 rows of 2 cards) */}
