@@ -123,6 +123,42 @@ export default function themePalette(theme) {
         nodeToolTip: {
             background: theme.customization.isDarkMode ? theme.colors?.darkPrimary800 : theme.colors?.paper,
             color: theme.customization.isDarkMode ? theme.colors?.paper : 'rgba(0, 0, 0, 0.87)'
+        },
+        // Dashboard theme colors from example
+        darkTheme: {
+            background: '#181a23',
+            gray: {
+                0: '#FFFFFF',
+                1: '#F7F7F7',
+                2: '#E6E6E6',
+                3: '#CCCCCC',
+                9: 'rgba(30, 32, 47, 0.9)',
+                11: 'rgba(40, 42, 57, 0.9)'
+            },
+            accents: {
+                azure: '#3B82F6',
+                verdepom: '#10B981'
+            }
+        },
+        dashboard: {
+            // Background colors for different elements
+            background: theme.customization.isDarkMode ? '#181a23' : theme.colors?.paper,
+            statBackground: theme.customization.isDarkMode ? 'rgba(30, 32, 47, 0.9)' : 'rgba(0, 0, 0, 0.03)',
+            emptyStateBackground: theme.customization.isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.02)',
+            inputBackground: theme.customization.isDarkMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.9)',
+            dialogBackground: theme.customization.isDarkMode ? 'rgba(0, 0, 0, 0.8)' : theme.colors?.paper,
+            
+            // Border colors
+            border: theme.customization.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            dashedBorder: theme.customization.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+            
+            // Text colors
+            textPrimary: theme.customization.isDarkMode ? 'white' : 'inherit',
+            textSecondary: theme.customization.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit',
+            textMuted: theme.customization.isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.6)',
+            
+            // Stat box accent color
+            statAccent: theme.colors?.primaryMain
         }
     }
 }
