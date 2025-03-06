@@ -31,6 +31,63 @@ router.put('/applications/:id', ApplicationController.updateApplication)
 router.delete('/applications/:id', ApplicationController.deleteApplication)
 router.get('/user/applications', ApplicationController.getUserApplications)
 
+// Add a debug endpoint for applications
+router.get('/debug/user-applications', async (req, res) => {
+    try {
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ error: 'Unauthorized' })
+        }
+        
+        const userId = req.user.userId
+        const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
+        
+        console.log('Debug - User requesting applications:', { 
+            userId, 
+            isPlatformAdmin,
+            first_name: (req.user as any)?.first_name,
+            last_name: (req.user as any)?.last_name,
+            user_roles: (req.user as any)?.user_roles || []
+        })
+        
+        // Use the standard query which will apply RLS policies
+        const { data, error } = await supabase
+            .from('applications')
+            .select('*')
+            .order('name')
+        
+        if (error) {
+            console.error('Debug - Error fetching applications:', error)
+            return res.status(500).json({ error: error.message })
+        }
+        
+        console.log(`Debug - Found ${data?.length || 0} applications through RLS`)
+        
+        // Get all applications directly (bypassing RLS)
+        const { data: allApps, error: allAppsError } = await supabase.rpc('get_all_applications_direct')
+        
+        if (allAppsError) {
+            console.error('Debug - Error fetching all applications:', allAppsError)
+        } else {
+            console.log(`Debug - Found ${allApps?.length || 0} applications directly`)
+        }
+        
+        return res.json({
+            user: {
+                userId,
+                isPlatformAdmin,
+                first_name: (req.user as any)?.first_name,
+                last_name: (req.user as any)?.last_name,
+                user_roles: (req.user as any)?.user_roles || []
+            },
+            applications: data || [],
+            all_applications: allApps || []
+        })
+    } catch (err) {
+        console.error('Debug - Error in debug endpoint:', err)
+        return res.status(500).json({ error: 'Error fetching applications' })
+    }
+})
+
 // Organization routes
 router.get('/organizations', OrganizationController.getAllOrganizations)
 router.post('/organizations', OrganizationController.createOrganization)

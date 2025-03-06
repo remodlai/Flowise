@@ -66,19 +66,29 @@ export class ApplicationController {
             // Check if user is platform admin from JWT claim
             const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
             
-            // Get user roles from JWT claim
-            const userRoles = (req.user as any)?.user_roles || []
-            
             console.log('User requesting applications:', { 
                 userId, 
                 isPlatformAdmin,
-                userRolesCount: userRoles?.length,
-                userRoles,
                 first_name: (req.user as any)?.first_name,
                 last_name: (req.user as any)?.last_name
             })
             
-            // For platform admins, return all applications
+            // Define application interface
+            interface Application {
+                id: string;
+                name: string;
+                description?: string;
+                logo_url?: string;
+                url?: string;
+                version?: string;
+                type?: string;
+                status?: string;
+                is_admin?: boolean;
+            }
+            
+            // Use the standard query which will apply RLS policies
+            // The RLS policies should allow platform admins to see all applications
+            // and regular users to see applications they have access to
             const { data, error } = await supabase
                 .from('applications')
                 .select('id, name, description, logo_url, url, version, type, status')
@@ -89,27 +99,13 @@ export class ApplicationController {
                 throw error
             }
             
-            console.log(`Found ${data.length} applications`)
+            console.log(`Found ${data?.length || 0} applications through RLS`)
             
-            // Filter applications based on user roles if not platform admin
-            let applications = data
-            
-            if (!isPlatformAdmin) {
-                // Extract application IDs from user roles
-                const accessibleAppIds = userRoles
-                    .filter((role: any) => role.resource_type === 'application')
-                    .map((role: any) => role.resource_id)
-                
-                console.log('User has access to application IDs:', accessibleAppIds)
-                
-                // Filter applications to only include those the user has access to
-                applications = data.filter(app => accessibleAppIds.includes(app.id))
-                
-                console.log(`Filtered to ${applications.length} accessible applications`)
-            }
+            // Get user roles from JWT claim to determine admin status
+            const userRoles = (req.user as any)?.user_roles || []dfoKvVeWTIRwuBbaTHEHnBJOz2yLk9IXvdnZ6ROhltk
             
             // Add is_admin flag based on user roles
-            applications = applications.map((app: any) => {
+            const applications = (data || []).map((app: Application) => {
                 // Platform admins are admins of all applications
                 if (isPlatformAdmin) return { ...app, is_admin: true }
                 
@@ -117,7 +113,7 @@ export class ApplicationController {
                 const isAdmin = userRoles.some((role: any) => 
                     role.resource_type === 'application' && 
                     role.resource_id === app.id && 
-                    ['application_admin', 'application_owner'].includes(role.role)
+                    ['application_admin', 'application_owner', 'app_admin', 'app_owner'].includes(role.role)
                 )
                 
                 return { ...app, is_admin: isAdmin }

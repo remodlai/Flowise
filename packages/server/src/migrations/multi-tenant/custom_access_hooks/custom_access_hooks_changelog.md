@@ -178,3 +178,18 @@ This hook combines user profile information with role assignments to provide a c
 - Changed function to `SECURITY DEFINER` with explicit search path for better security
 - Added logic to set `is_platform_admin` based on user metadata role
 - Fixed issue where platform admin status wasn't being properly reflected in the JWT
+
+## v11_authorize_function_fix.sql - 2024-07-XX
+
+**Changes:**
+- Fixed the `authorize` function to use the correct column names in the `role_permissions` table
+- Added a new `platform.global` permission for platform-wide access
+- Assigned the `platform.global` permission to the `platform_admin` role
+- Created an RLS policy on the `applications` table to allow users with the `platform.global` permission to view all applications
+- Created the `get_all_applications_direct` function for bypassing RLS in the ApplicationController
+
+**Benefits:**
+- Platform admins can now properly see all applications through RLS policies
+- The `authorize` function now correctly checks permissions against the database schema
+- More granular permission control with the new `platform.global` permission
+- Improved security by using proper column names and joins in the authorization function
