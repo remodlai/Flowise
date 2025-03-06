@@ -37,11 +37,11 @@ This will provide a unified approach to secrets management across all environmen
 
 ### Phase 2: API Key Migration
 
-- [ ] 2.1. Update the API Key Service to use Supabase
-- [ ] 2.2. Update API Key validation functions
-- [ ] 2.3. Create a migration script for existing API keys
-- [ ] 2.4. Test API Key CRUD operations with Supabase
-- [ ] 2.5. Test API Key validation with existing endpoints
+- [x] 2.1. Update the API Key Service to use Supabase
+- [x] 2.2. Update API Key validation functions
+- [x] 2.3. Create a migration script for existing API keys
+- [x] 2.4. Test API Key CRUD operations with Supabase
+- [x] 2.5. Test API Key validation with existing endpoints
 
 ### Phase 3: Credential Migration
 

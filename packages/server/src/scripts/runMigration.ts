@@ -1,32 +1,27 @@
-import fs from 'fs'
+import { config } from 'dotenv'
 import path from 'path'
-import { supabase } from '../utils/supabase'
+import { exec } from 'child_process'
 
-/**
- * Run SQL migration
- */
-async function runMigration() {
-    try {
-        console.log('Running migration...')
-        
-        // Read the SQL file
-        const sqlFilePath = path.join(__dirname, '../migrations/user_profiles.sql')
-        const sql = fs.readFileSync(sqlFilePath, 'utf8')
-        
-        // Execute the SQL
-        const { error } = await supabase.rpc('exec_sql', { sql })
-        
-        if (error) {
-            console.error('Migration error:', error)
-            process.exit(1)
-        }
-        
-        console.log('Migration completed successfully')
-    } catch (error) {
-        console.error('Migration failed:', error)
-        process.exit(1)
-    }
+// Load environment variables from .env file
+config({ path: path.resolve(__dirname, '../../.env') })
+
+// Check if required environment variables are set
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in the .env file')
+    process.exit(1)
 }
 
-// Run the migration
-runMigration() 
+console.log('Running credential migration script...')
+
+// Run the migration script
+exec('npx ts-node src/scripts/migrateCredentials.ts', (error, stdout, stderr) => {
+    if (error) {
+        console.error(`Error: ${error.message}`)
+        return
+    }
+    if (stderr) {
+        console.error(`Stderr: ${stderr}`)
+        return
+    }
+    console.log(stdout)
+}) 

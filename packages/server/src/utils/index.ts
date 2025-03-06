@@ -1409,40 +1409,59 @@ export const getEncryptionKey = async (): Promise<string> => {
  * @returns {Promise<string>}
  */
 export const encryptCredentialData = async (plainDataObj: ICredentialDataDecrypted): Promise<string> => {
-    if (USE_AWS_SECRETS_MANAGER && secretsManagerClient) {
-        const secretName = `FlowiseCredential_${randomBytes(12).toString('hex')}`
+    try {
+        // Import the secrets service
+        const { storeSecret } = await import('../services/secrets')
+        
+        // Generate a unique ID for the credential
+        const credentialId = randomBytes(12).toString('hex')
+        
+        // Store in Supabase using the secrets service
+        const secretId = await storeSecret(
+            `Credential_${credentialId}`,
+            'credential',
+            plainDataObj,
+            { credentialId }
+        )
+        
+        return secretId
+    } catch (error) {
+        console.error('Error encrypting credential data:', error)
+        
+        // Fallback to existing methods if Supabase fails
+        if (USE_AWS_SECRETS_MANAGER && secretsManagerClient) {
+            const secretName = `FlowiseCredential_${randomBytes(12).toString('hex')}`
 
-        logger.info(`[server]: Upserting AWS Secret: ${secretName}`)
+            logger.info(`[server]: Upserting AWS Secret: ${secretName}`)
 
-        const secretString = JSON.stringify({ ...plainDataObj })
+            const secretString = JSON.stringify({ ...plainDataObj })
 
-        try {
-            // Try to update the secret if it exists
-            const putCommand = new PutSecretValueCommand({
-                SecretId: secretName,
-                SecretString: secretString
-            })
-            await secretsManagerClient.send(putCommand)
-        } catch (error: any) {
-            if (error.name === 'ResourceNotFoundException') {
-                // Secret doesn't exist, so create it
-                const createCommand = new CreateSecretCommand({
-                    Name: secretName,
+            try {
+                // Try to update the secret if it exists
+                const putCommand = new PutSecretValueCommand({
+                    SecretId: secretName,
                     SecretString: secretString
                 })
-                await secretsManagerClient.send(createCommand)
-            } else {
-                // Rethrow any other errors
-                throw error
+                await secretsManagerClient.send(putCommand)
+            } catch (error: any) {
+                if (error.name === 'ResourceNotFoundException') {
+                    // Secret doesn't exist, so create it
+                    const createCommand = new CreateSecretCommand({
+                        Name: secretName,
+                        SecretString: secretString
+                    })
+                    await secretsManagerClient.send(createCommand)
+                } else {
+                    // Rethrow any other errors
+                    throw error
+                }
             }
+            return secretName
         }
-        return secretName
+
+        const encryptKey = await getEncryptionKey()
+        return AES.encrypt(JSON.stringify(plainDataObj), encryptKey).toString()
     }
-
-    const encryptKey = await getEncryptionKey()
-
-    // Fallback to existing code
-    return AES.encrypt(JSON.stringify(plainDataObj), encryptKey).toString()
 }
 
 /**
@@ -1457,40 +1476,58 @@ export const decryptCredentialData = async (
     componentCredentialName?: string,
     componentCredentials?: IComponentCredentials
 ): Promise<ICredentialDataDecrypted> => {
-    let decryptedDataStr: string
-
-    if (USE_AWS_SECRETS_MANAGER && secretsManagerClient) {
-        try {
-            logger.info(`[server]: Reading AWS Secret: ${encryptedData}`)
-            const command = new GetSecretValueCommand({ SecretId: encryptedData })
-            const response = await secretsManagerClient.send(command)
-
-            if (response.SecretString) {
-                const secretObj = JSON.parse(response.SecretString)
-                decryptedDataStr = JSON.stringify(secretObj)
-            } else {
-                throw new Error('Failed to retrieve secret value.')
-            }
-        } catch (error) {
-            console.error(error)
-            throw new Error('Failed to decrypt credential data.')
-        }
-    } else {
-        // Fallback to existing code
-        const encryptKey = await getEncryptionKey()
-        const decryptedData = AES.decrypt(encryptedData, encryptKey)
-        decryptedDataStr = decryptedData.toString(enc.Utf8)
-    }
-
-    if (!decryptedDataStr) return {}
     try {
+        // Check if this is a UUID (Supabase secret ID)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (uuidRegex.test(encryptedData)) {
+            // Import the secrets service
+            const { getSecret } = await import('../services/secrets')
+            
+            // Get from Supabase using the secrets service
+            const plainDataObj = await getSecret(encryptedData)
+            
+            if (componentCredentialName && componentCredentials) {
+                return redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
+            }
+            
+            return plainDataObj
+        }
+        
+        // Fallback to existing methods
+        let decryptedDataStr: string
+
+        if (USE_AWS_SECRETS_MANAGER && secretsManagerClient) {
+            try {
+                logger.info(`[server]: Reading AWS Secret: ${encryptedData}`)
+                const command = new GetSecretValueCommand({ SecretId: encryptedData })
+                const response = await secretsManagerClient.send(command)
+
+                if (response.SecretString) {
+                    const secretObj = JSON.parse(response.SecretString)
+                    decryptedDataStr = JSON.stringify(secretObj)
+                } else {
+                    throw new Error('Failed to retrieve secret value.')
+                }
+            } catch (error) {
+                console.error(error)
+                throw new Error('Failed to decrypt credential data.')
+            }
+        } else {
+            // Fallback to existing code
+            const encryptKey = await getEncryptionKey()
+            const decryptedData = AES.decrypt(encryptedData, encryptKey)
+            decryptedDataStr = decryptedData.toString(enc.Utf8)
+        }
+
+        if (!decryptedDataStr) return {}
+        
         if (componentCredentialName && componentCredentials) {
             const plainDataObj = JSON.parse(decryptedDataStr)
             return redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
         }
         return JSON.parse(decryptedDataStr)
-    } catch (e) {
-        console.error(e)
+    } catch (error) {
+        console.error('Error decrypting credential data:', error)
         return {}
     }
 }

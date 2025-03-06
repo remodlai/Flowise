@@ -32,6 +32,7 @@ import { setupSupabaseStorage } from './utils/setupSupabaseStorage'
 import apiRoutes from './routes/api'
 import { applicationContextMiddleware } from './middlewares/applicationContextMiddleware'
 import { jwtDebugMiddleware } from './middleware/jwtDebug'
+import { authenticateApiKey } from './middleware/authenticateApiKey'
 
 // Extend Express Request type
 declare global {
@@ -167,6 +168,9 @@ export class App {
         // Add the sanitizeMiddleware to guard against XSS
         this.app.use(sanitizeMiddleware)
 
+        // Use API key authentication middleware first
+        this.app.use('/api/v1', authenticateApiKey)
+
         // Use Supabase authentication middleware for API routes
         this.app.use('/api/v1', authenticateUser)
         
@@ -200,11 +204,11 @@ export class App {
             }
         }
 
+        // Mount the main API router
         this.app.use('/api/v1', flowiseApiV1Router)
         
-        // Custom roles API routes are now integrated into the main router
-        // this.app.use('/api/v1', apiRoutes)
-        // this.app.use('/api', apiRoutes)
+        // Mount the custom roles API router directly (not nested)
+        this.app.use('/api/v1', apiRoutes)
 
         // ----------------------------------------
         // Configure number of proxies in Host Environment

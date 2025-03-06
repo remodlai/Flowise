@@ -20,6 +20,11 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
       return next()
     }
 
+    // Skip Supabase authentication if the user is already authenticated via API key
+    if (req.user && req.user.provider === 'api-key') {
+      return next()
+    }
+
     // Extract token from Authorization header
     const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
