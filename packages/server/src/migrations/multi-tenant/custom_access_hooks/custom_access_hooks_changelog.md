@@ -33,6 +33,39 @@
 - Added direct update to auth.users table to ensure UI reflects correct role
 - Fixed issue where superadmins might not have access to global context
 
+### v6 - Comprehensive JWT Claims
+- Combined functionality of v5 and v1_platform_admin_jwt_claim
+- Added platform_admin claim to JWT for RLS policies
+- Ensured all necessary claims are included in a single hook
+- Fixed issue with platform admins not seeing all applications
+
+### v7 - Simplified Auth Hook
+- Simplified the hook implementation to focus on core functionality
+- Added more robust error handling with specific EXCEPTION blocks
+- Added test_claim to verify hook is working
+
+### v8 - Resource-Based Access Control
+- Added resource_type and resource_id columns to user_custom_roles table
+- Updated unique constraint to include resource fields
+- Enhanced JWT claims to include resource information
+- Improved role-based access control with resource context
+
+### v9 - JWT Custom Claims Hook (2025-03-07)
+
+Added a new JWT custom claims hook that adds the following claims to the JWT:
+- `is_platform_admin`: Boolean indicating if the user is a platform admin
+- `user_roles`: Array of user roles with resource information
+- `user_permissions`: Array of user permissions
+
+This hook allows the application to use JWT claims for authorization instead of querying the database directly, improving performance and security.
+
+To enable this hook:
+1. Run the SQL in `fresh_hook.sql` to create the hook function
+2. Go to the Supabase dashboard > Authentication > Hooks > JWT Claim Generation
+3. Select the function: `public.custom_jwt_claim_hook`
+4. Save the changes
+5. Log out and log back in to get a new JWT with the custom claims
+
 ## v1_custom_access_token_hook.sql - [Date: YYYY-MM-DD]
 - Initial versioned implementation of the custom_access_token_hook
 - Based on the original working version
@@ -68,3 +101,50 @@
 - Ensured superadmins are always marked as platform_admin in user_role
 - Added direct update to auth.users table to ensure UI reflects correct role
 - Fixed issue where superadmins might not have access to global context
+
+## v1_platform_admin_jwt_claim.sql - 2023-07-XX
+- Added `platform_admin` claim to JWT for platform admins
+- Updated RLS policy for applications table to use the new claim
+- This ensures platform admins can correctly see and manage all applications
+- The claim is set to true if any of these conditions are met:
+  - app_metadata.is_platform_admin is true
+  - user_metadata.role is 'platform_admin'
+  - user_metadata.role is 'superadmin'
+
+## v6_custom_access_token_hook.sql - 2024-07-03
+
+**Changes:**
+- Combined functionality of v5_custom_access_token_hook and v1_platform_admin_jwt_claim
+- Added platform_admin claim to JWT for RLS policies
+- Ensured all necessary claims are included in a single hook
+- Fixed issue with platform admins not seeing all applications
+- Comprehensive platform admin detection using multiple conditions:
+  - User has a role with base_role='admin' and context_type='platform'
+  - User has raw_user_meta_data.role='superadmin'
+  - User has app_metadata.is_platform_admin=true
+  - User has user_metadata.role='platform_admin' or 'superadmin'
+
+## v7_reset_hook.sql - 2024-07-10
+
+**Changes:**
+- Completely reset the JWT hook implementation to resolve issues
+- Renamed the function from `custom_access_token_hook` to `flowise_jwt_hook` for a clean slate
+- Dropped all existing hooks and functions to avoid conflicts
+- Simplified the implementation to focus on core functionality:
+  - Adding first_name and last_name from user_profiles.meta
+  - Adding platform_admin claim for RLS policies
+  - Adding test_claim to verify hook is working
+- Added more robust error handling with specific EXCEPTION blocks
+- Created a debug table (hook_debug_logs) to track hook execution
+- Explicitly set the enabled flag to true when registering the hook
+- Simplified platform admin detection logic
+
+## v8_resource_auth_hook.sql - 2024-07-11
+
+**Changes:**
+- Added support for resource-based access control
+- Enhanced JWT claims to include resource information (resource_type and resource_id)
+- Added user_roles array to JWT claims with role, resource_type, and resource_id
+- Improved platform admin detection
+- Added test_claim with value 'v8_resource_hook' to verify hook is working
+- Works with the new resource fields added to user_custom_roles table

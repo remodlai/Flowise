@@ -31,6 +31,7 @@ import { IUser } from './Interface'
 import { setupSupabaseStorage } from './utils/setupSupabaseStorage'
 import apiRoutes from './routes/api'
 import { applicationContextMiddleware } from './middlewares/applicationContextMiddleware'
+import { jwtDebugMiddleware } from './middleware/jwtDebug'
 
 // Extend Express Request type
 declare global {
@@ -168,6 +169,11 @@ export class App {
 
         // Use Supabase authentication middleware for API routes
         this.app.use('/api/v1', authenticateUser)
+        
+        // Add JWT debug middleware to log claims
+        if (process.env.DEBUG_JWT === 'true') {
+            this.app.use('/api/v1', jwtDebugMiddleware)
+        }
         
         // Use application context middleware for API routes
         this.app.use('/api/v1', applicationContextMiddleware)

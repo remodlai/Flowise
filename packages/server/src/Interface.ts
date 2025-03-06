@@ -47,6 +47,16 @@ export interface IUser {
         roles?: any[]
         [key: string]: any
     }
+    // JWT custom claims
+    user_roles?: Array<{
+        role: string
+        resource_type: string
+        resource_id: string | null
+    }>
+    user_permissions?: string[]
+    is_platform_admin?: boolean
+    id?: string // For compatibility with req.user.id
+    test_claim?: string // For debugging JWT hooks
 }
 export interface IApplication {
     id: string

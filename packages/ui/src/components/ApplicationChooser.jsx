@@ -14,6 +14,17 @@ const ApplicationChooser = () => {
     const { user, isAuthenticated, isPlatformAdmin } = useAuth()
     const { applicationId, applications, setApplicationId, loading } = useApplication()
     
+    // Debug: Log applications whenever they change
+    useEffect(() => {
+        console.log('ApplicationChooser - Applications:', applications)
+        // Check if Platform Sandbox exists
+        const hasSandbox = applications.some(app => app.name === 'Platform Sandbox')
+        console.log('Has Platform Sandbox:', hasSandbox)
+        if (hasSandbox) {
+            console.log('Platform Sandbox details:', applications.find(app => app.name === 'Platform Sandbox'))
+        }
+    }, [applications])
+    
     console.log('ApplicationChooser rendering', { user, isAuthenticated, isPlatformAdmin, applicationId })
     
     const handleAppChange = (appId) => {

@@ -133,46 +133,74 @@ export class UserController {
             
             const meta = profile?.meta || {}
             
-            // Get user's roles
-            const { data: userRoles, error: rolesError } = await supabase
-                .from('user_roles')
-                .select('role, resource_type, resource_id')
-                .eq('user_id', id)
+            // Check if we have user roles in the JWT claims
+            const userRoles = req.user?.user_roles || [];
+            const userPermissions = req.user?.user_permissions || [];
             
-            if (rolesError) throw rolesError
-            
-            // Get user's custom roles
-            const { data: customRoles, error: customRolesError } = await supabase
-                .from('user_custom_roles')
-                .select('role_id, custom_roles:custom_roles(name, context_type, context_id)')
-                .eq('user_id', id)
-            
-            if (customRolesError) throw customRolesError
-            
-            // Format the response
-            const user = {
-                id: authUser.user.id,
-                email: authUser.user.email,
-                name: meta.first_name && meta.last_name 
-                    ? `${meta.first_name} ${meta.last_name}` 
-                    : authUser.user.user_metadata?.name || '',
-                firstName: meta.first_name || authUser.user.user_metadata?.first_name || '',
-                lastName: meta.last_name || authUser.user.user_metadata?.last_name || '',
-                organization: meta.organization || authUser.user.user_metadata?.organization || '',
-                role: meta.role || authUser.user.user_metadata?.role || '',
-                lastLogin: authUser.user.last_sign_in_at || 'Never',
-                status: authUser.user.email_confirmed_at ? 'Active' : 'Pending',
-                createdAt: authUser.user.created_at,
-                roles: userRoles || [],
-                customRoles: customRoles ? customRoles.map((cr: any) => ({
-                    id: cr.role_id,
-                    name: cr.custom_roles?.name,
-                    contextType: cr.custom_roles?.context_type,
-                    contextId: cr.custom_roles?.context_id
-                })) : []
+            // If we don't have roles in JWT claims, fall back to database query
+            let dbUserRoles: Array<{
+                role: string;
+                resource_type: string;
+                resource_id: string | null;
+            }> = [];
+            if (!userRoles.length && id === req.user?.id) {
+                console.log('No roles found in JWT claims, falling back to database query');
+                
+                // Get user's roles using custom_roles and user_custom_roles
+                const { data: userCustomRoles, error: customRolesError } = await supabase
+                    .from('user_custom_roles')
+                    .select(`
+                        id,
+                        resource_id,
+                        resource_type,
+                        role_id,
+                        custom_roles:role_id(id, name, base_role, context_type)
+                    `)
+                    .eq('user_id', id)
+                
+                if (customRolesError) throw customRolesError
+                
+                // Define a type for the custom roles data
+                interface CustomRoleData {
+                    id: string;
+                    name: string;
+                    base_role: string;
+                    context_type: string;
+                }
+                
+                // Transform the roles into a format similar to what was expected from user_roles
+                dbUserRoles = userCustomRoles?.map(ucr => {
+                    // Get the custom role data - handle both object and array formats
+                    const customRole = Array.isArray(ucr.custom_roles) 
+                        ? ucr.custom_roles[0] as CustomRoleData
+                        : ucr.custom_roles as CustomRoleData;
+                    
+                    return {
+                        role: customRole?.name || '',
+                        resource_type: ucr.resource_type || customRole?.context_type || '',
+                        resource_id: ucr.resource_id
+                    }
+                }) || []
             }
             
-            return res.json({ user })
+            // Use JWT roles if available, otherwise use database roles
+            const roles = userRoles.length ? userRoles : dbUserRoles;
+            
+            // Format the response
+            const formattedUser = {
+                id: authUser.user.id,
+                email: authUser.user.email,
+                firstName: meta.first_name || '',
+                lastName: meta.last_name || '',
+                organization: meta.organization || '',
+                status: authUser.user.email_confirmed_at ? 'Active' : 'Pending',
+                createdAt: authUser.user.created_at,
+                roles: roles,
+                permissions: userPermissions,
+                is_platform_admin: req.user?.is_platform_admin || false
+            }
+            
+            return res.json({ user: formattedUser })
         } catch (error) {
             return handleError(res, error, 'Error fetching user')
         }

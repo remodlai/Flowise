@@ -1,0 +1,27 @@
+-- INSTRUCTIONS FOR REGISTERING THE JWT HOOK IN SUPABASE DASHBOARD
+--
+-- 1. Execute the SQL files in this order:
+--    - 01_drop_existing_hooks.sql
+--    - 02_create_jwt_hook.sql
+--    - 03_create_minimal_hook.sql
+--
+-- 2. Go to the Supabase dashboard: https://supabase.com/dashboard/project/voksjtjrshonjadwjozt
+--
+-- 3. Navigate to Authentication > Hooks
+--
+-- 4. For initial testing, select the "minimal_hook" function from the dropdown
+--    - This will add a simple test claim to verify the hook is working
+--
+-- 5. Once verified, switch to the "custom_access_token_hook" function
+--    - This will add user roles and permissions to the JWT
+--
+-- 6. After enabling the hook, users will need to log out and log back in
+--    to get a new JWT with the custom claims
+--
+-- 7. You can verify the JWT claims by decoding the JWT at https://jwt.io
+--
+-- NOTE: The following SQL is for reference only and should NOT be executed directly.
+-- Hooks must be registered through the Supabase dashboard UI.
+--
+-- INSERT INTO auth.hooks (hook_name, function_name, enabled)
+-- VALUES ('custom_access_token', 'public.custom_access_token_hook', true); 

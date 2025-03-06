@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { supabase } from './supabase'
 import { IUser } from '../Interface'
+import jwt from 'jsonwebtoken'
 
 /**
  * Middleware to authenticate user with Supabase
@@ -28,6 +29,16 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
     
     // Extract the token
     const token = authHeader.split(' ')[1]
+    
+    // Log the decoded JWT (without verification)
+    try {
+      const decodedJwt = jwt.decode(token)
+      console.log('========== DECODED JWT ==========')
+      console.log(JSON.stringify(decodedJwt, null, 2))
+      console.log('=================================')
+    } catch (jwtError) {
+      console.error('Error decoding JWT:', jwtError)
+    }
     
     // Validate the token with Supabase Auth
     const { data, error } = await supabase.auth.getUser(token)
