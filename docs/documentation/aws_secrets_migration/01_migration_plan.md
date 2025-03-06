@@ -32,8 +32,8 @@ This will provide a unified approach to secrets management across all environmen
 
 - [x] 1.1. Create the `secrets` table in Supabase
 - [x] 1.2. Implement RLS policies for the `secrets` table
-- [ ] 1.3. Create the Secrets Service for managing secrets in Supabase
-- [ ] 1.4. Update environment variables configuration
+- [x] 1.3. Create the Secrets Service for managing secrets in Supabase
+- [x] 1.4. Update environment variables configuration
 
 ### Phase 2: API Key Migration
 

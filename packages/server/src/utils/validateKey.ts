@@ -2,6 +2,7 @@ import { Request } from 'express'
 import { ChatFlow } from '../database/entities/ChatFlow'
 import { compareKeys } from './apiKey'
 import apikeyService from '../services/apikey'
+import { appConfig } from '../AppConfig'
 
 /**
  * Validate Chatflow API Key
@@ -17,10 +18,12 @@ export const validateChatflowAPIKey = async (req: Request, chatflow: ChatFlow) =
 
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
-        const keys = await apikeyService.getAllApiKeys()
-        const apiSecret = keys.find((key: any) => key.id === chatFlowApiKeyId)?.apiSecret
-        if (!compareKeys(apiSecret, suppliedKey)) return false
-        return true
+        try {
+            await apikeyService.verifyApiKey(suppliedKey)
+            return true
+        } catch (error) {
+            return false
+        }
     }
     return false
 }
@@ -35,11 +38,12 @@ export const validateAPIKey = async (req: Request) => {
 
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
-        const keys = await apikeyService.getAllApiKeys()
-        const apiSecret = keys.find((key: any) => key.apiKey === suppliedKey)?.apiSecret
-        if (!apiSecret) return false
-        if (!compareKeys(apiSecret, suppliedKey)) return false
-        return true
+        try {
+            await apikeyService.verifyApiKey(suppliedKey)
+            return true
+        } catch (error) {
+            return false
+        }
     }
     return false
 }
