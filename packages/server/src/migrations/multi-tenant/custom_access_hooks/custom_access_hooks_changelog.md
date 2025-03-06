@@ -66,6 +66,28 @@ To enable this hook:
 4. Save the changes
 5. Log out and log back in to get a new JWT with the custom claims
 
+### v10 - Custom Access Token Hook (2025-03-07)
+
+Added a custom access token hook that adds the following claims to the JWT:
+- `is_platform_admin`: Boolean indicating if the user is a platform admin
+- `user_roles`: Array of objects with role, resource_type, and resource_id
+- Profile information: first_name, last_name, organization_name, profile_role
+
+This hook combines user profile information with role assignments to provide a comprehensive set of claims for authorization.
+
+### Steps to Enable
+1. Run the SQL script: `packages/server/src/migrations/multi-tenant/jwt_hook/08_create_custom_access_token_hook.sql`
+2. In the Supabase dashboard, navigate to Authentication > Hooks (Beta)
+3. In the "Custom Access Token" section, select the `public.custom_access_token_hook` function
+4. Click "Save"
+5. Log out and log back in to get a new JWT with these claims
+
+### Benefits
+- Improved authorization by having role information directly in the JWT
+- Reduced database queries by having profile information in the JWT
+- Better security by having platform admin status in the JWT
+- Resource-based access control with resource_type and resource_id in the roles
+
 ## v1_custom_access_token_hook.sql - [Date: YYYY-MM-DD]
 - Initial versioned implementation of the custom_access_token_hook
 - Based on the original working version
