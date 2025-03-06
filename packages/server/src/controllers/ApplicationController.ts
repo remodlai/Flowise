@@ -102,7 +102,7 @@ export class ApplicationController {
             console.log(`Found ${data?.length || 0} applications through RLS`)
             
             // Get user roles from JWT claim to determine admin status
-            const userRoles = (req.user as any)?.user_roles || []dfoKvVeWTIRwuBbaTHEHnBJOz2yLk9IXvdnZ6ROhltk
+            const userRoles = (req.user as any)?.user_roles || []
             
             // Add is_admin flag based on user roles
             const applications = (data || []).map((app: Application) => {
