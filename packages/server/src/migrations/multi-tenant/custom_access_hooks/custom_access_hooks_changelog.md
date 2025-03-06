@@ -170,3 +170,11 @@ This hook combines user profile information with role assignments to provide a c
 - Improved platform admin detection
 - Added test_claim with value 'v8_resource_hook' to verify hook is working
 - Works with the new resource fields added to user_custom_roles table
+
+## 2024-07-03: Updated Custom Access Token Hook
+
+- Modified the `custom_access_token_hook` function to properly handle the `role` claim
+- Added support for reading `role` from `user_metadata` and setting it in the JWT claims
+- Changed function to `SECURITY DEFINER` with explicit search path for better security
+- Added logic to set `is_platform_admin` based on user metadata role
+- Fixed issue where platform admin status wasn't being properly reflected in the JWT

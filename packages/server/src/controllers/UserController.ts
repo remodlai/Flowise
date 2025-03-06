@@ -37,12 +37,12 @@ export class UserController {
                 console.error('Error fetching user profiles:', profilesError)
             }
             
-            // Get custom roles for users
-            const { data: userCustomRoles, error: customRolesError } = await supabase
-                .from('user_custom_roles')
+            // Get roles for users
+            const { data: userRoles, error: rolesError } = await supabase
+                .from('user_roles')
                 .select(`
                     user_id,
-                    custom_roles:role_id (
+                    roles:role_id (
                         id,
                         name,
                         description,
@@ -52,8 +52,8 @@ export class UserController {
                 `)
                 .in('user_id', userIds)
             
-            if (customRolesError) {
-                console.error('Error fetching custom roles:', customRolesError)
+            if (rolesError) {
+                console.error('Error fetching roles:', rolesError)
             }
             
             // Create a map of user_id to profile
@@ -64,14 +64,14 @@ export class UserController {
                 })
             }
             
-            // Create a map of user_id to custom roles
-            const customRolesMap = new Map()
-            if (userCustomRoles) {
-                userCustomRoles.forEach(ucr => {
-                    if (!customRolesMap.has(ucr.user_id)) {
-                        customRolesMap.set(ucr.user_id, [])
+            // Create a map of user_id to roles
+            const rolesMap = new Map()
+            if (userRoles) {
+                userRoles.forEach(ur => {
+                    if (!rolesMap.has(ur.user_id)) {
+                        rolesMap.set(ur.user_id, [])
                     }
-                    customRolesMap.get(ucr.user_id).push(ucr.custom_roles)
+                    rolesMap.get(ur.user_id).push(ur.roles)
                 })
             }
             
@@ -79,7 +79,7 @@ export class UserController {
             const users = authUsers.users.map(user => {
                 const profile = profileMap.get(user.id)
                 const meta = profile?.meta || {}
-                const customRoles = customRolesMap.get(user.id) || []
+                const userRolesList = rolesMap.get(user.id) || []
                 
                 return {
                     id: user.id,
@@ -91,7 +91,7 @@ export class UserController {
                     lastName: meta.last_name || user.user_metadata?.last_name || '',
                     organization: meta.organization || user.user_metadata?.organization || '',
                     role: meta.role || user.user_metadata?.role || '',
-                    custom_roles: customRoles,
+                    custom_roles: userRolesList,
                     lastLogin: user.last_sign_in_at || 'Never',
                     status: user.email_confirmed_at ? 'Active' : 'Pending',
                     createdAt: user.created_at
@@ -146,22 +146,22 @@ export class UserController {
             if (!userRoles.length && id === req.user?.id) {
                 console.log('No roles found in JWT claims, falling back to database query');
                 
-                // Get user's roles using custom_roles and user_custom_roles
-                const { data: userCustomRoles, error: customRolesError } = await supabase
-                    .from('user_custom_roles')
+                // Get user's roles from the user_roles table
+                const { data: userRolesData, error: rolesError } = await supabase
+                    .from('user_roles')
                     .select(`
                         id,
                         resource_id,
                         resource_type,
                         role_id,
-                        custom_roles:role_id(id, name, base_role, context_type)
+                        roles:role_id(id, name, base_role, context_type)
                     `)
                     .eq('user_id', id)
                 
-                if (customRolesError) throw customRolesError
+                if (rolesError) throw rolesError
                 
-                // Define a type for the custom roles data
-                interface CustomRoleData {
+                // Define a type for the roles data
+                interface RoleData {
                     id: string;
                     name: string;
                     base_role: string;
@@ -169,16 +169,16 @@ export class UserController {
                 }
                 
                 // Transform the roles into a format similar to what was expected from user_roles
-                dbUserRoles = userCustomRoles?.map(ucr => {
-                    // Get the custom role data - handle both object and array formats
-                    const customRole = Array.isArray(ucr.custom_roles) 
-                        ? ucr.custom_roles[0] as CustomRoleData
-                        : ucr.custom_roles as CustomRoleData;
+                dbUserRoles = userRolesData?.map(ur => {
+                    // Get the role data - handle both object and array formats
+                    const role = Array.isArray(ur.roles) 
+                        ? ur.roles[0] as RoleData
+                        : ur.roles as RoleData;
                     
                     return {
-                        role: customRole?.name || '',
-                        resource_type: ucr.resource_type || customRole?.context_type || '',
-                        resource_id: ucr.resource_id
+                        role: role?.name || '',
+                        resource_type: ur.resource_type || role?.context_type || '',
+                        resource_id: ur.resource_id
                     }
                 }) || []
             }

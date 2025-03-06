@@ -12,7 +12,7 @@ export const ApplicationContext = createContext({
 
 // Create a provider component
 export const ApplicationProvider = ({ children }) => {
-    const { user, isAuthenticated, isPlatformAdmin } = useAuth()
+    const { user, isAuthenticated, isPlatformAdmin, userRoles } = useAuth()
     const [applicationId, setApplicationId] = useState(localStorage.getItem('selectedApplicationId') || '')
     const [applications, setApplications] = useState([])
     const [loading, setLoading] = useState(false)
@@ -30,8 +30,8 @@ export const ApplicationProvider = ({ children }) => {
                 console.log('Fetching applications...', {
                     userId: user.userId,
                     isPlatformAdmin: isPlatformAdmin,
-                    userMetadata: user.userMetadata,
-                    role: user.userMetadata?.role
+                    userRoles: userRoles,
+                    userMetadata: user.userMetadata
                 })
                 
                 // Call the API to get applications the user has access to
@@ -72,6 +72,16 @@ export const ApplicationProvider = ({ children }) => {
                         // For regular users, use the first available app
                         updateApplicationId(apps[0].id)
                     }
+                } else {
+                    // Check if the selected application is still accessible
+                    const isAccessible = isPlatformAdmin || 
+                        apps.some(app => app.id === applicationId) ||
+                        applicationId === 'global';
+                    
+                    if (!isAccessible && apps.length > 0) {
+                        // If not accessible, select the first available app
+                        updateApplicationId(apps[0].id)
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch applications:', error)
@@ -82,7 +92,7 @@ export const ApplicationProvider = ({ children }) => {
         }
         
         fetchApplications()
-    }, [user, isAuthenticated, isPlatformAdmin, applicationId])
+    }, [user, isAuthenticated, isPlatformAdmin, userRoles])
     
     // Update the application ID
     const updateApplicationId = (newApplicationId) => {

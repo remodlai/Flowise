@@ -132,19 +132,17 @@ router.get('/public/debug/applications', async (req, res) => {
 router.get('/public/debug/roles', async (req, res) => {
     try {
         const { data, error } = await supabase
-            .from('custom_roles')
+            .from('roles')
             .select('*')
         
         if (error) {
             return res.status(500).json({ error: error.message })
         }
         
-        return res.json({
-            count: data.length,
-            roles: data
-        })
-    } catch (err) {
-        return res.status(500).json({ error: 'Error fetching roles' })
+        return res.json({ roles: data })
+    } catch (error) {
+        console.error('Error fetching roles:', error)
+        return res.status(500).json({ error: 'Internal server error' })
     }
 })
 

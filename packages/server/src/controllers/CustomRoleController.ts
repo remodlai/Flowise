@@ -16,7 +16,7 @@ export class CustomRoleController {
         try {
             const { context_type, context_id } = req.query
 
-            let query = supabase.from('custom_roles').select('*')
+            let query = supabase.from('roles').select('*')
 
             if (context_type) {
                 query = query.eq('context_type', context_type)
@@ -46,7 +46,7 @@ export class CustomRoleController {
             const { id } = req.params
 
             const { data: role, error: roleError } = await supabase
-                .from('custom_roles')
+                .from('roles')
                 .select('*')
                 .eq('id', id)
                 .single()
@@ -131,7 +131,7 @@ export class CustomRoleController {
             try {
                 // Update the role
                 const { error: updateError } = await supabase
-                    .from('custom_roles')
+                    .from('roles')
                     .update({
                         name,
                         description,
@@ -193,7 +193,7 @@ export class CustomRoleController {
 
             // Delete the role (cascade will handle permissions)
             const { error } = await supabase
-                .from('custom_roles')
+                .from('roles')
                 .delete()
                 .eq('id', id)
 
@@ -297,16 +297,13 @@ export class CustomRoleController {
             const { id } = req.params
 
             const { data, error } = await supabase
-                .from('user_custom_roles')
+                .from('user_roles')
                 .select('user_id')
                 .eq('role_id', id)
 
             if (error) throw error
 
-            // Format as an array of user IDs
-            const userIds = data.map(u => u.user_id)
-
-            return res.json({ users: userIds })
+            return res.json({ users: data.map(u => u.user_id) })
         } catch (error) {
             return handleError(res, error, 'Error fetching role users')
         }
@@ -320,21 +317,25 @@ export class CustomRoleController {
     static async assignRoleToUser(req: Request, res: Response) {
         try {
             const { id } = req.params
-            const { user_id } = req.body
+            const { user_id, resource_type, resource_id } = req.body
 
             if (!user_id) {
                 return res.status(400).json({ error: 'User ID is required' })
             }
 
-            // Call the assign_custom_role function
-            const { data, error } = await supabase.rpc('assign_custom_role', {
-                p_user_id: user_id,
-                p_role_id: id
-            })
+            const { error } = await supabase
+                .from('user_roles')
+                .insert({
+                    user_id,
+                    role_id: id,
+                    resource_type,
+                    resource_id,
+                    created_by: req.user?.userId
+                })
 
             if (error) throw error
 
-            return res.json({ id: data })
+            return res.json({ success: true })
         } catch (error) {
             return handleError(res, error, 'Error assigning role to user')
         }
@@ -350,7 +351,7 @@ export class CustomRoleController {
             const { id, user_id } = req.params
 
             const { error } = await supabase
-                .from('user_custom_roles')
+                .from('user_roles')
                 .delete()
                 .eq('role_id', id)
                 .eq('user_id', user_id)

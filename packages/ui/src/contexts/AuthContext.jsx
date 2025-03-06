@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { jwtDecode } from 'jwt-decode'
 
 // Create auth context
 const AuthContext = createContext(null)
@@ -10,6 +11,7 @@ export const AuthProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(true)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
+    const [userRoles, setUserRoles] = useState([])
     const navigate = useNavigate()
     
     // Function to refresh the token
@@ -35,6 +37,10 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem('access_token', data.session.access_token)
                     localStorage.setItem('refresh_token', data.session.refresh_token)
                     localStorage.setItem('token_expiry', data.session.expires_at.toString())
+                    
+                    // Extract JWT claims
+                    extractJwtClaims(data.session.access_token)
+                    
                     return true
                 }
             }
@@ -42,6 +48,45 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('Error refreshing token:', error)
             return false
+        }
+    }
+    
+    // Extract claims from JWT
+    const extractJwtClaims = (token) => {
+        try {
+            if (!token) return
+            
+            const decoded = jwtDecode(token)
+            console.log('Decoded JWT:', decoded)
+            
+            // Check if user is platform admin from JWT claim
+            const isPlatformAdminFromJwt = decoded.is_platform_admin === true
+            setIsPlatformAdmin(isPlatformAdminFromJwt)
+            console.log('Is platform admin from JWT:', isPlatformAdminFromJwt)
+            
+            // Extract user roles from JWT
+            const roles = decoded.user_roles || []
+            setUserRoles(roles)
+            console.log('User roles from JWT:', roles)
+            
+            // Update user metadata with JWT claims
+            if (user) {
+                const updatedUser = {
+                    ...user,
+                    userMetadata: {
+                        ...user.userMetadata,
+                        first_name: decoded.first_name,
+                        last_name: decoded.last_name,
+                        organization_name: decoded.organization_name,
+                        profile_role: decoded.profile_role,
+                        is_platform_admin: decoded.is_platform_admin
+                    }
+                }
+                setUser(updatedUser)
+                localStorage.setItem('user', JSON.stringify(updatedUser))
+            }
+        } catch (error) {
+            console.error('Error decoding JWT:', error)
         }
     }
     
@@ -114,10 +159,8 @@ export const AuthProvider = ({ children }) => {
                         setUser(parsedUser)
                         setIsAuthenticated(true)
                         
-                        // Check if user is platform admin
-                        const userRole = parsedUser.userMetadata?.role
-                        setIsPlatformAdmin(userRole === 'platform_admin' || userRole === 'superadmin')
-                        console.log('Is platform admin:', userRole === 'platform_admin' || userRole === 'superadmin')
+                        // Extract JWT claims
+                        extractJwtClaims(storedToken)
                     } else {
                         // Token expired, try to refresh it if we have a refresh token
                         const refreshToken = localStorage.getItem('refresh_token')
@@ -155,6 +198,7 @@ export const AuthProvider = ({ children }) => {
             setUser(null)
             setIsAuthenticated(false)
             setIsPlatformAdmin(false)
+            setUserRoles([])
         }
         
         checkExistingSession()
@@ -177,14 +221,12 @@ export const AuthProvider = ({ children }) => {
             userMetadata: userData.userMetadata || {}
         }
         
-        // Check if user is platform admin
-        const isPlatformAdmin = userToStore.userMetadata?.role === 'platform_admin' || userToStore.userMetadata?.role === 'superadmin'
-        console.log('Setting isPlatformAdmin:', isPlatformAdmin, 'based on role:', userToStore.userMetadata?.role)
+        // Extract JWT claims
+        extractJwtClaims(userData.accessToken)
         
         // Save to state and localStorage
         setUser(userToStore)
         setIsAuthenticated(true)
-        setIsPlatformAdmin(isPlatformAdmin)
         
         // Store in localStorage for persistence
         localStorage.setItem('user', JSON.stringify(userToStore))
@@ -217,6 +259,8 @@ export const AuthProvider = ({ children }) => {
             // Clear user data regardless of API success
             setUser(null)
             setIsAuthenticated(false)
+            setIsPlatformAdmin(false)
+            setUserRoles([])
             
             // Clear localStorage
             localStorage.removeItem('user')
@@ -233,6 +277,31 @@ export const AuthProvider = ({ children }) => {
     const getAuthToken = () => {
         return localStorage.getItem('access_token')
     }
+    
+    // Check if user has a specific permission
+    const hasPermission = (permission) => {
+        // Platform admins have all permissions
+        if (isPlatformAdmin) return true
+        
+        // Check if any of the user's roles has the requested permission
+        // This would require an API call to check the role_permissions table
+        // For now, we'll just return false
+        return false
+    }
+    
+    // Check if user has a specific permission for a resource
+    const hasResourcePermission = (permission, resourceType, resourceId) => {
+        // Platform admins have all permissions
+        if (isPlatformAdmin) return true
+        
+        // Check if any of the user's roles has the requested permission for the specific resource
+        const hasPermission = userRoles.some(role => 
+            (role.resource_type === resourceType && role.resource_id === resourceId) ||
+            (role.resource_type === null && role.resource_id === null)
+        )
+        
+        return hasPermission
+    }
 
     // Auth context value
     const value = {
@@ -240,28 +309,32 @@ export const AuthProvider = ({ children }) => {
         isLoading,
         isAuthenticated,
         isPlatformAdmin,
+        userRoles,
         login,
         logout,
-        getAuthToken
+        getAuthToken,
+        hasPermission,
+        hasResourcePermission
     }
 
     console.log('Auth context value:', { 
         hasUser: !!user, 
         isLoading, 
         isAuthenticated, 
-        isPlatformAdmin 
+        isPlatformAdmin,
+        userRolesCount: userRoles.length
     })
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    )
 }
 
 // Custom hook to use auth context
 export const useAuth = () => {
-    const context = useContext(AuthContext)
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider')
-    }
-    return context
+    return useContext(AuthContext)
 }
 
 export default AuthContext 

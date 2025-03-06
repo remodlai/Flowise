@@ -1,0 +1,16 @@
+---
+description: Instructions on how we are integrated with cloud-based supabase, supabase auth, and supbase storage
+globs: *.sql,*.ts *.tsx, *.jsx,*.js
+alwaysApply: true
+---
+Our admin layer is being built using Supabase, including Supabase Auth, Supabase Database, and Supabase Storage.
+This is separate from our underlying core databases.
+We use supabase auth with RBAC and custom claims.
+
+To access our supabase postgres database you can use: 
+PGPASSWORD=Bagsisgod321! psql -h db.voksjtjrshonjadwjozt.supabase.co -p 5432 -d postgres -U postgres     
+
+
+You must always check existing schema, definitions, policies, functions, etc prior to suggesting edits, or generating .sql
+
+

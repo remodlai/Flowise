@@ -57,6 +57,11 @@ export interface IUser {
     is_platform_admin?: boolean
     id?: string // For compatibility with req.user.id
     test_claim?: string // For debugging JWT hooks
+    // Profile information from JWT claims
+    first_name?: string
+    last_name?: string
+    organization_name?: string
+    profile_role?: string
 }
 export interface IApplication {
     id: string

@@ -1,0 +1,8 @@
+---
+description: Important information about migrations and SQL files
+globs: *.sql
+alwaysApply: true
+---
+ALL SQL FILES NOT IN packages/server/src/migrations/multi-tenant should not be touched.  
+Do not trust any sql file in packages/server/src/migrations/multi-tenant as being up to date, unless it has "valid" in the name.
+Never name anything including "valid" unless I have confirmed it worked. Then you can update the name.  If it no longer works, rename it to "invalid"

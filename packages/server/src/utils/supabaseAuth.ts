@@ -30,9 +30,10 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
     // Extract the token
     const token = authHeader.split(' ')[1]
     
-    // Log the decoded JWT (without verification)
+    // Decode the JWT to get claims
+    let decodedJwt: any = null
     try {
-      const decodedJwt = jwt.decode(token)
+      decodedJwt = jwt.decode(token)
       console.log('========== DECODED JWT ==========')
       console.log(JSON.stringify(decodedJwt, null, 2))
       console.log('=================================')
@@ -55,17 +56,44 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
       email: data.user.email,
       provider: data.user.app_metadata?.provider || 'email',
       userMetadata: data.user.user_metadata || {},
-      isPlatformAdmin: data.user.app_metadata?.is_platform_admin || 
-                      data.user.user_metadata?.role === 'platform_admin' || 
-                      data.user.user_metadata?.role === 'superadmin',
       app_metadata: data.user.app_metadata || {}
+    }
+    
+    // Add JWT claims to the user object
+    if (decodedJwt) {
+      // Add platform admin status from JWT claim
+      user.is_platform_admin = decodedJwt.is_platform_admin === true
+      
+      // Add user roles from JWT claim
+      user.user_roles = decodedJwt.user_roles || []
+      
+      // Add profile information from JWT claims
+      user.first_name = decodedJwt.first_name
+      user.last_name = decodedJwt.last_name
+      user.organization_name = decodedJwt.organization_name
+      user.profile_role = decodedJwt.profile_role
+      
+      // Add test claim
+      user.test_claim = decodedJwt.test_claim
+      
+      // For backward compatibility
+      user.isPlatformAdmin = user.is_platform_admin
+    } else {
+      // Fallback to old method if JWT decoding fails
+      user.isPlatformAdmin = data.user.app_metadata?.is_platform_admin || 
+                           data.user.user_metadata?.role === 'platform_admin' || 
+                           data.user.user_metadata?.role === 'superadmin'
+      
+      user.is_platform_admin = user.isPlatformAdmin
     }
     
     console.log('User authenticated:', {
       userId: data.user.id,
       isPlatformAdmin: user.isPlatformAdmin,
-      role: data.user.user_metadata?.role,
-      app_metadata: data.user.app_metadata
+      is_platform_admin: user.is_platform_admin,
+      userRolesCount: user.user_roles?.length || 0,
+      first_name: user.first_name,
+      last_name: user.last_name
     })
     
     req.user = user

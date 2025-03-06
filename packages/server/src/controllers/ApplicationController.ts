@@ -62,17 +62,20 @@ export class ApplicationController {
             }
             
             const userId = req.user.userId
-            const isPlatformAdmin = req.user.isPlatformAdmin || 
-                                   req.user.app_metadata?.is_platform_admin || 
-                                   req.user.userMetadata?.role === 'platform_admin' ||
-                                   req.user.userMetadata?.role === 'superadmin'
+            
+            // Check if user is platform admin from JWT claim
+            const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
+            
+            // Get user roles from JWT claim
+            const userRoles = (req.user as any)?.user_roles || []
             
             console.log('User requesting applications:', { 
                 userId, 
                 isPlatformAdmin,
-                userMetadata: req.user.userMetadata,
-                app_metadata: req.user.app_metadata,
-                role: req.user.userMetadata?.role
+                userRolesCount: userRoles?.length,
+                userRoles,
+                first_name: (req.user as any)?.first_name,
+                last_name: (req.user as any)?.last_name
             })
             
             // For platform admins, return all applications
@@ -88,11 +91,37 @@ export class ApplicationController {
             
             console.log(`Found ${data.length} applications`)
             
-            // For platform admins, mark all applications as admin
-            const applications = data.map((app: any) => ({
-                ...app,
-                is_admin: isPlatformAdmin
-            }))
+            // Filter applications based on user roles if not platform admin
+            let applications = data
+            
+            if (!isPlatformAdmin) {
+                // Extract application IDs from user roles
+                const accessibleAppIds = userRoles
+                    .filter((role: any) => role.resource_type === 'application')
+                    .map((role: any) => role.resource_id)
+                
+                console.log('User has access to application IDs:', accessibleAppIds)
+                
+                // Filter applications to only include those the user has access to
+                applications = data.filter(app => accessibleAppIds.includes(app.id))
+                
+                console.log(`Filtered to ${applications.length} accessible applications`)
+            }
+            
+            // Add is_admin flag based on user roles
+            applications = applications.map((app: any) => {
+                // Platform admins are admins of all applications
+                if (isPlatformAdmin) return { ...app, is_admin: true }
+                
+                // Check if user has admin role for this application
+                const isAdmin = userRoles.some((role: any) => 
+                    role.resource_type === 'application' && 
+                    role.resource_id === app.id && 
+                    ['application_admin', 'application_owner'].includes(role.role)
+                )
+                
+                return { ...app, is_admin: isAdmin }
+            })
             
             return res.json(applications)
         } catch (error) {

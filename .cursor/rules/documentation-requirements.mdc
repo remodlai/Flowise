@@ -1,0 +1,8 @@
+---
+description: Rules for active documentation
+globs: 
+alwaysApply: true
+---
+You must document all changes comprehensively in the docs/documentation folder. It should be ogrranized, and able to be understood by someone who has never seen the codebase before, with clear explanations, examples, etc.  Do not overwrite, but append when adding new information.
+
+If something has changed, you must clearly mark it as deprecated, and add the updated information as of today.  

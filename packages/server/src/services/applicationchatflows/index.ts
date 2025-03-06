@@ -151,10 +151,10 @@ const getUserApplications = async (userId: string): Promise<IApplication[]> => {
     try {
         // Get applications where the user has admin or member role
         const { data, error } = await supabase
-            .from('user_custom_roles')
+            .from('user_roles')
             .select(`
                 resource_id,
-                custom_roles!inner(name),
+                roles!inner(name),
                 applications!inner(id, name, description, logo_url)
             `)
             .eq('user_id', userId)
@@ -168,7 +168,7 @@ const getUserApplications = async (userId: string): Promise<IApplication[]> => {
             name: item.applications.name,
             description: item.applications.description,
             logo_url: item.applications.logo_url,
-            is_admin: ['app_admin', 'platform_admin'].includes(item.custom_roles.name)
+            is_admin: ['app_admin', 'platform_admin'].includes(item.roles.name)
         }))
         
         // Sort by name

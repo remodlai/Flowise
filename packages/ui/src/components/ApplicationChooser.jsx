@@ -11,21 +11,35 @@ import { getUserApplications } from '../api/applications'
  * Global is for high-level operations like moving or copying between applications
  */
 const ApplicationChooser = () => {
-    const { user, isAuthenticated, isPlatformAdmin } = useAuth()
+    const { user, isAuthenticated, isPlatformAdmin, userRoles } = useAuth()
     const { applicationId, applications, setApplicationId, loading } = useApplication()
     
     // Debug: Log applications whenever they change
     useEffect(() => {
         console.log('ApplicationChooser - Applications:', applications)
+        console.log('ApplicationChooser - User Roles:', userRoles)
+        
         // Check if Platform Sandbox exists
         const hasSandbox = applications.some(app => app.name === 'Platform Sandbox')
         console.log('Has Platform Sandbox:', hasSandbox)
         if (hasSandbox) {
             console.log('Platform Sandbox details:', applications.find(app => app.name === 'Platform Sandbox'))
         }
-    }, [applications])
+    }, [applications, userRoles])
     
-    console.log('ApplicationChooser rendering', { user, isAuthenticated, isPlatformAdmin, applicationId })
+    console.log('ApplicationChooser rendering', { user, isAuthenticated, isPlatformAdmin, applicationId, userRolesCount: userRoles.length })
+    
+    // Filter applications based on user roles
+    const filteredApplications = applications.filter(app => {
+        // Platform admins can see all applications
+        if (isPlatformAdmin) return true;
+        
+        // Check if user has a role for this application
+        return userRoles.some(role => 
+            role.resource_type === 'application' && 
+            role.resource_id === app.id
+        );
+    });
     
     const handleAppChange = (appId) => {
         console.log('Changing application to:', appId)
@@ -43,9 +57,9 @@ const ApplicationChooser = () => {
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
             <Typography variant="body2" sx={{ mr: 1, color: 'text.secondary' }}>
-                Application: {applications.length === 0 && !isPlatformAdmin ? '(None available)' : ''}
+                Application: {filteredApplications.length === 0 && !isPlatformAdmin ? '(None available)' : ''}
             </Typography>
-            {applications.length > 0 || isPlatformAdmin ? (
+            {filteredApplications.length > 0 || isPlatformAdmin ? (
                 <>
                     <Select
                         value={applicationId}
@@ -65,7 +79,7 @@ const ApplicationChooser = () => {
                             </MenuItem>
                         )}
                         
-                        {applications.map((app) => (
+                        {filteredApplications.map((app) => (
                             <MenuItem key={app.id} value={app.id}>
                                 {app.name}
                             </MenuItem>
