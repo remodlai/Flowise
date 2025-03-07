@@ -26,23 +26,26 @@ const MainCard = forwardRef(function MainCard(
         shadow,
         sx = {},
         title,
-        nodeType,
         ...others
     },
     ref
 ) {
-    const otherProps = { ...others, border: others.border === false ? undefined : others.border, nodeType }
+    const { nodeType, ...otherProps } = others;
+    const finalProps = { 
+        ...otherProps, 
+        border: otherProps.border === false ? undefined : otherProps.border 
+    };
     return (
         <Card
             ref={ref}
-            {...otherProps}
+            {...finalProps}
             sx={{
                 background: 'transparent',
                 backgroundColor: 'transparent',
                 backgroundImage: 'none',
-                ':hover': {
-                    boxShadow: boxShadow ? shadow || '0 2px 14px 0 rgb(32 40 45 / 8%)' : 'inherit'
-                },
+                ':hover': boxShadow ? {
+                    boxShadow: shadow || '0 2px 14px 0 rgb(32 40 45 / 8%)'
+                } : undefined,
                 maxWidth: '1280px',
                 mx: 'auto',
                 ...sx

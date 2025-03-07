@@ -81,10 +81,8 @@ const BlockLibraryCard = styled(MainCard)(({ theme }) => ({
     maxWidth: '1050px',
     width: '90vw',
     maxHeight: '85vh',
-    position: 'fixed',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)'
+    overflow: 'hidden',
+    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)'
 }))
 
 const SearchInput = styled(OutlinedInput)(({ theme }) => ({
@@ -103,6 +101,7 @@ const SearchInput = styled(OutlinedInput)(({ theme }) => ({
 const CategoryButton = styled(ListItemButton)(({ theme }) => ({
     padding: '10px 16px',
     borderRadius: '8px',
+    transition: 'background-color 0.2s ease-in-out',
     '&:hover': {
         background: theme.palette.card.white
     }
@@ -113,10 +112,19 @@ const NodeCard = styled(MainCard)(({ theme }) => ({
     borderRadius: '10px',
     padding: '16px',
     cursor: 'pointer',
+    transition: 'box-shadow 0.2s ease-in-out',
     '&:hover': {
-        background: theme.palette.card.white
+        background: theme.palette.card.white,
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
     }
 }))
+
+// Add a wrapper component to handle the nodeType prop
+const NodeCardWrapper = ({ children, ...props }) => {
+    // Remove nodeType from props to prevent it from being passed to DOM elements
+    const { nodeType, ...otherProps } = props;
+    return <NodeCard {...otherProps}>{children}</NodeCard>;
+};
 
 // Add these new styled components
 const ScrollableContent = styled(Box)({
@@ -131,6 +139,11 @@ const ScrollableContent = styled(Box)({
     '&::-webkit-scrollbar-thumb': {
         background: '#888',
         borderRadius: '4px'
+    },
+    // Prevent unwanted transitions
+    '& *': {
+        backfaceVisibility: 'hidden',
+        transformStyle: 'preserve-3d'
     }
 })
 
@@ -366,24 +379,23 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
             >
                 {open ? <IconMinus /> : <IconPlus />}
             </StyledFab>
-            <Popper
-                open={open}
-                role={undefined}
-                transition
-                disablePortal={false}
-                style={{
-                    zIndex: 1300,
-                    position: 'fixed',
-                    width: '100%',
-                    height: '100%',
-                    top: 0,
-                    left: 0,
-                    background: 'rgba(0, 0, 0, 0.5)'
-                }}
-            >
-                {({ TransitionProps }) => (
-                    <Transitions in={open} {...TransitionProps}>
-                        <ClickAwayListener onClickAway={handleClose}>
+            {open && (
+                <ClickAwayListener onClickAway={handleClose}>
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            zIndex: 1300,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        <Transitions in={open} type="fade">
                             <BlockLibraryCard>
                                 <Box sx={{ p: 3 }}>
                                     <Typography variant='h4' sx={{ mb: 2 }}>Block Library</Typography>
@@ -429,9 +441,10 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                                             <Grid container spacing={2}>
                                                 {(nodes[selectedCategory] || []).map((node) => (
                                                     <Grid item xs={12} sm={6} md={4} key={node.name}>
-                                                        <NodeCard
+                                                        <NodeCardWrapper
                                                             onDragStart={(event) => onDragStart(event, node)}
                                                             draggable
+                                                            sx={{ transform: 'translate(0, 0)' }}
                                                         >
                                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
                                                                 <Box
@@ -468,7 +481,7 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                                                                     Output: {node.outputs?.length ? node.outputs.map(o => o.name).join(', ') : 'Dataset'}
                                                                 </Typography>
                                                             </Box>
-                                                        </NodeCard>
+                                                        </NodeCardWrapper>
                                                     </Grid>
                                                 ))}
                                             </Grid>
@@ -476,10 +489,10 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                                     </Box>
                                 </Box>
                             </BlockLibraryCard>
-                        </ClickAwayListener>
-                    </Transitions>
-                )}
-            </Popper>
+                        </Transitions>
+                    </Box>
+                </ClickAwayListener>
+            )}
         </>
     )
 }

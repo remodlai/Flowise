@@ -45,9 +45,9 @@ This will provide a unified approach to secrets management across all environmen
 
 ### Phase 3: Credential Migration
 
-- [ ] 3.1. Update credential encryption/decryption functions
-- [ ] 3.2. Create a migration script for existing credentials
-- [ ] 3.3. Test credential CRUD operations with Supabase
+- [x] 3.1. Update credential encryption/decryption functions
+- [x] 3.2. Create a migration script for existing credentials
+- [x] 3.3. Test credential CRUD operations with Supabase
 - [ ] 3.4. Test credential usage in chatflows
 
 ### Phase 4: Testing and Validation

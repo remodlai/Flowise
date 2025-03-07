@@ -19,8 +19,11 @@ export const AuthProvider = ({ children }) => {
         try {
             const refreshToken = localStorage.getItem('refresh_token')
             if (!refreshToken) {
+                console.error('No refresh token available')
                 throw new Error('No refresh token available')
             }
+            
+            console.log('Attempting to refresh token')
             
             const response = await fetch(`${window.location.origin}/api/v1/auth/refresh-token`, {
                 method: 'POST',
@@ -33,6 +36,8 @@ export const AuthProvider = ({ children }) => {
             if (response.ok) {
                 const data = await response.json()
                 if (data.session && data.session.access_token) {
+                    console.log('Token refreshed successfully')
+                    
                     // Update tokens in localStorage
                     localStorage.setItem('access_token', data.session.access_token)
                     localStorage.setItem('refresh_token', data.session.refresh_token)
@@ -42,7 +47,16 @@ export const AuthProvider = ({ children }) => {
                     extractJwtClaims(data.session.access_token)
                     
                     return true
+                } else {
+                    console.error('Invalid response format from refresh token endpoint', data)
                 }
+            } else {
+                const errorData = await response.json().catch(() => ({}))
+                console.error('Failed to refresh token:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorData
+                })
             }
             return false
         } catch (error) {
@@ -104,22 +118,40 @@ export const AuthProvider = ({ children }) => {
             const tokenExpiry = localStorage.getItem('token_expiry')
             if (!tokenExpiry) return
             
-            const expiryTime = new Date(parseInt(tokenExpiry) * 1000)
+            // Check if tokenExpiry is in seconds (Supabase format) or milliseconds
+            let expiryTime
+            if (tokenExpiry.length <= 10) {
+                // Seconds format (Supabase standard)
+                expiryTime = new Date(parseInt(tokenExpiry) * 1000)
+            } else {
+                // Already in milliseconds
+                expiryTime = new Date(parseInt(tokenExpiry))
+            }
+            
             const now = new Date()
             
             // Calculate time until token expires (in milliseconds)
             const timeUntilExpiry = expiryTime.getTime() - now.getTime()
             
+            console.log('Token expiry details:', {
+                expiryTime: expiryTime.toISOString(),
+                now: now.toISOString(),
+                timeUntilExpiry: timeUntilExpiry / 1000 / 60 + ' minutes'
+            })
+            
             // If token is already expired or will expire in less than 5 minutes, refresh now
             if (timeUntilExpiry < 5 * 60 * 1000) {
+                console.log('Token expired or expiring soon, refreshing now')
                 refreshAuthToken()
                 return
             }
             
             // Schedule refresh for 5 minutes before expiry
             const refreshTime = timeUntilExpiry - (5 * 60 * 1000)
+            console.log(`Scheduling token refresh in ${refreshTime / 1000 / 60} minutes`)
             
             refreshTimer = setTimeout(async () => {
+                console.log('Executing scheduled token refresh')
                 const success = await refreshAuthToken()
                 if (success) {
                     // Setup the next refresh timer
@@ -150,7 +182,26 @@ export const AuthProvider = ({ children }) => {
                 if (storedUser && storedToken) {
                     // Check if token is expired
                     const tokenExpiry = localStorage.getItem('token_expiry')
-                    const isTokenValid = tokenExpiry && new Date(parseInt(tokenExpiry) * 1000) > new Date()
+                    
+                    // Handle different timestamp formats
+                    let expiryTime
+                    if (tokenExpiry) {
+                        if (tokenExpiry.length <= 10) {
+                            // Seconds format (Supabase standard)
+                            expiryTime = new Date(parseInt(tokenExpiry) * 1000)
+                        } else {
+                            // Already in milliseconds
+                            expiryTime = new Date(parseInt(tokenExpiry))
+                        }
+                    }
+                    
+                    const isTokenValid = tokenExpiry && expiryTime > new Date()
+                    
+                    console.log('Token validity check:', {
+                        expiryTime: expiryTime?.toISOString(),
+                        now: new Date().toISOString(),
+                        isTokenValid
+                    })
                     
                     if (isTokenValid) {
                         const parsedUser = JSON.parse(storedUser)
@@ -162,6 +213,7 @@ export const AuthProvider = ({ children }) => {
                         // Extract JWT claims
                         extractJwtClaims(storedToken)
                     } else {
+                        console.log('Token expired, attempting to refresh')
                         // Token expired, try to refresh it if we have a refresh token
                         const refreshToken = localStorage.getItem('refresh_token')
                         if (refreshToken) {

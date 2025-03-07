@@ -32,8 +32,11 @@ const refreshToken = async () => {
     try {
         const refreshToken = localStorage.getItem('refresh_token')
         if (!refreshToken) {
+            console.error('No refresh token available for API client refresh')
             throw new Error('No refresh token available')
         }
+        
+        console.log('API client attempting to refresh token')
         
         const response = await axios.post(`${baseURL}/api/v1/auth/refresh-token`, {
             refresh_token: refreshToken
@@ -43,6 +46,7 @@ const refreshToken = async () => {
         const { session } = response.data
         
         if (!session || !session.access_token) {
+            console.error('Invalid response from refresh token endpoint:', response.data)
             throw new Error('Invalid response from refresh token endpoint')
         }
         
@@ -51,9 +55,18 @@ const refreshToken = async () => {
         localStorage.setItem('refresh_token', session.refresh_token)
         localStorage.setItem('token_expiry', session.expires_at.toString())
         
+        console.log('API client token refresh successful, new expiry:', new Date(session.expires_at * 1000).toISOString())
+        
         return session.access_token
     } catch (error) {
-        console.error('Error refreshing token:', error)
+        console.error('Error refreshing token in API client:', error.response?.data || error.message || error)
+        
+        // Check for specific error codes
+        const errorCode = error.response?.data?.code
+        if (errorCode === 'EXPIRED_REFRESH_TOKEN' || errorCode === 'INVALID_REFRESH_TOKEN') {
+            console.error('Refresh token is invalid or expired, redirecting to login')
+        }
+        
         // Clear auth data
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
