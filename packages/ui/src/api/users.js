@@ -6,7 +6,18 @@ import client from './client'
  * @returns {Promise}
  */
 export const getAllUsers = (params = {}) => {
+    console.log('API call: getAllUsers with params:', params)
+    console.log('Application ID:', localStorage.getItem('selectedApplicationId'))
+    console.log('Access token:', localStorage.getItem('access_token') ? 'Present' : 'Missing')
     return client.get('/api/v1/users', { params })
+        .then(response => {
+            console.log('Users API response:', response)
+            return response
+        })
+        .catch(error => {
+            console.error('Users API error:', error)
+            throw error
+        })
 }
 
 /**

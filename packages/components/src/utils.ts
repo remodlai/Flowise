@@ -11,23 +11,39 @@ import { omit } from 'lodash'
 import { AIMessage, HumanMessage, BaseMessage } from '@langchain/core/messages'
 import { Document } from '@langchain/core/documents'
 import { getFileFromStorage } from './storageUtils'
-import { GetSecretValueCommand, SecretsManagerClient, SecretsManagerClientConfig } from '@aws-sdk/client-secrets-manager'
 import { customGet } from '../nodes/sequentialagents/commonUtils'
 import { TextSplitter } from 'langchain/text_splitter'
 import { DocumentLoader } from 'langchain/document_loaders/base'
+
+// Conditionally import AWS SDK
+let SecretsManagerClient: any = null
+let GetSecretValueCommand: any = null
+
+// Only import AWS SDK if we're using AWS Secrets Manager
+const USE_AWS_SECRETS_MANAGER = process.env.SECRETKEY_STORAGE_TYPE === 'aws'
+if (USE_AWS_SECRETS_MANAGER) {
+    try {
+        const awsImport = require('@aws-sdk/client-secrets-manager')
+        SecretsManagerClient = awsImport.SecretsManagerClient
+        GetSecretValueCommand = awsImport.GetSecretValueCommand
+        console.log('AWS Secrets Manager SDK loaded successfully')
+    } catch (error) {
+        console.error('Failed to load AWS Secrets Manager SDK:', error)
+        console.warn('AWS Secrets Manager functionality will not be available')
+    }
+}
 
 export const numberOrExpressionRegex = '^(\\d+\\.?\\d*|{{.*}})$' //return true if string consists only numbers OR expression {{}}
 export const notEmptyRegex = '(.|\\s)*\\S(.|\\s)*' //return true if string is not empty or blank
 export const FLOWISE_CHATID = 'flowise_chatId'
 
-let secretsManagerClient: SecretsManagerClient | null = null
-const USE_AWS_SECRETS_MANAGER = process.env.SECRETKEY_STORAGE_TYPE === 'aws'
-if (USE_AWS_SECRETS_MANAGER) {
+let secretsManagerClient: any | null = null
+if (USE_AWS_SECRETS_MANAGER && SecretsManagerClient) {
     const region = process.env.SECRETKEY_AWS_REGION || 'us-east-1' // Default region if not provided
     const accessKeyId = process.env.SECRETKEY_AWS_ACCESS_KEY
     const secretAccessKey = process.env.SECRETKEY_AWS_SECRET_KEY
 
-    let credentials: SecretsManagerClientConfig['credentials'] | undefined
+    let credentials: any = undefined
     if (accessKeyId && secretAccessKey) {
         credentials = {
             accessKeyId,
@@ -552,7 +568,7 @@ const getEncryptionKey = async (): Promise<string> => {
 const decryptCredentialData = async (encryptedData: string): Promise<ICommonObject> => {
     let decryptedDataStr: string
 
-    if (USE_AWS_SECRETS_MANAGER && secretsManagerClient) {
+    if (USE_AWS_SECRETS_MANAGER && secretsManagerClient && GetSecretValueCommand) {
         try {
             const command = new GetSecretValueCommand({ SecretId: encryptedData })
             const response = await secretsManagerClient.send(command)
@@ -564,11 +580,15 @@ const decryptCredentialData = async (encryptedData: string): Promise<ICommonObje
                 throw new Error('Failed to retrieve secret value.')
             }
         } catch (error) {
-            console.error(error)
-            throw new Error('Credentials could not be decrypted.')
+            console.error('Error accessing AWS Secrets Manager:', error)
+            console.warn('Falling back to local encryption')
+            // Fall back to local encryption if AWS fails
+            const encryptKey = await getEncryptionKey()
+            const decryptedData = AES.decrypt(encryptedData, encryptKey)
+            decryptedDataStr = decryptedData.toString(enc.Utf8)
         }
     } else {
-        // Fallback to existing code
+        // Use local encryption
         const encryptKey = await getEncryptionKey()
         const decryptedData = AES.decrypt(encryptedData, encryptKey)
         decryptedDataStr = decryptedData.toString(enc.Utf8)

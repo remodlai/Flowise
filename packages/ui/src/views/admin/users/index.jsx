@@ -29,8 +29,83 @@ const UsersAdmin = () => {
     const fetchUsers = async () => {
         try {
             setLoading(true)
-            const response = await getAllUsers()
-            setUsers(response.data.users || [])
+            console.log('Fetching users...')
+            
+            // Test the debug endpoint
+            try {
+                console.log('Testing debug users endpoint...')
+                const debugResponse = await fetch('/api/v1/debug/users', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'X-Application-ID': localStorage.getItem('selectedApplicationId') || '',
+                        'Accept': 'application/json'
+                    }
+                })
+                console.log('Debug users response status:', debugResponse.status)
+                
+                const contentType = debugResponse.headers.get('content-type')
+                console.log('Debug content type:', contentType)
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const debugData = await debugResponse.json()
+                    console.log('Debug users response data:', debugData)
+                    
+                    if (debugData && debugData.filteredUsers) {
+                        console.log('Using debug data for users:', debugData.filteredUsers)
+                        setUsers(debugData.filteredUsers)
+                        return // Exit early if we got users from the debug endpoint
+                    }
+                } else {
+                    const textResponse = await debugResponse.text()
+                    console.log('Debug non-JSON response:', textResponse)
+                }
+            } catch (debugError) {
+                console.error('Error testing debug users endpoint:', debugError)
+            }
+            
+            // Test the regular endpoint directly with fetch
+            try {
+                console.log('Testing users endpoint directly...')
+                const directResponse = await fetch('/api/v1/users', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'X-Application-ID': localStorage.getItem('selectedApplicationId') || '',
+                        'Accept': 'application/json'
+                    }
+                })
+                console.log('Direct users response status:', directResponse.status)
+                console.log('Direct users response headers:', directResponse.headers)
+                
+                const contentType = directResponse.headers.get('content-type')
+                console.log('Content type:', contentType)
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const directData = await directResponse.json()
+                    console.log('Direct users response data:', directData)
+                    
+                    if (directData && directData.users) {
+                        console.log('Using direct data for users:', directData.users)
+                        setUsers(directData.users)
+                    }
+                } else {
+                    const textResponse = await directResponse.text()
+                    console.log('Non-JSON response:', textResponse)
+                }
+            } catch (directError) {
+                console.error('Error testing users endpoint directly:', directError)
+            }
+            
+            // Use the API client as a fallback
+            if (users.length === 0) {
+                console.log('Falling back to API client...')
+                const response = await getAllUsers()
+                console.log('Users response from API client:', response)
+                
+                if (response && response.data && response.data.users) {
+                    console.log('Using API client response for users:', response.data.users)
+                    setUsers(response.data.users)
+                }
+            }
         } catch (error) {
             console.error('Error fetching users:', error)
             enqueueSnackbar('Failed to load users', { variant: 'error' })
