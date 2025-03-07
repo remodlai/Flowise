@@ -305,7 +305,7 @@ We need to do similar for other intercept needs.
 - [x] Create organization_users table to link users to organizations
 - [x] Update custom_access_token_hook to include organization_id in JWT claims
 - [x] Create application_folders table with proper RLS policies
-- [x] Add application_tools table to track which tools are available in which applications
+- [ ] Add application_tools table to track which tools are available in which applications
 - [x] Add application_billing_plans table to manage different pricing tiers
 - [x] Add application_branding table for customization options
 - [x] Add application_api_keys table for API access management

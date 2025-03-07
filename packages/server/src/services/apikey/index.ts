@@ -9,7 +9,7 @@ import { getErrorMessage } from '../../errors/utils'
 import { randomBytes } from 'crypto'
 import { storeSecret, getSecret, getSecretByKeyId, updateSecret, deleteSecret, listSecrets } from '../secrets'
 
-const getAllApiKeys = async () => {
+const getAllApiKeys = async (req?: any) => {
     try {
         // Get all API keys from Supabase
         const secrets = await listSecrets('api_key')
@@ -22,17 +22,24 @@ const getAllApiKeys = async () => {
                 keyName: item.name,
                 apiKey: item.key_id,
                 apiSecret: secretData.apiSecret,
-                createdAt: item.metadata.createdAt || new Date().toISOString()
+                createdAt: item.metadata.createdAt || new Date().toISOString(),
+                applicationId: item.metadata.applicationId || null
             }
         }))
         
         // Create a default key if none exist
         if (keys.length === 0) {
             await createApiKey('DefaultKey')
-            return getAllApiKeys()
+            return getAllApiKeys(req)
         }
         
-        return await addChatflowsCount(keys)
+        // Filter by application ID if provided in request context
+        let filteredKeys = keys
+        if (req && req.applicationId && req.applicationId !== 'global') {
+            filteredKeys = keys.filter(key => key.applicationId === req.applicationId)
+        }
+        
+        return await addChatflowsCount(filteredKeys)
     } catch (error) {
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: apikeyService.getAllApiKeys - ${getErrorMessage(error)}`)
     }
@@ -55,29 +62,36 @@ const getApiKey = async (apiKey: string) => {
     }
 }
 
-const createApiKey = async (keyName: string) => {
+const createApiKey = async (keyName: string, req?: any) => {
     try {
         // Generate API key and secret
         const apiKey = generateAPIKey()
         const apiSecret = generateSecretHash(apiKey)
+        
+        // Get application ID from request context
+        const applicationId = req?.applicationId && req.applicationId !== 'global' ? req.applicationId : null
         
         // Store in Supabase
         await storeSecret(
             keyName,
             'api_key',
             { apiKey, apiSecret },
-            { keyName, createdAt: new Date().toISOString() },
+            { 
+                keyName, 
+                createdAt: new Date().toISOString(),
+                applicationId
+            },
             apiKey
         )
         
-        return getAllApiKeys()
+        return getAllApiKeys(req)
     } catch (error) {
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: apikeyService.createApiKey - ${getErrorMessage(error)}`)
     }
 }
 
 // Update api key
-const updateApiKey = async (id: string, keyName: string) => {
+const updateApiKey = async (id: string, keyName: string, req?: any) => {
     try {
         // Get the secret by key ID
         const secretData = await getSecretByKeyId(id)
@@ -92,13 +106,13 @@ const updateApiKey = async (id: string, keyName: string) => {
         const metadata = { ...secretData.metadata, keyName }
         await updateSecret(secretData.id, secretData.value, metadata)
         
-        return getAllApiKeys()
+        return getAllApiKeys(req)
     } catch (error) {
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: apikeyService.updateApiKey - ${getErrorMessage(error)}`)
     }
 }
 
-const deleteApiKey = async (id: string) => {
+const deleteApiKey = async (id: string, req?: any) => {
     try {
         // Get the secret by key ID
         const secretData = await getSecretByKeyId(id)
@@ -112,7 +126,7 @@ const deleteApiKey = async (id: string) => {
         // Delete the secret
         await deleteSecret(secretData.id)
         
-        return getAllApiKeys()
+        return getAllApiKeys(req)
     } catch (error) {
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: apikeyService.deleteApiKey - ${getErrorMessage(error)}`)
     }

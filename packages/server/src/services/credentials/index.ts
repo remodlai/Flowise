@@ -81,7 +81,7 @@ const deleteCredentials = async (credentialId: string): Promise<any> => {
     }
 }
 
-const getAllCredentials = async (paramCredentialName: any) => {
+const getAllCredentials = async (paramCredentialName: any, req?: any) => {
     try {
         const appServer = getRunningExpressApp()
         let dbResponse = []
@@ -107,10 +107,22 @@ const getAllCredentials = async (paramCredentialName: any) => {
             }
         }
 
-        // If applicationId is provided in paramCredentialName object, filter credentials by application
+        // Get application ID from request context or from paramCredentialName
+        let applicationId = null
+        
+        // Check if applicationId is provided in paramCredentialName object
         if (typeof paramCredentialName === 'object' && paramCredentialName?.applicationId) {
+            applicationId = paramCredentialName.applicationId
+        } 
+        // Check if applicationId is in the request context
+        else if (req && req.applicationId && req.applicationId !== 'global') {
+            applicationId = req.applicationId
+        }
+        
+        // Filter credentials by application if an applicationId is available
+        if (applicationId) {
             try {
-                const applicationId = paramCredentialName.applicationId
+                logger.debug(`Filtering credentials by application ID: ${applicationId}`)
                 const applicationcredentials = await import('../applicationcredentials')
                 const credentialIds = await applicationcredentials.getCredentialIdsForApplication(applicationId)
                 
