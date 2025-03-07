@@ -26,6 +26,16 @@ This documentation provides a comprehensive overview of the Remodl AI platform's
    - Implementation details for AWS Secrets Manager integration
    - Challenges and recommendations
 
+5. [AWS Secrets Migration](05_aws_secrets_migration/README.md)
+   - Migration plan for moving from local secrets to AWS Secrets Manager
+   - Implementation details and code examples
+   - Testing and rollback strategies
+
+6. [Application Context Filtering](06_application_context_filtering.md)
+   - Implementation of application-specific resource filtering
+   - How credentials, API keys, and other resources are scoped to applications
+   - User experience and troubleshooting
+
 ## Current Challenges
 
 The platform is currently facing several challenges:
@@ -46,6 +56,8 @@ The team is actively working on:
 
 3. **Unified Secret Management**: Standardizing secret management across environments.
 
+4. **Application Context Filtering**: Ensuring resources are properly scoped to their respective applications.
+
 ## Getting Started
 
 If you're new to the project, we recommend:
@@ -57,6 +69,8 @@ If you're new to the project, we recommend:
 3. Explore the [API Key Bridge Solution](02_api_key_bridge_solution.md) to understand the proposed solution for the authentication system disconnect.
 
 4. Check the [Secrets Management](04_secrets_management.md) document to understand how secrets are managed in different environments.
+
+5. Review the [Application Context Filtering](06_application_context_filtering.md) to understand how resources are scoped to applications.
 
 ## Key Files
 
