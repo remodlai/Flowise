@@ -43,6 +43,7 @@ const VectorStoreQuery = Loadable(lazy(() => import('@/views/docstore/VectorStor
 // admin routing
 const AdminLayout = Loadable(lazy(() => import('@/views/admin/AdminLayout')))
 const UsersAdmin = Loadable(lazy(() => import('@/views/admin/users')))
+const UserDetail = Loadable(lazy(() => import('@/views/admin/users/detail')))
 const OrganizationsAdmin = Loadable(lazy(() => import('@/views/admin/organizations')))
 const OrganizationDetail = Loadable(lazy(() => import('@/views/admin/organizations/detail')))
 const ApplicationsAdmin = Loadable(lazy(() => import('@/views/admin/applications')))
@@ -156,6 +157,10 @@ const MainRoutes = {
                 {
                     path: 'users',
                     element: <UsersAdmin />
+                },
+                {
+                    path: 'users/:id',
+                    element: <UserDetail />
                 },
                 {
                     path: 'organizations',
