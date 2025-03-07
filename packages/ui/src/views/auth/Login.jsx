@@ -163,18 +163,25 @@ const Login = () => {
         <Box sx={{
             display: 'flex',
             minHeight: '100vh',
-            backgroundColor: customization.isDarkMode ? colors.darkPaper : colors.paper,
-            overflow: 'hidden'
+            minWidth: '100vw',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: customization.isDarkMode ? '#191932' : '#191932',
+            //backgroundColor: 'transparent',
+            overflow: 'visible'
         }}>
             {/* Login Form - Right Side */}
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                width: { xs: '100%', md: '40vw' },
+                width: { xs: '100%', md: '440px' },
                 alignItems: 'center',
                 justifyContent: 'center',
                 p: { xs: 2, sm: 4 },
-                backgroundColor: colors.paper
+                backgroundColor: '#191932',
+                zIndex: 10000,
+                borderRadius: '10px'
             }}>
                 <Logo />
                 
@@ -185,7 +192,7 @@ const Login = () => {
                 {isLoading ? (
                     <CircularProgress sx={{ mt: 4 }} />
                 ) : (
-                    <Paper elevation={0} sx={{ width: '100%', maxWidth: 400, p: 3 }}>
+                    <Paper elevation={0} sx={{ backgroundColor: '#191932', boxShadow: 'none', width: '100%', maxWidth: 400, p: 3 }}>
                         {error && (
                             <Alert severity="error" sx={{ mb: 2 }}>
                                 {error}
@@ -292,7 +299,7 @@ const Login = () => {
             {/* Force Graph Section - Left Side */}
             <Box sx={{
                 display: { xs: 'none', md: 'flex' },
-                position: 'relative',
+                position: 'absolute',
                 flex: '1 1 auto',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -301,13 +308,14 @@ const Login = () => {
                     position: 'relative',
                     top: 0,
                     left: 0,
-                    width: '100%',
-                    height: '100%',
+                    width: '100vw',
+                    height: '100vh',
                     overflow: 'hidden',
-                    maxWidth: '60vw',
+                    maxWidth: '100vw',
                     display: 'flex',
                     justifyContent: 'center',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    
                 }}>
                     <ForceGraph />
                 </Box>
