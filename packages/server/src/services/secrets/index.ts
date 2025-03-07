@@ -98,20 +98,29 @@ export const getSecretByKeyId = async (keyId: string): Promise<any> => {
             .from('secrets')
             .select('id, value, metadata')
             .eq('key_id', keyId)
-            .single()
-        
+            
         if (error) throw error
-        if (!data) return null
+        if (!data || data.length === 0) {
+            console.warn(`No secret found with key ID: ${keyId}`)
+            return null
+        }
+        
+        // If multiple rows are found, use the first one but log a warning
+        if (data.length > 1) {
+            console.warn(`Multiple secrets found with key ID: ${keyId}, using the first one`)
+        }
+        
+        const secretData = data[0]
         
         // Decrypt the value
         const masterKey = getMasterEncryptionKey()
-        const decryptedBytes = AES.decrypt(data.value, masterKey)
+        const decryptedBytes = AES.decrypt(secretData.value, masterKey)
         const decryptedValue = decryptedBytes.toString(enc.Utf8)
         
         return {
-            id: data.id,
+            id: secretData.id,
             value: JSON.parse(decryptedValue),
-            metadata: data.metadata
+            metadata: secretData.metadata
         }
     } catch (error) {
         console.error(`Error retrieving secret by key ID: ${getErrorMessage(error)}`)
