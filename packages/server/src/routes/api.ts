@@ -142,6 +142,61 @@ router.get('/debug/user', (req, res) => {
     })
 })
 
+// Add a debug endpoint for organizations
+router.get('/debug/organizations', async (req, res) => {
+    try {
+        console.log('Debug - Organizations endpoint called')
+        console.log('Debug - Headers:', req.headers)
+        console.log('Debug - User:', req.user)
+        
+        // Get application ID from request context
+        const applicationId = req.headers['x-application-id'] as string || req.query.applicationId as string
+        const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
+        
+        console.log(`Debug - Getting organizations with application context: ${applicationId}, isPlatformAdmin: ${isPlatformAdmin}`)
+        
+        // Direct database query to get all organizations
+        const { data: allOrgs, error: allOrgsError } = await supabase
+            .from('organizations')
+            .select('*')
+        
+        if (allOrgsError) {
+            console.error('Debug - Error fetching all organizations:', allOrgsError)
+            return res.status(500).json({ error: allOrgsError.message })
+        }
+        
+        console.log(`Debug - Found ${allOrgs?.length || 0} total organizations in the database`)
+        
+        // Build filtered query based on application context
+        let filteredOrgs = allOrgs
+        
+        if (applicationId && applicationId !== 'global') {
+            console.log(`Debug - Filtering organizations by application_id: ${applicationId}`)
+            filteredOrgs = allOrgs.filter(org => org.application_id === applicationId)
+        } else if (!isPlatformAdmin) {
+            console.log(`Debug - User is not a platform admin and no application context, returning empty array`)
+            filteredOrgs = []
+        }
+        
+        console.log(`Debug - Returning ${filteredOrgs.length} organizations after filtering`)
+        
+        return res.json({
+            user: {
+                userId: (req.user as any)?.userId,
+                isPlatformAdmin,
+                email: (req.user as any)?.email,
+                roles: (req.user as any)?.user_roles || []
+            },
+            applicationId,
+            allOrganizations: allOrgs,
+            filteredOrganizations: filteredOrgs
+        })
+    } catch (err) {
+        console.error('Debug - Error in debug organizations endpoint:', err)
+        return res.status(500).json({ error: 'Error fetching organizations' })
+    }
+})
+
 router.get('/debug/applications', async (req, res) => {
     try {
         const { data, error } = await supabase

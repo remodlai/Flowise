@@ -20,6 +20,28 @@ export class OrganizationController {
             const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
             
             console.log(`Getting organizations with application context: ${applicationId}, isPlatformAdmin: ${isPlatformAdmin}`)
+            console.log(`User info:`, {
+                userId: (req.user as any)?.userId,
+                email: (req.user as any)?.email,
+                roles: (req.user as any)?.user_roles || []
+            })
+            
+            // For debugging, let's check all organizations in the database
+            if (isPlatformAdmin && applicationId === 'global') {
+                console.log('Platform admin in global mode - checking all organizations in the database')
+                const { data: allOrgs, error: allOrgsError } = await supabase
+                    .from('organizations')
+                    .select('*')
+                
+                if (allOrgsError) {
+                    console.error('Error fetching all organizations:', allOrgsError)
+                } else {
+                    console.log(`Found ${allOrgs?.length || 0} total organizations in the database`)
+                    if (allOrgs && allOrgs.length > 0) {
+                        console.log('Sample organization:', allOrgs[0])
+                    }
+                }
+            }
             
             // Build query
             let query = supabase
@@ -29,18 +51,29 @@ export class OrganizationController {
             
             // Filter by application if specified and not global
             if (applicationId && applicationId !== 'global') {
+                console.log(`Filtering organizations by application_id: ${applicationId}`)
                 query = query.eq('application_id', applicationId)
             } else if (!isPlatformAdmin) {
                 // Non-platform admins without application context can't see any organizations
+                console.log(`User is not a platform admin and no application context, returning empty array`)
                 return res.json({ organizations: [] })
+            } else {
+                console.log(`User is a platform admin in global context, showing all organizations`)
             }
             
             // Execute query
             const { data, error } = await query
             
-            if (error) throw error
+            if (error) {
+                console.error(`Error fetching organizations:`, error)
+                throw error
+            }
             
             console.log(`Found ${data?.length || 0} organizations`)
+            if (data && data.length > 0) {
+                console.log(`First organization:`, data[0])
+            }
+            
             return res.json({ organizations: data || [] })
         } catch (error) {
             return handleError(res, error, 'Error fetching organizations')

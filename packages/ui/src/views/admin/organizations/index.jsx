@@ -70,8 +70,64 @@ const OrganizationsAdmin = () => {
     const fetchOrganizations = async () => {
         try {
             setLoading(true);
-            const response = await getAllOrganizations();
-            setOrganizations(response.data.organizations || []);
+            console.log('Fetching organizations...');
+            
+            // Test the regular endpoint directly with fetch
+            try {
+                console.log('Testing regular organizations endpoint directly...');
+                const directResponse = await fetch('/api/v1/organizations', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                        'X-Application-ID': localStorage.getItem('selectedApplicationId') || ''
+                    }
+                });
+                const directData = await directResponse.json();
+                console.log('Direct organizations response:', directData);
+                
+                // Use the direct data
+                if (directData && directData.organizations) {
+                    console.log('Using direct data for organizations:', directData.organizations);
+                    setOrganizations(directData.organizations);
+                }
+            } catch (directError) {
+                console.error('Error testing regular organizations endpoint directly:', directError);
+            }
+            
+            // Use the API client as a fallback
+            if (organizations.length === 0) {
+                console.log('Falling back to API client...');
+                const response = await getAllOrganizations();
+                console.log('Organizations response from API client:', response);
+                
+                if (response && response.data && response.data.organizations) {
+                    console.log('Using API client response for organizations:', response.data.organizations);
+                    setOrganizations(response.data.organizations);
+                }
+            }
+            
+            // Test the debug endpoint as a last resort
+            if (organizations.length === 0) {
+                try {
+                    console.log('Testing debug organizations endpoint...');
+                    const debugResponse = await fetch('/api/v1/debug/organizations', {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                            'X-Application-ID': localStorage.getItem('selectedApplicationId') || ''
+                        }
+                    });
+                    const debugData = await debugResponse.json();
+                    console.log('Debug organizations response:', debugData);
+                    
+                    // Use the debug data for testing
+                    if (debugData && debugData.filteredOrganizations && debugData.filteredOrganizations.length > 0) {
+                        console.log('Using debug data for organizations:', debugData.filteredOrganizations);
+                        setOrganizations(debugData.filteredOrganizations);
+                    }
+                } catch (debugError) {
+                    console.error('Error testing debug organizations endpoint:', debugError);
+                }
+            }
+            
         } catch (error) {
             console.error('Error fetching organizations:', error);
             enqueueSnackbar('Failed to load organizations', { variant: 'error' });

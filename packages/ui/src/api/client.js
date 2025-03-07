@@ -94,11 +94,11 @@ apiClient.interceptors.request.use(function (config) {
 
     // Add application context if available
     const applicationId = localStorage.getItem('selectedApplicationId')
-    if (applicationId && applicationId !== 'global') {
+    if (applicationId) {
         config.headers['X-Application-ID'] = applicationId
         console.log(`Adding X-Application-ID header: ${applicationId}`)
-    } else if (applicationId === 'global') {
-        console.log('Using global application context (no X-Application-ID header)')
+    } else {
+        console.log('No application context available')
     }
 
     return config

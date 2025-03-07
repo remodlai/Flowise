@@ -5,6 +5,9 @@ import client from './client'
  * @returns {Promise}
  */
 export const getAllOrganizations = () => {
+    console.log('API call: getAllOrganizations')
+    console.log('Application ID:', localStorage.getItem('selectedApplicationId'))
+    console.log('Access token:', localStorage.getItem('access_token') ? 'Present' : 'Missing')
     return client.get('/api/v1/organizations')
 }
 
