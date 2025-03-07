@@ -15,6 +15,9 @@ export class UserController {
     static async getAllUsers(req: Request, res: Response) {
         try {
             console.log('Getting all users...')
+            console.log('Request headers:', req.headers)
+            console.log('Request user:', req.user)
+            console.log('Request applicationId:', req.applicationId)
             
             // Get users from Supabase Auth
             const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
@@ -24,10 +27,81 @@ export class UserController {
                 throw authError
             }
             
-            console.log('Users retrieved:', authUsers.users.length)
+            console.log('Users retrieved from Supabase Auth:', authUsers.users.length)
+            console.log('User IDs:', authUsers.users.map(user => user.id))
             
-            // Get user profiles
-            const userIds = authUsers.users.map(user => user.id)
+            // Get application ID from request context
+            const applicationId = req.applicationId
+            const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
+            
+            console.log(`Application context: ${applicationId}, isPlatformAdmin: ${isPlatformAdmin}`)
+            
+            // Filter users by application if an applicationId is specified and not 'global'
+            let filteredUsers = authUsers.users
+            
+            // Only filter if not in global view or not a platform admin
+            if (applicationId && applicationId !== 'global') {
+                console.log(`Filtering users by application ID: ${applicationId}`)
+                
+                // Get organizations associated with this application
+                const { data: organizations, error: orgError } = await supabase
+                    .from('organizations')
+                    .select('id')
+                    .eq('application_id', applicationId)
+                
+                if (orgError) {
+                    console.error('Error fetching organizations:', orgError)
+                } else {
+                    console.log(`Found ${organizations?.length || 0} organizations for application ${applicationId}`)
+                    console.log('Organization IDs:', organizations?.map(org => org.id) || [])
+                    
+                    if (organizations && organizations.length > 0) {
+                        const orgIds = organizations.map(org => org.id)
+                        
+                        // Get users from these organizations
+                        const { data: orgUsers, error: orgUsersError } = await supabase
+                            .from('organization_users')
+                            .select('user_id')
+                            .in('organization_id', orgIds)
+                        
+                        if (orgUsersError) {
+                            console.error('Error fetching organization users:', orgUsersError)
+                        } else {
+                            console.log(`Found ${orgUsers?.length || 0} users in these organizations`)
+                            console.log('User IDs from organizations:', orgUsers?.map(u => u.user_id) || [])
+                            
+                            if (orgUsers && orgUsers.length > 0) {
+                                const allowedUserIds = orgUsers.map(u => u.user_id)
+                                
+                                // Filter users by allowed IDs
+                                filteredUsers = filteredUsers.filter(user => allowedUserIds.includes(user.id))
+                                console.log(`Filtered to ${filteredUsers.length} users`)
+                                console.log('Filtered user IDs:', filteredUsers.map(user => user.id))
+                            } else {
+                                console.log('No users found in these organizations')
+                                filteredUsers = []
+                            }
+                        }
+                    } else {
+                        console.log('No organizations found for this application')
+                        filteredUsers = []
+                    }
+                }
+            } else if (!isPlatformAdmin) {
+                // Non-platform admins can only see users they have access to
+                // For now, return an empty list if not in an application context
+                console.log('Non-platform admin with no application context, returning empty list')
+                filteredUsers = []
+            } else {
+                // Platform admin in global view - show all users
+                console.log('Platform admin in global view, showing all users')
+                console.log('All user IDs:', filteredUsers.map(user => user.id))
+            }
+            
+            // Get user profiles for filtered users
+            const userIds = filteredUsers.map(user => user.id)
+            console.log('Getting profiles for user IDs:', userIds)
+            
             const { data: profiles, error: profilesError } = await supabase
                 .from('user_profiles')
                 .select('*')
@@ -35,9 +109,11 @@ export class UserController {
             
             if (profilesError) {
                 console.error('Error fetching user profiles:', profilesError)
+            } else {
+                console.log(`Found ${profiles?.length || 0} user profiles`)
             }
             
-            // Get roles for users
+            // Get roles for filtered users
             const { data: userRoles, error: rolesError } = await supabase
                 .from('user_roles')
                 .select(`
@@ -54,6 +130,8 @@ export class UserController {
             
             if (rolesError) {
                 console.error('Error fetching roles:', rolesError)
+            } else {
+                console.log(`Found ${userRoles?.length || 0} user roles`)
             }
             
             // Create a map of user_id to profile
@@ -76,7 +154,7 @@ export class UserController {
             }
             
             // Format the response
-            const users = authUsers.users.map(user => {
+            const users = filteredUsers.map(user => {
                 const profile = profileMap.get(user.id)
                 const meta = profile?.meta || {}
                 const userRolesList = rolesMap.get(user.id) || []
@@ -98,6 +176,7 @@ export class UserController {
                 }
             })
             
+            console.log(`Returning ${users.length} formatted users`)
             return res.json({ users })
         } catch (error) {
             console.error('Error in getAllUsers:', error)

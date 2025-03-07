@@ -176,6 +176,78 @@ const createApiKey = async (keyName: string, req?: any) => {
 }
 ```
 
+#### Users
+
+The user controller (`packages/server/src/controllers/UserController.ts`) filters users by application:
+
+```typescript
+static async getAllUsers(req: Request, res: Response) {
+    try {
+        // ... existing code to fetch users ...
+        
+        // Get application ID from request context
+        const applicationId = req.applicationId
+        const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
+        
+        // Filter users by application if an applicationId is specified and not 'global'
+        let filteredUsers = authUsers.users
+        
+        // Only filter if not in global view or not a platform admin
+        if (applicationId && applicationId !== 'global') {
+            // Get organizations associated with this application
+            const { data: organizations } = await supabase
+                .from('organizations')
+                .select('id')
+                .eq('application_id', applicationId)
+            
+            if (organizations && organizations.length > 0) {
+                const orgIds = organizations.map(org => org.id)
+                
+                // Get users from these organizations
+                const { data: orgUsers } = await supabase
+                    .from('organization_users')
+                    .select('user_id')
+                    .in('organization_id', orgIds)
+                
+                if (orgUsers && orgUsers.length > 0) {
+                    const allowedUserIds = orgUsers.map(u => u.user_id)
+                    
+                    // Filter users by allowed IDs
+                    filteredUsers = filteredUsers.filter(user => allowedUserIds.includes(user.id))
+                } else {
+                    // No users found in these organizations
+                    filteredUsers = []
+                }
+            } else {
+                // No organizations found for this application
+                filteredUsers = []
+            }
+        } else if (!isPlatformAdmin) {
+            // Non-platform admins can only see users they have access to
+            filteredUsers = []
+        } else {
+            // Platform admin in global view - show all users
+            // No filtering applied
+        }
+        
+        // ... format and return filtered users ...
+    } catch (error) {
+        // ... error handling ...
+    }
+}
+```
+
+This implementation ensures that:
+
+1. Platform admins in global view can see all users
+2. Users in application-specific view can only see users associated with organizations belonging to that application
+3. Non-platform admins without an application context see no users
+
+The user-organization-application relationship is hierarchical:
+- Applications contain Organizations
+- Organizations contain Users
+- Users are filtered based on their organization membership
+
 ## User Experience
 
 From a user perspective, the application context filtering works as follows:
