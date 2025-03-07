@@ -95,6 +95,12 @@ router.get('/organizations/:id', OrganizationController.getOrganizationById)
 router.put('/organizations/:id', OrganizationController.updateOrganization)
 router.delete('/organizations/:id', OrganizationController.deleteOrganization)
 
+// Organization members routes
+router.get('/organizations/:id/members', OrganizationController.getOrganizationMembers)
+router.post('/organizations/:id/members', OrganizationController.addOrganizationMember)
+router.put('/organizations/:id/members/:userId', OrganizationController.updateOrganizationMember)
+router.delete('/organizations/:id/members/:userId', OrganizationController.removeOrganizationMember)
+
 // Custom Roles routes
 router.get('/custom-roles', CustomRoleController.getAllRoles)
 router.post('/custom-roles', CustomRoleController.createRole)
@@ -112,8 +118,6 @@ router.get('/custom-roles/:id/permissions-direct', CustomRoleController.getRoleP
 
 // Role users routes
 router.get('/custom-roles/:id/users', CustomRoleController.getRoleUsers)
-router.post('/custom-roles/:id/users', CustomRoleController.assignRoleToUser)
-router.delete('/custom-roles/:id/users/:user_id', CustomRoleController.removeRoleFromUser)
 
 // User roles routes
 router.get('/users/:id/custom-roles', CustomRoleController.getUserRoles)

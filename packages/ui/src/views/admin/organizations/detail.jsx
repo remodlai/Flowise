@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     Box,
     Grid,
@@ -12,11 +12,16 @@ import {
     Divider,
     IconButton,
     Breadcrumbs,
-    Link
+    Link,
+    CircularProgress
 } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Edit as EditIcon } from '@mui/icons-material';
-import StatusChip from '../../../ui-component/extended/StatusChip';
-import OrganizationChip from '../../../ui-component/extended/OrganizationChip';
+import StatusChip from '@/ui-component/extended/StatusChip';
+import OrganizationChip from '@/ui-component/extended/OrganizationChip';
+
+// Import API functions
+import { getOrganizationById } from '@/api/organizations';
+import { useSnackbar } from 'notistack';
 
 // Import granular components
 import OrganizationMembers from './components/OrganizationMembers';
@@ -40,39 +45,20 @@ const OrganizationHeader = ({ organization, onBack, onEdit }) => {
             </Box>
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <OrganizationChip 
-                        name={organization?.name || 'Unknown Organization'} 
-                        size="medium" 
-                        sx={{ mr: 2, fontSize: '1.125rem' }} 
-                    />
-                    <StatusChip status={organization?.status} />
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box 
-                        sx={{ 
-                            border: '2px solid #FF5722', 
-                            borderRadius: '4px', 
-                            px: 2, 
-                            py: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                        }}
-                    >
-                        <Typography variant="body1" fontWeight="500">
-                            Application: {organization?.application?.name || 'RemodlAI'}
-                        </Typography>
-                    </Box>
-                    <Button 
-                        variant="contained" 
-                        startIcon={<EditIcon />}
-                        onClick={onEdit}
-                    >
-                        Edit Organization
-                    </Button>
-                </Box>
+                <Typography variant="h3" component="h1">
+                    {organization?.name || 'Organization Details'}
+                </Typography>
+                <Button 
+                    variant="outlined" 
+                    startIcon={<EditIcon />}
+                    onClick={onEdit}
+                >
+                    Edit
+                </Button>
             </Box>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                {organization?.description || 'No description provided'}
+            </Typography>
         </Box>
     );
 };
@@ -89,66 +75,36 @@ const OrganizationInfoCard = ({ organization }) => {
                 
                 <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Organization Name
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            {organization?.name}
-                        </Typography>
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="textSecondary">
+                                Name
+                            </Typography>
+                            <Typography variant="body1">
+                                {organization?.name || 'N/A'}
+                            </Typography>
+                        </Box>
                     </Grid>
+                    
                     <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Domain
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            {organization?.domain}
-                        </Typography>
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="textSecondary">
+                                Created
+                            </Typography>
+                            <Typography variant="body1">
+                                {organization?.created_at ? new Date(organization.created_at).toLocaleDateString() : 'N/A'}
+                            </Typography>
+                        </Box>
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Email
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            {organization?.email}
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Phone
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            {organization?.phone}
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Status
-                        </Typography>
-                        <StatusChip status={organization?.status} />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Subscription Plan
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            {organization?.plan}
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Created Date
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            {organization?.createdAt ? new Date(organization.createdAt).toLocaleDateString() : 'N/A'}
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle1" color="textSecondary">
-                            Member Count
-                        </Typography>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            {organization?.memberCount || 0}
-                        </Typography>
+                    
+                    <Grid item xs={12}>
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="body2" color="textSecondary">
+                                Description
+                            </Typography>
+                            <Typography variant="body1">
+                                {organization?.description || 'No description provided'}
+                            </Typography>
+                        </Box>
                     </Grid>
                 </Grid>
             </CardContent>
@@ -156,40 +112,37 @@ const OrganizationInfoCard = ({ organization }) => {
     );
 };
 
-// Main Organization Detail Component
 const OrganizationDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [tabValue, setTabValue] = useState(0);
+    const location = useLocation();
+    const { enqueueSnackbar } = useSnackbar();
+    
+    // Get tab from URL query params
+    const queryParams = new URLSearchParams(location.search);
+    const initialTab = parseInt(queryParams.get('tab') || '0', 10);
+    
     const [organization, setOrganization] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [tabValue, setTabValue] = useState(initialTab);
     
-    // Sample data - would be replaced with actual API call
+    // Fetch organization data
     useEffect(() => {
-        // Simulate API call
-        setTimeout(() => {
-            setOrganization({
-                id: id,
-                name: 'Acme Corporation',
-                domain: 'acmecorp.com',
-                email: 'info@acmecorp.com',
-                phone: '+1 (555) 123-4567',
-                status: 'Active',
-                memberCount: 24,
-                plan: 'Enterprise',
-                createdAt: '2023-01-15T00:00:00Z',
-                members: [],
-                applications: [],
-                billingInfo: {
-                    plan: 'Enterprise',
-                    cycle: 'Annual',
-                    nextBillingDate: '2024-01-15T00:00:00Z',
-                    paymentMethod: 'Visa ending in 4242'
-                }
-            });
-            setLoading(false);
-        }, 1000);
+        fetchOrganization();
     }, [id]);
+    
+    const fetchOrganization = async () => {
+        try {
+            setLoading(true);
+            const response = await getOrganizationById(id);
+            setOrganization(response.data.organization);
+        } catch (error) {
+            console.error('Error fetching organization:', error);
+            enqueueSnackbar('Failed to load organization details', { variant: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
     
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
@@ -200,14 +153,15 @@ const OrganizationDetail = () => {
     };
     
     const handleEdit = () => {
-        // Would navigate to edit page or open edit dialog
-        console.log('Edit organization', id);
+        // Open edit dialog in the parent component
+        navigate(`/admin/organizations?edit=${id}`);
     };
     
+    // Show loading state
     if (loading) {
         return (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-                <Typography>Loading organization details...</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+                <CircularProgress />
             </Box>
         );
     }

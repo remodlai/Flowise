@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Card,
@@ -12,8 +12,6 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Avatar,
-    Chip,
     IconButton,
     Menu,
     MenuItem,
@@ -24,74 +22,62 @@ import {
     DialogContent,
     DialogActions,
     TextField,
-    Grid,
-    Paper
+    Paper,
+    FormControl,
+    InputLabel,
+    Select,
+    CircularProgress
 } from '@mui/material';
 import {
     IconPlus,
     IconEdit,
     IconTrash,
-    IconDotsVertical,
-    IconMail,
-    IconUser,
-    IconUserCheck,
-    IconUserX
+    IconDotsVertical
 } from '@tabler/icons-react';
-import StatusChip from '../../../../ui-component/extended/StatusChip';
-import RoleChip from '../../../../ui-component/extended/RoleChip';
-import UserAvatar from '../../../../ui-component/extended/UserAvatar';
+import { useSnackbar } from 'notistack';
+import StatusChip from '@/ui-component/extended/StatusChip';
+import RoleChip from '@/ui-component/extended/RoleChip';
+import UserAvatar from '@/ui-component/extended/UserAvatar';
 
-// Sample members data
-const sampleMembers = [
-    {
-        id: 1,
-        name: 'John Doe',
-        email: 'john.doe@acmecorp.com',
-        role: 'Admin',
-        status: 'Active',
-        joinedAt: '2023-01-20',
-        avatar: null
-    },
-    {
-        id: 2,
-        name: 'Jane Smith',
-        email: 'jane.smith@acmecorp.com',
-        role: 'Member',
-        status: 'Active',
-        joinedAt: '2023-02-15',
-        avatar: null
-    },
-    {
-        id: 3,
-        name: 'Robert Johnson',
-        email: 'robert.johnson@acmecorp.com',
-        role: 'Owner',
-        status: 'Active',
-        joinedAt: '2023-01-10',
-        avatar: null
-    },
-    {
-        id: 4,
-        name: 'Emily Davis',
-        email: 'emily.davis@acmecorp.com',
-        role: 'Member',
-        status: 'Pending',
-        joinedAt: '2023-03-05',
-        avatar: null
-    }
-];
+// Import API functions
+import { 
+    getOrganizationMembers, 
+    addOrganizationMember, 
+    updateOrganizationMember, 
+    removeOrganizationMember 
+} from '@/api/organizations';
 
-const OrganizationMembers = ({ organizationId, members = sampleMembers }) => {
+const OrganizationMembers = ({ organizationId }) => {
+    const [members, setMembers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [anchorEl, setAnchorEl] = useState(null);
     const [selectedMember, setSelectedMember] = useState(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogMode, setDialogMode] = useState('add'); // 'add' or 'edit'
     const [formData, setFormData] = useState({
-        name: '',
         email: '',
-        role: 'Member',
-        status: 'Pending'
+        role: 'member'
     });
+    const { enqueueSnackbar } = useSnackbar();
+    
+    // Fetch members on component mount
+    useEffect(() => {
+        fetchMembers();
+    }, [organizationId]);
+    
+    // Function to fetch members
+    const fetchMembers = async () => {
+        try {
+            setLoading(true);
+            const response = await getOrganizationMembers(organizationId);
+            setMembers(response.data.members || []);
+        } catch (error) {
+            console.error('Error fetching organization members:', error);
+            enqueueSnackbar('Failed to load organization members', { variant: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
     
     // Handle menu open
     const handleMenuOpen = (event, member) => {
@@ -109,10 +95,8 @@ const OrganizationMembers = ({ organizationId, members = sampleMembers }) => {
     const handleAddMember = () => {
         setDialogMode('add');
         setFormData({
-            name: '',
             email: '',
-            role: 'Member',
-            status: 'Pending'
+            role: 'member'
         });
         setDialogOpen(true);
     };
@@ -121,10 +105,7 @@ const OrganizationMembers = ({ organizationId, members = sampleMembers }) => {
     const handleEditMember = () => {
         setDialogMode('edit');
         setFormData({
-            name: selectedMember.name,
-            email: selectedMember.email,
-            role: selectedMember.role,
-            status: selectedMember.status
+            role: selectedMember.role
         });
         setDialogOpen(true);
         handleMenuClose();
@@ -145,13 +126,52 @@ const OrganizationMembers = ({ organizationId, members = sampleMembers }) => {
     };
     
     // Handle form submit
-    const handleSubmit = () => {
-        // Here you would typically save the data to your backend
-        console.log('Form submitted:', formData);
-        
-        // Close the dialog
-        handleDialogClose();
+    const handleSubmit = async () => {
+        try {
+            if (dialogMode === 'add') {
+                await addOrganizationMember(organizationId, formData);
+                enqueueSnackbar('Member added successfully', { variant: 'success' });
+            } else {
+                await updateOrganizationMember(organizationId, selectedMember.id, { role: formData.role });
+                enqueueSnackbar('Member updated successfully', { variant: 'success' });
+            }
+            
+            // Refresh members list
+            fetchMembers();
+            
+            // Close the dialog
+            handleDialogClose();
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            enqueueSnackbar(error.response?.data?.error || 'An error occurred', { variant: 'error' });
+        }
     };
+    
+    // Handle member removal
+    const handleRemoveMember = async () => {
+        try {
+            await removeOrganizationMember(organizationId, selectedMember.id);
+            enqueueSnackbar('Member removed successfully', { variant: 'success' });
+            
+            // Refresh members list
+            fetchMembers();
+            
+            // Close the menu
+            handleMenuClose();
+        } catch (error) {
+            console.error('Error removing member:', error);
+            enqueueSnackbar(error.response?.data?.error || 'An error occurred', { variant: 'error' });
+        }
+    };
+    
+    // Show loading state
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
     
     return (
         <>
@@ -194,7 +214,6 @@ const OrganizationMembers = ({ organizationId, members = sampleMembers }) => {
                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                     <UserAvatar 
                                                         name={member.name} 
-                                                        src={member.avatar}
                                                         subtitle={member.email}
                                                     />
                                                 </Box>
@@ -239,37 +258,16 @@ const OrganizationMembers = ({ organizationId, members = sampleMembers }) => {
                     <ListItemIcon>
                         <IconEdit size={18} stroke={1.5} />
                     </ListItemIcon>
-                    <ListItemText>Edit Member</ListItemText>
+                    <ListItemText>Edit Role</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleMenuClose}>
-                    <ListItemIcon>
-                        <IconUserCheck size={18} stroke={1.5} />
-                    </ListItemIcon>
-                    <ListItemText>Change Role</ListItemText>
-                </MenuItem>
-                {selectedMember?.status === 'Active' ? (
-                    <MenuItem onClick={handleMenuClose}>
-                        <ListItemIcon>
-                            <IconUserX size={18} stroke={1.5} />
-                        </ListItemIcon>
-                        <ListItemText>Deactivate</ListItemText>
-                    </MenuItem>
-                ) : (
-                    <MenuItem onClick={handleMenuClose}>
-                        <ListItemIcon>
-                            <IconUserCheck size={18} stroke={1.5} />
-                        </ListItemIcon>
-                        <ListItemText>Activate</ListItemText>
-                    </MenuItem>
-                )}
                 <MenuItem 
-                    onClick={handleMenuClose}
+                    onClick={handleRemoveMember}
                     sx={{ color: 'error.main' }}
                 >
                     <ListItemIcon sx={{ color: 'error.main' }}>
                         <IconTrash size={18} stroke={1.5} />
                     </ListItemIcon>
-                    <ListItemText>Remove</ListItemText>
+                    <ListItemText>Remove Member</ListItemText>
                 </MenuItem>
             </Menu>
             
@@ -281,80 +279,47 @@ const OrganizationMembers = ({ organizationId, members = sampleMembers }) => {
                 fullWidth
             >
                 <DialogTitle>
-                    {dialogMode === 'add' ? 'Add New Member' : 'Edit Member'}
+                    {dialogMode === 'add' ? 'Add Member' : 'Edit Member Role'}
                 </DialogTitle>
                 <DialogContent>
-                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                    <Box sx={{ mt: 2 }}>
                         {dialogMode === 'add' && (
-                            <>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        name="email"
-                                        label="Email Address"
-                                        fullWidth
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <IconMail size={20} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                                            )
-                                        }}
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        name="name"
-                                        label="Full Name (Optional)"
-                                        fullWidth
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <IconUser size={20} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                                            )
-                                        }}
-                                    />
-                                </Grid>
-                            </>
+                            <TextField
+                                fullWidth
+                                label="Email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                margin="normal"
+                                variant="outlined"
+                                required
+                                helperText="Enter the email of the user to add"
+                            />
                         )}
-                        <Grid item xs={12} md={6}>
-                            <TextField
+                        
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel>Role</InputLabel>
+                            <Select
                                 name="role"
-                                label="Role"
-                                select
-                                fullWidth
                                 value={formData.role}
+                                label="Role"
                                 onChange={handleInputChange}
                             >
-                                <MenuItem value="Owner">Owner</MenuItem>
-                                <MenuItem value="Admin">Admin</MenuItem>
-                                <MenuItem value="Member">Member</MenuItem>
-                                <MenuItem value="Guest">Guest</MenuItem>
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                name="status"
-                                label="Status"
-                                select
-                                fullWidth
-                                value={formData.status}
-                                onChange={handleInputChange}
-                            >
-                                <MenuItem value="Active">Active</MenuItem>
-                                <MenuItem value="Pending">Pending</MenuItem>
-                                <MenuItem value="Inactive">Inactive</MenuItem>
-                            </TextField>
-                        </Grid>
-                    </Grid>
+                                <MenuItem value="owner">Owner</MenuItem>
+                                <MenuItem value="admin">Admin</MenuItem>
+                                <MenuItem value="member">Member</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
+                <DialogActions>
                     <Button onClick={handleDialogClose}>Cancel</Button>
                     <Button 
                         variant="contained" 
                         onClick={handleSubmit}
+                        disabled={dialogMode === 'add' && !formData.email}
                     >
-                        {dialogMode === 'add' ? 'Invite Member' : 'Save Changes'}
+                        {dialogMode === 'add' ? 'Add' : 'Save'}
                     </Button>
                 </DialogActions>
             </Dialog>

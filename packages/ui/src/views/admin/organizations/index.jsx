@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
     Box, 
@@ -13,90 +13,40 @@ import {
     DialogContent,
     DialogActions,
     TextField,
-    Grid,
-    Typography
+    Typography,
+    FormControl,
+    InputLabel,
+    Select,
+    CircularProgress
 } from '@mui/material'
 import { 
     IconPlus, 
     IconEdit, 
     IconTrash, 
-    IconFilter, 
     IconDotsVertical, 
+    IconEye, 
     IconUsers, 
-    IconSettings,
-    IconBuildingSkyscraper,
-    IconMail,
-    IconPhone,
-    IconWorld,
-    IconEye
+    IconBuildingSkyscraper
 } from '@tabler/icons-react'
+import { useSnackbar } from 'notistack'
 
 // Import reusable components
 import DataTable from '@/ui-component/table/DataTable'
 import StatusChip from '@/ui-component/extended/StatusChip'
-import OrganizationChip from '@/ui-component/extended/OrganizationChip'
 
-// Sample data - replace with actual data fetching
-const sampleOrganizations = [
-    { 
-        id: 1, 
-        name: 'Acme Inc.', 
-        domain: 'acme.com',
-        email: 'contact@acme.com',
-        phone: '+1 (555) 123-4567',
-        status: 'Active', 
-        memberCount: 24,
-        plan: 'Enterprise',
-        createdAt: '2023-01-15'
-    },
-    { 
-        id: 2, 
-        name: 'TechCorp', 
-        domain: 'techcorp.io',
-        email: 'info@techcorp.io',
-        phone: '+1 (555) 987-6543',
-        status: 'Active', 
-        memberCount: 18,
-        plan: 'Pro',
-        createdAt: '2023-02-20'
-    },
-    { 
-        id: 3, 
-        name: 'Globex Solutions', 
-        domain: 'globex-solutions.com',
-        email: 'hello@globex-solutions.com',
-        phone: '+1 (555) 456-7890',
-        status: 'Inactive', 
-        memberCount: 5,
-        plan: 'Basic',
-        createdAt: '2023-03-10'
-    },
-    { 
-        id: 4, 
-        name: 'Initech', 
-        domain: 'initech.net',
-        email: 'support@initech.net',
-        phone: '+1 (555) 234-5678',
-        status: 'Active', 
-        memberCount: 12,
-        plan: 'Pro',
-        createdAt: '2023-04-05'
-    },
-    { 
-        id: 5, 
-        name: 'Umbrella Corp', 
-        domain: 'umbrellacorp.org',
-        email: 'contact@umbrellacorp.org',
-        phone: '+1 (555) 876-5432',
-        status: 'Pending', 
-        memberCount: 3,
-        plan: 'Enterprise',
-        createdAt: '2023-05-18'
-    }
-];
+// Import API functions
+import { getAllOrganizations, createOrganization, updateOrganization, deleteOrganization } from '@/api/organizations'
+import { getAllApplications } from '@/api/applications'
 
 const OrganizationsAdmin = () => {
     const navigate = useNavigate();
+    const { enqueueSnackbar } = useSnackbar();
+    
+    // State for organizations and applications
+    const [organizations, setOrganizations] = useState([]);
+    const [applications, setApplications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    
     // State for action menu
     const [anchorEl, setAnchorEl] = useState(null);
     const [selectedOrg, setSelectedOrg] = useState(null);
@@ -106,12 +56,40 @@ const OrganizationsAdmin = () => {
     const [dialogMode, setDialogMode] = useState('add'); // 'add' or 'edit'
     const [formData, setFormData] = useState({
         name: '',
-        domain: '',
-        email: '',
-        phone: '',
-        status: 'Active',
-        plan: 'Basic'
+        description: '',
+        application_id: ''
     });
+    
+    // Fetch organizations and applications on component mount
+    useEffect(() => {
+        fetchOrganizations();
+        fetchApplications();
+    }, []);
+    
+    // Function to fetch organizations
+    const fetchOrganizations = async () => {
+        try {
+            setLoading(true);
+            const response = await getAllOrganizations();
+            setOrganizations(response.data.organizations || []);
+        } catch (error) {
+            console.error('Error fetching organizations:', error);
+            enqueueSnackbar('Failed to load organizations', { variant: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    // Function to fetch applications
+    const fetchApplications = async () => {
+        try {
+            const response = await getAllApplications();
+            setApplications(response.data?.applications || []);
+        } catch (error) {
+            console.error('Error fetching applications:', error);
+            enqueueSnackbar('Failed to load applications', { variant: 'error' });
+        }
+    };
     
     // Handle menu open
     const handleMenuOpen = (event, org) => {
@@ -129,11 +107,8 @@ const OrganizationsAdmin = () => {
         setDialogMode('add');
         setFormData({
             name: '',
-            domain: '',
-            email: '',
-            phone: '',
-            status: 'Active',
-            plan: 'Basic'
+            description: '',
+            application_id: applications.length > 0 ? applications[0].id : ''
         });
         setDialogOpen(true);
     };
@@ -143,11 +118,8 @@ const OrganizationsAdmin = () => {
         setDialogMode('edit');
         setFormData({
             name: selectedOrg.name,
-            domain: selectedOrg.domain,
-            email: selectedOrg.email,
-            phone: selectedOrg.phone,
-            status: selectedOrg.status,
-            plan: selectedOrg.plan
+            description: selectedOrg.description || '',
+            application_id: selectedOrg.application_id
         });
         setDialogOpen(true);
         handleMenuClose();
@@ -168,17 +140,55 @@ const OrganizationsAdmin = () => {
     };
     
     // Handle form submit
-    const handleSubmit = () => {
-        // Here you would typically save the data to your backend
-        console.log('Form submitted:', formData);
-        
-        // Close the dialog
-        handleDialogClose();
+    const handleSubmit = async () => {
+        try {
+            if (dialogMode === 'add') {
+                await createOrganization(formData);
+                enqueueSnackbar('Organization created successfully', { variant: 'success' });
+            } else {
+                await updateOrganization(selectedOrg.id, formData);
+                enqueueSnackbar('Organization updated successfully', { variant: 'success' });
+            }
+            
+            // Refresh organizations list
+            fetchOrganizations();
+            
+            // Close the dialog
+            handleDialogClose();
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            enqueueSnackbar(error.response?.data?.error || 'An error occurred', { variant: 'error' });
+        }
+    };
+    
+    // Handle organization deletion
+    const handleDeleteOrg = async () => {
+        if (window.confirm(`Are you sure you want to delete ${selectedOrg.name}? This action cannot be undone.`)) {
+            try {
+                await deleteOrganization(selectedOrg.id);
+                enqueueSnackbar('Organization deleted successfully', { variant: 'success' });
+                
+                // Refresh organizations list
+                fetchOrganizations();
+                
+                // Close the menu
+                handleMenuClose();
+            } catch (error) {
+                console.error('Error deleting organization:', error);
+                enqueueSnackbar(error.response?.data?.error || 'An error occurred', { variant: 'error' });
+            }
+        }
     };
     
     // Handle row click to navigate to detail page
     const handleRowClick = (row) => {
         navigate(`/admin/organizations/${row.id}`);
+    };
+    
+    // Get application name by ID
+    const getApplicationName = (applicationId) => {
+        const app = applications.find(app => app.id === applicationId);
+        return app ? app.name : 'Unknown Application';
     };
     
     // Define table columns
@@ -200,8 +210,7 @@ const OrganizationsAdmin = () => {
                         stroke={1.5} 
                         style={{ 
                             marginRight: '12px',
-                            color: row.status === 'Active' ? '#4caf50' : 
-                                   row.status === 'Inactive' ? '#f44336' : '#ff9800'
+                            color: '#4caf50'
                         }} 
                     />
                     <Box>
@@ -209,63 +218,29 @@ const OrganizationsAdmin = () => {
                             {row.name}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
-                            {row.domain}
+                            {row.description || 'No description'}
                         </Typography>
                     </Box>
                 </Box>
             )
         },
         {
-            field: 'contact',
-            label: 'Contact',
+            field: 'application',
+            label: 'Application',
             render: (row) => (
-                <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                        <IconMail size={16} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                        <Typography variant="body2">{row.email}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <IconPhone size={16} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                        <Typography variant="body2">{row.phone}</Typography>
-                    </Box>
-                </Box>
+                <Typography variant="body2">
+                    {getApplicationName(row.application_id)}
+                </Typography>
             )
         },
         {
-            field: 'status',
-            label: 'Status',
+            field: 'created_at',
+            label: 'Created',
             render: (row) => (
-                <StatusChip status={row.status} />
+                <Typography variant="body2">
+                    {new Date(row.created_at).toLocaleDateString()}
+                </Typography>
             )
-        },
-        {
-            field: 'memberCount',
-            label: 'Members',
-            render: (row) => (
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <IconUsers size={18} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                    <Typography variant="body2">{row.memberCount}</Typography>
-                </Box>
-            )
-        },
-        {
-            field: 'plan',
-            label: 'Plan',
-            render: (row) => (
-                <OrganizationChip 
-                    name={row.plan} 
-                    variant="outlined"
-                    color={
-                        row.plan === 'Enterprise' ? '#9c27b0' :
-                        row.plan === 'Pro' ? '#2196f3' :
-                        '#4caf50'
-                    }
-                />
-            )
-        },
-        {
-            field: 'createdAt',
-            label: 'Created'
         },
         {
             field: 'actions',
@@ -306,27 +281,29 @@ const OrganizationsAdmin = () => {
     );
 
     // Table actions
-    const tableActions = (
-        <Button 
-            variant="outlined" 
-            startIcon={<IconFilter size={18} stroke={1.5} />}
-        >
-            Filters
-        </Button>
-    );
+    const tableActions = null;
+    
+    // Show loading state
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
         <>
             <DataTable
                 columns={columns}
-                data={sampleOrganizations}
+                data={organizations}
                 title="Organizations Management"
                 description="Manage organizations, their members, and settings"
                 searchPlaceholder="Search organizations..."
-                searchFields={['name', 'domain', 'email', 'plan']}
+                searchFields={['name', 'description']}
                 headerActions={headerActions}
                 tableActions={tableActions}
-                initialRowsPerPage={5}
+                initialRowsPerPage={10}
                 sx={{ p: { xs: 2, md: 3 } }}
                 onRowClick={handleRowClick}
             />
@@ -357,20 +334,17 @@ const OrganizationsAdmin = () => {
                     </ListItemIcon>
                     <ListItemText>Edit</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleMenuClose}>
+                <MenuItem onClick={() => {
+                    handleMenuClose();
+                    navigate(`/admin/organizations/${selectedOrg?.id}?tab=1`);
+                }}>
                     <ListItemIcon>
                         <IconUsers size={18} stroke={1.5} />
                     </ListItemIcon>
                     <ListItemText>Manage Members</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleMenuClose}>
-                    <ListItemIcon>
-                        <IconSettings size={18} stroke={1.5} />
-                    </ListItemIcon>
-                    <ListItemText>Settings</ListItemText>
-                </MenuItem>
                 <MenuItem 
-                    onClick={handleMenuClose}
+                    onClick={handleDeleteOrg}
                     sx={{ color: 'error.main' }}
                 >
                     <ListItemIcon sx={{ color: 'error.main' }}>
@@ -388,98 +362,56 @@ const OrganizationsAdmin = () => {
                 fullWidth
             >
                 <DialogTitle>
-                    {dialogMode === 'add' ? 'Add New Organization' : 'Edit Organization'}
+                    {dialogMode === 'add' ? 'Add Organization' : 'Edit Organization'}
                 </DialogTitle>
                 <DialogContent>
-                    <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                        <Grid item xs={12}>
-                            <TextField
-                                name="name"
-                                label="Organization Name"
-                                fullWidth
-                                value={formData.name}
-                                onChange={handleInputChange}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                name="domain"
-                                label="Domain"
-                                fullWidth
-                                value={formData.domain}
-                                onChange={handleInputChange}
-                                InputProps={{
-                                    startAdornment: (
-                                        <IconWorld size={20} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                                    )
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                name="email"
-                                label="Contact Email"
-                                fullWidth
-                                value={formData.email}
-                                onChange={handleInputChange}
-                                InputProps={{
-                                    startAdornment: (
-                                        <IconMail size={20} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                                    )
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                name="phone"
-                                label="Contact Phone"
-                                fullWidth
-                                value={formData.phone}
-                                onChange={handleInputChange}
-                                InputProps={{
-                                    startAdornment: (
-                                        <IconPhone size={20} stroke={1.5} style={{ marginRight: '8px', opacity: 0.7 }} />
-                                    )
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                name="status"
-                                label="Status"
-                                select
-                                fullWidth
-                                value={formData.status}
+                    <Box sx={{ mt: 2 }}>
+                        <TextField
+                            fullWidth
+                            label="Name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            margin="normal"
+                            variant="outlined"
+                            required
+                        />
+                        
+                        <TextField
+                            fullWidth
+                            label="Description"
+                            name="description"
+                            value={formData.description}
+                            onChange={handleInputChange}
+                            margin="normal"
+                            variant="outlined"
+                            multiline
+                            rows={3}
+                        />
+                        
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel>Application</InputLabel>
+                            <Select
+                                name="application_id"
+                                value={formData.application_id}
+                                label="Application"
                                 onChange={handleInputChange}
                             >
-                                <MenuItem value="Active">Active</MenuItem>
-                                <MenuItem value="Inactive">Inactive</MenuItem>
-                                <MenuItem value="Pending">Pending</MenuItem>
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                name="plan"
-                                label="Subscription Plan"
-                                select
-                                fullWidth
-                                value={formData.plan}
-                                onChange={handleInputChange}
-                            >
-                                <MenuItem value="Basic">Basic</MenuItem>
-                                <MenuItem value="Pro">Pro</MenuItem>
-                                <MenuItem value="Enterprise">Enterprise</MenuItem>
-                            </TextField>
-                        </Grid>
-                    </Grid>
+                                {applications.map(app => (
+                                    <MenuItem key={app.id} value={app.id}>{app.name}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Box>
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2 }}>
+                <DialogActions>
                     <Button onClick={handleDialogClose}>Cancel</Button>
                     <Button 
                         variant="contained" 
                         onClick={handleSubmit}
+                        disabled={!formData.name || !formData.application_id}
                     >
-                        {dialogMode === 'add' ? 'Create' : 'Save Changes'}
+                        {dialogMode === 'add' ? 'Create' : 'Save'}
                     </Button>
                 </DialogActions>
             </Dialog>
