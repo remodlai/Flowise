@@ -129,12 +129,12 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ## Phase 6: Integration with Existing Components
 
-- [ ] Update chat image handling
-  - [ ] Refactor `multiModalUtils.ts` to use the new storage service
-  - [ ] Update image upload process to store file metadata
-  - [ ] Implement proper authentication context handling
-  - [ ] Add fallback mechanism for backward compatibility
-  - [ ] Update documentation for chat image handling
+- [x] Update chat image handling
+  - [x] Refactor `multiModalUtils.ts` to use the new storage service
+  - [x] Update image upload process to store file metadata
+  - [x] Implement proper authentication context handling
+  - [x] Add fallback mechanism for backward compatibility
+  - [x] Update documentation for chat image handling
 
 - [ ] Update other existing file handling components
   - [ ] Identify other components using direct Supabase Storage
@@ -144,7 +144,7 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ### Changelog
 
-- **TBD**: Phase 6 in progress.
+- **2025-03-13**: Updated chat image handling in `multiModalUtils.ts` to use the new storage service. Replaced direct Supabase Storage utilities with our high-level storage service. Added proper authentication context handling and maintained backward compatibility with base64 fallback. Images uploaded in chat now have proper metadata stored in the database and are subject to RLS policies for access control.
 
 ## Phase 7: Frontend Integration
 

@@ -8,7 +8,11 @@
 
 import { IVisionChatModal, ICommonObject, IFileUpload, IMultiModalOption, INodeData, MessageContentImageUrl } from './Interface'
 import { getFileFromStorage } from './storageUtils'
-import { uploadImage, generateStoragePath, STORAGE_BUCKETS } from '../../server/src/utils/supabaseStorage'
+import { 
+    uploadApplicationFile, 
+    FILE_RESOURCE_TYPES 
+} from '../../server/src/services/storage'
+import { StorageError } from '../../server/src/errors'
 
 /**
  * Adds images to messages for multi-modal LLM processing
@@ -16,8 +20,8 @@ import { uploadImage, generateStoragePath, STORAGE_BUCKETS } from '../../server/
  * This function:
  * 1. Checks if the model supports vision capabilities
  * 2. Processes image uploads from stored files or URLs
- * 3. Uploads images to Supabase Storage with transformations
- * 4. Falls back to base64 encoding if Supabase upload fails
+ * 3. Uploads images to Supabase Storage with proper metadata
+ * 4. Falls back to base64 encoding if storage upload fails
  * 5. Returns properly formatted image content for the LLM
  * 
  * @param nodeData - Data from the node
@@ -37,6 +41,14 @@ export const addImagesToMessages = async (
         // Image Uploaded
         if (multiModalOption.image && multiModalOption.image.allowImageUploads && options?.uploads && options?.uploads.length > 0) {
             const imageUploads = getImageUploads(options.uploads)
+            
+            // Create authentication context from available information
+            const authContext = {
+                userId: options.userId || 'anonymous',
+                orgId: options.orgId,
+                appId: options.chatflowid
+            }
+            
             for (const upload of imageUploads) {
                 if (upload.type == 'stored-file') {
                     try {
@@ -45,41 +57,53 @@ export const addImagesToMessages = async (
                         
                         if (contents) {
                             try {
-                                // Try to upload to Supabase Storage first
+                                // Try to upload to storage service first
                                 const fileBuffer = Buffer.from(contents)
                                 const contentType = upload.mime || 'image/jpeg'
                                 
-                                // Generate storage path based on chatflow ID
-                                const { bucket, path } = generateStoragePath({
-                                    level: 'app',
-                                    id: options.chatflowid,
-                                    subPath: 'uploads'
-                                })
+                                // Use the application-specific upload function
+                                const result = await uploadApplicationFile(
+                                    options.chatflowid,
+                                    fileBuffer,
+                                    {
+                                        name: upload.name,
+                                        contentType: contentType,
+                                        resourceType: FILE_RESOURCE_TYPES.IMAGE,
+                                        resourceId: options.chatId, // Associate with chat ID
+                                        isPublic: true,
+                                        metadata: {
+                                            originalName: upload.name,
+                                            chatId: options.chatId,
+                                            nodeId: nodeData.id,
+                                            width: 1000,
+                                            quality: 80
+                                        },
+                                        virtualPath: 'uploads'
+                                    },
+                                    authContext
+                                )
                                 
-                                // Upload the image with transformation (limit width to 1000px)
-                                const result = await uploadImage(bucket, path, fileBuffer, {
-                                    contentType,
-                                    isPublic: true,
-                                    width: 1000, // Limit width to 1000px
-                                    quality: 80 // Use 80% quality for JPEG/WebP
-                                })
-                                
-                                if (result.publicUrl) {
-                                    // Use the public URL from Supabase Storage
+                                if (result.url) {
+                                    // Use the URL from the storage service
                                     imageContent.push({
                                         type: 'image_url',
                                         image_url: {
-                                            url: result.publicUrl
+                                            url: result.url
                                         }
                                     })
                                     continue // Skip base64 encoding
                                 }
                             } catch (error) {
-                                console.warn('Failed to upload to Supabase Storage, falling back to base64:', error)
+                                // Handle storage errors
+                                if (error instanceof StorageError) {
+                                    console.warn(`Storage error (${error.code}): ${error.message}`)
+                                } else {
+                                    console.warn('Failed to upload to storage, falling back to base64:', error)
+                                }
                                 // Continue to base64 fallback
                             }
                             
-                            // Fallback to base64 encoding if Supabase upload fails
+                            // Fallback to base64 encoding if storage upload fails
                             const base64 = Buffer.from(contents).toString('base64')
                             const mimeType = upload.mime || 'image/jpeg'
                             imageContent.push({
