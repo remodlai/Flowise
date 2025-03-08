@@ -33,6 +33,7 @@ import apiRoutes from './routes/api'
 import { applicationContextMiddleware } from './middlewares/applicationContextMiddleware'
 import { jwtDebugMiddleware } from './middleware/jwtDebug'
 import { authenticateApiKey } from './middleware/authenticateApiKey'
+import storageRoutes from './routes/storage'
 
 // Extend Express Request type
 declare global {
@@ -209,6 +210,9 @@ export class App {
         
         // Mount the custom roles API router directly (not nested)
         this.app.use('/api/v1', apiRoutes)
+        
+        // Mount the storage API router
+        this.app.use('/api/v1', storageRoutes)
 
         // ----------------------------------------
         // Configure number of proxies in Host Environment
