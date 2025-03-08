@@ -7,6 +7,7 @@ import { Chip, useTheme, alpha } from '@mui/material'
  */
 const OrganizationChip = ({
     name,
+    label,
     color,
     size = 'small',
     variant = 'filled',
@@ -14,6 +15,9 @@ const OrganizationChip = ({
 }) => {
     const theme = useTheme()
     const isDark = theme.palette.mode === 'dark'
+    
+    // Use label prop if provided, otherwise use name prop
+    const displayName = label || name
     
     // Generate a color based on the organization name if not provided
     const getOrgColor = (orgName) => {
@@ -52,11 +56,11 @@ const OrganizationChip = ({
         return colorHex
     }
     
-    const orgColor = getOrgColor(name)
+    const orgColor = getOrgColor(displayName)
     
     return (
         <Chip
-            label={name}
+            label={displayName}
             size={size}
             variant={variant}
             sx={{
@@ -76,11 +80,18 @@ const OrganizationChip = ({
 }
 
 OrganizationChip.propTypes = {
-    name: PropTypes.string.isRequired,
+    name: PropTypes.string,
+    label: PropTypes.string,
     color: PropTypes.string,
     size: PropTypes.oneOf(['small', 'medium']),
     variant: PropTypes.oneOf(['filled', 'outlined']),
     sx: PropTypes.object
+}
+
+// Ensure at least one of name or label is provided
+OrganizationChip.defaultProps = {
+    name: '',
+    label: ''
 }
 
 export default OrganizationChip 

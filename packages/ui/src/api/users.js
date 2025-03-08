@@ -73,4 +73,13 @@ export const getUserRoles = (id) => {
  */
 export const getUserCustomRoles = (id) => {
     return client.get(`/api/v1/users/${id}/custom-roles`)
+}
+
+/**
+ * Get user's organizations
+ * @param {string} id - User ID
+ * @returns {Promise}
+ */
+export const getUserOrganizations = (id) => {
+    return client.get(`/api/v1/users/${id}/organizations`)
 } 

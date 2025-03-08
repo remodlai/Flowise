@@ -1,0 +1,6 @@
+---
+description: This provides the openapi swagger spec url for the supabase storage api
+globs: 
+alwaysApply: true
+---
+To directly reference the supabase storage OPEN API Swagger url visit https://supabase.github.io/storage/

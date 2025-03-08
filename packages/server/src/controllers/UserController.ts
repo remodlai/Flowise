@@ -28,7 +28,6 @@ export class UserController {
             }
             
             console.log('Users retrieved from Supabase Auth:', authUsers.users.length)
-            console.log('User IDs:', authUsers.users.map(user => user.id))
             
             // Get application ID from request context
             const applicationId = req.applicationId
@@ -38,6 +37,46 @@ export class UserController {
             
             // Filter users by application if an applicationId is specified and not 'global'
             let filteredUsers = authUsers.users
+            let userOrganizationsMap = new Map()
+            
+            // Get all organization users
+            const { data: allOrgUsers, error: allOrgUsersError } = await supabase
+                .from('organization_users')
+                .select('user_id, organization_id, role')
+            
+            if (allOrgUsersError) {
+                console.error('Error fetching all organization users:', allOrgUsersError)
+            } else {
+                console.log(`Found ${allOrgUsers?.length || 0} total organization user records`)
+                
+                // Create a map of user ID to their organizations
+                allOrgUsers.forEach(ou => {
+                    if (!userOrganizationsMap.has(ou.user_id)) {
+                        userOrganizationsMap.set(ou.user_id, [])
+                    }
+                    userOrganizationsMap.get(ou.user_id).push({
+                        organization_id: ou.organization_id,
+                        role: ou.role
+                    })
+                })
+            }
+            
+            // Get all organizations
+            const { data: allOrganizations, error: allOrgsError } = await supabase
+                .from('organizations')
+                .select('*')
+            
+            if (allOrgsError) {
+                console.error('Error fetching all organizations:', allOrgsError)
+            }
+            
+            // Create a map of organization ID to organization details
+            const organizationsMap = new Map()
+            if (allOrganizations) {
+                allOrganizations.forEach(org => {
+                    organizationsMap.set(org.id, org)
+                })
+            }
             
             // Only filter if not in global view or not a platform admin
             if (applicationId && applicationId !== 'global') {
@@ -53,7 +92,6 @@ export class UserController {
                     console.error('Error fetching organizations:', orgError)
                 } else {
                     console.log(`Found ${organizations?.length || 0} organizations for application ${applicationId}`)
-                    console.log('Organization IDs:', organizations?.map(org => org.id) || [])
                     
                     if (organizations && organizations.length > 0) {
                         const orgIds = organizations.map(org => org.id)
@@ -68,7 +106,6 @@ export class UserController {
                             console.error('Error fetching organization users:', orgUsersError)
                         } else {
                             console.log(`Found ${orgUsers?.length || 0} users in these organizations`)
-                            console.log('User IDs from organizations:', orgUsers?.map(u => u.user_id) || [])
                             
                             if (orgUsers && orgUsers.length > 0) {
                                 const allowedUserIds = orgUsers.map(u => u.user_id)
@@ -76,7 +113,6 @@ export class UserController {
                                 // Filter users by allowed IDs
                                 filteredUsers = filteredUsers.filter(user => allowedUserIds.includes(user.id))
                                 console.log(`Filtered to ${filteredUsers.length} users`)
-                                console.log('Filtered user IDs:', filteredUsers.map(user => user.id))
                             } else {
                                 console.log('No users found in these organizations')
                                 filteredUsers = []
@@ -95,69 +131,54 @@ export class UserController {
             } else {
                 // Platform admin in global view - show all users
                 console.log('Platform admin in global view, showing all users')
-                console.log('All user IDs:', filteredUsers.map(user => user.id))
             }
             
-            // Get user profiles for filtered users
-            const userIds = filteredUsers.map(user => user.id)
-            console.log('Getting profiles for user IDs:', userIds)
-            
-            const { data: profiles, error: profilesError } = await supabase
+            // Get user profiles
+            const { data: userProfiles, error: profilesError } = await supabase
                 .from('user_profiles')
                 .select('*')
-                .in('user_id', userIds)
             
             if (profilesError) {
                 console.error('Error fetching user profiles:', profilesError)
-            } else {
-                console.log(`Found ${profiles?.length || 0} user profiles`)
             }
             
-            // Get roles for filtered users
-            const { data: userRoles, error: rolesError } = await supabase
-                .from('user_roles')
-                .select(`
-                    user_id,
-                    roles:role_id (
-                        id,
-                        name,
-                        description,
-                        context_type,
-                        context_id
-                    )
-                `)
-                .in('user_id', userIds)
-            
-            if (rolesError) {
-                console.error('Error fetching roles:', rolesError)
-            } else {
-                console.log(`Found ${userRoles?.length || 0} user roles`)
-            }
-            
-            // Create a map of user_id to profile
-            const profileMap = new Map()
-            if (profiles) {
-                profiles.forEach(profile => {
-                    profileMap.set(profile.user_id, profile)
+            // Create a map of user ID to profile
+            const profilesMap = new Map()
+            if (userProfiles) {
+                userProfiles.forEach(profile => {
+                    profilesMap.set(profile.user_id, profile)
                 })
             }
             
-            // Create a map of user_id to roles
-            const rolesMap = new Map()
-            if (userRoles) {
-                userRoles.forEach(ur => {
-                    if (!rolesMap.has(ur.user_id)) {
-                        rolesMap.set(ur.user_id, [])
-                    }
-                    rolesMap.get(ur.user_id).push(ur.roles)
-                })
-            }
-            
-            // Format the response
-            const users = filteredUsers.map(user => {
-                const profile = profileMap.get(user.id)
+            // Format user data
+            const formattedUsers = filteredUsers.map(user => {
+                const profile = profilesMap.get(user.id)
                 const meta = profile?.meta || {}
-                const userRolesList = rolesMap.get(user.id) || []
+                const userOrgs = userOrganizationsMap.get(user.id) || []
+                
+                // Find primary organization (first one or null)
+                let primaryOrg = null
+                if (userOrgs.length > 0) {
+                    const orgDetails = organizationsMap.get(userOrgs[0].organization_id)
+                    if (orgDetails) {
+                        primaryOrg = {
+                            id: orgDetails.id,
+                            name: orgDetails.name,
+                            role: userOrgs[0].role
+                        }
+                    }
+                }
+                
+                // Get all organizations with details
+                const organizations = userOrgs.map((uo: { organization_id: string; role: string }) => {
+                    const org = organizationsMap.get(uo.organization_id)
+                    return org ? {
+                        id: org.id,
+                        name: org.name,
+                        application_id: org.application_id,
+                        role: uo.role
+                    } : null
+                }).filter(Boolean)
                 
                 return {
                     id: user.id,
@@ -167,19 +188,19 @@ export class UserController {
                         : user.user_metadata?.name || '',
                     firstName: meta.first_name || user.user_metadata?.first_name || '',
                     lastName: meta.last_name || user.user_metadata?.last_name || '',
-                    organization: meta.organization || user.user_metadata?.organization || '',
-                    role: meta.role || user.user_metadata?.role || '',
-                    custom_roles: userRolesList,
-                    lastLogin: user.last_sign_in_at || 'Never',
+                    role: user.user_metadata?.role || 'user',
                     status: user.email_confirmed_at ? 'Active' : 'Pending',
-                    createdAt: user.created_at
+                    lastLogin: user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never',
+                    createdAt: user.created_at,
+                    organization: primaryOrg?.name || null,
+                    organizationId: primaryOrg?.id || null,
+                    organizationRole: primaryOrg?.role || null,
+                    organizations: organizations
                 }
             })
             
-            console.log(`Returning ${users.length} formatted users`)
-            return res.json({ users })
+            return res.json({ users: formattedUsers })
         } catch (error) {
-            console.error('Error in getAllUsers:', error)
             return handleError(res, error, 'Error fetching users')
         }
     }
@@ -457,6 +478,66 @@ export class UserController {
             return res.json({ success: true })
         } catch (error) {
             return handleError(res, error, 'Error deleting user')
+        }
+    }
+
+    /**
+     * Get a user's organizations
+     * @param req Request
+     * @param res Response
+     */
+    static async getUserOrganizations(req: Request, res: Response) {
+        try {
+            const { id } = req.params
+            
+            console.log(`Getting organizations for user ${id}`)
+            
+            // Get organizations this user belongs to
+            const { data: orgUsers, error: orgUsersError } = await supabase
+                .from('organization_users')
+                .select('organization_id, role')
+                .eq('user_id', id)
+            
+            if (orgUsersError) {
+                console.error('Error fetching user organizations:', orgUsersError)
+                throw orgUsersError
+            }
+            
+            console.log(`Found ${orgUsers?.length || 0} organization memberships for user ${id}`)
+            
+            if (!orgUsers || orgUsers.length === 0) {
+                return res.json({ organizations: [] })
+            }
+            
+            // Get organization details
+            const orgIds = orgUsers.map(ou => ou.organization_id)
+            const { data: organizations, error: orgsError } = await supabase
+                .from('organizations')
+                .select('*')
+                .in('id', orgIds)
+            
+            if (orgsError) {
+                console.error('Error fetching organizations:', orgsError)
+                throw orgsError
+            }
+            
+            // Create a map of organization ID to role
+            const roleMap = new Map()
+            orgUsers.forEach(ou => {
+                roleMap.set(ou.organization_id, ou.role)
+            })
+            
+            // Add role to each organization
+            const orgsWithRoles = organizations.map(org => ({
+                ...org,
+                role: roleMap.get(org.id) || 'member'
+            }))
+            
+            console.log(`Returning ${orgsWithRoles.length} organizations for user ${id}`)
+            
+            return res.json({ organizations: orgsWithRoles })
+        } catch (error) {
+            return handleError(res, error, 'Error fetching user organizations')
         }
     }
 } 

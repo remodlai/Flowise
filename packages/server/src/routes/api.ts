@@ -22,6 +22,7 @@ router.post('/users', UserController.createUser)
 router.get('/users/:id', UserController.getUserById)
 router.put('/users/:id', UserController.updateUser)
 router.delete('/users/:id', UserController.deleteUser)
+router.get('/users/:id/organizations', UserController.getUserOrganizations)
 
 // Application routes
 router.get('/applications', ApplicationController.getAllApplications)

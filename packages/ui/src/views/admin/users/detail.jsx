@@ -14,19 +14,29 @@ import {
     Link,
     Divider,
     Tab,
-    Tabs
+    Tabs,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Chip
 } from '@mui/material'
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 
 // Import API functions
-import { getUserById, updateUser } from '@/api/users'
-import { getUserCustomRoles } from '@/api/users'
+import { getUserById, updateUser, getUserCustomRoles, getUserOrganizations } from '@/api/users'
+import { removeOrganizationMember } from '@/api/organizations'
+import { getAllApplications } from '@/api/applications'
 
 // Import components
 import UserAvatar from '@/ui-component/extended/UserAvatar'
 import StatusChip from '@/ui-component/extended/StatusChip'
 import RoleChip from '@/ui-component/extended/RoleChip'
+import OrganizationChip from '@/ui-component/extended/OrganizationChip'
 
 const UserHeader = ({ user, onBack }) => {
     return (
@@ -67,6 +77,8 @@ const UserDetail = () => {
     const { enqueueSnackbar } = useSnackbar()
     const [user, setUser] = useState(null)
     const [userRoles, setUserRoles] = useState([])
+    const [userOrganizations, setUserOrganizations] = useState([])
+    const [applications, setApplications] = useState([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [tabValue, setTabValue] = useState(0)
@@ -107,6 +119,28 @@ const UserDetail = () => {
                     }
                 } catch (roleError) {
                     console.error('Error fetching user roles:', roleError)
+                }
+                
+                // Fetch user organizations
+                try {
+                    const orgsResponse = await getUserOrganizations(id)
+                    console.log('User organizations:', orgsResponse.data)
+                    if (orgsResponse.data && orgsResponse.data.organizations) {
+                        setUserOrganizations(orgsResponse.data.organizations)
+                    }
+                } catch (orgsError) {
+                    console.error('Error fetching user organizations:', orgsError)
+                }
+                
+                // Fetch applications
+                try {
+                    const appsResponse = await getAllApplications()
+                    console.log('Applications:', appsResponse.data)
+                    if (appsResponse.data && appsResponse.data.applications) {
+                        setApplications(appsResponse.data.applications)
+                    }
+                } catch (appsError) {
+                    console.error('Error fetching applications:', appsError)
                 }
                 
             } catch (error) {
@@ -179,6 +213,29 @@ const UserDetail = () => {
     // Handle back button
     const handleBack = () => {
         navigate('/admin/users')
+    }
+
+    // Handle removing user from organization
+    const handleRemoveFromOrganization = async (organizationId, organizationName) => {
+        if (window.confirm(`Remove user from ${organizationName}?`)) {
+            try {
+                await removeOrganizationMember(organizationId, id)
+                enqueueSnackbar(`User removed from ${organizationName}`, { variant: 'success' })
+                
+                // Update the organizations list
+                setUserOrganizations(userOrganizations.filter(org => org.id !== organizationId))
+            } catch (error) {
+                console.error('Error removing user from organization:', error)
+                enqueueSnackbar('Failed to remove user from organization', { variant: 'error' })
+            }
+        }
+    }
+
+    // Get application name by ID
+    const getApplicationName = (applicationId) => {
+        if (!applicationId) return 'None'
+        const app = applications.find(app => app.id === applicationId)
+        return app ? app.name : applicationId
     }
 
     // Show loading state
@@ -312,14 +369,80 @@ const UserDetail = () => {
             {tabValue === 2 && (
                 <Card>
                     <CardContent>
-                        <Typography variant="h5" gutterBottom>
-                            Organizations
-                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h5">
+                                Organizations
+                            </Typography>
+                            <Button 
+                                variant="contained" 
+                                color="primary"
+                                onClick={() => navigate(`/admin/organizations?addUser=${id}`)}
+                            >
+                                Add to Organization
+                            </Button>
+                        </Box>
                         <Divider sx={{ mb: 3 }} />
                         
-                        <Typography variant="body1">
-                            Organization management coming soon.
-                        </Typography>
+                        {userOrganizations.length === 0 ? (
+                            <Box sx={{ textAlign: 'center', py: 3 }}>
+                                <Typography variant="body1" color="textSecondary">
+                                    This user is not a member of any organizations.
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <TableContainer component={Paper} variant="outlined">
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Organization</TableCell>
+                                            <TableCell>Role</TableCell>
+                                            <TableCell>Application</TableCell>
+                                            <TableCell align="right">Actions</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {userOrganizations.map((organization) => (
+                                            <TableRow key={organization.id}>
+                                                <TableCell>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        <OrganizationChip label={organization.name} />
+                                                        {organization.description && (
+                                                            <Typography variant="caption" color="textSecondary" sx={{ ml: 1 }}>
+                                                                {organization.description}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <RoleChip label={organization.role} />
+                                                </TableCell>
+                                                <TableCell>
+                                                    {getApplicationName(organization.application_id)}
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                        <Button 
+                                                            size="small" 
+                                                            onClick={() => navigate(`/admin/organizations/${organization.id}`)}
+                                                            sx={{ mr: 1 }}
+                                                        >
+                                                            View
+                                                        </Button>
+                                                        <Button 
+                                                            size="small" 
+                                                            color="error"
+                                                            onClick={() => handleRemoveFromOrganization(organization.id, organization.name)}
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    </Box>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
                     </CardContent>
                 </Card>
             )}

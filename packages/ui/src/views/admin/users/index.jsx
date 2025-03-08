@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Box, Button, IconButton, CircularProgress } from '@mui/material'
+import { Box, Button, IconButton, CircularProgress, Typography } from '@mui/material'
 import { IconPlus, IconEdit, IconTrash, IconFilter } from '@tabler/icons-react'
 import { useSnackbar } from 'notistack'
 import { useNavigate } from 'react-router-dom'
@@ -155,7 +155,18 @@ const UsersAdmin = () => {
             field: 'organization',
             label: 'Organization',
             render: (row) => (
-                <OrganizationChip name={row.organization || 'No Organization'} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {row.organization ? (
+                        <OrganizationChip label={row.organization} />
+                    ) : (
+                        <Typography variant="body2" color="textSecondary">No Organization</Typography>
+                    )}
+                    {row.organizations && row.organizations.length > 1 && (
+                        <Typography variant="caption" color="textSecondary">
+                            +{row.organizations.length - 1} more
+                        </Typography>
+                    )}
+                </div>
             )
         },
         {

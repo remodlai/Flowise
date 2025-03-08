@@ -36,6 +36,16 @@ This documentation provides a comprehensive overview of the Remodl AI platform's
    - How credentials, API keys, and other resources are scoped to applications
    - User experience and troubleshooting
 
+7. [File Storage Integration](07_file_storage/README.md)
+   - Comprehensive plan for integrating Supabase Storage
+   - Migration from base64 encoding to proper file storage
+   - API endpoints and UI components for file management
+   - Detailed implementation guides:
+     - [Core Storage Infrastructure](07_file_storage/01_core_storage_infrastructure.md)
+     - [API Endpoints](07_file_storage/02_api_endpoints.md)
+     - [Flowise Compatibility](07_file_storage/03_flowise_compatibility.md)
+     - [File Chooser Component](07_file_storage/04_file_chooser_component.md)
+
 ## Current Challenges
 
 The platform is currently facing several challenges:
@@ -45,6 +55,8 @@ The platform is currently facing several challenges:
 2. **Environment-Specific Configurations**: Different environments (dev, prod) use different secret storage mechanisms, adding complexity to the codebase.
 
 3. **Permission Granularity**: Some operations require more fine-grained permissions than currently implemented.
+
+4. **File Storage Inconsistency**: Mixed usage of base64 encoding, legacy storage, and Supabase Storage leading to truncation issues and inconsistent user experience.
 
 ## Active Development
 
@@ -57,6 +69,8 @@ The team is actively working on:
 3. **Unified Secret Management**: Standardizing secret management across environments.
 
 4. **Application Context Filtering**: Ensuring resources are properly scoped to their respective applications.
+
+5. **Supabase Storage Integration**: Implementing a comprehensive file storage solution using Supabase Storage.
 
 ## Getting Started
 
@@ -72,6 +86,8 @@ If you're new to the project, we recommend:
 
 5. Review the [Application Context Filtering](06_application_context_filtering.md) to understand how resources are scoped to applications.
 
+6. Explore the [File Storage Integration](07_file_storage/README.md) to understand the comprehensive plan for file storage.
+
 ## Key Files
 
 - `packages/server/src/utils/supabaseAuth.ts`: Supabase authentication middleware
@@ -80,6 +96,9 @@ If you're new to the project, we recommend:
 - `packages/server/src/services/apikey/index.ts`: API key service layer
 - `packages/server/src/routes/api.ts`: API routes with authentication middleware
 - `packages/server/src/migrations/multi-tenant/`: SQL migrations for the multi-tenant architecture
+- `packages/server/src/utils/supabaseStorage.ts`: Supabase Storage utilities
+- `packages/server/src/utils/multiModalUtils.ts`: Multi-modal message handling
+- `packages/server/src/utils/setupSupabaseStorage.ts`: Storage initialization
 
 ## Environment Setup
 
