@@ -1,211 +1,251 @@
-# Chat Image Integration with Storage Service
+# Chat Image Integration
 
-This document outlines the plan for updating the chat image handling functionality to use our new high-level storage service instead of the direct Supabase Storage utilities.
+This document outlines the integration of Supabase Storage with the chat image functionality in the Remodl AI platform.
 
-## Current Implementation
+## Overview
 
-The current implementation in `packages/components/src/multiModalUtils.ts` uses the lower-level Supabase Storage utilities directly:
+The chat image integration allows users to upload images to their chat conversations, which are then stored in Supabase Storage and can be retrieved later. The integration includes:
+
+1. Uploading images to Supabase Storage
+2. Storing metadata about the images in the database
+3. Retrieving images from Supabase Storage
+4. Displaying images in the chat UI
+
+## Components
+
+### multiModalUtils.ts
+
+The `multiModalUtils.ts` file has been updated to use the new storage service for uploading images. The key changes include:
 
 ```typescript
-import { uploadImage, generateStoragePath, STORAGE_BUCKETS } from '../../server/src/utils/supabaseStorage'
+import { 
+    uploadApplicationFile, 
+    FILE_RESOURCE_TYPES 
+} from '../../server/src/services/storage'
+import { StorageError } from '../../server/src/errors'
 
 export const addImagesToMessages = async (
     nodeData: INodeData,
     options: ICommonObject,
     multiModalOption?: IMultiModalOption
 ): Promise<MessageContentImageUrl[]> => {
-    // ...
+    // ... existing code ...
+    
+    // Create authentication context from available information
+    const authContext = {
+        userId: options.userId || 'anonymous',
+        orgId: options.orgId,
+        appId: options.chatflowid
+    }
+    
+    // ... existing code ...
+    
     try {
-        // Try to upload to Supabase Storage first
+        // Try to upload to storage service first
         const fileBuffer = Buffer.from(contents)
         const contentType = upload.mime || 'image/jpeg'
         
-        // Generate storage path based on chatflow ID
-        const { bucket, path } = generateStoragePath({
-            level: 'app',
-            id: options.chatflowid,
-            subPath: 'uploads'
-        })
+        // Use the application-specific upload function
+        const result = await uploadApplicationFile(
+            options.chatflowid,
+            fileBuffer,
+            {
+                name: upload.name,
+                contentType: contentType,
+                resourceType: FILE_RESOURCE_TYPES.IMAGE,
+                resourceId: options.chatId,
+                isPublic: true,
+                metadata: {
+                    originalName: upload.name,
+                    chatId: options.chatId,
+                    nodeId: nodeData.id,
+                    width: 1000,
+                    quality: 80
+                },
+                virtualPath: 'uploads'
+            },
+            authContext
+        )
         
-        // Upload the image with transformation (limit width to 1000px)
-        const result = await uploadImage(bucket, path, fileBuffer, {
-            contentType,
-            isPublic: true,
-            width: 1000, // Limit width to 1000px
-            quality: 80 // Use 80% quality for JPEG/WebP
-        })
-        
-        if (result.publicUrl) {
-            // Use the public URL from Supabase Storage
+        if (result.url) {
+            // Use the URL from the storage service
             imageContent.push({
                 type: 'image_url',
                 image_url: {
-                    url: result.publicUrl
+                    url: result.url
                 }
             })
             continue // Skip base64 encoding
         }
     } catch (error) {
-        console.warn('Failed to upload to Supabase Storage, falling back to base64:', error)
+        // Handle storage errors
+        if (error instanceof StorageError) {
+            console.warn(`Storage error (${error.code}): ${error.message}`)
+        } else {
+            console.warn('Failed to upload to storage, falling back to base64:', error)
+        }
         // Continue to base64 fallback
     }
-    // ...
+    
+    // Fallback to base64 encoding if storage upload fails
+    // ... existing code ...
 }
 ```
 
-This implementation:
-1. Uses direct Supabase Storage utilities
-2. Doesn't store file metadata in the database
-3. Doesn't use RLS policies for access control
-4. Doesn't leverage our helper functions
+### get-upload-file Controller
 
-## Proposed Changes
-
-We'll update the implementation to use our new high-level storage service:
-
-### 1. Update Imports
-
-Replace the direct Supabase Storage imports with our new storage service:
+The `get-upload-file` controller has been updated to use the new storage service for downloading images. The key changes include:
 
 ```typescript
-import { 
-    uploadFile, 
-    uploadApplicationFile, 
-    STORAGE_BUCKETS, 
-    FILE_RESOURCE_TYPES 
-} from '../../server/src/services/storage'
-```
+import { searchFileMetadata } from '../../services/fileMetadata'
+import { downloadFile } from '../../services/storage'
+import { StorageError } from '../../errors'
 
-### 2. Create Authentication Context
-
-Create an authentication context object from the available information:
-
-```typescript
-const authContext = {
-    userId: options.userId || 'anonymous',
-    orgId: options.orgId,
-    appId: options.chatflowid
-}
-```
-
-### 3. Update Image Upload Process
-
-Replace the direct Supabase Storage upload with our high-level storage service:
-
-```typescript
-// Use the application-specific upload function
-const result = await uploadApplicationFile(
-    options.chatflowid,
-    fileBuffer,
-    {
-        name: upload.name,
-        contentType: upload.mime || 'image/jpeg',
-        resourceType: FILE_RESOURCE_TYPES.IMAGE,
-        isPublic: true,
-        metadata: {
-            chatId: options.chatId,
-            originalName: upload.name,
-            width: 1000,
-            quality: 80
-        },
-        virtualPath: 'uploads'
-    },
-    authContext
-)
-
-if (result.url) {
-    // Use the URL from the storage service
-    imageContent.push({
-        type: 'image_url',
-        image_url: {
-            url: result.url
+const streamUploadedFile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // ... existing code ...
+        
+        try {
+            // Try to find the file in our database first
+            const files = await searchFileMetadata(fileName, {
+                filters: {
+                    context_type: 'application',
+                    context_id: chatflowId,
+                    resource_id: chatId
+                }
+            })
+            
+            if (files.length > 0) {
+                // File found in our database, use our storage service
+                try {
+                    const { data, file } = await downloadFile(files[0].id)
+                    
+                    // Set headers
+                    res.setHeader('Content-Type', file.content_type)
+                    
+                    // Send file
+                    return res.send(Buffer.from(await data.arrayBuffer()))
+                } catch (error) {
+                    console.warn('Error downloading file from storage service, falling back to legacy storage:', error)
+                    // Fall back to the old storage method if download fails
+                }
+            }
+        } catch (error) {
+            console.warn('Error searching for file metadata, falling back to legacy storage:', error)
+            // Fall back to the old storage method if search fails
         }
-    })
-    continue // Skip base64 encoding
+        
+        // Fall back to the old storage method
+        // ... existing code ...
+    } catch (error) {
+        if (error instanceof StorageError) {
+            // Handle storage errors
+            if (error.code === 'FILE_NOT_FOUND') {
+                return res.status(404).send(`File not found`)
+            }
+            return res.status(error.statusCode).send(error.message)
+        }
+        next(error)
+    }
 }
 ```
 
-### 4. Add Fallback Mechanism
+### Storage Routes
 
-Keep the existing base64 fallback for backward compatibility:
-
-```typescript
-// Fallback to base64 encoding if storage upload fails
-const base64 = Buffer.from(contents).toString('base64')
-const mimeType = upload.mime || 'image/jpeg'
-imageContent.push({
-    type: 'image_url',
-    image_url: {
-        url: `data:${mimeType};base64,${base64}`
-    }
-})
-```
-
-### 5. Add Error Handling
-
-Improve error handling to use our `StorageError` class:
+A new endpoint has been added to the storage routes for uploading files specifically for chat:
 
 ```typescript
-try {
-    // Upload code...
-} catch (error) {
-    if (error instanceof StorageError) {
-        console.warn(`Storage error (${error.code}): ${error.message}`)
-    } else {
-        console.warn('Failed to upload to storage, falling back to base64:', error)
+/**
+ * @route POST /api/storage/upload/chat
+ * @desc Upload a file specifically for chat
+ * @access Private
+ */
+router.post('/upload/chat', authorize('file.create'), upload.single('file'), async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'No file provided' });
+        }
+
+        const authContext = getAuthContextFromRequest(req);
+        
+        // Get parameters from request body
+        const {
+            chatflowId,
+            chatId,
+            nodeId
+        } = req.body;
+        
+        if (!chatflowId || !chatId) {
+            return res.status(400).json({ error: 'chatflowId and chatId are required' });
+        }
+        
+        // Upload file
+        const result = await uploadApplicationFile(
+            chatflowId,
+            file.buffer,
+            {
+                name: file.originalname,
+                contentType: file.mimetype,
+                resourceType: file.mimetype.startsWith('image/') ? FILE_RESOURCE_TYPES.IMAGE : FILE_RESOURCE_TYPES.DOCUMENT,
+                resourceId: chatId,
+                isPublic: true,
+                metadata: {
+                    originalName: file.originalname,
+                    chatId: chatId,
+                    nodeId: nodeId || '',
+                    size: file.size
+                },
+                virtualPath: 'uploads'
+            },
+            authContext
+        );
+        
+        // Return result
+        return res.status(201).json({
+            success: true,
+            file: {
+                id: result.file.id,
+                name: result.file.name,
+                type: 'stored-file',
+                mime: result.file.content_type,
+                data: result.file.id // Store the file ID instead of the path
+            }
+        });
+    } catch (error) {
+        return handleStorageError(error, res);
     }
-    // Continue to base64 fallback
-}
+});
 ```
 
-## Implementation Steps
+## Flow
 
-1. **Create a new branch** for the changes
-2. **Update the imports** in `multiModalUtils.ts`
-3. **Add the StorageError import** for error handling
-4. **Create the authentication context** object
-5. **Replace the direct Supabase Storage upload** with our high-level storage service
-6. **Test the changes** with various chat scenarios
-7. **Update documentation** for chat image handling
-
-## Testing Plan
-
-1. **Unit Tests**
-   - Create unit tests for the updated `addImagesToMessages` function
-   - Mock the storage service to test different scenarios
-   - Test error handling and fallback mechanism
-
-2. **Integration Tests**
-   - Test image uploads in chat messages
-   - Verify that images are properly stored in Supabase Storage
-   - Verify that file metadata is properly stored in the database
-   - Test access control with different users
-
-3. **Manual Testing**
-   - Test image uploads in the UI
-   - Verify that images are displayed correctly in chat messages
-   - Test with different image types and sizes
-   - Test with different authentication contexts
+1. User uploads an image in the chat UI
+2. The image is sent to the server via the `/api/storage/upload/chat` endpoint
+3. The server uploads the image to Supabase Storage and stores metadata in the database
+4. The server returns the file ID to the client
+5. The client displays the image in the chat UI using the file ID
+6. When the user views the chat later, the client requests the image from the server via the `/api/v1/get-upload-file` endpoint
+7. The server retrieves the image from Supabase Storage and returns it to the client
+8. The client displays the image in the chat UI
 
 ## Backward Compatibility
 
-To ensure backward compatibility:
+To ensure backward compatibility with existing file uploads, the integration includes fallback mechanisms:
 
-1. Keep the base64 fallback mechanism
-2. Handle missing authentication context gracefully
-3. Use default values for required parameters
-4. Log warnings for deprecated usage patterns
+1. If the file is not found in the database, the server falls back to the legacy storage method
+2. If the file cannot be downloaded from Supabase Storage, the server falls back to the legacy storage method
+3. If the file cannot be uploaded to Supabase Storage, the client falls back to base64 encoding
 
-## Documentation Updates
+## Next Steps
 
-1. Update the documentation for `multiModalUtils.ts`
-2. Add examples of using the new storage service for chat images
-3. Document the authentication context requirements
-4. Document the fallback mechanism
+The next phase of the integration involves updating the UI components to use the new storage service:
 
-## Future Improvements
+1. Update `ChatMessage.jsx` to use the new storage service for displaying images
+2. Update file upload components to use the new storage service
+3. Update file display components to use the new storage service
+4. Update file download components to use the new storage service
 
-1. Add support for image transformations (resize, crop, etc.)
-2. Add support for other file types (PDF, audio, etc.)
-3. Add support for file sharing between users
-4. Add support for file versioning 
+## Conclusion
+
+The chat image integration with Supabase Storage provides a more robust and scalable solution for handling images in chat conversations. The integration includes proper error handling and fallback mechanisms to ensure backward compatibility with existing file uploads. 

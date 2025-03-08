@@ -94,7 +94,13 @@ This document outlines the implementation plan for integrating Supabase Storage 
   - [x] searchFiles
   - [x] moveFileVirtualPath
   - [x] copyFile
-  - [x] Context-specific functions (uploadUserFile, uploadOrganizationFile, etc.)
+  - [x] uploadUserFile
+  - [x] uploadOrganizationFile
+  - [x] uploadApplicationFile
+  - [x] uploadProfilePicture
+  - [x] uploadChatflowFile
+  - [x] uploadDocumentFile
+  - [x] uploadPlatformFile
 
 ### Changelog
 
@@ -102,26 +108,19 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ## Phase 5: API Routes ✅
 
-- [x] Create API routes
-  - [x] Upload file
-  - [x] Get file URL
-  - [x] Download file
-  - [x] Delete file
-  - [x] List files
-  - [x] Update file
-  - [x] Search files
-  - [x] Move file
-  - [x] Copy file
-
-- [x] Implement middleware
-  - [x] Authentication middleware
-  - [x] File upload middleware
-  - [x] Error handling middleware
-
-- [x] Create API documentation
-  - [x] Document API endpoints
-  - [x] Include request/response examples
-  - [x] Document error responses
+- [x] Create API routes for storage operations
+  - [x] POST /api/storage/upload
+  - [x] POST /api/storage/upload/chat
+  - [x] POST /api/storage/user/:userId/upload
+  - [x] POST /api/storage/organization/:orgId/upload
+  - [x] POST /api/storage/application/:appId/upload
+  - [x] GET /api/storage/file/:fileId
+  - [x] GET /api/storage/file/:fileId/url
+  - [x] GET /api/storage/file/:fileId/download
+  - [x] PUT /api/storage/file/:fileId
+  - [x] DELETE /api/storage/file/:fileId
+  - [x] GET /api/storage/files
+  - [x] GET /api/storage/files/search
 
 ### Changelog
 
@@ -146,7 +145,27 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 - **2025-03-13**: Updated chat image handling in `multiModalUtils.ts` to use the new storage service. Replaced direct Supabase Storage utilities with our high-level storage service. Added proper authentication context handling and maintained backward compatibility with base64 fallback. Images uploaded in chat now have proper metadata stored in the database and are subject to RLS policies for access control.
 
-## Phase 7: Frontend Integration
+## Phase 7: Full UI Integration
+
+- [x] Update backend API endpoints
+  - [x] Create new storage file download endpoint
+  - [x] Update legacy get-upload-file endpoint for compatibility
+  - [x] Create new chat file upload endpoint
+
+- [x] Update file upload process in UI
+  - [x] Modify UI to use new endpoints
+  - [x] Update URL construction for file access
+  - [x] Maintain backward compatibility
+
+- [x] Ensure proper LLM integration
+  - [x] Verify multiModalUtils.ts integration
+  - [x] Update file ID handling
+
+### Changelog
+
+- **2025-03-14**: Created comprehensive plan for full UI integration with Supabase Storage. The plan includes updating backend API endpoints, modifying the UI to use the new endpoints, and ensuring proper integration with LLM processing. See [full_integration_plan.md](./full_integration_plan.md) for details.
+
+## Phase 8: Frontend Components
 
 - [ ] Create file upload component
   - [ ] Implement drag-and-drop
@@ -176,9 +195,9 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ### Changelog
 
-- **TBD**: Phase 7 in progress.
+- **TBD**: Phase 8 in progress.
 
-## Phase 8: Testing and Documentation
+## Phase 9: Testing and Documentation
 
 - [ ] Write unit tests
   - [ ] Test storage operations
@@ -203,4 +222,4 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ### Changelog
 
-- **TBD**: Phase 8 in progress. 
+- **TBD**: Phase 9 in progress. 

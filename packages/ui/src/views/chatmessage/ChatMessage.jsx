@@ -93,6 +93,17 @@ const messageImageStyle = {
     objectFit: 'cover'
 }
 
+// Helper function to determine whether to use the new endpoint or the legacy endpoint
+const getFileUrl = (fileData, fileName, chatflowId, chatId, baseUrl) => {
+    // If fileData is a UUID, use the new endpoint
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileData)) {
+        return `${baseUrl}/api/storage/file/${fileData}/download`
+    } else {
+        // Fall back to the legacy endpoint for backward compatibility
+        return `${baseUrl}/api/v1/get-upload-file?chatflowId=${chatflowId}&chatId=${chatId}&fileName=${fileName}`
+    }
+}
+
 const CardWithDeleteOverlay = ({ item, disabled, customization, onDelete }) => {
     const [isHovered, setIsHovered] = useState(false)
     const defaultBackgroundColor = customization.isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'transparent'
@@ -570,10 +581,8 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
     const updateLastMessageArtifacts = (artifacts) => {
         artifacts.forEach((artifact) => {
             if (artifact.type === 'png' || artifact.type === 'jpeg') {
-                artifact.data = `${baseURL}/api/v1/get-upload-file?chatflowId=${chatflowid}&chatId=${chatId}&fileName=${artifact.data.replace(
-                    'FILE-STORAGE::',
-                    ''
-                )}`
+                const fileName = artifact.data.replace('FILE-STORAGE::', '')
+                artifact.data = getFileUrl(fileName, fileName, chatflowid, chatId, baseURL)
             }
         })
         setMessages((prevMessages) => {
@@ -716,29 +725,75 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
         if (fullFileUpload) {
             const filesWithFullUploadType = uploadedFiles.filter((file) => file.type === 'file:full')
             if (filesWithFullUploadType.length > 0) {
-                const formData = new FormData()
-                for (const file of filesWithFullUploadType) {
-                    formData.append('files', file.file)
-                }
-                formData.append('chatId', chatId)
+                try {
+                    // Try to use the new storage service first
+                    for (const file of filesWithFullUploadType) {
+                        const formData = new FormData()
+                        formData.append('file', file.file)
+                        formData.append('chatflowId', chatflowid)
+                        formData.append('chatId', chatId)
+                        formData.append('nodeId', '')
 
-                const response = await attachmentsApi.createAttachment(chatflowid, chatId, formData)
-                const data = response.data
-
-                for (const extractedFileData of data) {
-                    const content = extractedFileData.content
-                    const fileName = extractedFileData.name
-
-                    // find matching name in previews and replace data with content
-                    const uploadIndex = uploads.findIndex((upload) => upload.name === fileName)
-
-                    if (uploadIndex !== -1) {
-                        uploads[uploadIndex] = {
-                            ...uploads[uploadIndex],
-                            data: content,
-                            name: fileName,
-                            type: 'file:full'
+                        try {
+                            // Use the new endpoint
+                            const response = await axios.post(`${baseURL}/api/storage/upload/chat`, formData, {
+                                headers: {
+                                    'Content-Type': 'multipart/form-data'
+                                }
+                            })
+                            
+                            const data = response.data
+                            
+                            if (data.success && data.file) {
+                                // Find matching name in previews and replace data with file ID
+                                const uploadIndex = uploads.findIndex((upload) => upload.name === data.file.name)
+                                
+                                if (uploadIndex !== -1) {
+                                    uploads[uploadIndex] = {
+                                        ...uploads[uploadIndex],
+                                        data: data.file.id, // Store the file ID
+                                        name: data.file.name,
+                                        type: 'stored-file',
+                                        mime: data.file.mime
+                                    }
+                                }
+                            }
+                        } catch (fileError) {
+                            console.error('Error uploading individual file with new storage service:', fileError)
+                            // Continue with the next file
                         }
+                    }
+                } catch (error) {
+                    console.error('Error uploading files with new storage service:', error)
+                    // Fall back to the old method if the new endpoint fails
+                    try {
+                        const formData = new FormData()
+                        for (const file of filesWithFullUploadType) {
+                            formData.append('files', file.file)
+                        }
+                        formData.append('chatId', chatId)
+
+                        const response = await attachmentsApi.createAttachment(chatflowid, chatId, formData)
+                        const data = response.data
+
+                        for (const extractedFileData of data) {
+                            const content = extractedFileData.content
+                            const fileName = extractedFileData.name
+
+                            // find matching name in previews and replace data with content
+                            const uploadIndex = uploads.findIndex((upload) => upload.name === fileName)
+
+                            if (uploadIndex !== -1) {
+                                uploads[uploadIndex] = {
+                                    ...uploads[uploadIndex],
+                                    data: content,
+                                    name: fileName,
+                                    type: 'file:full'
+                                }
+                            }
+                        }
+                    } catch (fallbackError) {
+                        console.error('Error uploading file with fallback method:', fallbackError)
                     }
                 }
             }
@@ -1055,10 +1110,8 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
                     obj.artifacts = message.artifacts
                     obj.artifacts.forEach((artifact) => {
                         if (artifact.type === 'png' || artifact.type === 'jpeg') {
-                            artifact.data = `${baseURL}/api/v1/get-upload-file?chatflowId=${chatflowid}&chatId=${chatId}&fileName=${artifact.data.replace(
-                                'FILE-STORAGE::',
-                                ''
-                            )}`
+                            const fileName = artifact.data.replace('FILE-STORAGE::', '')
+                            artifact.data = getFileUrl(fileName, fileName, chatflowid, chatId, baseURL)
                         }
                     })
                 }
@@ -1066,7 +1119,8 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
                     obj.fileUploads = message.fileUploads
                     obj.fileUploads.forEach((file) => {
                         if (file.type === 'stored-file') {
-                            file.data = `${baseURL}/api/v1/get-upload-file?chatflowId=${chatflowid}&chatId=${chatId}&fileName=${file.name}`
+                            // Use the helper function to determine the correct URL
+                            file.data = getFileUrl(file.data, file.name, chatflowid, chatId, baseURL)
                         }
                     })
                 }
@@ -1452,11 +1506,8 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
         for (let i = 0; i < newArtifacts.length; i++) {
             const artifact = newArtifacts[i]
             if (artifact && (artifact.type === 'png' || artifact.type === 'jpeg')) {
-                const data = artifact.data
-                newArtifacts[i].data = `${baseURL}/api/v1/get-upload-file?chatflowId=${chatflowid}&chatId=${chatId}&fileName=${data.replace(
-                    'FILE-STORAGE::',
-                    ''
-                )}`
+                const fileName = artifact.data.replace('FILE-STORAGE::', '')
+                newArtifacts[i].data = getFileUrl(fileName, fileName, chatflowid, chatId, baseURL)
             }
         }
         return newArtifacts

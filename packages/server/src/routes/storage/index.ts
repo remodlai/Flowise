@@ -128,6 +128,68 @@ router.post('/upload', authorize('file.create'), upload.single('file'), async (r
 });
 
 /**
+ * @route POST /api/storage/upload/chat
+ * @desc Upload a file specifically for chat
+ * @access Private
+ */
+router.post('/upload/chat', authorize('file.create'), upload.single('file'), async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'No file provided' });
+        }
+
+        const authContext = getAuthContextFromRequest(req);
+        
+        // Get parameters from request body
+        const {
+            chatflowId,
+            chatId,
+            nodeId
+        } = req.body;
+        
+        if (!chatflowId || !chatId) {
+            return res.status(400).json({ error: 'chatflowId and chatId are required' });
+        }
+        
+        // Upload file
+        const result = await uploadApplicationFile(
+            chatflowId,
+            file.buffer,
+            {
+                name: file.originalname,
+                contentType: file.mimetype,
+                resourceType: file.mimetype.startsWith('image/') ? FILE_RESOURCE_TYPES.IMAGE : FILE_RESOURCE_TYPES.DOCUMENT,
+                resourceId: chatId,
+                isPublic: true,
+                metadata: {
+                    originalName: file.originalname,
+                    chatId: chatId,
+                    nodeId: nodeId || '',
+                    size: file.size
+                },
+                virtualPath: 'uploads'
+            },
+            authContext
+        );
+        
+        // Return result
+        return res.status(201).json({
+            success: true,
+            file: {
+                id: result.file.id,
+                name: result.file.name,
+                type: 'stored-file',
+                mime: result.file.content_type,
+                data: result.file.id // Store the file ID instead of the path
+            }
+        });
+    } catch (error) {
+        return handleStorageError(error, res);
+    }
+});
+
+/**
  * @route POST /api/storage/user/:userId/upload
  * @desc Upload a file for a specific user
  * @access Private
