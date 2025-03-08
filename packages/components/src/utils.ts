@@ -724,17 +724,17 @@ export const mapChatMessageToBaseMessage = async (chatmessages: any[] = []): Pro
                         if (upload.type === 'stored-file' && upload.mime.startsWith('image')) {
                             const fileData = await getFileFromStorage(upload.name, message.chatflowid, message.chatId)
                             // as the image is stored in the server, read the file and convert it to base64
-                            //TODO - we need to resize the image to a MAX width of 1920px, and max dpi of 72
-                            //TODO - we need to add the image to the supabase storage bucket for the given organization>user
-                            //TODO - we need to return the url of the image from supabase storage
-                            //TODO - we need to store the url of the image in the chat message history (this should be already handled automatically by the @mapChatMessageToBaseMessage function)
+                            //REMODL TODO - we need to resize the image to a MAX long size 1000px, and max dpi of 72
+                            //REMODL TODO - we need to add the image to the supabase storage bucket for the given organization>user
+                            //REMODL TODO - we need to return the url of the image from supabase storage
+                            //REMODL TODO - we need to store the url of the image in the chat message history (this should be already handled automatically by the @mapChatMessageToBaseMessage function)
 
                             const bf = 'data:' + upload.mime + ';base64,' + fileData.toString('base64')
 
                             imageContents.push({
                                 type: 'image_url',
                                 image_url: {
-                                    url: bf
+                                    url: bf //REMODL TODO - we need to return the url of the image from supabase storage
                                 }
                             })
                         } else if (upload.type === 'url' && upload.mime.startsWith('image')) {

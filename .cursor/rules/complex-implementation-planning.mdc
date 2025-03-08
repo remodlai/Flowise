@@ -1,0 +1,10 @@
+---
+description: requirements for implementing multi-file or complex code
+globs: 
+alwaysApply: true
+---
+When implementing a planned or discussed implementation that is beyond a single file, or has multiple steps, you must first create an implementation checklist, and update it at the completion of each step.  This normally would be in the /docs/documentation/handoff directory, in the appropriate location.
+
+You must execute to the checklist. 
+If you need to deviate, based on further conversation, update the checklist, and then proceed.
+At the completion of each line item, update a "changelog" for the specific checklist with what was completed.

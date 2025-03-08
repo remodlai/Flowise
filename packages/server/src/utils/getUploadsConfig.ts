@@ -102,7 +102,7 @@ export const utilGetUploadsConfig = async (chatflowid: string): Promise<IUploadC
                     if (param.name === 'allowImageUploads' && node.data.inputs?.['allowImageUploads']) {
                         imgUploadSizeAndTypes.push({
                             fileTypes: 'image/gif;image/jpeg;image/png;image/webp;'.split(';'),
-                            maxUploadSize: 5
+                            maxUploadSize: 5 //REMODL TODO - this should match openai max of 20mb
                         })
                         isImageUploadAllowed = true
                     }
