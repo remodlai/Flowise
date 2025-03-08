@@ -127,7 +127,26 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 - **2025-03-12**: Phase 5 completed. Implemented comprehensive API routes for all storage operations, including file upload, download, listing, searching, updating, moving, and copying. Added proper authentication and error handling middleware. Created detailed API documentation with request/response examples and error handling information.
 
-## Phase 6: Frontend Integration
+## Phase 6: Integration with Existing Components
+
+- [ ] Update chat image handling
+  - [ ] Refactor `multiModalUtils.ts` to use the new storage service
+  - [ ] Update image upload process to store file metadata
+  - [ ] Implement proper authentication context handling
+  - [ ] Add fallback mechanism for backward compatibility
+  - [ ] Update documentation for chat image handling
+
+- [ ] Update other existing file handling components
+  - [ ] Identify other components using direct Supabase Storage
+  - [ ] Refactor to use the new storage service
+  - [ ] Ensure proper authentication context handling
+  - [ ] Add fallback mechanisms where needed
+
+### Changelog
+
+- **TBD**: Phase 6 in progress.
+
+## Phase 7: Frontend Integration
 
 - [ ] Create file upload component
   - [ ] Implement drag-and-drop
@@ -157,9 +176,9 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ### Changelog
 
-- **TBD**: Phase 6 in progress.
+- **TBD**: Phase 7 in progress.
 
-## Phase 7: Testing and Documentation
+## Phase 8: Testing and Documentation
 
 - [ ] Write unit tests
   - [ ] Test storage operations
@@ -184,4 +203,4 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ### Changelog
 
-- **TBD**: Phase 7 in progress. 
+- **TBD**: Phase 8 in progress. 
