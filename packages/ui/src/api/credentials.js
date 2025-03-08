@@ -2,7 +2,13 @@ import client from './client'
 
 const getAllCredentials = () => client.get('/credentials')
 
-const getCredentialsByName = (componentCredentialName) => client.get(`/credentials?credentialName=${componentCredentialName}`)
+const getCredentialsByName = (componentCredentialName, applicationId) => {
+    let url = `/credentials?credentialName=${componentCredentialName}`
+    if (applicationId && applicationId !== 'global') {
+        url += `&applicationId=${applicationId}`
+    }
+    return client.get(url)
+}
 
 const getAllComponentsCredentials = () => client.get('/components-credentials')
 

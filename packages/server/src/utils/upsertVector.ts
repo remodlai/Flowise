@@ -207,6 +207,9 @@ export const upsertVector = async (req: Request, isInternal: boolean = false) =>
     const appServer = getRunningExpressApp()
     try {
         const chatflowid = req.params.id
+        const appId = req.headers['x-application-id'] || req.body.appId
+        const orgId = req.headers['x-organization-id'] || req.body.orgId
+        const userId = req.headers['x-user-id'] || req.body.userId
 
         // Check if chatflow exists
         const chatflow = await appServer.AppDataSource.getRepository(ChatFlow).findOneBy({
@@ -234,6 +237,9 @@ export const upsertVector = async (req: Request, isInternal: boolean = false) =>
             incomingInput,
             chatflow,
             chatId,
+            appId,
+            orgId,
+            userId,
             appDataSource: appServer.AppDataSource,
             telemetry: appServer.telemetry,
             cachePool: appServer.cachePool,

@@ -199,27 +199,45 @@ export const getSecret = async (id: string): Promise<any> => {
 }
 
 // Get a secret by key ID
-export const getSecretByKeyId = async (keyId: string): Promise<any> => {
+export const getSecretByKeyId = async (keyId: string, applicationId?: string): Promise<any> => {
     try {
-        // Get from Supabase
-        const { data, error } = await supabase
+        // Build the query
+        let query = supabase
             .from('secrets')
             .select('id, value, metadata')
             .eq('key_id', keyId)
-            .single()
+        
+        // Filter by application ID if provided and not 'global'
+        if (applicationId && applicationId !== 'global') {
+            console.log(`Filtering secret by application ID: ${applicationId} for key ID: ${keyId}`)
+            query = query.eq('metadata->applicationId', applicationId)
+        }
+        
+        // Execute the query
+        const { data, error } = await query
         
         if (error) throw error
-        if (!data) return null
+        if (!data || data.length === 0) {
+            console.warn(`No secret found with key ID: ${keyId}${applicationId && applicationId !== 'global' ? ` and application ID: ${applicationId}` : ''}`)
+            return null
+        }
+        
+        // If multiple rows are found, use the first one but log a warning
+        if (data.length > 1) {
+            console.warn(`Multiple secrets found with key ID: ${keyId}, using the first one`)
+        }
+        
+        const secretData = data[0]
         
         // Decrypt the value
         const masterKey = getMasterEncryptionKey()
-        const decryptedBytes = AES.decrypt(data.value, masterKey)
+        const decryptedBytes = AES.decrypt(secretData.value, masterKey)
         const decryptedValue = decryptedBytes.toString(enc.Utf8)
         
         return {
-            id: data.id,
+            id: secretData.id,
             value: JSON.parse(decryptedValue),
-            metadata: data.metadata
+            metadata: secretData.metadata
         }
     } catch (error) {
         console.error(`Error retrieving secret by key ID: ${getErrorMessage(error)}`)

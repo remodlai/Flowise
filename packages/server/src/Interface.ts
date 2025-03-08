@@ -289,6 +289,9 @@ export interface IncomingInput {
     question: string
     overrideConfig?: ICommonObject
     chatId?: string
+    appId?: string
+    orgId?: string
+    userId?: string
     stopNodeId?: string
     uploads?: IFileUpload[]
     leadEmail?: string
@@ -362,6 +365,9 @@ export interface ICustomTemplate {
 export interface IFlowConfig {
     chatflowid: string
     chatId: string
+    appId: string
+    orgId: string
+    userId: string
     sessionId: string
     chatHistory: IMessage[]
     apiMessageId: string
@@ -379,6 +385,9 @@ export interface IPredictionQueueAppServer {
 export interface IExecuteFlowParams extends IPredictionQueueAppServer {
     incomingInput: IncomingInput
     chatflow: IChatFlow
+    appId: string
+    orgId: string
+    userId: string
     chatId: string
     baseURL: string
     isInternal: boolean

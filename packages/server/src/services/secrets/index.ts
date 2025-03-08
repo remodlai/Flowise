@@ -89,19 +89,29 @@ export const getSecret = async (id: string): Promise<any> => {
 /**
  * Get a secret by key ID (for API keys)
  * @param keyId The API key ID
+ * @param applicationId Optional application ID to filter by
  * @returns The secret data
  */
-export const getSecretByKeyId = async (keyId: string): Promise<any> => {
+export const getSecretByKeyId = async (keyId: string, applicationId?: string): Promise<any> => {
     try {
-        // Get from Supabase
-        const { data, error } = await supabase
+        // Build the query
+        let query = supabase
             .from('secrets')
             .select('id, value, metadata')
             .eq('key_id', keyId)
-            
+        
+        // Filter by application ID if provided and not 'global'
+        if (applicationId && applicationId !== 'global') {
+            console.log(`Filtering secret by application ID: ${applicationId} for key ID: ${keyId}`)
+            query = query.eq('metadata->applicationId', applicationId)
+        }
+        
+        // Execute the query
+        const { data, error } = await query
+        
         if (error) throw error
         if (!data || data.length === 0) {
-            console.warn(`No secret found with key ID: ${keyId}`)
+            console.warn(`No secret found with key ID: ${keyId}${applicationId && applicationId !== 'global' ? ` and application ID: ${applicationId}` : ''}`)
             return null
         }
         

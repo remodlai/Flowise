@@ -19,7 +19,7 @@ export const validateChatflowAPIKey = async (req: Request, chatflow: ChatFlow) =
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
         try {
-            await apikeyService.verifyApiKey(suppliedKey)
+            await apikeyService.verifyApiKey(suppliedKey, req)
             return true
         } catch (error) {
             return false
@@ -39,7 +39,7 @@ export const validateAPIKey = async (req: Request) => {
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
         try {
-            await apikeyService.verifyApiKey(suppliedKey)
+            await apikeyService.verifyApiKey(suppliedKey, req)
             return true
         } catch (error) {
             return false

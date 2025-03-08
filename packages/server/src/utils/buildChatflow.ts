@@ -62,6 +62,7 @@ import { buildAgentGraph } from './buildAgentGraph'
 import { getErrorMessage } from '../errors/utils'
 import { FLOWISE_METRIC_COUNTERS, FLOWISE_COUNTER_STATUS, IMetricsProvider } from '../Interface.Metrics'
 import { OMIT_QUEUE_JOB_DATA } from './constants'
+import { supabase } from '../utils/supabase'
 
 /*
  * Initialize the ending node to be executed
@@ -235,7 +236,10 @@ export const executeFlow = async ({
     baseURL,
     isInternal,
     files,
-    signal
+    signal,
+    appId,
+    orgId,
+    userId
 }: IExecuteFlowParams) => {
     const question = incomingInput.question
     const overrideConfig = incomingInput.overrideConfig ?? {}
@@ -244,7 +248,7 @@ export const executeFlow = async ({
     const streaming = incomingInput.streaming
     const userMessageDateTime = new Date()
     const chatflowid = chatflow.id
-
+    
     /* Process file uploads from the chat
      * - Images
      * - Files
@@ -421,6 +425,9 @@ export const executeFlow = async ({
         sessionId,
         chatHistory,
         apiMessageId,
+        appId: appId || '',
+        orgId: orgId || '',
+        userId: userId || '',
         ...incomingInput.overrideConfig
     }
 
@@ -748,6 +755,13 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
     const appServer = getRunningExpressApp()
     const chatflowid = req.params.id
 
+    // Extract application ID, organization ID, and user ID from headers or body
+    const appId = req.headers['x-application-id'] || req.body.appId
+    const orgId = req.headers['x-organization-id'] || req.body.orgId
+    const userId = req.headers['x-user-id'] || req.body.userId
+    req.body.appId = appId
+    req.body.orgId = orgId
+    req.body.userId = userId
     // Check if chatflow exists
     const chatflow = await appServer.AppDataSource.getRepository(ChatFlow).findOneBy({
         id: chatflowid
@@ -756,10 +770,55 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
         throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Chatflow ${chatflowid} not found`)
     }
 
+    // If appId is provided and not 'global', verify that the chatflow belongs to the application
+    if (appId && appId !== 'global') {
+        try {
+            // Query Supabase to check if the chatflow belongs to the application
+            const { data, error } = await supabase
+                .from('application_chatflows')
+                .select('*')
+                .eq('application_id', appId)
+                .eq('chatflow_id', chatflowid)
+                .maybeSingle()
+
+            if (error) {
+                logger.error(`Error checking application_chatflows: ${error.message}`)
+                throw new InternalFlowiseError(
+                    StatusCodes.INTERNAL_SERVER_ERROR,
+                    `Error verifying application access to chatflow`
+                )
+            }
+
+            // If no matching record is found, the chatflow doesn't belong to the application
+            if (!data) {
+                throw new InternalFlowiseError(
+                    StatusCodes.FORBIDDEN,
+                    `Chatflow ${chatflowid} does not belong to application ${appId}`
+                )
+            }
+
+            logger.debug(`Verified chatflow ${chatflowid} belongs to application ${appId}`)
+        } catch (error) {
+            if (error instanceof InternalFlowiseError) {
+                throw error
+            }
+            throw new InternalFlowiseError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                `Error verifying application access to chatflow: ${getErrorMessage(error)}`
+            )
+        }
+    }
+
     const isAgentFlow = chatflow.type === 'MULTIAGENT'
     const httpProtocol = req.get('x-forwarded-proto') || req.protocol
     const baseURL = `${httpProtocol}://${req.get('host')}`
     const incomingInput: IncomingInput = req.body
+    
+    // Set appId, orgId, and userId in the incomingInput object for backward compatibility
+    if (appId) incomingInput.appId = appId as string
+    if (orgId) incomingInput.orgId = orgId as string
+    if (userId) incomingInput.userId = userId as string
+    
     const chatId = incomingInput.chatId ?? incomingInput.overrideConfig?.sessionId ?? uuidv4()
     const files = (req.files as Express.Multer.File[]) || []
     const abortControllerId = `${chatflow.id}_${chatId}`
@@ -774,17 +833,21 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
         }
 
         const executeData: IExecuteFlowParams = {
-            incomingInput: req.body,
+            incomingInput,
             chatflow,
             chatId,
-            baseURL,
-            isInternal,
-            files,
+            // Pass appId, orgId, and userId as separate properties
+            appId: appId as string,
+            orgId: orgId as string,
+            userId: userId as string,
             appDataSource: appServer.AppDataSource,
             sseStreamer: appServer.sseStreamer,
             telemetry: appServer.telemetry,
             cachePool: appServer.cachePool,
-            componentNodes: appServer.nodesPool.componentNodes
+            componentNodes: appServer.nodesPool.componentNodes,
+            baseURL,
+            isInternal,
+            files
         }
 
         if (process.env.MODE === MODE.QUEUE) {

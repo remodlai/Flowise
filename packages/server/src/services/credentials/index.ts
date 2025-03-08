@@ -8,28 +8,32 @@ import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'
 import logger from '../../utils/logger'
 
-const createCredential = async (requestBody: any) => {
+const createCredential = async (requestBody: any, req?: any) => {
     try {
         const appServer = getRunningExpressApp()
         const newCredential = await transformToCredentialEntity(requestBody)
         const credential = await appServer.AppDataSource.getRepository(Credential).create(newCredential)
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
         
-        // Associate credential with application if applicationId is provided
-        if (requestBody.applicationId) {
+        // Get application ID from request body
+        // We can rely on this being set by the controller
+        const appId = requestBody.appId
+        
+        // Associate credential with application if appId is provided
+        if (appId) {
             try {
                 // Dynamically import applicationcredentials service to avoid circular dependencies
                 const applicationcredentials = await import('../applicationcredentials')
                 await applicationcredentials.associateCredentialWithApplication(
                     dbResponse.id,
-                    requestBody.applicationId
+                    appId
                 )
             } catch (error) {
                 logger.error(`Error associating credential with application: ${getErrorMessage(error)}`)
                 // Continue even if association fails - the credential is still created
             }
         } else {
-            // If no applicationId provided, associate with default application (Platform Sandbox)
+            // If no appId provided, associate with default application (Platform Sandbox)
             try {
                 const applicationcredentials = await import('../applicationcredentials')
                 const defaultAppId = await applicationcredentials.getDefaultApplicationId()
@@ -55,9 +59,34 @@ const createCredential = async (requestBody: any) => {
 }
 
 // Delete all credentials from chatflowid
-const deleteCredentials = async (credentialId: string): Promise<any> => {
+const deleteCredentials = async (credentialId: string, req?: any): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
+        
+        // Get application ID from request
+        const applicationId = getApplicationIdFromRequest(req)
+        
+        // If application ID is provided, verify credential belongs to application
+        if (applicationId) {
+            try {
+                const applicationcredentials = await import('../applicationcredentials')
+                const credentialIds = await applicationcredentials.getCredentialIdsForApplication(applicationId)
+                
+                if (!credentialIds.includes(credentialId)) {
+                    throw new InternalFlowiseError(
+                        StatusCodes.FORBIDDEN,
+                        `Credential ${credentialId} does not belong to application ${applicationId}`
+                    )
+                }
+            } catch (error) {
+                if (error instanceof InternalFlowiseError) {
+                    throw error
+                }
+                logger.error(`Error verifying credential application: ${getErrorMessage(error)}`)
+                // Continue even if verification fails
+            }
+        }
+        
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).delete({ id: credentialId })
         if (!dbResponse) {
             throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Credential ${credentialId} not found`)
@@ -79,6 +108,42 @@ const deleteCredentials = async (credentialId: string): Promise<any> => {
             `Error: credentialsService.deleteCredential - ${getErrorMessage(error)}`
         )
     }
+}
+
+// Helper function to get application ID from request
+// This is now simpler since we ensure appId is set in the request body in the controller
+const getApplicationIdFromRequest = (req?: any, paramCredentialName?: any): string | undefined => {
+    if (!req) return undefined
+    
+    // First check if appId is provided in the request body
+    if (req.body?.appId && req.body.appId !== 'global') {
+        return req.body.appId
+    }
+    
+    // For backward compatibility, check other sources
+    
+    // Check if appId is provided in paramCredentialName object
+    if (typeof paramCredentialName === 'object' && paramCredentialName?.appId) {
+        return paramCredentialName.appId !== 'global' ? paramCredentialName.appId : undefined
+    }
+    
+    // Check if appId is provided as a query parameter
+    if (req.query?.appId && req.query.appId !== 'global') {
+        return req.query.appId as string
+    }
+    
+    // Check if appId is set in the request context by middleware
+    if (req.appId && req.appId !== 'global') {
+        return req.appId
+    }
+    
+    // Fallback to X-Application-ID header if present
+    const headerAppId = req.headers?.['x-application-id'] || req.headers?.['X-Application-ID']
+    if (headerAppId && headerAppId !== 'global') {
+        return headerAppId as string
+    }
+    
+    return undefined
 }
 
 const getAllCredentials = async (paramCredentialName: any, req?: any) => {
@@ -107,17 +172,8 @@ const getAllCredentials = async (paramCredentialName: any, req?: any) => {
             }
         }
 
-        // Get application ID from request context or from paramCredentialName
-        let applicationId = null
-        
-        // Check if applicationId is provided in paramCredentialName object
-        if (typeof paramCredentialName === 'object' && paramCredentialName?.applicationId) {
-            applicationId = paramCredentialName.applicationId
-        } 
-        // Check if applicationId is in the request context
-        else if (req && req.applicationId && req.applicationId !== 'global') {
-            applicationId = req.applicationId
-        }
+        // Get application ID from request using the helper function
+        const applicationId = getApplicationIdFromRequest(req, paramCredentialName)
         
         // Filter credentials by application if an applicationId is available
         if (applicationId) {
@@ -143,9 +199,34 @@ const getAllCredentials = async (paramCredentialName: any, req?: any) => {
     }
 }
 
-const getCredentialById = async (credentialId: string): Promise<any> => {
+const getCredentialById = async (credentialId: string, req?: any): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
+        
+        // Get application ID from request
+        const applicationId = getApplicationIdFromRequest(req)
+        
+        // If application ID is provided, verify credential belongs to application
+        if (applicationId) {
+            try {
+                const applicationcredentials = await import('../applicationcredentials')
+                const credentialIds = await applicationcredentials.getCredentialIdsForApplication(applicationId)
+                
+                if (!credentialIds.includes(credentialId)) {
+                    throw new InternalFlowiseError(
+                        StatusCodes.FORBIDDEN,
+                        `Credential ${credentialId} does not belong to application ${applicationId}`
+                    )
+                }
+            } catch (error) {
+                if (error instanceof InternalFlowiseError) {
+                    throw error
+                }
+                logger.error(`Error verifying credential application: ${getErrorMessage(error)}`)
+                // Continue even if verification fails
+            }
+        }
+        
         const credential = await appServer.AppDataSource.getRepository(Credential).findOneBy({
             id: credentialId
         })
@@ -167,11 +248,11 @@ const getCredentialById = async (credentialId: string): Promise<any> => {
         // Get application information for this credential
         try {
             const applicationcredentials = await import('../applicationcredentials')
-            const applicationId = await applicationcredentials.getApplicationIdForCredential(credentialId)
+            const credentialAppId = await applicationcredentials.getApplicationIdForCredential(credentialId)
             
-            if (applicationId) {
+            if (credentialAppId) {
                 // Add application ID to the return object
-                (returnCredential as any).applicationId = applicationId
+                (returnCredential as any).applicationId = credentialAppId
             }
         } catch (error) {
             logger.error(`Error getting application for credential: ${getErrorMessage(error)}`)
@@ -188,9 +269,34 @@ const getCredentialById = async (credentialId: string): Promise<any> => {
     }
 }
 
-const updateCredential = async (credentialId: string, requestBody: any): Promise<any> => {
+const updateCredential = async (credentialId: string, requestBody: any, req?: any): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
+        
+        // Get application ID from request or body
+        const applicationId = requestBody.applicationId || getApplicationIdFromRequest(req)
+        
+        // If application ID is provided, verify credential belongs to application
+        if (applicationId) {
+            try {
+                const applicationcredentials = await import('../applicationcredentials')
+                const credentialIds = await applicationcredentials.getCredentialIdsForApplication(applicationId)
+                
+                if (!credentialIds.includes(credentialId)) {
+                    throw new InternalFlowiseError(
+                        StatusCodes.FORBIDDEN,
+                        `Credential ${credentialId} does not belong to application ${applicationId}`
+                    )
+                }
+            } catch (error) {
+                if (error instanceof InternalFlowiseError) {
+                    throw error
+                }
+                logger.error(`Error verifying credential application: ${getErrorMessage(error)}`)
+                // Continue even if verification fails
+            }
+        }
+        
         const credential = await appServer.AppDataSource.getRepository(Credential).findOneBy({
             id: credentialId
         })
@@ -206,12 +312,12 @@ const updateCredential = async (credentialId: string, requestBody: any): Promise
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
         
         // Update application association if applicationId is provided
-        if (requestBody.applicationId) {
+        if (applicationId) {
             try {
                 const applicationcredentials = await import('../applicationcredentials')
                 await applicationcredentials.associateCredentialWithApplication(
                     credentialId,
-                    requestBody.applicationId
+                    applicationId
                 )
             } catch (error) {
                 logger.error(`Error updating credential application association: ${getErrorMessage(error)}`)

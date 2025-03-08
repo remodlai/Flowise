@@ -11,6 +11,19 @@ const createInternalPrediction = async (req: Request, res: Response, next: NextF
             createAndStreamInternalPrediction(req, res, next)
             return
         } else {
+            //REMODL: Set headers for the response
+            if (req.body.appId || req.headers['x-application-id'] ) {
+                res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
+                res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
+            }
+            if (req.body.orgId || req.headers['x-organization-id']) {
+                res.setHeader('X-Organization-Id', req.body.orgId || req.headers['x-organization-id'])
+                res.setHeader('x-organization-id', req.body.orgId || req.headers['x-organization-id'])
+            }
+            if (req.body.userId || req.headers['x-user-id']) {
+                res.setHeader('X-User-Id', req.body.userId || req.headers['x-user-id'])
+                res.setHeader('x-user-id', req.body.userId || req.headers['x-user-id'])
+            }
             const apiResponse = await utilBuildChatflow(req, true)
             if (apiResponse) return res.json(apiResponse)
         }
@@ -22,6 +35,7 @@ const createInternalPrediction = async (req: Request, res: Response, next: NextF
 // Send input message and stream prediction result using SSE (Internal)
 const createAndStreamInternalPrediction = async (req: Request, res: Response, next: NextFunction) => {
     const chatId = req.body.chatId
+    
     const sseStreamer = getRunningExpressApp().sseStreamer
 
     try {
@@ -30,12 +44,23 @@ const createAndStreamInternalPrediction = async (req: Request, res: Response, ne
         res.setHeader('Cache-Control', 'no-cache')
         res.setHeader('Connection', 'keep-alive')
         res.setHeader('X-Accel-Buffering', 'no') //nginx config: https://serverfault.com/a/801629
+        if (req.body.appId || req.headers['x-application-id']) {
+            res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
+            res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
+        }
+        if (req.body.orgId || req.headers['x-organization-id']) {
+            res.setHeader('X-Organization-Id', req.body.orgId || req.headers['x-organization-id'])
+            res.setHeader('x-organization-id', req.body.orgId || req.headers['x-organization-id'])
+        }
+        if (req.body.userId || req.headers['x-user-id']) {
+            res.setHeader('X-User-Id', req.body.userId || req.headers['x-user-id'])
+            res.setHeader('x-user-id', req.body.userId || req.headers['x-user-id'])
+        }
         res.flushHeaders()
-
         if (process.env.MODE === MODE.QUEUE) {
             getRunningExpressApp().redisSubscriber.subscribe(chatId)
         }
-
+        //we're passing in our appId, orgId, and userId to the utilBuildChatflow function
         const apiResponse = await utilBuildChatflow(req, true)
         sseStreamer.streamMetadataEvent(apiResponse.chatId, apiResponse)
     } catch (error) {

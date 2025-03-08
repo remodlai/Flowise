@@ -9,6 +9,24 @@ import { getErrorMessage } from '../../errors/utils'
 import { randomBytes } from 'crypto'
 import { storeSecret, getSecret, getSecretByKeyId, updateSecret, deleteSecret, listSecrets } from '../secrets'
 
+// Helper function to get application ID from request
+const getApplicationIdFromRequest = (req?: any): string | undefined => {
+    if (!req) return undefined
+    
+    // First check if applicationId is set in the request context by middleware
+    if (req.applicationId && req.applicationId !== 'global') {
+        return req.applicationId
+    }
+    
+    // Fallback to X-Application-ID header if present
+    const headerAppId = req.headers?.['x-application-id'] || req.headers?.['X-Application-ID']
+    if (headerAppId && headerAppId !== 'global') {
+        return headerAppId
+    }
+    
+    return undefined
+}
+
 const getAllApiKeys = async (req?: any) => {
     try {
         // Get all API keys from Supabase
@@ -45,17 +63,21 @@ const getAllApiKeys = async (req?: any) => {
     }
 }
 
-const getApiKey = async (apiKey: string) => {
+const getApiKey = async (apiKey: string, req?: any) => {
     try {
-        // Get the secret by key ID
-        const secretData = await getSecretByKeyId(apiKey)
+        // Get application ID from request context or header
+        const applicationId = getApplicationIdFromRequest(req)
+        
+        // Get the secret by key ID, filtered by application ID if available
+        const secretData = await getSecretByKeyId(apiKey, applicationId)
         if (!secretData) return undefined
         
         return {
             id: apiKey,
             apiKey,
             apiSecret: secretData.value.apiSecret,
-            keyName: secretData.metadata.keyName
+            keyName: secretData.metadata.keyName,
+            applicationId: secretData.metadata.applicationId || null
         }
     } catch (error) {
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: apikeyService.getApiKey - ${getErrorMessage(error)}`)
@@ -93,8 +115,11 @@ const createApiKey = async (keyName: string, req?: any) => {
 // Update api key
 const updateApiKey = async (id: string, keyName: string, req?: any) => {
     try {
-        // Get the secret by key ID
-        const secretData = await getSecretByKeyId(id)
+        // Get application ID from request context or header
+        const applicationId = getApplicationIdFromRequest(req)
+        
+        // Get the secret by key ID, filtered by application ID if available
+        const secretData = await getSecretByKeyId(id, applicationId)
         if (!secretData) {
             throw new InternalFlowiseError(
                 StatusCodes.NOT_FOUND,
@@ -114,8 +139,11 @@ const updateApiKey = async (id: string, keyName: string, req?: any) => {
 
 const deleteApiKey = async (id: string, req?: any) => {
     try {
-        // Get the secret by key ID
-        const secretData = await getSecretByKeyId(id)
+        // Get application ID from request context or header
+        const applicationId = getApplicationIdFromRequest(req)
+        
+        // Get the secret by key ID, filtered by application ID if available
+        const secretData = await getSecretByKeyId(id, applicationId)
         if (!secretData) {
             throw new InternalFlowiseError(
                 StatusCodes.NOT_FOUND,
@@ -210,9 +238,13 @@ const importKeys = async (body: any) => {
     }
 }
 
-const verifyApiKey = async (paramApiKey: string): Promise<string> => {
+const verifyApiKey = async (paramApiKey: string, req?: any): Promise<string> => {
     try {
-        const apiKey = await getSecretByKeyId(paramApiKey)
+        // Get application ID from request context or header
+        const applicationId = getApplicationIdFromRequest(req)
+        
+        // Get the secret by key ID, filtered by application ID if available
+        const apiKey = await getSecretByKeyId(paramApiKey, applicationId)
         if (!apiKey) {
             throw new InternalFlowiseError(StatusCodes.UNAUTHORIZED, `Unauthorized`)
         }

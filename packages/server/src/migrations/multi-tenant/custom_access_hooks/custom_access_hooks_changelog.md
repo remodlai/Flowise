@@ -193,3 +193,36 @@ This hook combines user profile information with role assignments to provide a c
 - The `authorize` function now correctly checks permissions against the database schema
 - More granular permission control with the new `platform.global` permission
 - Improved security by using proper column names and joins in the authorization function
+
+## 2023-07-10: Application Context Filtering for Secrets (Updated)
+
+Added application context filtering for secrets (API keys, credentials) to ensure proper multi-tenant isolation. This ensures that secrets are properly scoped to the selected application.
+
+Changes:
+- Modified `getSecretByKeyId` function to accept an optional `applicationId` parameter and filter secrets by this ID
+- Updated all functions in the API key service to pass the application ID from the request context
+- Added fallback to check for `X-Application-ID` header directly if the middleware hasn't set the context
+- Created a helper function `getApplicationIdFromRequest` to standardize application ID resolution
+- Updated API key validation middleware to pass the request object to the `verifyApiKey` function
+- Enhanced the credentials service to filter by application ID using query parameters
+- Updated UI components to pass the application ID when fetching credentials
+- Improved application ID resolution to check multiple sources (request body, query params, context, headers)
+
+This fixes bugs where secrets and credentials were not being found when switching to a specific application context, despite working correctly in the global context.
+
+## 2023-07-11: Credentials Service Application Context Filtering
+
+- Updated all credential service functions to accept an optional `req` parameter to extract the application ID:
+  - `createCredential(requestBody, req)`
+  - `deleteCredentials(credentialId, req)`
+  - `getAllCredentials(paramCredentialName, req)` (already had this parameter)
+  - `getCredentialById(credentialId, req)`
+  - `updateCredential(credentialId, requestBody, req)`
+
+- Updated the credentials controller to pass the request object to all service functions for proper application context filtering.
+
+- Added verification to ensure credentials belong to the application before allowing access, returning a 403 Forbidden error if the credential doesn't belong to the application.
+
+- Updated the `utilBuildChatflow` function to verify that the chatflow belongs to the application by checking the `application_chatflows` table in Supabase.
+
+- These changes ensure proper multi-tenant isolation of credentials and chatflows, preventing access to resources that don't belong to the application.

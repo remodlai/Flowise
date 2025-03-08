@@ -79,7 +79,13 @@ export const AsyncDropdown = ({
             } else {
                 names = credentialNames[0]
             }
-            const resp = await credentialsApi.getCredentialsByName(names)
+            
+            // Get the application ID from localStorage
+            const applicationId = localStorage.getItem('selectedApplicationId')
+            
+            // Pass the application ID to the API call
+            const resp = await credentialsApi.getCredentialsByName(names, applicationId)
+            
             if (resp.data) {
                 const returnList = []
                 for (let i = 0; i < resp.data.length; i += 1) {

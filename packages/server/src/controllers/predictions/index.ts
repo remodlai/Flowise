@@ -60,15 +60,15 @@ const createPrediction = async (req: Request, res: Response, next: NextFunction)
                 
                
                
-             //REMODL TODO: add the handling in supabase here
-               let appId = req.body.appId
+             //REMODL check if the application id is present in the header or body
+               let appId = req.headers['x-application-id'] || req.body.appId
                 //REMODL TODO: add increment up for runs on the application and chatflow in supabase
                 if (!appId) {
                     return res.status(StatusCodes.BAD_REQUEST).send("Application ID is required")
                 }
                 
                 let userId: string | undefined = req.body.userId? req.body.userId : `${createRandomName}`
-                //REMODL TODO: Add the userId to the supabase table for chat messages for a given application and/or organization and user. If no user is present, then generate random user id, named "anonymous"
+                //REMODL: Add the userId to the supabase table for chat messages for a given application and/or organization and user. If no user is present, then generate random user id, named "anonymous"
                 let orgId = req.body.orgId
 
                 if (!orgId) {
@@ -89,6 +89,21 @@ const createPrediction = async (req: Request, res: Response, next: NextFunction)
                     res.setHeader('Cache-Control', 'no-cache')
                     res.setHeader('Connection', 'keep-alive')
                     res.setHeader('X-Accel-Buffering', 'no') //nginx config: https://serverfault.com/a/801629
+                    if (appId) {
+                        res.setHeader('X-Application-Id', appId)
+                        res.setHeader('x-application-id', appId) //done to ensure compatibility across the codebase
+                     
+                    }
+                    if (orgId) {
+                        res.setHeader('X-Organization-Id', orgId)
+                        res.setHeader('x-organization-id', orgId) //done to ensure compatibility across the codebase
+                    }
+                    if (userId) {
+                        res.setHeader('X-User-Id', userId)
+                        res.setHeader('x-user-id', userId) //done to ensure compatibility across the codebase
+                    }
+                    //REMODL: we've now set the headers for the response.
+
                     res.flushHeaders()
 
                     if (process.env.MODE === MODE.QUEUE) {
