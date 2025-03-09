@@ -2,18 +2,20 @@ import React, { useState } from 'react'
 import { Typography, Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useTheme } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Outlet } from 'react-router-dom'
-import { IconFolder, IconTools, IconSettings } from '@tabler/icons-react'
+import { IconFolder, IconTools, IconSettings, IconServer } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 
 // Platform views
 import PlatformNodesView from './nodes'
 import PlatformToolsView from './tools/ToolsView'
+import SystemSettings from './settings'
 
 // Platform admin navigation items
 const platformNavItems = [
     { label: 'Platform Files', path: '/admin/platform/files', icon: <IconFolder size={20} /> },
     { label: 'Nodes', path: '/admin/platform/nodes', icon: <IconTools size={20} /> },
-    { label: 'Tools', path: '/admin/platform/tools', icon: <IconSettings size={20} /> }
+    { label: 'Tools', path: '/admin/platform/tools', icon: <IconServer size={20} /> },
+    { label: 'Settings', path: '/admin/platform/settings', icon: <IconSettings size={20} /> }
 ]
 
 const PlatformAdmin = () => {
@@ -79,6 +81,7 @@ const PlatformAdmin = () => {
                     <>
                         {currentPath.includes('/nodes') && <PlatformNodesView />}
                         {currentPath.includes('/tools') && <PlatformToolsView />}
+                        {currentPath.includes('/settings') && <SystemSettings />}
                         {currentPath.includes('/files') && (
                             <Typography variant="body1">
                                 Platform Files management will be implemented soon.

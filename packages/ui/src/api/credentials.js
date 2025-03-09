@@ -8,6 +8,7 @@ const getCredentialsByName = (componentCredentialName, applicationId) => {
     if (applicationId && applicationId !== 'global') {
         url += `&applicationId=${applicationId}`
     }
+    console.log('url', url)
     return client.get(url)
 }
 
