@@ -35,7 +35,7 @@ export const toggleToolEnabled = (toolType, enabled) => client.post('/platform/t
  * @returns {Promise}
  */
 export const getPlatformSettings = () => {
-    return client.get('/api/v1/platform/settings')
+    return client.get('/platform/settings')
 }
 
 /**
@@ -44,7 +44,7 @@ export const getPlatformSettings = () => {
  * @returns {Promise}
  */
 export const getPlatformSettingByKey = (key) => {
-    return client.get(`/api/v1/platform/settings/${key}`)
+    return client.get(`/platform/settings/${key}`)
 }
 
 /**
@@ -53,7 +53,7 @@ export const getPlatformSettingByKey = (key) => {
  * @returns {Promise}
  */
 export const createPlatformSetting = (setting) => {
-    return client.post('/api/v1/platform/settings', setting)
+    return client.post('/platform/settings', setting)
 }
 
 /**
@@ -63,7 +63,7 @@ export const createPlatformSetting = (setting) => {
  * @returns {Promise}
  */
 export const updatePlatformSetting = (id, setting) => {
-    return client.put(`/api/v1/platform/settings/${id}`, setting)
+    return client.put(`/platform/settings/${id}`, setting)
 }
 
 /**
@@ -72,7 +72,7 @@ export const updatePlatformSetting = (id, setting) => {
  * @returns {Promise}
  */
 export const deletePlatformSetting = (id) => {
-    return client.delete(`/api/v1/platform/settings/${id}`)
+    return client.delete(`/platform/settings/${id}`)
 }
 
 // Secrets API
@@ -82,7 +82,7 @@ export const deletePlatformSetting = (id) => {
  * @returns {Promise}
  */
 export const getSecrets = () => {
-    return client.get('/api/v1/platform/secrets')
+    return client.get('/platform/secrets')
 }
 
 /**
@@ -91,7 +91,7 @@ export const getSecrets = () => {
  * @returns {Promise}
  */
 export const getSecretById = (id) => {
-    return client.get(`/api/v1/platform/secrets/${id}`)
+    return client.get(`/platform/secrets/${id}`)
 }
 
 /**
@@ -100,7 +100,7 @@ export const getSecretById = (id) => {
  * @returns {Promise}
  */
 export const createSecret = (secret) => {
-    return client.post('/api/v1/platform/secrets', secret)
+    return client.post('/platform/secrets', secret)
 }
 
 /**
@@ -110,7 +110,7 @@ export const createSecret = (secret) => {
  * @returns {Promise}
  */
 export const updateSecret = (id, secret) => {
-    return client.put(`/api/v1/platform/secrets/${id}`, secret)
+    return client.put(`/platform/secrets/${id}`, secret)
 }
 
 /**
@@ -119,7 +119,15 @@ export const updateSecret = (id, secret) => {
  * @returns {Promise}
  */
 export const deleteSecret = (id) => {
-    return client.delete(`/api/v1/platform/secrets/${id}`)
+    return client.delete(`/platform/secrets/${id}`)
+}
+
+/**
+ * Test endpoint
+ * @returns {Promise}
+ */
+export const testPlatformEndpoint = () => {
+    return client.get('/platform/test')
 }
 
 export default {
@@ -132,5 +140,6 @@ export default {
     getSecretById,
     createSecret,
     updateSecret,
-    deleteSecret
+    deleteSecret,
+    testPlatformEndpoint
 } 

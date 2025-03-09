@@ -5,6 +5,7 @@ import { ApplicationController } from '../controllers/ApplicationController'
 import { OrganizationController } from '../controllers/OrganizationController'
 import { authenticateUser } from '../utils/supabaseAuth'
 import platformRoutes from './platform'
+import platformAdminRoutes from './platform/index'
 import { supabase } from '../utils/supabase'
 import { getUserContextFromJWT } from './auth/user-context'
 
@@ -19,6 +20,9 @@ router.get('/auth/user-context', getUserContextFromJWT)
 
 // Platform management routes
 router.use('/platform', platformRoutes)
+
+// Platform admin routes (settings, secrets, etc.)
+router.use('/platform', platformAdminRoutes)
 
 // User routes - temporarily removed platform admin requirement for testing
 router.get('/users', UserController.getAllUsers)

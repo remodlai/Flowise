@@ -48,13 +48,17 @@ const PlatformSettingsTab = () => {
     const fetchSettings = async () => {
         setLoading(true)
         try {
+            console.log('Fetching platform settings...')
             const response = await getPlatformSettings()
+            console.log('Platform settings response:', response)
             
             // Check if response.data is an array, if not, make it an empty array
             if (Array.isArray(response.data)) {
+                console.log('Response data is an array, setting settings')
                 setSettings(response.data)
             } else if (response.data && Array.isArray(response.data.data)) {
                 // Handle case where data is nested in a data property
+                console.log('Response data is nested, setting settings from response.data.data')
                 setSettings(response.data.data)
             } else {
                 console.error('Unexpected response format:', response.data)

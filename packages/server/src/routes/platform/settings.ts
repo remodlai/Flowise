@@ -10,25 +10,31 @@ import { StatusCodes } from 'http-status-codes'
  */
 export const getAllPlatformSettings = async (req: Request, res: Response) => {
     try {
+        console.log('Getting all platform settings...')
+        console.log('Request headers:', req.headers)
+        console.log('Request user:', req.user)
+        
         const { data, error } = await supabase
             .from('platform_settings')
             .select('*')
             .order('key')
 
         if (error) {
-            logger.error(`Error getting platform settings: ${error.message}`)
+            console.error(`Error getting platform settings: ${error.message}`)
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
                 success: false,
                 error: error.message
             })
         }
 
+        console.log('Platform settings retrieved:', data?.length || 0)
+        
         return res.status(StatusCodes.OK).json({
             success: true,
             data: data || []
         })
     } catch (error) {
-        logger.error(`Error getting platform settings: ${error}`)
+        console.error(`Error getting platform settings: ${error}`)
         return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
             success: false,
             error: 'Error getting platform settings'
