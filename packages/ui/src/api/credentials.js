@@ -4,6 +4,7 @@ const getAllCredentials = () => client.get('/credentials')
 
 const getCredentialsByName = (componentCredentialName, applicationId) => {
     let url = `/credentials?credentialName=${componentCredentialName}`
+    
     if (applicationId && applicationId !== 'global') {
         url += `&applicationId=${applicationId}`
     }

@@ -45,6 +45,7 @@ export const executeUpsert = async ({
     cachePool,
     isInternal,
     files
+   
 }: IExecuteFlowParams) => {
     const question = incomingInput.question
     const overrideConfig = incomingInput.overrideConfig ?? {}
@@ -53,7 +54,24 @@ export const executeUpsert = async ({
     const isUpsert = true
     const chatflowid = chatflow.id
     const apiMessageId = uuidv4()
-
+    let appId = ''
+    let orgId = ''
+    let userId = ''
+   if (incomingInput.appId) {
+    appId = incomingInput.appId
+   } else {
+    throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Application ID is required - executeFlow.')
+   }
+   if (incomingInput.orgId) {
+    orgId = incomingInput.orgId
+   } else {
+    throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Organization ID is required')
+   }
+   if (incomingInput.userId) {
+    userId = incomingInput.userId
+   } else {
+    throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'User ID is required')
+   }
     if (files?.length) {
         const overrideConfig: ICommonObject = { ...incomingInput }
         for (const file of files) {
@@ -172,7 +190,10 @@ export const executeUpsert = async ({
         variableOverrides,
         cachePool,
         isUpsert,
-        stopNodeId
+        stopNodeId,
+        appId,
+        orgId,
+        userId
     })
 
     // Save to DB

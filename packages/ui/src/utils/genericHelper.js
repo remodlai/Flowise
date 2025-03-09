@@ -323,7 +323,7 @@ export const convertDateStringToDateObject = (dateString) => {
     // Sat Sep 24 2022 07:30:14
     return new Date(date.year(), date.month(), date.date(), date.hours(), date.minutes())
 }
-
+//REMODL TODO: update this to work with supabase file storage
 export const getFileName = (fileBase64) => {
     let fileNames = []
     if (fileBase64.startsWith('FILE-STORAGE::')) {
@@ -631,6 +631,17 @@ export const formatDataGridRows = (rows) => {
         return []
     }
 }
+
+//REMODL NOTE: adding applicationId local storage helper functions
+export const setLocalStorageApplicationId = (applicationId) => {
+    localStorage.setItem('selectedApplicationId', applicationId)
+}
+
+export const getLocalStorageApplicationId = () => {
+    return localStorage.getItem('selectedApplicationId')
+}
+
+
 
 export const setLocalStorageChatflow = (chatflowid, chatId, saveObj = {}) => {
     const chatDetails = localStorage.getItem(`${chatflowid}_INTERNAL`)

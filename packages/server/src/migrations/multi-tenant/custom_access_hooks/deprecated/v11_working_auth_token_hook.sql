@@ -1,21 +1,9 @@
--- Grant necessary permissions to supabase_auth_admin for organization_users table
-GRANT SELECT ON public.organization_users TO supabase_auth_admin;
 
--- Also grant permissions to user_profiles table to be thorough
-GRANT SELECT ON public.user_profiles TO supabase_auth_admin;
-
--- Update the custom access token hook to handle errors more gracefully
-CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
-RETURNS jsonb
-LANGUAGE plpgsql
-STABLE
-AS $function$
 DECLARE
   claims jsonb;
   remodl_user_id uuid;
   profile_data record;
   user_roles jsonb;
-  org_id uuid;
 BEGIN
   -- Extract the user_id and claims from the event
   remodl_user_id := (event->>'user_id')::uuid;
@@ -23,9 +11,6 @@ BEGIN
   
   -- Add a test claim to see if the hook is working
   claims := jsonb_set(claims, '{test_claim}', '"CUSTOM_ACCESS_TOKEN_HOOK_WORKING"');
-
-  -- Add userId directly to claims (copy of sub)
-  claims := jsonb_set(claims, '{userId}', to_jsonb(remodl_user_id::text));
 
   -- Check if user is platform admin
   SELECT EXISTS (
@@ -64,36 +49,6 @@ BEGIN
     claims := jsonb_set(claims, '{profile_error}', to_jsonb(SQLERRM));
   END;
 
-  -- Get user's primary organization ID
-  BEGIN
-    -- Try to get the organization ID from user_profiles.meta
-    SELECT (up.meta->>'organization_id')::uuid
-    INTO org_id
-    FROM public.user_profiles AS up
-    WHERE up.user_id = remodl_user_id;
-    
-    -- If not found in meta, try to get from organization_users table
-    IF org_id IS NULL THEN
-      -- Use a security definer function to bypass RLS
-      -- This is safer than granting direct table access
-      SELECT ou.organization_id
-      INTO org_id
-      FROM public.organization_users ou
-      WHERE ou.user_id = remodl_user_id
-      ORDER BY ou.created_at ASC
-      LIMIT 1;
-    END IF;
-    
-    -- Add organizationId to claims if found
-    IF org_id IS NOT NULL THEN
-      claims := jsonb_set(claims, '{organizationId}', to_jsonb(org_id::text));
-    END IF;
-  EXCEPTION WHEN OTHERS THEN
-    -- If there's an error, add error message to claims and continue
-    -- But don't expose the full error message in production
-    claims := jsonb_set(claims, '{organization_error}', '"Error retrieving organization ID"');
-  END;
-
   -- Get user roles with resource information
   SELECT jsonb_agg(
     jsonb_build_object(
@@ -120,9 +75,4 @@ BEGIN
   -- Return the modified event
   RETURN event;
 END;
-$function$;
 
--- Grant necessary permissions
-GRANT EXECUTE
-  ON FUNCTION public.custom_access_token_hook
-  TO supabase_auth_admin; 

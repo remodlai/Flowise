@@ -42,21 +42,35 @@ The Remodl AI platform (built on top of Flowise) currently has two separate auth
   - `packages/server/src/routes/auth/callback.ts`
   - `packages/server/src/routes/auth/users.ts`
 
+### JWT Structure and Custom Claims
+
+Our JWT tokens include the following custom claims:
+
+- `userId`: Direct copy of the user's UUID from the `sub` claim for easier access
+- `organizationId`: The user's primary organization ID
+- `is_platform_admin`: Boolean indicating if the user is a platform admin
+- `user_roles`: Array of objects with role, resource_type, and resource_id
+- `first_name`, `last_name`, `organization_name`: User profile information
+- `profile_role`: The user's role from their profile
+
+These claims are added by the `custom_access_token_hook` function in Supabase, which:
+1. Extracts user information from the `user_profiles` table
+2. Determines if the user is a platform admin
+3. Retrieves the user's primary organization ID
+4. Gets the user's roles with resource context
+5. Adds all this information to the JWT claims
+
+For more details on the JWT structure and implementation, see [JWT Claims Update](./jwt_claims_update.md).
+
 ## Secrets Management
 
-The platform has different approaches to secrets management between development and production:
+The platform has migrated all secrets to Supabase from legacy systems. This includes:
 
-1. **Development Environment**:
-   - Secrets stored locally or in the database
-   - API keys managed through local storage mechanisms
+1. **API Keys**: Stored in Supabase database tables
+2. **Credentials**: Stored in Supabase database tables
+3. **User Authentication**: Handled by Supabase Auth
 
-2. **Production Environment**:
-   - AWS Secrets Manager for secure storage
-   - Configured via environment variables:
-     - `SECRETKEY_STORAGE_TYPE=aws`
-     - `SECRETKEY_AWS_REGION`
-     - `SECRETKEY_AWS_ACCESS_KEY`
-     - `SECRETKEY_AWS_SECRET_KEY`
+All references to AWS Secrets Manager in the codebase are outdated and should be ignored.
 
 ## Current Challenges
 
@@ -68,13 +82,14 @@ The primary issue is that there is no correlation between the legacy API keys an
 2. The legacy API keys cannot be validated by the Supabase auth middleware
 3. Requests fail with "Invalid authentication token" errors
 
-### Environment-Specific Configurations
+### API Key Bridge Solution
 
-The different secrets management approaches between development and production add complexity:
+To address this disconnect, we've implemented an API Key Bridge solution that:
+1. Validates legacy API keys
+2. Maps them to Supabase users
+3. Generates temporary JWT tokens for authenticated API requests
 
-1. Development uses local storage or database for API keys
-2. Production uses AWS Secrets Manager
-3. This requires careful environment-specific handling
+For more details on this solution, see [API Key Bridge Solution](./02_api_key_bridge_solution.md).
 
 ## Related Files
 
@@ -93,18 +108,12 @@ The different secrets management approaches between development and production a
 - `packages/server/src/routes/auth/users.ts` - User management routes
 - `packages/server/src/routes/api.ts` - API routes with auth middleware
 
+### JWT Custom Claims
+- `packages/server/src/migrations/multi-tenant/custom_access_hooks/working_hook_valid/working_auth_token_hook_valid.sql` - Current working custom access token hook
+- `packages/server/src/migrations/multi-tenant/custom_access_hooks/custom_access_hooks_changelog.md` - Changelog for custom access hooks
+
 ### Configuration
 - `packages/server/.env` - Environment variables
 - `packages/server/.env.example` - Example environment configuration
 - `packages/server/src/AppConfig.ts` - Application configuration
 
-## Next Steps
-
-The proposed solution is to create a bridge between the two authentication systems:
-
-1. Implement a middleware that can:
-   - Detect and validate legacy API keys
-   - Generate temporary Supabase JWT tokens with appropriate permissions
-   - Attach these tokens to requests for Supabase auth middleware
-
-This approach would allow legacy API keys to continue working with the new Supabase-based auth system without requiring changes to existing clients. 

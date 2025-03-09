@@ -1,5 +1,33 @@
 ## Custom Access Token Hook Changelog
 
+### v12.1 - Permission Fix for Organization ID (2025-03-09)
+
+**Changes:**
+- Fixed permission issue with organization_users table
+- Granted SELECT permission on organization_users to supabase_auth_admin
+- Improved error handling to provide a generic error message instead of exposing SQL errors
+- Updated the hook to handle permission errors more gracefully
+
+**Benefits:**
+- Resolves the "permission denied for table organization_users" error
+- Improves security by not exposing detailed error messages in JWT claims
+- Ensures the hook continues to function even when permissions are restricted
+
+### v12 - User and Organization ID in JWT Claims (2025-03-09)
+
+**Changes:**
+- Added `userId` directly to JWT claims for easier access in client applications
+- Added `organizationId` to JWT claims to identify the user's primary organization
+- Enhanced organization lookup to check both user_profiles.meta and organization_users table
+- Added error handling for organization lookup with fallback mechanisms
+- Improved type handling for UUID values in JWT claims
+
+**Benefits:**
+- Simplified client-side access to user ID without having to use the `sub` claim
+- Direct access to the user's primary organization ID for context-aware operations
+- Reduced need for additional database queries to determine user context
+- Better error handling with specific exception blocks for each lookup operation
+
 ### v1 - Initial Implementation
 - Added user profile metadata to JWT claims
 - Added RBAC roles to JWT claims

@@ -80,7 +80,10 @@ const buildAndInitTool = async (chatflowid: string, _chatId?: string, _apiMessag
         apiOverrideStatus,
         nodeOverrides,
         availableVariables,
-        variableOverrides
+        variableOverrides,
+        appId: '',
+        orgId: '',
+        userId: ''
     })
 
     const nodeToExecute =

@@ -15,25 +15,24 @@ const createCredential = async (requestBody: any, req?: any) => {
         const credential = await appServer.AppDataSource.getRepository(Credential).create(newCredential)
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
         
-        // Get application ID from request body
-        // We can rely on this being set by the controller
-        const appId = requestBody.appId
+        // Get application ID from request or body
+        const applicationId = requestBody.applicationId || getApplicationIdFromRequest(req)
         
-        // Associate credential with application if appId is provided
-        if (appId) {
+        // Associate credential with application if applicationId is provided
+        if (applicationId) {
             try {
                 // Dynamically import applicationcredentials service to avoid circular dependencies
                 const applicationcredentials = await import('../applicationcredentials')
                 await applicationcredentials.associateCredentialWithApplication(
                     dbResponse.id,
-                    appId
+                    applicationId
                 )
             } catch (error) {
                 logger.error(`Error associating credential with application: ${getErrorMessage(error)}`)
                 // Continue even if association fails - the credential is still created
             }
         } else {
-            // If no appId provided, associate with default application (Platform Sandbox)
+            // If no applicationId provided, associate with default application (Platform Sandbox)
             try {
                 const applicationcredentials = await import('../applicationcredentials')
                 const defaultAppId = await applicationcredentials.getDefaultApplicationId()
@@ -111,35 +110,30 @@ const deleteCredentials = async (credentialId: string, req?: any): Promise<any> 
 }
 
 // Helper function to get application ID from request
-// This is now simpler since we ensure appId is set in the request body in the controller
 const getApplicationIdFromRequest = (req?: any, paramCredentialName?: any): string | undefined => {
     if (!req) return undefined
     
-    // First check if appId is provided in the request body
-    if (req.body?.appId && req.body.appId !== 'global') {
-        return req.body.appId
+    // First check if applicationId is provided in paramCredentialName object
+    if (typeof paramCredentialName === 'object' && paramCredentialName?.applicationId) {
+        return paramCredentialName.applicationId !== 'global' ? paramCredentialName.applicationId : undefined
     }
     
-    // For backward compatibility, check other sources
-    
-    // Check if appId is provided in paramCredentialName object
-    if (typeof paramCredentialName === 'object' && paramCredentialName?.appId) {
-        return paramCredentialName.appId !== 'global' ? paramCredentialName.appId : undefined
+    // Check if applicationId is provided as a query parameter
+    if (req.query?.applicationId && req.query.applicationId !== 'global') {
+        console.log('found applicationId in query', req.query.applicationId)
+        return req.query.applicationId as string
     }
     
-    // Check if appId is provided as a query parameter
-    if (req.query?.appId && req.query.appId !== 'global') {
-        return req.query.appId as string
-    }
-    
-    // Check if appId is set in the request context by middleware
-    if (req.appId && req.appId !== 'global') {
-        return req.appId
+    // Check if applicationId is set in the request context by middleware
+    if (req.applicationId && req.applicationId !== 'global') {
+        console.log('found applicationId in request', req.applicationId)
+        return req.applicationId
     }
     
     // Fallback to X-Application-ID header if present
     const headerAppId = req.headers?.['x-application-id'] || req.headers?.['X-Application-ID']
     if (headerAppId && headerAppId !== 'global') {
+        console.log('found applicationId in header', headerAppId)
         return headerAppId as string
     }
     

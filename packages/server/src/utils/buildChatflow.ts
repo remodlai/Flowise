@@ -236,10 +236,7 @@ export const executeFlow = async ({
     baseURL,
     isInternal,
     files,
-    signal,
-    appId,
-    orgId,
-    userId
+    signal
 }: IExecuteFlowParams) => {
     const question = incomingInput.question
     const overrideConfig = incomingInput.overrideConfig ?? {}
@@ -248,7 +245,9 @@ export const executeFlow = async ({
     const streaming = incomingInput.streaming
     const userMessageDateTime = new Date()
     const chatflowid = chatflow.id
-    
+    const appId = incomingInput.appId
+    const orgId = incomingInput.orgId
+    const userId = incomingInput.userId
     /* Process file uploads from the chat
      * - Images
      * - Files
@@ -457,7 +456,10 @@ export const executeFlow = async ({
         cachePool,
         isUpsert: false,
         uploads,
-        baseURL
+        baseURL,
+        appId: appId as string,
+        orgId: orgId as string,
+        userId: userId as string
     })
 
     const setVariableNodesOutput = getSetVariableNodesOutput(reactFlowNodes)
@@ -753,15 +755,30 @@ const checkIfStreamValid = async (
  */
 export const utilBuildChatflow = async (req: Request, isInternal: boolean = false): Promise<any> => {
     const appServer = getRunningExpressApp()
+    console.log('app headers', req.headers)
+    // Extract application ID, organization ID, and user ID from headers or body
+    let appId = req.headers['x-application-id'] || req.body.appId
+    let orgId = req.headers['x-organization-id'] || req.body.orgId
+    let userId = req.headers['x-user-id'] || req.body.userId
+    
+    // Check if required values are present
+    if (!appId) {
+        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Application ID is required - bitch.')
+    }
+    if (!orgId) {
+        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Organization ID is required')
+    }
+    if (!userId) {
+        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'User ID is required')
+    }
+    
+    // Ensure these values are set in the request body for downstream processes
+    req.body.appId = appId as string
+    req.body.orgId = orgId as string
+    req.body.userId = userId as string
+    
     const chatflowid = req.params.id
 
-    // Extract application ID, organization ID, and user ID from headers or body
-    const appId = req.headers['x-application-id'] || req.body.appId
-    const orgId = req.headers['x-organization-id'] || req.body.orgId
-    const userId = req.headers['x-user-id'] || req.body.userId
-    req.body.appId = appId
-    req.body.orgId = orgId
-    req.body.userId = userId
     // Check if chatflow exists
     const chatflow = await appServer.AppDataSource.getRepository(ChatFlow).findOneBy({
         id: chatflowid
@@ -813,15 +830,10 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
     const httpProtocol = req.get('x-forwarded-proto') || req.protocol
     const baseURL = `${httpProtocol}://${req.get('host')}`
     const incomingInput: IncomingInput = req.body
-    
-    // Set appId, orgId, and userId in the incomingInput object for backward compatibility
-    if (appId) incomingInput.appId = appId as string
-    if (orgId) incomingInput.orgId = orgId as string
-    if (userId) incomingInput.userId = userId as string
-    
     const chatId = incomingInput.chatId ?? incomingInput.overrideConfig?.sessionId ?? uuidv4()
     const files = (req.files as Express.Multer.File[]) || []
     const abortControllerId = `${chatflow.id}_${chatId}`
+    
 
     try {
         // Validate API Key if its external API request
@@ -833,21 +845,21 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
         }
 
         const executeData: IExecuteFlowParams = {
-            incomingInput,
+            incomingInput: req.body,
+            //REMODL: We need to include our appId, orgId, and userId in the executeData object
             chatflow,
             chatId,
-            // Pass appId, orgId, and userId as separate properties
-            appId: appId as string,
-            orgId: orgId as string,
-            userId: userId as string,
+            appId: req.body.appId,
+            orgId: req.body.orgId,
+            userId: req.body.userId,
+            baseURL,
+            isInternal,
+            files,
             appDataSource: appServer.AppDataSource,
             sseStreamer: appServer.sseStreamer,
             telemetry: appServer.telemetry,
             cachePool: appServer.cachePool,
-            componentNodes: appServer.nodesPool.componentNodes,
-            baseURL,
-            isInternal,
-            files
+            componentNodes: appServer.nodesPool.componentNodes
         }
 
         if (process.env.MODE === MODE.QUEUE) {

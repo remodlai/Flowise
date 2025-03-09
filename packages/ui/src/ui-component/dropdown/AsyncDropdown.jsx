@@ -29,7 +29,8 @@ const StyledPopper = styled(Popper)({
 const fetchList = async ({ name, nodeData }) => {
     const loadMethod = nodeData.inputParams.find((param) => param.name === name)?.loadMethod
     const accessToken = localStorage.getItem('access_token')
-
+    const applicationId = localStorage.getItem('selectedApplicationId')
+    console.log('applicationId', applicationId)
     let lists = await axios
         .post(
             `${baseURL}/api/v1/node-load-method/${nodeData.name}`,
@@ -37,7 +38,8 @@ const fetchList = async ({ name, nodeData }) => {
             {
                 headers: { 
                     'Content-type': 'application/json', 
-                    'Authorization': accessToken ? `Bearer ${accessToken}` : ''
+                    'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+                    'x-application-id': applicationId
                 }
             }
         )
@@ -82,7 +84,7 @@ export const AsyncDropdown = ({
             
             // Get the application ID from localStorage
             const applicationId = localStorage.getItem('selectedApplicationId')
-            
+            console.log('applicationId', applicationId)
             // Pass the application ID to the API call
             const resp = await credentialsApi.getCredentialsByName(names, applicationId)
             
@@ -100,6 +102,7 @@ export const AsyncDropdown = ({
         } catch (error) {
             console.error(error)
         }
+        return []
     }
 
     useEffect(() => {

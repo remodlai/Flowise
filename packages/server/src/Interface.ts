@@ -62,6 +62,8 @@ export interface IUser {
     last_name?: string
     organization_name?: string
     profile_role?: string
+    // Organization ID from JWT claims
+    organizationId?: string
 }
 export interface IApplication {
     id: string

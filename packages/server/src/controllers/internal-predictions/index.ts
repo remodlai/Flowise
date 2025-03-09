@@ -3,27 +3,19 @@ import { utilBuildChatflow } from '../../utils/buildChatflow'
 import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { getErrorMessage } from '../../errors/utils'
 import { MODE } from '../../Interface'
+import { createRandomName } from '../../utils/randomNameGenerator'
+import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { StatusCodes } from 'http-status-codes'
 
 // Send input message and get prediction result (Internal)
 const createInternalPrediction = async (req: Request, res: Response, next: NextFunction) => {
+    console.log('intial req body', req.body)
     try {
         if (req.body.streaming || req.body.streaming === 'true') {
             createAndStreamInternalPrediction(req, res, next)
             return
         } else {
-            //REMODL: Set headers for the response
-            if (req.body.appId || req.headers['x-application-id'] ) {
-                res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
-                res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
-            }
-            if (req.body.orgId || req.headers['x-organization-id']) {
-                res.setHeader('X-Organization-Id', req.body.orgId || req.headers['x-organization-id'])
-                res.setHeader('x-organization-id', req.body.orgId || req.headers['x-organization-id'])
-            }
-            if (req.body.userId || req.headers['x-user-id']) {
-                res.setHeader('X-User-Id', req.body.userId || req.headers['x-user-id'])
-                res.setHeader('x-user-id', req.body.userId || req.headers['x-user-id'])
-            }
+           
             const apiResponse = await utilBuildChatflow(req, true)
             if (apiResponse) return res.json(apiResponse)
         }
@@ -34,7 +26,11 @@ const createInternalPrediction = async (req: Request, res: Response, next: NextF
 
 // Send input message and stream prediction result using SSE (Internal)
 const createAndStreamInternalPrediction = async (req: Request, res: Response, next: NextFunction) => {
-    const chatId = req.body.chatId
+    
+    let chatId = req.body.chatId
+    console.log('chatId', chatId)
+    console.log('req.body', req.body)
+    console.log('request headers', req.headers)
     
     const sseStreamer = getRunningExpressApp().sseStreamer
 
@@ -44,18 +40,9 @@ const createAndStreamInternalPrediction = async (req: Request, res: Response, ne
         res.setHeader('Cache-Control', 'no-cache')
         res.setHeader('Connection', 'keep-alive')
         res.setHeader('X-Accel-Buffering', 'no') //nginx config: https://serverfault.com/a/801629
-        if (req.body.appId || req.headers['x-application-id']) {
-            res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
-            res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
-        }
-        if (req.body.orgId || req.headers['x-organization-id']) {
-            res.setHeader('X-Organization-Id', req.body.orgId || req.headers['x-organization-id'])
-            res.setHeader('x-organization-id', req.body.orgId || req.headers['x-organization-id'])
-        }
-        if (req.body.userId || req.headers['x-user-id']) {
-            res.setHeader('X-User-Id', req.body.userId || req.headers['x-user-id'])
-            res.setHeader('x-user-id', req.body.userId || req.headers['x-user-id'])
-        }
+        res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
+        res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
+       
         res.flushHeaders()
         if (process.env.MODE === MODE.QUEUE) {
             getRunningExpressApp().redisSubscriber.subscribe(chatId)

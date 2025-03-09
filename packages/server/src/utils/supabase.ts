@@ -106,7 +106,7 @@ export const requirePlatformAdmin = async (req: Request, res: Response, next: Ne
 // Middleware to check if user is org admin
 export const requireOrgAdmin = (orgId: string) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const user = req.user as IUser | undefined;
-  const targetOrgId = orgId || req.params.orgId;
+  const targetOrgId = orgId || req.params.orgId || req.body.orgId;
   
   if (!user || !user.userId) {
     res.status(401).json({ error: 'Unauthorized' });

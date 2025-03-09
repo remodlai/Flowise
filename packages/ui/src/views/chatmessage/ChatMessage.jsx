@@ -86,6 +86,7 @@ import FollowUpPromptsCard from '@/ui-component/cards/FollowUpPromptsCard'
 
 // History
 import { ChatInputHistory } from './ChatInputHistory'
+import { getUserContext } from '../../utils/jwtHelper'
 
 const messageImageStyle = {
     width: '128px',
@@ -865,11 +866,25 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
         clearPreviews()
         setMessages((prevMessages) => [...prevMessages, { message: input, type: 'userMessage', fileUploads: uploads }])
 
+        /*
+        REMODL NOTES:
+        For an internal prediction, we get the appId from the local storage, and pass it in the request body.
+        This is because for an internal prediction, we're not going to manipulate the request headers, where as in an external prediction, we will have easier control over the request headers.
+
+        */
+        let appId = localStorage.getItem('selectedApplicationId')
+        
+        // Get userId and orgId from JWT claims
+        const userContext = await getUserContext()
+        
         // Send user question to Prediction Internal API
         try {
             const params = {
                 question: input,
-                chatId
+                chatId,
+                appId,
+                userId: userContext.userId,
+                orgId: userContext.orgId
             }
             if (uploads && uploads.length > 0) params.uploads = uploads
             if (leadEmail) params.leadEmail = leadEmail

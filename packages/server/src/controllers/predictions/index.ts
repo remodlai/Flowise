@@ -25,6 +25,35 @@ const createPrediction = async (req: Request, res: Response, next: NextFunction)
                 `Error: predictionsController.createPrediction - body not provided!`
             )
         }
+        //REMODL: Check and set the appId, orgId, and userId in the request body
+        if (req.body.appId || req.headers['x-application-id']) {
+            req.body.appId = req.body.appId || req.headers['x-application-id'] || ''
+            res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
+            res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
+            console.log('Application ID:', req.body.appId || req.headers['x-application-id'])
+            let appId = req.body.appId
+        } else {
+            throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Application ID is required - external prediction')
+        }
+        if (req.body.orgId || req.headers['x-organization-id']) {
+            req.body.orgId = req.body.orgId || req.headers['x-organization-id'] || ''
+            res.setHeader('X-Organization-Id', req.body.orgId || req.headers['x-organization-id'])
+            res.setHeader('x-organization-id', req.body.orgId || req.headers['x-organization-id'])
+            let orgId = req.body.orgId
+            console.log('Organization ID:', req.body.orgId || req.headers['x-organization-id'])
+        } else {
+            throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Organization ID is required - external prediction')
+        }
+        if (req.body.userId || req.headers['x-user-id']) {
+            req.body.userId = req.body.userId || req.headers['x-user-id'] || ''
+            res.setHeader('X-User-Id', req.body.userId || req.headers['x-user-id'])
+            res.setHeader('x-user-id', req.body.userId || req.headers['x-user-id'])
+            console.log('User ID:', req.body.userId || req.headers['x-user-id'])
+            let userId = req.body.userId
+        } else {
+            throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'User ID is required - external prediction')
+        }
+        
         const chatflow = await chatflowsService.getChatflowById(req.params.id)
         if (!chatflow) {
             throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Chatflow ${req.params.id} not found`)
@@ -61,19 +90,9 @@ const createPrediction = async (req: Request, res: Response, next: NextFunction)
                
                
              //REMODL check if the application id is present in the header or body
-               let appId = req.headers['x-application-id'] || req.body.appId
-                //REMODL TODO: add increment up for runs on the application and chatflow in supabase
-                if (!appId) {
-                    return res.status(StatusCodes.BAD_REQUEST).send("Application ID is required")
-                }
-                
-                let userId: string | undefined = req.body.userId? req.body.userId : `${createRandomName}`
-                //REMODL: Add the userId to the supabase table for chat messages for a given application and/or organization and user. If no user is present, then generate random user id, named "anonymous"
+                let appId = req.body.appId
                 let orgId = req.body.orgId
-
-                if (!orgId) {
-                    return res.status(StatusCodes.BAD_REQUEST).send("Organization ID is required")
-                } 
+                let userId = req.body.userId
 
 
                 let chatId = req.body.chatId

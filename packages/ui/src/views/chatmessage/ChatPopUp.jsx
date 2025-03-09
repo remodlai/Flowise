@@ -89,6 +89,8 @@ export const ChatPopUp = ({ chatflowid, isAgentCanvas }) => {
 
         if (isConfirmed) {
             try {
+                const applicationId = getLocalStorageApplicationId()
+                console.log('applicationId', applicationId)
                 const objChatDetails = getLocalStorageChatflow(chatflowid)
                 if (!objChatDetails.chatId) return
                 await chatmessageApi.deleteChatmessage(chatflowid, { chatId: objChatDetails.chatId, chatType: 'INTERNAL' })

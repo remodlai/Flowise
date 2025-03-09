@@ -478,6 +478,9 @@ type BuildFlowParams = {
     uploads?: IFileUpload[]
     baseURL?: string
     uploadedFilesContent?: string
+    appId: string
+    orgId: string
+    userId: string
 }
 
 /**
@@ -509,9 +512,7 @@ export const buildFlow = async ({
     stopNodeId,
     uploads,
     baseURL,
-    appId = 
-    orgId,
-    userId
+ 
 }: BuildFlowParams) => {
     const flowNodes = cloneDeep(reactFlowNodes)
 

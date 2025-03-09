@@ -6,12 +6,16 @@ import { OrganizationController } from '../controllers/OrganizationController'
 import { authenticateUser } from '../utils/supabaseAuth'
 import platformRoutes from './platform'
 import { supabase } from '../utils/supabase'
+import { getUserContextFromJWT } from './auth/user-context'
 
 // Create a router for v1 API routes
 const router = express.Router()
 
 // Apply authentication middleware to all routes
 router.use(authenticateUser)
+
+// Auth routes
+router.get('/auth/user-context', getUserContextFromJWT)
 
 // Platform management routes
 router.use('/platform', platformRoutes)

@@ -1,10 +1,4 @@
--- Grant necessary permissions to supabase_auth_admin for organization_users table
-GRANT SELECT ON public.organization_users TO supabase_auth_admin;
-
--- Also grant permissions to user_profiles table to be thorough
-GRANT SELECT ON public.user_profiles TO supabase_auth_admin;
-
--- Update the custom access token hook to handle errors more gracefully
+-- Debug version of the custom access token hook
 CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -16,6 +10,7 @@ DECLARE
   profile_data record;
   user_roles jsonb;
   org_id uuid;
+  debug_info jsonb := '{}'::jsonb;
 BEGIN
   -- Extract the user_id and claims from the event
   remodl_user_id := (event->>'user_id')::uuid;
@@ -64,34 +59,59 @@ BEGIN
     claims := jsonb_set(claims, '{profile_error}', to_jsonb(SQLERRM));
   END;
 
-  -- Get user's primary organization ID
+  -- Get user's primary organization ID with detailed debugging
   BEGIN
+    debug_info := jsonb_set(debug_info, '{org_lookup_started}', 'true');
+    
     -- Try to get the organization ID from user_profiles.meta
     SELECT (up.meta->>'organization_id')::uuid
     INTO org_id
     FROM public.user_profiles AS up
     WHERE up.user_id = remodl_user_id;
     
+    debug_info := jsonb_set(debug_info, '{org_id_from_profile}', COALESCE(to_jsonb(org_id::text), 'null'));
+    
     -- If not found in meta, try to get from organization_users table
     IF org_id IS NULL THEN
-      -- Use a security definer function to bypass RLS
-      -- This is safer than granting direct table access
+      debug_info := jsonb_set(debug_info, '{checking_org_users}', 'true');
+      
+      -- Get the count of organization_users entries for this user
+      DECLARE
+        org_count integer;
+      BEGIN
+        SELECT COUNT(*)
+        INTO org_count
+        FROM public.organization_users ou
+        WHERE ou.user_id = remodl_user_id;
+        
+        debug_info := jsonb_set(debug_info, '{org_users_count}', to_jsonb(org_count));
+      END;
+      
+      -- Now try to get the first organization
       SELECT ou.organization_id
       INTO org_id
       FROM public.organization_users ou
       WHERE ou.user_id = remodl_user_id
       ORDER BY ou.created_at ASC
       LIMIT 1;
+      
+      debug_info := jsonb_set(debug_info, '{org_id_from_org_users}', COALESCE(to_jsonb(org_id::text), 'null'));
     END IF;
     
     -- Add organizationId to claims if found
     IF org_id IS NOT NULL THEN
       claims := jsonb_set(claims, '{organizationId}', to_jsonb(org_id::text));
+      debug_info := jsonb_set(debug_info, '{org_id_found}', 'true');
+    ELSE
+      debug_info := jsonb_set(debug_info, '{org_id_found}', 'false');
     END IF;
+    
+    -- Add the debug info to claims
+    claims := jsonb_set(claims, '{org_debug_info}', debug_info);
   EXCEPTION WHEN OTHERS THEN
     -- If there's an error, add error message to claims and continue
-    -- But don't expose the full error message in production
-    claims := jsonb_set(claims, '{organization_error}', '"Error retrieving organization ID"');
+    claims := jsonb_set(claims, '{organization_error}', to_jsonb(SQLERRM));
+    claims := jsonb_set(claims, '{org_debug_info}', debug_info);
   END;
 
   -- Get user roles with resource information

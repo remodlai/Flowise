@@ -123,7 +123,7 @@ export class OrganizationController {
             
             // If no application ID is specified and user is not platform admin, return error
             if (!applicationId && !(req.user as any)?.is_platform_admin) {
-                return res.status(400).json({ error: 'Application ID is required' })
+                return res.status(400).json({ error: 'Application ID is required - you are not authorized to create an organization' })
             }
             
             // Use the specified application ID or the default one

@@ -34,9 +34,33 @@ RLS policies enforce data isolation and access control:
 
 Custom access hooks add claims to JWT tokens:
 
-- **User Roles**: Roles assigned to users (e.g., platform_admin, org_admin)
-- **Permissions**: Specific permissions granted to roles
-- **Context Information**: User metadata, organization info, etc.
+- **User Identification**: 
+  - `userId`: Direct copy of the user's UUID for easier access
+  - `sub`: The original Supabase user ID
+
+- **Organization Context**: 
+  - `organizationId`: The user's primary organization ID
+  - `organization_name`: The name of the user's organization
+
+- **Role and Permission Information**:
+  - `is_platform_admin`: Boolean indicating if the user is a platform admin
+  - `user_roles`: Array of objects with role, resource_type, and resource_id
+  - `profile_role`: The user's role from their profile
+
+- **User Profile Information**:
+  - `first_name`: User's first name
+  - `last_name`: User's last name
+
+The current JWT structure is implemented in the `custom_access_token_hook` function, which:
+1. Extracts user information from the `user_profiles` table
+2. Determines if the user is a platform admin
+3. Retrieves the user's primary organization ID from either:
+   - The `user_profiles.meta->>'organization_id'` field
+   - The first organization in the `organization_users` table
+4. Gets the user's roles with resource context
+5. Adds all this information to the JWT claims
+
+For more details on the JWT structure and implementation, see [JWT Claims Update](./jwt_claims_update.md).
 
 ## Data Model
 

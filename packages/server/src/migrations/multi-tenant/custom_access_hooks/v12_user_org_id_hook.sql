@@ -1,10 +1,3 @@
--- Grant necessary permissions to supabase_auth_admin for organization_users table
-GRANT SELECT ON public.organization_users TO supabase_auth_admin;
-
--- Also grant permissions to user_profiles table to be thorough
-GRANT SELECT ON public.user_profiles TO supabase_auth_admin;
-
--- Update the custom access token hook to handle errors more gracefully
 CREATE OR REPLACE FUNCTION public.custom_access_token_hook(event jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -74,8 +67,6 @@ BEGIN
     
     -- If not found in meta, try to get from organization_users table
     IF org_id IS NULL THEN
-      -- Use a security definer function to bypass RLS
-      -- This is safer than granting direct table access
       SELECT ou.organization_id
       INTO org_id
       FROM public.organization_users ou
@@ -90,8 +81,7 @@ BEGIN
     END IF;
   EXCEPTION WHEN OTHERS THEN
     -- If there's an error, add error message to claims and continue
-    -- But don't expose the full error message in production
-    claims := jsonb_set(claims, '{organization_error}', '"Error retrieving organization ID"');
+    claims := jsonb_set(claims, '{organization_error}', to_jsonb(SQLERRM));
   END;
 
   -- Get user roles with resource information
@@ -123,6 +113,12 @@ END;
 $function$;
 
 -- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
+
 GRANT EXECUTE
   ON FUNCTION public.custom_access_token_hook
-  TO supabase_auth_admin; 
+  TO supabase_auth_admin;
+
+REVOKE EXECUTE
+  ON FUNCTION public.custom_access_token_hook
+  FROM authenticated, anon, public; 
