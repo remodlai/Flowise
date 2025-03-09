@@ -1392,18 +1392,16 @@ export const isFlowValidForStream = (reactFlowNodes: IReactFlowNode[], endingNod
  * @returns {Promise<string>}
  */
 export const getEncryptionKey = async (): Promise<string> => {
-    if (process.env.FLOWISE_SECRETKEY_OVERWRITE !== undefined && process.env.FLOWISE_SECRETKEY_OVERWRITE !== '') {
-        return process.env.FLOWISE_SECRETKEY_OVERWRITE
-    }
     try {
-        return await fs.promises.readFile(getEncryptionKeyPath(), 'utf8')
+        // Import the platform settings utility
+        const { getEncryptionKey: getPlatformEncryptionKey } = await import('./platformSettings')
+        
+        // Get the encryption key from platform settings
+        return await getPlatformEncryptionKey()
     } catch (error) {
-        const encryptKey = generateEncryptKey()
-        const defaultLocation = process.env.SECRETKEY_PATH
-            ? path.join(process.env.SECRETKEY_PATH, 'encryption.key')
-            : path.join(getUserHome(), '.flowise', 'encryption.key')
-        await fs.promises.writeFile(defaultLocation, encryptKey)
-        return encryptKey
+        // Log the error and rethrow
+        logger.error(`Error retrieving encryption key: ${error}`)
+        throw new Error('Failed to retrieve encryption key from platform settings. Please ensure the ENCRYPTION_KEY is set in platform settings.')
     }
 }
 

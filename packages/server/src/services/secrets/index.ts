@@ -4,10 +4,20 @@ import { randomBytes } from 'crypto'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { StatusCodes } from 'http-status-codes'
 import { getErrorMessage } from '../../errors/utils'
+import { getEncryptionKey } from '../../utils/platformSettings'
+import logger from '../../utils/logger'
 
-// Get the master encryption key from environment variable
-const getMasterEncryptionKey = (): string => {
-    return process.env.FLOWISE_SECRETKEY_OVERWRITE || 'flowise-default-key'
+// Get the master encryption key
+const getMasterEncryptionKey = async (): Promise<string> => {
+    try {
+        return await getEncryptionKey()
+    } catch (error) {
+        logger.error(`Error getting master encryption key: ${getErrorMessage(error)}`)
+        throw new InternalFlowiseError(
+            StatusCodes.INTERNAL_SERVER_ERROR,
+            `Failed to retrieve encryption key from platform settings. Please ensure the ENCRYPTION_KEY is set in platform settings.`
+        )
+    }
 }
 
 /**
@@ -28,7 +38,7 @@ export const storeSecret = async (
 ): Promise<string> => {
     try {
         // Encrypt the value
-        const masterKey = getMasterEncryptionKey()
+        const masterKey = await getMasterEncryptionKey()
         const encryptedValue = AES.encrypt(JSON.stringify(value), masterKey).toString()
         
         // Store in Supabase
@@ -73,7 +83,7 @@ export const getSecret = async (id: string): Promise<any> => {
         if (!data) throw new Error('Secret not found')
         
         // Decrypt the value
-        const masterKey = getMasterEncryptionKey()
+        const masterKey = await getMasterEncryptionKey()
         const decryptedBytes = AES.decrypt(data.value, masterKey)
         const decryptedValue = decryptedBytes.toString(enc.Utf8)
         
@@ -123,7 +133,7 @@ export const getSecretByKeyId = async (keyId: string, applicationId?: string): P
         const secretData = data[0]
         
         // Decrypt the value
-        const masterKey = getMasterEncryptionKey()
+        const masterKey = await getMasterEncryptionKey()
         const decryptedBytes = AES.decrypt(secretData.value, masterKey)
         const decryptedValue = decryptedBytes.toString(enc.Utf8)
         
@@ -147,7 +157,7 @@ export const getSecretByKeyId = async (keyId: string, applicationId?: string): P
 export const updateSecret = async (id: string, value: any, metadata?: any): Promise<void> => {
     try {
         // Encrypt the value
-        const masterKey = getMasterEncryptionKey()
+        const masterKey = await getMasterEncryptionKey()
         const encryptedValue = AES.encrypt(JSON.stringify(value), masterKey).toString()
         
         // Update in Supabase

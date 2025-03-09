@@ -68,16 +68,25 @@ export const setPlatformSetting = async (
 
 /**
  * Get the encryption key from platform settings
- * @returns The encryption key or the default value
+ * @returns The encryption key or throws an error if not found
  */
 export const getEncryptionKey = async (): Promise<string> => {
-    // First check if the environment variable is set
-    if (process.env.FLOWISE_SECRETKEY_OVERWRITE) {
-        return process.env.FLOWISE_SECRETKEY_OVERWRITE
+    try {
+        // Get the encryption key from platform settings
+        const encryptionKey = await getPlatformSetting('ENCRYPTION_KEY', '')
+        
+        // If we got a valid encryption key from platform settings, use it
+        if (encryptionKey && encryptionKey !== '') {
+            return encryptionKey
+        }
+        
+        // If no encryption key is found, throw an error
+        throw new Error('No encryption key found in platform settings. Please set the ENCRYPTION_KEY in platform settings.')
+    } catch (error) {
+        // Log the error and rethrow
+        logger.error(`Error retrieving encryption key from platform settings: ${error}`)
+        throw error
     }
-    
-    // Otherwise get it from the platform settings
-    return getPlatformSetting('ENCRYPTION_KEY', 'FLOWISE_REMODL_ENCRYPTION_KEY_CHANGE_ME')
 }
 
 export default {

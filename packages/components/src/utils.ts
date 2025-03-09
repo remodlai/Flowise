@@ -548,13 +548,16 @@ export const getEncryptionKeyPath = (): string => {
  * @returns {Promise<string>}
  */
 const getEncryptionKey = async (): Promise<string> => {
-    if (process.env.FLOWISE_SECRETKEY_OVERWRITE !== undefined && process.env.FLOWISE_SECRETKEY_OVERWRITE !== '') {
-        return process.env.FLOWISE_SECRETKEY_OVERWRITE
-    }
     try {
-        return await fs.promises.readFile(getEncryptionKeyPath(), 'utf8')
+        // Import the platform settings utility
+        const { getEncryptionKey: getPlatformEncryptionKey } = await import('./platformSettings')
+        
+        // Get the encryption key from platform settings
+        return await getPlatformEncryptionKey()
     } catch (error) {
-        throw new Error(error)
+        // Log the error and rethrow
+        console.error('Error retrieving encryption key:', error)
+        throw new Error('Failed to retrieve encryption key from platform settings. Please ensure the ENCRYPTION_KEY is set in platform settings.')
     }
 }
 
