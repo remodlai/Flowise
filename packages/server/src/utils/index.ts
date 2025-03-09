@@ -56,35 +56,11 @@ import { DocumentStore } from '../database/entities/DocumentStore'
 import { DocumentStoreFileChunk } from '../database/entities/DocumentStoreFileChunk'
 import { InternalFlowiseError } from '../errors/internalFlowiseError'
 import { StatusCodes } from 'http-status-codes'
-import {
-    CreateSecretCommand,
-    GetSecretValueCommand,
-    PutSecretValueCommand,
-    SecretsManagerClient,
-    SecretsManagerClientConfig
-} from '@aws-sdk/client-secrets-manager'
 
 const QUESTION_VAR_PREFIX = 'question'
 const FILE_ATTACHMENT_PREFIX = 'file_attachment'
 const CHAT_HISTORY_VAR_PREFIX = 'chat_history'
 const REDACTED_CREDENTIAL_VALUE = '_FLOWISE_BLANK_07167752-1a71-43b1-bf8f-4f32252165db'
-
-let secretsManagerClient: SecretsManagerClient | null = null
-const USE_AWS_SECRETS_MANAGER = process.env.SECRETKEY_STORAGE_TYPE === 'aws'
-if (USE_AWS_SECRETS_MANAGER) {
-    const region = process.env.SECRETKEY_AWS_REGION || 'us-east-1' // Default region if not provided
-    const accessKeyId = process.env.SECRETKEY_AWS_ACCESS_KEY
-    const secretAccessKey = process.env.SECRETKEY_AWS_SECRET_KEY
-
-    let credentials: SecretsManagerClientConfig['credentials'] | undefined
-    if (accessKeyId && secretAccessKey) {
-        credentials = {
-            accessKeyId,
-            secretAccessKey
-        }
-    }
-    secretsManagerClient = new SecretsManagerClient({ credentials, region })
-}
 
 export const databaseEntities: IDatabaseEntity = {
     ChatFlow: ChatFlow,
@@ -1428,41 +1404,11 @@ export const encryptCredentialData = async (plainDataObj: ICredentialDataDecrypt
         
         return secretId
     } catch (error) {
-        console.error('Error encrypting credential data:', error)
-        
-        // Fallback to existing methods if Supabase fails
-        if (USE_AWS_SECRETS_MANAGER && secretsManagerClient) {
-            const secretName = `FlowiseCredential_${randomBytes(12).toString('hex')}`
-
-            logger.info(`[server]: Upserting AWS Secret: ${secretName}`)
-
-            const secretString = JSON.stringify({ ...plainDataObj })
-
-            try {
-                // Try to update the secret if it exists
-                const putCommand = new PutSecretValueCommand({
-                    SecretId: secretName,
-                    SecretString: secretString
-                })
-                await secretsManagerClient.send(putCommand)
-            } catch (error: any) {
-                if (error.name === 'ResourceNotFoundException') {
-                    // Secret doesn't exist, so create it
-                    const createCommand = new CreateSecretCommand({
-                        Name: secretName,
-                        SecretString: secretString
-                    })
-                    await secretsManagerClient.send(createCommand)
-                } else {
-                    // Rethrow any other errors
-                    throw error
-                }
-            }
-            return secretName
-        }
-
-        const encryptKey = await getEncryptionKey()
-        return AES.encrypt(JSON.stringify(plainDataObj), encryptKey).toString()
+        logger.error(`Error encrypting credential data: ${error}`)
+        throw new InternalFlowiseError(
+            StatusCodes.INTERNAL_SERVER_ERROR,
+            'Failed to encrypt credential data. Please ensure the ENCRYPTION_KEY is set in platform settings.'
+        )
     }
 }
 
@@ -1495,42 +1441,28 @@ export const decryptCredentialData = async (
             return plainDataObj
         }
         
-        // Fallback to existing methods
-        let decryptedDataStr: string
-
-        if (USE_AWS_SECRETS_MANAGER && secretsManagerClient) {
-            try {
-                logger.info(`[server]: Reading AWS Secret: ${encryptedData}`)
-                const command = new GetSecretValueCommand({ SecretId: encryptedData })
-                const response = await secretsManagerClient.send(command)
-
-                if (response.SecretString) {
-                    const secretObj = JSON.parse(response.SecretString)
-                    decryptedDataStr = JSON.stringify(secretObj)
-                } else {
-                    throw new Error('Failed to retrieve secret value.')
-                }
-            } catch (error) {
-                console.error(error)
-                throw new Error('Failed to decrypt credential data.')
-            }
-        } else {
-            // Fallback to existing code
-            const encryptKey = await getEncryptionKey()
-            const decryptedData = AES.decrypt(encryptedData, encryptKey)
-            decryptedDataStr = decryptedData.toString(enc.Utf8)
+        // For legacy encrypted data, decrypt using the encryption key from platform settings
+        const encryptKey = await getEncryptionKey()
+        const decryptedData = AES.decrypt(encryptedData, encryptKey)
+        const decryptedDataStr = decryptedData.toString(enc.Utf8)
+        
+        if (!decryptedDataStr) {
+            throw new Error('Failed to decrypt credential data')
         }
-
-        if (!decryptedDataStr) return {}
+        
+        const plainDataObj = JSON.parse(decryptedDataStr)
         
         if (componentCredentialName && componentCredentials) {
-            const plainDataObj = JSON.parse(decryptedDataStr)
             return redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
         }
-        return JSON.parse(decryptedDataStr)
+        
+        return plainDataObj
     } catch (error) {
-        console.error('Error decrypting credential data:', error)
-        return {}
+        logger.error(`Error decrypting credential data: ${error}`)
+        throw new InternalFlowiseError(
+            StatusCodes.INTERNAL_SERVER_ERROR,
+            'Failed to decrypt credential data. Please ensure the ENCRYPTION_KEY is set in platform settings.'
+        )
     }
 }
 

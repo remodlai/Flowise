@@ -46,8 +46,11 @@ This document outlines the plan to migrate from using `FLOWISE_SECRETKEY_OVERWRI
   - API key system already uses the secrets service, which now uses the platform settings encryption key
   - No direct changes needed to API key generation and validation functions
   
-- [ ] Update any other server-side encryption to use the new encryption key
-  - Need to identify and update any other encryption-related code
+- [x] Update any other server-side encryption to use the new encryption key
+  - `encryptCredentialData` and `decryptCredentialData` functions in `packages/server/src/utils/index.ts` now use the platform settings encryption key
+  - Removed all AWS Secrets Manager fallback logic
+  - Now ONLY uses Supabase for secret storage and retrieval
+  - Throws proper errors instead of silently falling back to alternative methods
 
 ### 4. Update Component-Side Encryption
 
@@ -56,6 +59,8 @@ This document outlines the plan to migrate from using `FLOWISE_SECRETKEY_OVERWRI
   
 - [x] Update credential handling in components to use the new encryption key
   - Updated `packages/components/src/utils.ts` to use the platform settings utility
+  - Removed all AWS Secrets Manager fallback logic
+  - Now ONLY uses Supabase for secret storage and retrieval
   
 - [ ] Ensure backward compatibility for existing encrypted credentials
   - Need to test with existing encrypted credentials
@@ -93,6 +98,9 @@ This document outlines the plan to migrate from using `FLOWISE_SECRETKEY_OVERWRI
 | Current | Verified that the API key system (`packages/server/src/utils/apiKey.ts`) is compatible with the new encryption approach | Completed |
 | Current | Confirmed that API key storage and retrieval uses the secrets service, which now uses the platform settings encryption key | Completed |
 | Current | No direct changes needed to API key generation and validation functions as they don't directly use the encryption key | Completed |
+| Current | Removed all AWS Secrets Manager fallback logic from server and component code | Completed |
+| Current | Updated error handling to throw proper errors instead of silently falling back | Completed |
+| Current | Removed AWS Secrets Manager initialization code from both server and components | Completed |
 
 ## Implementation Details
 
@@ -117,10 +125,12 @@ The new approach:
    - A utility function in `packages/server/src/utils/platformSettings.ts` now only uses platform settings.
    
 2. Throws an error if the encryption key is not found in platform settings
-   - No more fallbacks to environment variables or default keys.
+   - No more fallbacks to environment variables, default keys, or AWS Secrets Manager.
    
 3. Uses a consistent encryption method across all parts of the application
    - All encryption/decryption operations use the same key retrieval method.
+   - All secret storage and retrieval is done through Supabase only.
+   - Proper error handling is implemented to provide clear error messages.
 
 ### Migration Strategy
 
@@ -155,10 +165,12 @@ Since changing the encryption key will make existing encrypted data unreadable, 
 - Uses environment variable `FLOWISE_SECRETKEY_OVERWRITE` as primary source
 - Falls back to file-based key storage
 - Inconsistent encryption methods across the application
+- Uses AWS Secrets Manager in some cases
 
 ### New Approach
-- Uses platform settings `ENCRYPTION_KEY` as the only source
-- No fallbacks to environment variables or file-based keys
+- Uses platform settings `ENCRYPTION_KEY` as the ONLY source
+- NO fallbacks to environment variables, file-based keys, or AWS Secrets Manager
 - Throws clear error messages if encryption key is not found
 - Consistent encryption methods across the application
-- API keys and other secrets are stored using the same encryption key 
+- API keys and other secrets are stored using the same encryption key
+- ONLY uses Supabase for all secret storage and retrieval 

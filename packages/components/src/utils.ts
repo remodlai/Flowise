@@ -15,43 +15,9 @@ import { customGet } from '../nodes/sequentialagents/commonUtils'
 import { TextSplitter } from 'langchain/text_splitter'
 import { DocumentLoader } from 'langchain/document_loaders/base'
 
-// Conditionally import AWS SDK
-let SecretsManagerClient: any = null
-let GetSecretValueCommand: any = null
-
-// Only import AWS SDK if we're using AWS Secrets Manager
-const USE_AWS_SECRETS_MANAGER = process.env.SECRETKEY_STORAGE_TYPE === 'aws'
-if (USE_AWS_SECRETS_MANAGER) {
-    try {
-        const awsImport = require('@aws-sdk/client-secrets-manager')
-        SecretsManagerClient = awsImport.SecretsManagerClient
-        GetSecretValueCommand = awsImport.GetSecretValueCommand
-        console.log('AWS Secrets Manager SDK loaded successfully')
-    } catch (error) {
-        console.error('Failed to load AWS Secrets Manager SDK:', error)
-        console.warn('AWS Secrets Manager functionality will not be available')
-    }
-}
-
 export const numberOrExpressionRegex = '^(\\d+\\.?\\d*|{{.*}})$' //return true if string consists only numbers OR expression {{}}
 export const notEmptyRegex = '(.|\\s)*\\S(.|\\s)*' //return true if string is not empty or blank
 export const FLOWISE_CHATID = 'flowise_chatId'
-
-let secretsManagerClient: any | null = null
-if (USE_AWS_SECRETS_MANAGER && SecretsManagerClient) {
-    const region = process.env.SECRETKEY_AWS_REGION || 'us-east-1' // Default region if not provided
-    const accessKeyId = process.env.SECRETKEY_AWS_ACCESS_KEY
-    const secretAccessKey = process.env.SECRETKEY_AWS_SECRET_KEY
-
-    let credentials: any = undefined
-    if (accessKeyId && secretAccessKey) {
-        credentials = {
-            accessKeyId,
-            secretAccessKey
-        }
-    }
-    secretsManagerClient = new SecretsManagerClient({ credentials, region })
-}
 
 /*
  * List of dependencies allowed to be import in @flowiseai/nodevm
@@ -564,45 +530,32 @@ const getEncryptionKey = async (): Promise<string> => {
 /**
  * Decrypt credential data
  * @param {string} encryptedData
- * @param {string} componentCredentialName
- * @param {IComponentCredentials} componentCredentials
  * @returns {Promise<ICommonObject>}
  */
 const decryptCredentialData = async (encryptedData: string): Promise<ICommonObject> => {
-    let decryptedDataStr: string
-
-    if (USE_AWS_SECRETS_MANAGER && secretsManagerClient && GetSecretValueCommand) {
-        try {
-            const command = new GetSecretValueCommand({ SecretId: encryptedData })
-            const response = await secretsManagerClient.send(command)
-
-            if (response.SecretString) {
-                const secretObj = JSON.parse(response.SecretString)
-                decryptedDataStr = JSON.stringify(secretObj)
-            } else {
-                throw new Error('Failed to retrieve secret value.')
+    try {
+        // Check if this is a UUID (Supabase secret ID)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (uuidRegex.test(encryptedData)) {
+            // This is a Supabase secret ID, make an API call to get the decrypted data
+            const response = await axios.get(`/api/v1/secrets/${encryptedData}`)
+            if (response.data && response.data.success && response.data.data) {
+                return response.data.data
             }
-        } catch (error) {
-            console.error('Error accessing AWS Secrets Manager:', error)
-            console.warn('Falling back to local encryption')
-            // Fall back to local encryption if AWS fails
-            const encryptKey = await getEncryptionKey()
-            const decryptedData = AES.decrypt(encryptedData, encryptKey)
-            decryptedDataStr = decryptedData.toString(enc.Utf8)
+            throw new Error('Failed to retrieve secret from Supabase')
         }
-    } else {
-        // Use local encryption
+        
+        // For legacy encrypted data, decrypt using the encryption key from platform settings
         const encryptKey = await getEncryptionKey()
         const decryptedData = AES.decrypt(encryptedData, encryptKey)
-        decryptedDataStr = decryptedData.toString(enc.Utf8)
-    }
-
-    if (!decryptedDataStr) return {}
-    try {
+        const decryptedDataStr = decryptedData.toString(enc.Utf8)
+        
+        if (!decryptedDataStr) return {}
+        
         return JSON.parse(decryptedDataStr)
-    } catch (e) {
-        console.error(e)
-        throw new Error('Credentials could not be decrypted.')
+    } catch (error) {
+        console.error('Error decrypting credential data:', error)
+        throw new Error('Credentials could not be decrypted. Please ensure the ENCRYPTION_KEY is set in platform settings.')
     }
 }
 
