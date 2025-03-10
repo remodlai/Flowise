@@ -12,6 +12,7 @@ const createCredential = async (requestBody: any, req?: any) => {
     try {
         const appServer = getRunningExpressApp()
         const newCredential = await transformToCredentialEntity(requestBody)
+        //REMODL TODO: refactor this to use our supabase db credentials table
         const credential = await appServer.AppDataSource.getRepository(Credential).create(newCredential)
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
         
@@ -85,7 +86,7 @@ const deleteCredentials = async (credentialId: string, req?: any): Promise<any> 
                 // Continue even if verification fails
             }
         }
-        
+        //REMODL TODO: refactor this to use our supabase db credentials table
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).delete({ id: credentialId })
         if (!dbResponse) {
             throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Credential ${credentialId} not found`)
@@ -139,7 +140,7 @@ const getApplicationIdFromRequest = (req?: any, paramCredentialName?: any): stri
     
     return undefined
 }
-
+//REMODL TODO: refactor this to use our supabase db credentials table
 const getAllCredentials = async (paramCredentialName: any, req?: any) => {
     try {
         const appServer = getRunningExpressApp()
@@ -192,7 +193,7 @@ const getAllCredentials = async (paramCredentialName: any, req?: any) => {
         )
     }
 }
-
+//REMODL TODO: refactor this to use our supabase db credentials table
 const getCredentialById = async (credentialId: string, req?: any): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
@@ -262,7 +263,7 @@ const getCredentialById = async (credentialId: string, req?: any): Promise<any> 
         )
     }
 }
-
+//REMODL TODO: refactor this to use our supabase db credentials table
 const updateCredential = async (credentialId: string, requestBody: any, req?: any): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
