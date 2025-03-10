@@ -1,0 +1,6 @@
+---
+description: Instructions regards /dist files and their src files
+globs: 
+alwaysApply: true
+---
+#If a file has /dist in its path, we must find the corresponding file in /src and edit/review that one.  We never want to directly edit compiled dist versions of files.  Always find the related file in the associated src directory.

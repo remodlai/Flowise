@@ -254,3 +254,23 @@ This fixes bugs where secrets and credentials were not being found when switchin
 - Updated the `utilBuildChatflow` function to verify that the chatflow belongs to the application by checking the `application_chatflows` table in Supabase.
 
 - These changes ensure proper multi-tenant isolation of credentials and chatflows, preventing access to resources that don't belong to the application.
+
+## March 11, 2025 - Application Credentials System Access Policy
+
+### Issue
+- The system was unable to access application credentials when using the service key
+- This was causing credential retrieval to fail during flow execution
+- The RLS policies on the application_credentials table were only allowing access based on user authentication
+
+### Changes
+- Added a new RLS policy `application_credentials_system_access_policy` that allows access to application_credentials when an application_id is present
+- This policy ensures that the system can access credentials for an application without requiring user authentication
+- The policy is simple and just checks if application_id IS NOT NULL
+
+### Files
+- `packages/server/src/migrations/multi-tenant/rls_policies/application_credentials_system_access_policy.sql`
+- `packages/server/src/migrations/multi-tenant/rls_policies/run_application_credentials_system_access_policy.sql`
+
+### Impact
+- The system can now access application credentials during flow execution
+- This fixes the issue where credential retrieval was failing when the token expired

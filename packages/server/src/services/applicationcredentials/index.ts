@@ -29,18 +29,27 @@ export const getApplicationIdForCredential = async (credentialId: string): Promi
 /**
  * Get all credential IDs for an application
  * @param applicationId The ID of the application
+ * @param req Optional request object (not used)
  * @returns Array of credential IDs
  */
-export const getCredentialIdsForApplication = async (applicationId: string): Promise<string[]> => {
+export const getCredentialIdsForApplication = async (applicationId: string, req?: any): Promise<string[]> => {
     try {
+        logger.info(`[applicationcredentials.getCredentialIdsForApplication] Getting credential IDs for application: ${applicationId}`)
+        
         const { data, error } = await supabase
             .from('application_credentials')
             .select('credential_id')
             .eq('application_id', applicationId)
 
-        if (error) throw error
+        if (error) {
+            logger.error(`[applicationcredentials.getCredentialIdsForApplication] Supabase error: ${JSON.stringify(error)}`)
+            throw error
+        }
 
-        return data?.map((item: { credential_id: string }) => item.credential_id) || []
+        const credentialIds = data?.map((item: { credential_id: string }) => item.credential_id) || []
+        logger.info(`[applicationcredentials.getCredentialIdsForApplication] Found ${credentialIds.length} credential IDs: ${JSON.stringify(credentialIds)}`)
+        
+        return credentialIds
     } catch (error) {
         logger.error(`[applicationcredentials.getCredentialIdsForApplication] ${getErrorMessage(error)}`)
         return []
@@ -141,6 +150,33 @@ export const isUserPlatformAdmin = async (userId: string): Promise<boolean> => {
     return isPlatformAdmin(userId)
 }
 
+/**
+ * Test function to verify Supabase client is working correctly
+ * @returns True if successful, false otherwise
+ */
+export const testSupabaseConnection = async (): Promise<boolean> => {
+    try {
+        logger.info(`[applicationcredentials.testSupabaseConnection] Testing Supabase connection`)
+        
+        // Test query to application_credentials table
+        const { data, error } = await supabase
+            .from('application_credentials')
+            .select('*')
+            .limit(1)
+            
+        if (error) {
+            logger.error(`[applicationcredentials.testSupabaseConnection] Supabase error: ${JSON.stringify(error)}`)
+            return false
+        }
+        
+        logger.info(`[applicationcredentials.testSupabaseConnection] Supabase connection successful. Data: ${JSON.stringify(data)}`)
+        return true
+    } catch (error) {
+        logger.error(`[applicationcredentials.testSupabaseConnection] ${getErrorMessage(error)}`)
+        return false
+    }
+}
+
 // Export as default object for consistency with other services
 export default {
     getApplicationIdForCredential,
@@ -148,5 +184,6 @@ export default {
     associateCredentialWithApplication,
     removeCredentialAssociation,
     getDefaultApplicationId,
-    isUserPlatformAdmin
+    isUserPlatformAdmin,
+    testSupabaseConnection
 } 

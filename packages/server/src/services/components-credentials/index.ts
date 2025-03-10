@@ -3,15 +3,24 @@ import { StatusCodes } from 'http-status-codes'
 import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'
-
+import logger from '../../utils/logger'
 // Get all component credentials
 const getAllComponentsCredentials = async (): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
         const dbResponse = []
+        //REMODL TODO: WILL NEED TO CONFIRM CREDENTIALS - this is calling legacy database
         for (const credName in appServer.nodesPool.componentCredentials) {
+            logger.debug('========= Start of getAllComponentsCredentials for credName =========')
+            console.log('========= Start of getAllComponentsCredentials for credName =========')
+            console.log('credName', credName)
+            console.log('appServer.nodesPool.componentCredentials', appServer.nodesPool.componentCredentials)
+            logger.debug('credName', credName)
+            logger.debug('appServer.nodesPool.componentCredentials', appServer.nodesPool.componentCredentials)
             const clonedCred = cloneDeep(appServer.nodesPool.componentCredentials[credName])
             dbResponse.push(clonedCred)
+            logger.debug('========= End of getAllComponentsCredentials for credName =========')
+            console.log('========= End of getAllComponentsCredentials for credName =========')
         }
         return dbResponse
     } catch (error) {

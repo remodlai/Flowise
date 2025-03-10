@@ -151,6 +151,12 @@ export const importKeys = async (keys: any[], importMode: string): Promise<IComm
  * @returns {Promise<ICommonObject[]>}
  */
 export const getApiKey = async (apiKey: string) => {
+    logger.debug('========= Start of getApiKey =========')
+    logger.debug('apiKey', apiKey)
+    logger.debug('========= End of getApiKey =========')
+    console.log('========= Start of getApiKey =========')
+    console.log('apiKey', apiKey)
+    console.log('========= End of getApiKey =========')
     const existingAPIKeys = await getAPIKeys()
     const keyIndex = existingAPIKeys.findIndex((key) => key.apiKey === apiKey)
     if (keyIndex < 0) return undefined

@@ -107,6 +107,14 @@ class ChatAnthropic_ChatModels implements INode {
     }
 
     async init(nodeData: INodeData, _: string, options: ICommonObject): Promise<any> {
+        console.log('========= Start of init for ChatAnthropic =========')
+        console.log('nodeData', JSON.stringify(nodeData))
+        console.log('options', JSON.stringify(options))
+        console.log('========= End of init for ChatAnthropic =========')
+        logger.debug('========= Start of init for ChatAnthropic =========')
+        logger.debug('nodeData', JSON.stringify(nodeData))
+        logger.debug('options', JSON.stringify(options))
+        logger.debug('========= End of init for ChatAnthropic =========')
         const temperature = nodeData.inputs?.temperature as string
         const modelName = nodeData.inputs?.modelName as string
         const maxTokens = nodeData.inputs?.maxTokensToSample as string
@@ -115,6 +123,10 @@ class ChatAnthropic_ChatModels implements INode {
         const streaming = nodeData.inputs?.streaming as boolean
         const cache = nodeData.inputs?.cache as BaseCache
 
+        console.log('========= Start of init for ChatAnthropic =========')
+        console.log('nodeData', JSON.stringify(nodeData))
+        console.log('options', JSON.stringify(options))
+        console.log('========= End of init for ChatAnthropic =========')
         //REMODL TODO: refactor this to use our supabase db credentials table
         const credentialData = await getCredentialData(nodeData.credential ?? '', options)
         console.log(credentialData ? `'Credential data found' ${JSON.stringify(credentialData)}`: 'No credential data found')
@@ -123,10 +135,11 @@ class ChatAnthropic_ChatModels implements INode {
 
         const allowImageUploads = nodeData.inputs?.allowImageUploads as boolean
 
-        const obj: Partial<AnthropicInput> & BaseLLMParams & { anthropicApiKey?: string } = {
+        const obj: Partial<AnthropicInput> & BaseLLMParams & { anthropicApiKey?: string; apiKey?: string } = {
             temperature: parseFloat(temperature),
             modelName,
             anthropicApiKey,
+            apiKey: anthropicApiKey,
             streaming: streaming ?? true
         }
 

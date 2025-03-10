@@ -6,10 +6,15 @@ import { MODE } from '../../Interface'
 import { createRandomName } from '../../utils/randomNameGenerator'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { StatusCodes } from 'http-status-codes'
-
+import logger from '../../utils/logger'
 // Send input message and get prediction result (Internal)
 const createInternalPrediction = async (req: Request, res: Response, next: NextFunction) => {
-    console.log('intial req body', req.body)
+    console.log('intial req body INTERNAL PREDICTION', req.body)
+    logger.debug('intial req body INTERNAL PREDICTION', req.body)
+
+    console.log('appId INTERNAL PREDICTION', req.body.appId)
+    logger.debug('appId INTERNAL PREDICTION', req.body.appId)
+
     try {
         if (req.body.streaming || req.body.streaming === 'true') {
             createAndStreamInternalPrediction(req, res, next)

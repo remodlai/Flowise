@@ -533,21 +533,32 @@ const getEncryptionKey = async (): Promise<string> => {
  * @returns {Promise<ICommonObject>}
  */
 export const decryptCredentialData = async (encryptedData: string): Promise<ICommonObject> => {
+    console.log('========= Start of decryptCredentialData =========')
+    console.log('encryptedData', encryptedData)
     try {
         if (!encryptedData) {
+            console.log('No encrypted data provided, returning empty object')
             return {}
         }
         
+        console.log(`Making API call to /api/v1/secrets/${encryptedData}`)
         // Call the API to get the secret from Supabase
         const response = await axios.get(`/api/v1/secrets/${encryptedData}`)
+        console.log('API response status:', response.status)
+        console.log('API response data:', JSON.stringify(response.data))
+        
         if (response.data && response.data.data) {
+            console.log('Returning data from API response')
             return response.data.data
         }
         
+        console.log('No data in API response, returning empty object')
         return {}
     } catch (error) {
-        console.error('Error getting secret:', error)
+        console.error('Error in decryptCredentialData:', error)
         return {}
+    } finally {
+        console.log('========= End of decryptCredentialData =========')
     }
 }
 
@@ -563,15 +574,21 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
     console.log('options', options)
     try {
         if (!selectedCredentialId) {
+            console.log('No credential ID provided, returning empty object')
             return {}
         }
 
+        console.log(`Making API call to /api/v1/secrets/${selectedCredentialId}`)
         // Directly decrypt the credential ID (which is a Supabase secret ID)
-        // No database lookup, just pass the ID to decryptCredentialData
-        return await decryptCredentialData(selectedCredentialId)
+        const result = await decryptCredentialData(selectedCredentialId)
+        console.log('API call result:', JSON.stringify(result))
+        return result
     } catch (e) {
+        console.error('Error in getCredentialData:', e)
         // Return empty object instead of throwing to avoid breaking flows
         return {}
+    } finally {
+        console.log('========= End of getCredentialData =========')
     }
 }
 
@@ -587,7 +604,21 @@ export const defaultChain = (...values: any[]): any | undefined => {
 }
 
 export const getCredentialParam = (paramName: string, credentialData: ICommonObject, nodeData: INodeData, defaultValue?: any): any => {
-    return (nodeData.inputs as ICommonObject)[paramName] ?? credentialData[paramName] ?? defaultValue ?? undefined
+    console.log('========= Start of getCredentialParam =========')
+    console.log('paramName', paramName)
+    console.log('credentialData', JSON.stringify(credentialData))
+    console.log('nodeData inputs', JSON.stringify(nodeData.inputs))
+    console.log('defaultValue', defaultValue)
+    
+    const fromInputs = (nodeData.inputs as ICommonObject)[paramName]
+    const fromCredential = credentialData[paramName]
+    
+    console.log('Value from inputs:', fromInputs)
+    console.log('Value from credential:', fromCredential)
+    console.log('Using value:', fromInputs ?? fromCredential ?? defaultValue ?? undefined)
+    console.log('========= End of getCredentialParam =========')
+    
+    return fromInputs ?? fromCredential ?? defaultValue ?? undefined
 }
 
 // reference https://www.freeformatter.com/json-escape.html

@@ -14,8 +14,8 @@ const getApplicationIdFromRequest = (req?: any): string | undefined => {
     if (!req) return undefined
     
     // First check if applicationId is set in the request context by middleware
-    if (req.applicationId && req.applicationId !== 'global') {
-        return req.applicationId
+    if (req.applicationId && req.applicationId !== 'global' || req.body.appId && req.body.appId !== 'global') {
+        return req.applicationId || req.body.appId
     }
     
     // Fallback to X-Application-ID header if present

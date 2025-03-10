@@ -258,6 +258,8 @@ export const executeFlow = async ({
      * - Files
      * - Audio
      */
+
+    //REMODL TODO: WILL NEED TO CONFIRM FILE HANDLING
     let fileUploads: IFileUpload[] = []
     let uploadedFilesContent = ''
     if (incomingInput.uploads) {
@@ -375,9 +377,12 @@ export const executeFlow = async ({
     /*** Get chatflows and prepare data  ***/
     const flowData = chatflow.flowData
     const parsedFlowData: IReactFlowObject = JSON.parse(flowData)
+    console.log('========= Start of executeFlow parsedFlowData =========')
+    console.log(parsedFlowData)
+    console.log('========= End of executeFlow parsedFlowData =========')
     const nodes = parsedFlowData.nodes
     const edges = parsedFlowData.edges
-
+    console.log('========= Start of executeFlow nodes =========')
     const apiMessageId = uuidv4()
 
     /*** Get session ID ***/
@@ -434,7 +439,11 @@ export const executeFlow = async ({
         userId: userId || '',
         ...incomingInput.overrideConfig
     }
-
+    console.log('========= executeFlow flowConfig =========')
+    console.log(flowConfig)
+    logger.debug(`[server]: Start building flow ${chatflowid}`)
+    logger.debug(`[server]: flowConfig: ${JSON.stringify(flowConfig)}`)
+    console.log('========= End of executeFlow flowConfig =========')
     logger.debug(`[server]: Start building flow ${chatflowid}`)
 
     /*** BFS to traverse from Starting Nodes to Ending Node ***/
@@ -466,7 +475,9 @@ export const executeFlow = async ({
         orgId: orgId as string,
         userId: userId as string
     })
-
+    console.log('========= start of executeFlow reactFlowNodes =========')
+    console.log(reactFlowNodes)
+    console.log('========= end of executeFlow reactFlowNodes =========')
     const setVariableNodesOutput = getSetVariableNodesOutput(reactFlowNodes)
 
     if (isAgentFlow) {
@@ -761,7 +772,7 @@ const checkIfStreamValid = async (
 export const utilBuildChatflow = async (req: Request, isInternal: boolean = false): Promise<any> => {
     const appServer = getRunningExpressApp()
     //console.log('app headers', req.headers)
-    // Extract application ID, organization ID, and user ID from headers or body
+    // Extract application ID, organization ID, and user ID from headers or body. It may be present in the body or the headers, but past this point we will have validated that they are present and valid in the body.
     let appId =''
     let orgId = ''
     let userId: string | undefined = ''
@@ -800,19 +811,25 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
         console.log('we have an userId: ', userId)
     }
     console.log('========= End of utilBuildChatflow check for appId, orgId, and userId =========')
-
+    //REMODL: This is where we get the chatflow id from the request params
     const chatflowid = req.params.id
-    // Check if chatflow exists
+    //Call the main database (sqlite in dev, postgres in prod) to get the chatflow
     const chatflow = await appServer.AppDataSource.getRepository(ChatFlow).findOneBy({
         id: chatflowid
     })
+    //REMODL: If the chatflow is not found, throw an error
     if (!chatflow) {
         throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Chatflow ${chatflowid} not found`)
     }
-
+    if (appId.length > 0) {
+        logger.debug('appId is present at start of utilBuildChatflow', appId)
+        console.log('appId is present at start of utilBuildChatflow', appId)
+    }
     // If appId is provided and not 'global', verify that the chatflow belongs to the application
     if (appId && appId !== 'global') {
         try {
+            console.log('========= Start of utilBuildChatflow get flow check for application id =========')
+            logger.debug('========= Start of utilBuildChatflow get flow check for application id =========')
             // Query Supabase to check if the chatflow belongs to the application
             const { data, error } = await supabase
                 .from('application_chatflows')
@@ -848,13 +865,18 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
             )
         }
     }
-
+    //REMODL: If the chatflow is found, we can proceed with the rest of the function. Here we check if the chatflow is an agent flow
     const isAgentFlow = chatflow.type === 'MULTIAGENT'
+    //REMODL: We get the http protocol and baseURL from the request
     const httpProtocol = req.get('x-forwarded-proto') || req.protocol
     const baseURL = `${httpProtocol}://${req.get('host')}`
+    //REMODL: We get the incoming input from the request body
     const incomingInput: IncomingInput = req.body
+    //REMODL: We get the chatId from the incoming input
     const chatId = incomingInput.chatId ?? incomingInput.overrideConfig?.sessionId ?? uuidv4()
+    //REMODL: We get the files from the request
     const files = (req.files as Express.Multer.File[]) || []
+    //REMODL: We get the abort controller id
     const abortControllerId = `${chatflow.id}_${chatId}`
     
 
@@ -868,23 +890,35 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
         }
 
         const executeData: IExecuteFlowParams = {
+            //The incoming request body. By this time we have ensured and validated that the appId, orgId and userId are present and valid, present as req.body.appId, req.body.orgId, and req.body.userId
             incomingInput: req.body,
             //REMODL: We need to include our appId, orgId, and userId in the executeData object
             chatflow,
+            //REMODL: We get the chatId from the incoming input. This is the chatID or sessionId from the overrideConfig in the incoming input
             chatId,
+            //REMODL: We get the appId, orgId, and userId from the incoming input. We have already validated that these are present and valid
             appId: req.body.appId,
             orgId: req.body.orgId,
             userId: req.body.userId,
+            //REMODL: We get the baseURL from the request
             baseURL,
+            //REMODL: We get the isInternal flag from the incoming input
             isInternal,
+            //REMODL: We get the files from the request
             files,
+            //REMODL: We get the appDataSource from the appServer
             appDataSource: appServer.AppDataSource,
+            //REMODL: We get the sseStreamer from the appServer
             sseStreamer: appServer.sseStreamer,
+            //REMODL: We get the telemetry from the appServer
             telemetry: appServer.telemetry,
+            //REMODL: We get the cachePool from the appServer
             cachePool: appServer.cachePool,
+            //REMODL: We get the componentNodes from the appServer. THIS MAY BE THE PROBLEM.  Refer to @NodesPool.ts
             componentNodes: appServer.nodesPool.componentNodes
         }
 
+        //REMODL: We check if the process.env.MODE is QUEUE. If it is, we add the job to the queue. If not, we execute the flow immediately. We use this in production to speed up the response time.
         if (process.env.MODE === MODE.QUEUE) {
             const predictionQueue = appServer.queueManager.getQueue('prediction')
             const job = await predictionQueue.addJob(omit(executeData, OMIT_QUEUE_JOB_DATA))
@@ -904,8 +938,10 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
             const signal = new AbortController()
             appServer.abortControllerPool.add(abortControllerId, signal)
             executeData.signal = signal
-
+            console.log('========= Start of utilBuildChatflow executeFlow =========')
+            
             const result = await executeFlow(executeData)
+            console.log('========= End of utilBuildChatflow executeFlow =========')
 
             appServer.abortControllerPool.remove(abortControllerId)
             incrementSuccessMetricCounter(appServer.metricsProvider, isInternal, isAgentFlow)

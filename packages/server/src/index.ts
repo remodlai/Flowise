@@ -92,6 +92,7 @@ export class App {
             await this.AppDataSource.runMigrations({ transaction: 'each' })
 
             // Initialize nodes pool
+            //RMODL TODO: NodesPool relies on the legacy database, especially for credentials.  This causes our problems and needs refactor.
             this.nodesPool = new NodesPool()
             await this.nodesPool.initialize()
 

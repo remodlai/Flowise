@@ -489,8 +489,30 @@ export const buildFlow = async ({
     stopNodeId,
     uploads,
     baseURL,
- 
+    appId,
+    orgId,
+    userId
 }: BuildFlowParams) => {
+    logger.debug('========= Start of buildFlow =========')
+    logger.debug('appId', appId)
+    logger.debug('orgId', orgId)
+    logger.debug('userId', userId)
+    console.log('========= Start of buildFlow =========')
+    console.log('appId', appId)
+    console.log('orgId', orgId)
+    console.log('userId', userId)
+    logger.debug('startingNodeIds', startingNodeIds)
+    console.log('startingNodeIds', startingNodeIds)
+    logger.debug('reactFlowNodes', reactFlowNodes)
+    console.log('reactFlowNodes', reactFlowNodes)
+    logger.debug('reactFlowEdges', reactFlowEdges)
+    console.log('reactFlowEdges', reactFlowEdges)
+    logger.debug('graph', graph)
+    console.log('graph', graph)
+    logger.debug('depthQueue', depthQueue)
+    console.log('depthQueue', depthQueue)
+    logger.debug('========= End of buildFlow =========')
+    
     const flowNodes = cloneDeep(reactFlowNodes)
 
     let upsertHistory: Record<string, any> = {}
@@ -510,6 +532,12 @@ export const buildFlow = async ({
     }
 
     const initializedNodes: Set<string> = new Set()
+    console.log('========= Start of buildFlow initializedNodes =========')
+    logger.debug('========= Start of buildFlow initializedNodes =========')
+    logger.debug('initializedNodes', initializedNodes)
+    console.log('initializedNodes', initializedNodes)
+    logger.debug('========= End of buildFlow initializedNodes =========')
+    console.log('========= End of buildFlow initializedNodes =========')
     const reversedGraph = constructGraphs(reactFlowNodes, reactFlowEdges, { isReversed: true }).graph
 
     const flowData: ICommonObject = {
@@ -517,6 +545,10 @@ export const buildFlow = async ({
         chatId,
         sessionId,
         chatHistory,
+        //REMODL: Adding appId, orgId, userId to the flowData
+        appId,
+        orgId,
+        userId,
         ...overrideConfig
     }
     while (nodeQueue.length) {
@@ -532,7 +564,13 @@ export const buildFlow = async ({
             const newNodeInstance = new nodeModule.nodeClass()
 
             let flowNodeData = cloneDeep(reactFlowNode.data)
-
+            //REMODL: Logging for each flowNodeData
+            logger.debug('========= Start of flowNodeData for ${reactFlowNode.data.name} =========')
+            console.log('========= Start of flowNodeData for ${reactFlowNode.data.name} =========')
+            logger.debug('flowNodeData', flowNodeData)
+            console.log('flowNodeData', flowNodeData)
+            logger.debug('========= End of flowNodeData for ${reactFlowNode.data.name} =========')
+            console.log('========= End of flowNodeData for ${reactFlowNode.data.name} =========')
             // Only override the config if its status is true
             if (overrideConfig && apiOverrideStatus) {
                 flowNodeData = replaceInputsWithConfig(flowNodeData, overrideConfig, nodeOverrides, variableOverrides)
@@ -592,7 +630,10 @@ export const buildFlow = async ({
                     dynamicVariables,
                     uploads,
                     baseURL,
-                    componentNodes: componentNodes as ICommonObject
+                    componentNodes: componentNodes as ICommonObject,
+                    appId,
+                    orgId,
+                    userId
                 })
 
                 // Save dynamic variables
@@ -1222,6 +1263,11 @@ export const findAvailableConfigs = (reactFlowNodes: IReactFlowNode[], component
     const configs: IOverrideConfig[] = []
 
     for (const flowNode of reactFlowNodes) {
+        logger.debug('========= Start of findAvailableConfigs for flowNode =========')
+        console.log('========= Start of findAvailableConfigs for flowNode =========')
+        console.log('flowNode', flowNode)
+        console.log('========= End of findAvailableConfigs for flowNode =========')
+        logger.debug('========= End of findAvailableConfigs for flowNode =========')
         for (const inputParam of flowNode.data.inputParams) {
             let obj: IOverrideConfig
             if (inputParam.type === 'file') {
@@ -1249,11 +1295,19 @@ export const findAvailableConfigs = (reactFlowNodes: IReactFlowNode[], component
             } else if (inputParam.type === 'credential') {
                 // get component credential inputs
                 for (const name of inputParam.credentialNames ?? []) {
+                    logger.debug('========= Start of findAvailableConfigs for credential =========')
                     console.log('========= Start of findAvailableConfigs for credential =========')
                     console.log('name', name)
                     console.log('componentCredentials', componentCredentials)
+                    console.log('========= End of findAvailableConfigs for credential =========')
+                    logger.debug('========= End of findAvailableConfigs for credential =========')
                     if (Object.prototype.hasOwnProperty.call(componentCredentials, name)) {
                         const inputs = componentCredentials[name]?.inputs ?? []
+                        logger.debug('========= Start of findAvailableConfigs for inputs =========')
+                        console.log('========= Start of findAvailableConfigs for inputs =========')
+                        console.log('inputs', JSON.stringify(inputs))
+                        console.log('========= End of findAvailableConfigs for inputs =========')
+                        logger.debug('========= End of findAvailableConfigs for inputs =========')
                         for (const input of inputs) {
                             obj = {
                                 node: flowNode.data.label,
@@ -1266,6 +1320,9 @@ export const findAvailableConfigs = (reactFlowNodes: IReactFlowNode[], component
                         }
                     }
                 }
+
+                console.log('========= End of findAvailableConfigs for credential =========')
+                logger.debug('========= End of findAvailableConfigs for credential =========')
                 continue
             } else {
                 obj = {

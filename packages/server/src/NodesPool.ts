@@ -7,6 +7,8 @@ import { ICommonObject } from 'flowise-components'
 import logger from './utils/logger'
 import { appConfig } from './AppConfig'
 
+
+//REMODL TODO: ERROR WITH CREDENTIALS - THIS IS CALLING THE LEGACY DATABASE
 export class NodesPool {
     componentNodes: IComponentNodes = {}
     componentCredentials: IComponentCredentials = {}
@@ -82,7 +84,9 @@ export class NodesPool {
 
     /**
      * Initialize credentials
-     */
+     
+   
+    */
     private async initializeCredentials() {
         const packagePath = getNodeModulesPackagePath('flowise-components')
         const nodesPath = path.join(packagePath, 'dist', 'credentials')

@@ -214,7 +214,7 @@ const getAllCredentials = async (paramCredentialName: any, req?: any) => {
             createdDate: new Date(cred.metadata?.createdAt || Date.now())
         }))
         
-        logger.info(`Returning ${formattedCredentials.length} credentials`)
+        logger.info(`Returning ${formattedCredentials.length} credentials with IDs: ${JSON.stringify(formattedCredentials.map(cred => cred.id))}`)
         return formattedCredentials
     } catch (error) {
         throw new InternalFlowiseError(
