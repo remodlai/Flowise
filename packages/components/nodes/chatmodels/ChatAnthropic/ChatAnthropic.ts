@@ -5,7 +5,7 @@ import { ICommonObject, IMultiModalOption, INode, INodeData, INodeOptionsValue, 
 import { getBaseClasses, getCredentialData, getCredentialParam } from '../../../src/utils'
 import { ChatAnthropic } from './FlowiseChatAnthropic'
 import { getModels, MODEL_TYPE } from '../../../src/modelLoader'
-
+import logger from '../../../../server/src/utils/logger'
 class ChatAnthropic_ChatModels implements INode {
     label: string
     name: string
@@ -107,14 +107,14 @@ class ChatAnthropic_ChatModels implements INode {
     }
 
     async init(nodeData: INodeData, _: string, options: ICommonObject): Promise<any> {
-        console.log('========= Start of init for ChatAnthropic =========')
-        console.log('nodeData', JSON.stringify(nodeData))
-        console.log('options', JSON.stringify(options))
-        console.log('========= End of init for ChatAnthropic =========')
-        logger.debug('========= Start of init for ChatAnthropic =========')
-        logger.debug('nodeData', JSON.stringify(nodeData))
-        logger.debug('options', JSON.stringify(options))
-        logger.debug('========= End of init for ChatAnthropic =========')
+        logger.debug(`========= Start of init for ChatAnthropic File: /Users/brianbagdasarian/fw-dev/Flowise/packages/components/nodes/chatmodels/ChatAnthropic/ChatAnthropic.ts line 110 =========`) 
+        logger.debug(`nodeData`, JSON.stringify(nodeData))
+        logger.debug(`options`, JSON.stringify(options))
+        logger.debug(`========= End of init for ChatAnthropic =========`)
+        logger.info('========= Start of init for ChatAnthropic =========')
+        logger.info('nodeData', JSON.stringify(nodeData))
+        logger.info('options', JSON.stringify(options))
+        logger.info('========= End of init for ChatAnthropic =========')
         const temperature = nodeData.inputs?.temperature as string
         const modelName = nodeData.inputs?.modelName as string
         const maxTokens = nodeData.inputs?.maxTokensToSample as string

@@ -475,9 +475,10 @@ export const executeFlow = async ({
         orgId: orgId as string,
         userId: userId as string
     })
-    console.log('========= start of executeFlow reactFlowNodes =========')
-    console.log(reactFlowNodes)
-    console.log('========= end of executeFlow reactFlowNodes =========')
+    logger.info('========= start of executeFlow reactFlowNodes =========')
+    logger.info('current appId', appId || 'no appId')
+    logger.info(reactFlowNodes)
+    logger.info('========= end of executeFlow reactFlowNodes =========')
     const setVariableNodesOutput = getSetVariableNodesOutput(reactFlowNodes)
 
     if (isAgentFlow) {
@@ -695,7 +696,7 @@ export const executeFlow = async ({
 
         const chatMessage = await utilAddChatMessage(apiMessage, appDataSource)
 
-        logger.debug(`[server]: Finished running ${endingNodeData.label} (${endingNodeData.id})`)
+        logger.info(`[server]: Finished running ${endingNodeData.label} (${endingNodeData.id})`)
 
         await telemetry.sendTelemetry('prediction_sent', {
             version: await getAppVersion(),
@@ -770,66 +771,74 @@ const checkIfStreamValid = async (
  * @param {boolean} isInternal
  */
 export const utilBuildChatflow = async (req: Request, isInternal: boolean = false): Promise<any> => {
+    logger.info('========= LINE 774: Start of utilBuildChatflow (from packages/server/src/utils/buildChatflow.ts) =========')
     const appServer = getRunningExpressApp()
-    //console.log('app headers', req.headers)
-    // Extract application ID, organization ID, and user ID from headers or body. It may be present in the body or the headers, but past this point we will have validated that they are present and valid in the body.
-    let appId =''
+
+    //log the request body
+    logger.info(`'current req.body', ${JSON.stringify(req.body)}`)
+    logger.info(`'current req.headers', ${JSON.stringify(req.headers)}`)
+
+
+    //We expect that appId, orgId, and userId are present in the request body. If not, we will log an error and throw an error
+
+    //REMODL: We initialize the variables to empty strings
+    let appId = ''
     let orgId = ''
-    let userId: string | undefined = ''
+    let userId = ''
+
+    //check to make sure appId is present, and if so log it, and set it to appId variable
     if (req.body.appId) {
         appId = req.body.appId
-    } else if (req.headers['x-application-id']) {
-        appId = req.headers['x-application-id'] as string
-        req.body.appId = appId
+        logger.info(`confirmed appId is present at start of utilBuildChatflow: ${appId}`)
     } else {
-        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Application ID is required - bitch.')
+        logger.info('appId is not present at start of utilBuildChatflow')
     }
-    console.log('========= Start of utilBuildChatflow check for appId, orgId, and userId =========')
-    if (appId !== '') {
-        console.log('we have an appId: ', appId)
-    }
+
+    //check to make sure orgId is present, and if so log it, and set it to orgId variable
     if (req.body.orgId) {
         orgId = req.body.orgId
-    } else if (req.headers['x-organization-id']) {
-        orgId = req.headers['x-organization-id'] as string
-        req.body.orgId = orgId
+        logger.info(`confirmed orgId is present at start of utilBuildChatflow: ${orgId}`)
     } else {
-        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Organization ID is required - bitch.')
+        logger.info('orgId is not present at start of utilBuildChatflow')
     }
-    if (orgId !== '') {
-        console.log('we have an orgId: ', orgId)
-    }
+
+    //check to make sure userId is present, and if so log it, and set it to userId variable
     if (req.body.userId) {
         userId = req.body.userId
-    } else if (req.headers['x-user-id']) {
-        userId = req.headers['x-user-id'] as string
-        req.body.userId = userId
+        logger.info(`confirmed userId is present at start of utilBuildChatflow: ${userId}`)
     } else {
-        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'User ID is required - bitch.')
+        logger.info('userId is not present at start of utilBuildChatflow')
     }
-    if (userId !== '') {
-        console.log('we have an userId: ', userId)
-    }
-    console.log('========= End of utilBuildChatflow check for appId, orgId, and userId =========')
+
+    logger.info(`'========= End of utilBuildChatflow check for appId, orgId, and userId (from packages/server/src/utils/buildChatflow.ts LINE 813) ========='`)
+
+
     //REMODL: This is where we get the chatflow id from the request params
     const chatflowid = req.params.id
+    logger.info(`'========= LINE 820: chatflowid', ${chatflowid} =========`)
+    logger.info(`'chatflowid', ${chatflowid}`)
+    logger.info(`'========= End of LINE 820: chatflowid', ${chatflowid} =========`)
+
+    logger.info(`'========= LINE 823: Start of utilBuildChatflow get chatflow (from packages/server/src/utils/buildChatflow.ts LINE 823) ========='`)
     //Call the main database (sqlite in dev, postgres in prod) to get the chatflow
     const chatflow = await appServer.AppDataSource.getRepository(ChatFlow).findOneBy({
         id: chatflowid
     })
+    logger.info(`'chatflow', ${JSON.stringify(chatflow)}`)
+    logger.info(`'========= End of LINE 823: utilBuildChatflow get chatflow (from packages/server/src/utils/buildChatflow.ts LINE 823) ========='`)
     //REMODL: If the chatflow is not found, throw an error
     if (!chatflow) {
         throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Chatflow ${chatflowid} not found`)
     }
     if (appId.length > 0) {
         logger.debug('appId is present at start of utilBuildChatflow', appId)
-        console.log('appId is present at start of utilBuildChatflow', appId)
+        
     }
     // If appId is provided and not 'global', verify that the chatflow belongs to the application
     if (appId && appId !== 'global') {
         try {
-            console.log('========= Start of utilBuildChatflow get flow check for application id =========')
-            logger.debug('========= Start of utilBuildChatflow get flow check for application id =========')
+            
+            logger.debug('========= Start of utilBuildChatflow get flow check for application id (from packages/server/src/utils/buildChatflow.ts LINE 835) =========')
             // Query Supabase to check if the chatflow belongs to the application
             const { data, error } = await supabase
                 .from('application_chatflows')
@@ -837,6 +846,13 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
                 .eq('application_id', appId)
                 .eq('chatflow_id', chatflowid)
                 .maybeSingle()
+
+            if (data) {
+                logger.info(`'========= LINE 851: data', ${data} =========`)
+                logger.info(`'data from supabase', ${JSON.stringify(data)}`)
+                logger.info(`'========= End of LINE 851: data', ${data} =========`)
+            }
+
 
             if (error) {
                 logger.error(`Error checking application_chatflows: ${error.message}`)
@@ -867,11 +883,21 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
     }
     //REMODL: If the chatflow is found, we can proceed with the rest of the function. Here we check if the chatflow is an agent flow
     const isAgentFlow = chatflow.type === 'MULTIAGENT'
+
+    logger.info(`'========= LINE 887: isAgentFlow', ${isAgentFlow} =========`)
+    logger.info(`'isAgentFlow', ${isAgentFlow}`)
+    logger.info(`'========= End of LINE 887: isAgentFlow', ${isAgentFlow} =========`)   
+
+
     //REMODL: We get the http protocol and baseURL from the request
     const httpProtocol = req.get('x-forwarded-proto') || req.protocol
     const baseURL = `${httpProtocol}://${req.get('host')}`
     //REMODL: We get the incoming input from the request body
     const incomingInput: IncomingInput = req.body
+
+    logger.info(`'========= LINE 897: incomingInput', ${incomingInput} =========`)
+    logger.info(`'incomingInput', ${JSON.stringify(incomingInput)}`)
+    logger.info(`'========= End of LINE 897: incomingInput'=========`)
     //REMODL: We get the chatId from the incoming input
     const chatId = incomingInput.chatId ?? incomingInput.overrideConfig?.sessionId ?? uuidv4()
     //REMODL: We get the files from the request
@@ -888,18 +914,18 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
                 throw new InternalFlowiseError(StatusCodes.UNAUTHORIZED, `Unauthorized`)
             }
         }
-
+        logger.info(`'========= LINE 905: executeData =========`)
         const executeData: IExecuteFlowParams = {
             //The incoming request body. By this time we have ensured and validated that the appId, orgId and userId are present and valid, present as req.body.appId, req.body.orgId, and req.body.userId
-            incomingInput: req.body,
+            incomingInput,
             //REMODL: We need to include our appId, orgId, and userId in the executeData object
             chatflow,
             //REMODL: We get the chatId from the incoming input. This is the chatID or sessionId from the overrideConfig in the incoming input
             chatId,
             //REMODL: We get the appId, orgId, and userId from the incoming input. We have already validated that these are present and valid
-            appId: req.body.appId,
-            orgId: req.body.orgId,
-            userId: req.body.userId,
+           appId,
+           orgId,
+           userId,  
             //REMODL: We get the baseURL from the request
             baseURL,
             //REMODL: We get the isInternal flag from the incoming input
@@ -917,6 +943,24 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
             //REMODL: We get the componentNodes from the appServer. THIS MAY BE THE PROBLEM.  Refer to @NodesPool.ts
             componentNodes: appServer.nodesPool.componentNodes
         }
+
+        //We log our executeData object, but avoid circular references
+        logger.info(`'========= LINE 947: executeData - logging safe properties =========`)
+        // Log only safe properties to avoid circular references
+        const safeExecuteData = {
+            chatflowId: executeData.chatflow.id,
+            chatflowName: executeData.chatflow.name,
+            chatId: executeData.chatId,
+            appId: executeData.appId,
+            orgId: executeData.orgId,
+            userId: executeData.userId,
+            isInternal: executeData.isInternal,
+            hasFiles: executeData.files && executeData.files.length > 0,
+            question: executeData.incomingInput.question
+        }
+        logger.info(`'executeData safe properties', ${JSON.stringify(safeExecuteData)}`)
+        logger.info(`'========= End of LINE 947: executeData safe properties =========`)
+
 
         //REMODL: We check if the process.env.MODE is QUEUE. If it is, we add the job to the queue. If not, we execute the flow immediately. We use this in production to speed up the response time.
         if (process.env.MODE === MODE.QUEUE) {
@@ -938,10 +982,11 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
             const signal = new AbortController()
             appServer.abortControllerPool.add(abortControllerId, signal)
             executeData.signal = signal
-            console.log('========= Start of utilBuildChatflow executeFlow =========')
-            
+            logger.info('========= Start of utilBuildChatflow executeFlow =========')
+            logger.info('current appId', appId || 'no appId')
+            logger.info('current executeData safe properties', JSON.stringify(safeExecuteData))
             const result = await executeFlow(executeData)
-            console.log('========= End of utilBuildChatflow executeFlow =========')
+            logger.info('========= End of utilBuildChatflow executeFlow =========')
 
             appServer.abortControllerPool.remove(abortControllerId)
             incrementSuccessMetricCounter(appServer.metricsProvider, isInternal, isAgentFlow)

@@ -530,20 +530,31 @@ const getEncryptionKey = async (): Promise<string> => {
 /**
  * Decrypt credential data
  * @param {string} encryptedData
+ * @param {ICommonObject} options
  * @returns {Promise<ICommonObject>}
  */
-export const decryptCredentialData = async (encryptedData: string): Promise<ICommonObject> => {
+export const decryptCredentialData = async (encryptedData: string, options?: ICommonObject): Promise<ICommonObject> => {
     console.log('========= Start of decryptCredentialData =========')
     console.log('encryptedData', encryptedData)
+    console.log('options', options ? JSON.stringify(options) : 'none')
     try {
         if (!encryptedData) {
             console.log('No encrypted data provided, returning empty object')
             return {}
         }
         
-        console.log(`Making API call to /api/v1/secrets/${encryptedData}`)
+        // Extract applicationId from options if available
+        const applicationId = options?.applicationId || options?.appId
+        console.log('applicationId from options:', applicationId || 'none')
+        
+        // Build the URL with applicationId as a query parameter if available
+        const url = applicationId 
+            ? `/api/v1/secrets/${encryptedData}?applicationId=${applicationId}`
+            : `/api/v1/secrets/${encryptedData}`
+        
+        console.log(`Making API call to ${url}`)
         // Call the API to get the secret from Supabase
-        const response = await axios.get(`/api/v1/secrets/${encryptedData}`)
+        const response = await axios.get(url)
         console.log('API response status:', response.status)
         console.log('API response data:', JSON.stringify(response.data))
         
@@ -571,16 +582,15 @@ export const decryptCredentialData = async (encryptedData: string): Promise<ICom
 export const getCredentialData = async (selectedCredentialId: string, options: ICommonObject): Promise<ICommonObject> => {
     console.log('========= Start of getCredentialData =========')
     console.log('selectedCredentialId', selectedCredentialId)
-    console.log('options', options)
+    console.log('options', options ? JSON.stringify(options) : 'none')
     try {
         if (!selectedCredentialId) {
             console.log('No credential ID provided, returning empty object')
             return {}
         }
 
-        console.log(`Making API call to /api/v1/secrets/${selectedCredentialId}`)
-        // Directly decrypt the credential ID (which is a Supabase secret ID)
-        const result = await decryptCredentialData(selectedCredentialId)
+        // Pass options to decryptCredentialData to include applicationId
+        const result = await decryptCredentialData(selectedCredentialId, options)
         console.log('API call result:', JSON.stringify(result))
         return result
     } catch (e) {

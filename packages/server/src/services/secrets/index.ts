@@ -68,18 +68,26 @@ export const storeSecret = async (
 /**
  * Retrieve and decrypt a secret from Supabase
  * @param id ID of the secret to retrieve
+ * @param applicationId Optional application ID to filter by
  * @returns The decrypted secret value
  */
-export const getSecret = async (id: string): Promise<any> => {
+export const getSecret = async (id: string, applicationId?: string): Promise<any> => {
     try {
-        logger.info(`Getting secret with ID: ${id}`)
+        logger.info(`Getting secret with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
         
-        // Get from Supabase
-        const { data, error } = await supabase
+        // Get from Supabase using service key
+        let query = supabase
             .from('secrets')
             .select('value, metadata')
-            .eq('id', id)
-            .single()
+            .eq('id', id);
+        
+        // If applicationId is provided and not 'global', filter by it
+        if (applicationId && applicationId !== 'global') {
+            logger.info(`Filtering secret by application ID: ${applicationId}`)
+            query = query.eq('metadata->applicationId', applicationId)
+        }
+        
+        const { data, error } = await query.maybeSingle()
         
         if (error) {
             logger.error(`Error retrieving secret from Supabase: ${error.message}`)
@@ -87,8 +95,8 @@ export const getSecret = async (id: string): Promise<any> => {
         }
         
         if (!data) {
-            logger.error(`Secret not found with ID: ${id}`)
-            throw new Error(`Secret not found with ID: ${id}`)
+            logger.error(`Secret not found with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
+            throw new Error(`Secret not found with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
         }
         
         logger.info(`Retrieved secret from Supabase with metadata: ${JSON.stringify(data.metadata)}`)

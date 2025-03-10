@@ -18,7 +18,7 @@ export class ChatAnthropic extends LangchainChatAnthropic implements IVisionChat
         this.configuredModel = fields?.modelName || ''
         this.configuredMaxToken = fields?.maxTokens ?? 2048
     }
-
+    
     revertToOriginalModel(): void {
         this.modelName = this.configuredModel
         this.maxTokens = this.configuredMaxToken

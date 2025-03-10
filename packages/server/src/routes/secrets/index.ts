@@ -13,6 +13,7 @@ const router = express.Router()
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params
+        const { applicationId } = req.query
 
         if (!id) {
             return res.status(StatusCodes.BAD_REQUEST).json({
@@ -21,8 +22,8 @@ router.get('/:id', async (req, res) => {
             })
         }
 
-        // Get the secret from Supabase
-        const data = await getSecret(id)
+        // Get the secret from Supabase, passing the applicationId if provided
+        const data = await getSecret(id, applicationId as string)
 
         return res.status(StatusCodes.OK).json({
             success: true,

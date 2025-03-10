@@ -9,12 +9,12 @@ import { StatusCodes } from 'http-status-codes'
 import logger from '../../utils/logger'
 // Send input message and get prediction result (Internal)
 const createInternalPrediction = async (req: Request, res: Response, next: NextFunction) => {
-    console.log('intial req body INTERNAL PREDICTION', req.body)
-    logger.debug('intial req body INTERNAL PREDICTION', req.body)
-
-    console.log('appId INTERNAL PREDICTION', req.body.appId)
-    logger.debug('appId INTERNAL PREDICTION', req.body.appId)
-
+    logger.info('========= Start of createInternalPrediction beginning (from packages/server/src/controllers/internal-predictions/index.ts)=========')
+    logger.info(`'intial req body INTERNAL PREDICTION', ${JSON.stringify(req.body)}`)
+    logger.info(`'appId INTERNAL PREDICTION', ${req.body.appId}`)
+   
+   
+    logger.info('========= End of createInternalPrediction beginning =========')
     try {
         if (req.body.streaming || req.body.streaming === 'true') {
             createAndStreamInternalPrediction(req, res, next)
@@ -31,12 +31,25 @@ const createInternalPrediction = async (req: Request, res: Response, next: NextF
 
 // Send input message and stream prediction result using SSE (Internal)
 const createAndStreamInternalPrediction = async (req: Request, res: Response, next: NextFunction) => {
-    
+    logger.info('========= Start of createAndStreamInternalPrediction beginning (from packages/server/src/controllers/internal-predictions/index.ts) =========')
     let chatId = req.body.chatId
+    let appId = req.body.appId
+    let orgId = req.body.orgId
+    let userId = req.body.userId
     console.log('chatId', chatId)
+    logger.info(`chatId: ${chatId}`)
+    logger.info(`appId: ${appId}`)
+    logger.info(`orgId: ${orgId}`)
+    logger.info(`userId: ${userId}`)
     //console.log('req.body', req.body)
     //console.log('request headers', req.headers)
-    
+    logger.info(`request headers: ${JSON.stringify(req.headers)}`)
+    if (appId && orgId && userId) {
+        logger.info('appId, orgId, and userId are present')
+    } else {
+        logger.info('appId, orgId, or userId is missing')
+    }
+    logger.info('========= End of createAndStreamInternalPrediction beginning =========')
     const sseStreamer = getRunningExpressApp().sseStreamer
 
     try {
@@ -53,6 +66,7 @@ const createAndStreamInternalPrediction = async (req: Request, res: Response, ne
             getRunningExpressApp().redisSubscriber.subscribe(chatId)
         }
         //we're passing in our appId, orgId, and userId to the utilBuildChatflow function
+        logger.info('========= Start of createAndStreamInternalPrediction utilBuildChatflow - passing in appId, orgId, and userId (from packages/server/src/controllers/internal-predictions/index.ts)=========')
         const apiResponse = await utilBuildChatflow(req, true)
         sseStreamer.streamMetadataEvent(apiResponse.chatId, apiResponse)
     } catch (error) {

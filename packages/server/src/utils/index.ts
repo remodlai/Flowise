@@ -493,24 +493,22 @@ export const buildFlow = async ({
     orgId,
     userId
 }: BuildFlowParams) => {
-    logger.debug('========= Start of buildFlow =========')
-    logger.debug('appId', appId)
-    logger.debug('orgId', orgId)
-    logger.debug('userId', userId)
-    console.log('========= Start of buildFlow =========')
-    console.log('appId', appId)
-    console.log('orgId', orgId)
-    console.log('userId', userId)
-    logger.debug('startingNodeIds', startingNodeIds)
-    console.log('startingNodeIds', startingNodeIds)
-    logger.debug('reactFlowNodes', reactFlowNodes)
-    console.log('reactFlowNodes', reactFlowNodes)
-    logger.debug('reactFlowEdges', reactFlowEdges)
-    console.log('reactFlowEdges', reactFlowEdges)
-    logger.debug('graph', graph)
-    console.log('graph', graph)
-    logger.debug('depthQueue', depthQueue)
-    console.log('depthQueue', depthQueue)
+    
+    logger.debug('========= Start of buildFlow (file: packages/server/src/utils/index.ts LINE: 497) =========')
+    if (appId) {
+        logger.debug(`'appId', ${appId}`)
+    }
+    if (orgId) {
+        logger.debug(`'orgId', ${orgId}`)
+    }
+    if (userId) {
+        logger.debug(`'userId', ${userId}`)
+    }
+    logger.debug(`'startingNodeIds', ${JSON.stringify(startingNodeIds)} `)
+    logger.debug(`'reactFlowNodes', ${JSON.stringify(reactFlowNodes)}`)
+    logger.debug(`'reactFlowEdges', ${JSON.stringify(reactFlowEdges)}`)
+    logger.debug(`'graph', ${JSON.stringify(graph)}`)
+    logger.debug(`'depthQueue', ${JSON.stringify(depthQueue)}`)
     logger.debug('========= End of buildFlow =========')
     
     const flowNodes = cloneDeep(reactFlowNodes)
@@ -532,12 +530,11 @@ export const buildFlow = async ({
     }
 
     const initializedNodes: Set<string> = new Set()
-    console.log('========= Start of buildFlow initializedNodes =========')
-    logger.debug('========= Start of buildFlow initializedNodes =========')
-    logger.debug('initializedNodes', initializedNodes)
-    console.log('initializedNodes', initializedNodes)
-    logger.debug('========= End of buildFlow initializedNodes =========')
-    console.log('========= End of buildFlow initializedNodes =========')
+    
+    logger.debug('========= Start of buildFlow initializedNodes (file: packages/server/src/utils/index.ts LINE: 500) =========')
+    logger.debug(`'initializedNodes', ${JSON.stringify(initializedNodes)}`)
+    logger.debug('========= End of buildFlow initializedNodes (file: packages/server/src/utils/index.ts LINE: 500) =========')
+    
     const reversedGraph = constructGraphs(reactFlowNodes, reactFlowEdges, { isReversed: true }).graph
 
     const flowData: ICommonObject = {
@@ -560,17 +557,22 @@ export const buildFlow = async ({
 
         try {
             const nodeInstanceFilePath = componentNodes[reactFlowNode.data.name].filePath as string
-            const nodeModule = await import(nodeInstanceFilePath)
-            const newNodeInstance = new nodeModule.nodeClass()
 
+
+            logger.debug(`++++++++++++${nodeInstanceFilePath}++++++++++++`)
+
+            logger.debug(`nodeInstanceFilePath for ${reactFlowNode.data.name}, ${nodeInstanceFilePath}`)
+
+            const nodeModule = await import(nodeInstanceFilePath)
+            logger.debug(`nodeModule`, JSON.stringify(nodeModule))
+            
+            const newNodeInstance = new nodeModule.nodeClass()
+            logger.debug(`========= Start of flowNodeData for ${reactFlowNode.data.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 562 =========`)
+           
             let flowNodeData = cloneDeep(reactFlowNode.data)
             //REMODL: Logging for each flowNodeData
-            logger.debug('========= Start of flowNodeData for ${reactFlowNode.data.name} =========')
-            console.log('========= Start of flowNodeData for ${reactFlowNode.data.name} =========')
-            logger.debug('flowNodeData', flowNodeData)
-            console.log('flowNodeData', flowNodeData)
-            logger.debug('========= End of flowNodeData for ${reactFlowNode.data.name} =========')
-            console.log('========= End of flowNodeData for ${reactFlowNode.data.name} =========')
+            logger.debug(`'flowNodeData', ${JSON.stringify(flowNodeData)}`)
+            logger.debug(`========= End of flowNodeData for ${reactFlowNode.data.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 562 =========`)
             // Only override the config if its status is true
             if (overrideConfig && apiOverrideStatus) {
                 flowNodeData = replaceInputsWithConfig(flowNodeData, overrideConfig, nodeOverrides, variableOverrides)
@@ -603,7 +605,10 @@ export const buildFlow = async ({
                     cachePool,
                     dynamicVariables,
                     uploads,
-                    baseURL
+                    baseURL,
+                    appId,
+                    orgId,
+                    userId
                 })
                 if (indexResult) upsertHistory['result'] = indexResult
                 logger.debug(`[server]: Finished upserting ${reactFlowNode.data.label} (${reactFlowNode.data.id})`)
@@ -615,7 +620,6 @@ export const buildFlow = async ({
             ) {
                 initializedNodes.add(nodeId)
             } else {
-                logger.debug(`[server]: Initializing ${reactFlowNode.data.label} (${reactFlowNode.data.id})`)
                 const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
                 let outputResult = await newNodeInstance.init(reactFlowNodeData, finalQuestion, {
                     chatId,
@@ -1009,10 +1013,19 @@ export const resolveVariables = async (
     variableOverrides: ICommonObject[] = []
 ): Promise<INodeData> => {
     let flowNodeData = cloneDeep(reactFlowNodeData)
+    logger.debug(`========= Start of resolveVariables start of resolveVariables for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1009 =========`)
+    logger.debug(JSON.stringify(flowNodeData))
+    logger.debug(`========= End of resolveVariables end of resolveVariables for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1009 =========`)
     const types = 'inputs'
 
     const getParamValues = async (paramsObj: ICommonObject) => {
+        logger.debug(`========= Start of getParamValues start of getParamValues for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
+        logger.debug(JSON.stringify(paramsObj))
+        logger.debug(`========= End of getParamValues end of getParamValues for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
         for (const key in paramsObj) {
+            logger.debug(`========= Start of getParamValues for ${key} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
+            logger.debug(JSON.stringify(paramsObj[key]))
+            logger.debug(`========= End of getParamValues for ${key} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
             const paramValue: string = paramsObj[key]
             if (Array.isArray(paramValue)) {
                 const resolvedInstances = []
