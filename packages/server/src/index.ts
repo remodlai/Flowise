@@ -169,6 +169,10 @@ export class App {
         // Add the sanitizeMiddleware to guard against XSS
         this.app.use(sanitizeMiddleware)
 
+        // Add a special route for secrets that bypasses authentication
+        const secretsRouter = require('./routes/secrets').default
+        this.app.use('/api/v1/secrets', secretsRouter)
+
         // Use API key authentication middleware first
         this.app.use('/api/v1', authenticateApiKey)
 

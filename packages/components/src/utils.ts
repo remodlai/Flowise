@@ -538,28 +538,15 @@ export const decryptCredentialData = async (encryptedData: string): Promise<ICom
             return {}
         }
         
-        // If it looks like a UUID, it's a Supabase secret ID
-        if (encryptedData.length === 36 && encryptedData.includes('-')) {
-            try {
-                const response = await axios.get(`/api/v1/secrets/${encryptedData}`)
-                if (response.data && response.data.data) {
-                    return response.data.data
-                }
-            } catch (error) {
-                // If API call fails, try local decryption
-            }
+        // Call the API to get the secret from Supabase
+        const response = await axios.get(`/api/v1/secrets/${encryptedData}`)
+        if (response.data && response.data.data) {
+            return response.data.data
         }
         
-        // Fallback to local decryption (for legacy credentials)
-        const encryptKey = await getEncryptionKey()
-        const decryptedData = AES.decrypt(encryptedData, encryptKey)
-        const decryptedDataStr = decryptedData.toString(enc.Utf8)
-        
-        if (!decryptedDataStr) return {}
-        
-        return JSON.parse(decryptedDataStr)
+        return {}
     } catch (error) {
-        console.error('Error decrypting credential data:', error)
+        console.error('Error getting secret:', error)
         return {}
     }
 }
