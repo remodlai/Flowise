@@ -176,11 +176,11 @@ export class PlatformController {
             console.error('Supabase URL or key not configured')
             return null
         }
-
+        //REMODL TODO: IS this part of our token refresh problem?
         return createClient(supabaseUrl, supabaseKey, {
             auth: {
-                persistSession: false,
-                autoRefreshToken: false
+                persistSession: true,
+                autoRefreshToken: true
             },
             global: {
                 headers: {
