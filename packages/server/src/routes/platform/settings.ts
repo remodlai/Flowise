@@ -11,8 +11,8 @@ import { StatusCodes } from 'http-status-codes'
 export const getAllPlatformSettings = async (req: Request, res: Response) => {
     try {
         console.log('Getting all platform settings...')
-        console.log('Request headers:', req.headers)
-        console.log('Request user:', req.user)
+        //console.log('Request headers:', req.headers)
+        //console.log('Request user:', req.user)
         
         const { data, error } = await supabase
             .from('platform_settings')

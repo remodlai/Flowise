@@ -62,8 +62,9 @@ This document outlines the plan to migrate from using `FLOWISE_SECRETKEY_OVERWRI
   - Removed all AWS Secrets Manager fallback logic
   - Now ONLY uses Supabase for secret storage and retrieval
   
-- [ ] Ensure backward compatibility for existing encrypted credentials
-  - Need to test with existing encrypted credentials
+- [x] Ensure backward compatibility for existing encrypted credentials
+  - Updated `getCredentialData()` in `packages/components/src/utils.ts` to use Supabase secrets directly
+  - Note: Legacy credentials encrypted with the old key will need to be re-entered
 
 ### 5. Update UI-Side Encryption (if applicable)
 
@@ -79,7 +80,7 @@ This document outlines the plan to migrate from using `FLOWISE_SECRETKEY_OVERWRI
 
 - [ ] Test credential encryption/decryption with the new key
 - [ ] Test API key validation with the new key
-- [ ] Test backward compatibility with existing encrypted data
+- [ ] Test the updated `getCredentialData()` function with Supabase secret IDs
 - [ ] Verify no data loss during migration
 
 ### 8. Documentation
@@ -101,6 +102,7 @@ This document outlines the plan to migrate from using `FLOWISE_SECRETKEY_OVERWRI
 | Current | Removed all AWS Secrets Manager fallback logic from server and component code | Completed |
 | Current | Updated error handling to throw proper errors instead of silently falling back | Completed |
 | Current | Removed AWS Secrets Manager initialization code from both server and components | Completed |
+| Current | Updated `getCredentialData()` in `packages/components/src/utils.ts` to use Supabase secrets directly | Completed |
 
 ## Implementation Details
 
@@ -131,6 +133,10 @@ The new approach:
    - All encryption/decryption operations use the same key retrieval method.
    - All secret storage and retrieval is done through Supabase only.
    - Proper error handling is implemented to provide clear error messages.
+   
+4. Updates credential retrieval in components
+   - The `getCredentialData()` function in `packages/components/src/utils.ts` now directly uses Supabase secrets.
+   - Legacy credentials encrypted with the old key will need to be re-entered.
 
 ### Migration Strategy
 

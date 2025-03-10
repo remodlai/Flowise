@@ -82,13 +82,20 @@ export const AsyncDropdown = ({
                 names = credentialNames[0]
             }
             
+            console.log('Fetching credentials for names:', names)
+            console.log('Credential names array:', credentialNames)
+            
             // Get the application ID from localStorage
             const applicationId = localStorage.getItem('selectedApplicationId')
-            console.log('applicationId', applicationId)
+            console.log('Application ID from localStorage:', applicationId)
+            
             // Pass the application ID to the API call
+            console.log('Making API call to get credentials')
             const resp = await credentialsApi.getCredentialsByName(names, applicationId)
+            console.log('API response:', resp)
             
             if (resp.data) {
+                console.log('Received credentials data:', resp.data)
                 const returnList = []
                 for (let i = 0; i < resp.data.length; i += 1) {
                     const data = {
@@ -97,11 +104,15 @@ export const AsyncDropdown = ({
                     }
                     returnList.push(data)
                 }
+                console.log('Returning credential list:', returnList)
                 return returnList
+            } else {
+                console.warn('No credentials data received from API')
             }
         } catch (error) {
-            console.error(error)
+            console.error('Error fetching credentials:', error)
         }
+        console.warn('Returning empty credential list')
         return []
     }
 

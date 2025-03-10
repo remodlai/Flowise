@@ -56,6 +56,7 @@ import { DocumentStore } from '../database/entities/DocumentStore'
 import { DocumentStoreFileChunk } from '../database/entities/DocumentStoreFileChunk'
 import { InternalFlowiseError } from '../errors/internalFlowiseError'
 import { StatusCodes } from 'http-status-codes'
+import { getErrorMessage } from '../errors/utils'
 
 const QUESTION_VAR_PREFIX = 'question'
 const FILE_ATTACHMENT_PREFIX = 'file_attachment'
@@ -1217,6 +1218,7 @@ export const isSameChatId = (existingChatId?: string, newChatId?: string): boole
  * @returns {IOverrideConfig[]}
  */
 export const findAvailableConfigs = (reactFlowNodes: IReactFlowNode[], componentCredentials: IComponentCredentials) => {
+    
     const configs: IOverrideConfig[] = []
 
     for (const flowNode of reactFlowNodes) {
@@ -1247,6 +1249,9 @@ export const findAvailableConfigs = (reactFlowNodes: IReactFlowNode[], component
             } else if (inputParam.type === 'credential') {
                 // get component credential inputs
                 for (const name of inputParam.credentialNames ?? []) {
+                    console.log('========= Start of findAvailableConfigs for credential =========')
+                    console.log('name', name)
+                    console.log('componentCredentials', componentCredentials)
                     if (Object.prototype.hasOwnProperty.call(componentCredentials, name)) {
                         const inputs = componentCredentials[name]?.inputs ?? []
                         for (const input of inputs) {
@@ -1425,43 +1430,63 @@ export const decryptCredentialData = async (
     componentCredentials?: IComponentCredentials
 ): Promise<ICredentialDataDecrypted> => {
     try {
+        logger.info(`Decrypting credential data: ${encryptedData}`)
+        logger.info(`Component credential name: ${componentCredentialName}`)
+        
         // Check if this is a UUID (Supabase secret ID)
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
         if (uuidRegex.test(encryptedData)) {
+            logger.info(`Credential data is a UUID, getting from Supabase: ${encryptedData}`)
+            
             // Import the secrets service
             const { getSecret } = await import('../services/secrets')
             
-            // Get from Supabase using the secrets service
-            const plainDataObj = await getSecret(encryptedData)
-            
-            if (componentCredentialName && componentCredentials) {
-                return redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
+            try {
+                // Get from Supabase using the secrets service
+                const plainDataObj = await getSecret(encryptedData)
+                logger.info(`Successfully retrieved secret from Supabase: ${JSON.stringify(plainDataObj)}`)
+                
+                if (componentCredentialName && componentCredentials) {
+                    logger.info(`Redacting credential with password type for ${componentCredentialName}`)
+                    return redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
+                }
+                
+                return plainDataObj
+            } catch (secretError) {
+                logger.error(`Error getting secret from Supabase: ${getErrorMessage(secretError)}`)
+                throw secretError
             }
-            
-            return plainDataObj
         }
+        
+        logger.info(`Credential data is not a UUID, decrypting using encryption key`)
         
         // For legacy encrypted data, decrypt using the encryption key from platform settings
         const encryptKey = await getEncryptionKey()
+        logger.info(`Got encryption key, decrypting data`)
+        
         const decryptedData = AES.decrypt(encryptedData, encryptKey)
         const decryptedDataStr = decryptedData.toString(enc.Utf8)
         
         if (!decryptedDataStr) {
-            throw new Error('Failed to decrypt credential data')
+            logger.error(`Failed to decrypt credential data: empty decrypted string`)
+            throw new Error('Failed to decrypt credential data: empty decrypted string')
         }
         
+        logger.info(`Successfully decrypted data, parsing JSON`)
         const plainDataObj = JSON.parse(decryptedDataStr)
+        logger.info(`Parsed JSON: ${JSON.stringify(plainDataObj)}`)
         
         if (componentCredentialName && componentCredentials) {
+            logger.info(`Redacting credential with password type for ${componentCredentialName}`)
             return redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
         }
         
         return plainDataObj
     } catch (error) {
-        logger.error(`Error decrypting credential data: ${error}`)
+        logger.error(`Error decrypting credential data: ${getErrorMessage(error)}`)
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,
-            'Failed to decrypt credential data. Please ensure the ENCRYPTION_KEY is set in platform settings.'
+            `Failed to decrypt credential data: ${getErrorMessage(error)}. Please ensure the ENCRYPTION_KEY is set in platform settings.`
         )
     }
 }

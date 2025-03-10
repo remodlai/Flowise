@@ -29,8 +29,8 @@ const createAndStreamInternalPrediction = async (req: Request, res: Response, ne
     
     let chatId = req.body.chatId
     console.log('chatId', chatId)
-    console.log('req.body', req.body)
-    console.log('request headers', req.headers)
+    //console.log('req.body', req.body)
+    //console.log('request headers', req.headers)
     
     const sseStreamer = getRunningExpressApp().sseStreamer
 

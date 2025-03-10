@@ -8,8 +8,19 @@ const getCredentialsByName = (componentCredentialName, applicationId) => {
     if (applicationId && applicationId !== 'global') {
         url += `&applicationId=${applicationId}`
     }
-    console.log('url', url)
+    console.log('Credentials API URL:', url)
+    console.log('Component credential name:', componentCredentialName)
+    console.log('Application ID:', applicationId)
+    
     return client.get(url)
+        .then(response => {
+            console.log('Credentials API response:', response)
+            return response
+        })
+        .catch(error => {
+            console.error('Credentials API error:', error)
+            throw error
+        })
 }
 
 const getAllComponentsCredentials = () => client.get('/components-credentials')

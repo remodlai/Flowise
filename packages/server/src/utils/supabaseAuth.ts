@@ -40,7 +40,7 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
     try {
       decodedJwt = jwt.decode(token)
       console.log('========== DECODED JWT ==========')
-      console.log(JSON.stringify(decodedJwt, null, 2))
+     // console.log(JSON.stringify(decodedJwt, null, 2))
       console.log('=================================')
     } catch (jwtError) {
       console.error('Error decoding JWT:', jwtError)

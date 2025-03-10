@@ -238,6 +238,7 @@ export const executeFlow = async ({
     files,
     signal
 }: IExecuteFlowParams) => {
+    console.log('========= Start of executeFlow =========')
     const question = incomingInput.question
     const overrideConfig = incomingInput.overrideConfig ?? {}
     const uploads = incomingInput.uploads
@@ -248,6 +249,10 @@ export const executeFlow = async ({
     const appId = incomingInput.appId
     const orgId = incomingInput.orgId
     const userId = incomingInput.userId
+
+    console.log('executeFlow appId: ', appId)
+    console.log('executeFlow orgId: ', orgId)
+    console.log('executeFlow userId: ', userId)
     /* Process file uploads from the chat
      * - Images
      * - Files
@@ -755,30 +760,48 @@ const checkIfStreamValid = async (
  */
 export const utilBuildChatflow = async (req: Request, isInternal: boolean = false): Promise<any> => {
     const appServer = getRunningExpressApp()
-    console.log('app headers', req.headers)
+    //console.log('app headers', req.headers)
     // Extract application ID, organization ID, and user ID from headers or body
-    let appId = req.headers['x-application-id'] || req.body.appId
-    let orgId = req.headers['x-organization-id'] || req.body.orgId
-    let userId = req.headers['x-user-id'] || req.body.userId
-    
-    // Check if required values are present
-    if (!appId) {
+    let appId =''
+    let orgId = ''
+    let userId: string | undefined = ''
+    if (req.body.appId) {
+        appId = req.body.appId
+    } else if (req.headers['x-application-id']) {
+        appId = req.headers['x-application-id'] as string
+        req.body.appId = appId
+    } else {
         throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Application ID is required - bitch.')
     }
-    if (!orgId) {
-        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Organization ID is required')
+    console.log('========= Start of utilBuildChatflow check for appId, orgId, and userId =========')
+    if (appId !== '') {
+        console.log('we have an appId: ', appId)
     }
-    if (!userId) {
-        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'User ID is required')
+    if (req.body.orgId) {
+        orgId = req.body.orgId
+    } else if (req.headers['x-organization-id']) {
+        orgId = req.headers['x-organization-id'] as string
+        req.body.orgId = orgId
+    } else {
+        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'Organization ID is required - bitch.')
     }
-    
-    // Ensure these values are set in the request body for downstream processes
-    req.body.appId = appId as string
-    req.body.orgId = orgId as string
-    req.body.userId = userId as string
-    
-    const chatflowid = req.params.id
+    if (orgId !== '') {
+        console.log('we have an orgId: ', orgId)
+    }
+    if (req.body.userId) {
+        userId = req.body.userId
+    } else if (req.headers['x-user-id']) {
+        userId = req.headers['x-user-id'] as string
+        req.body.userId = userId
+    } else {
+        throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, 'User ID is required - bitch.')
+    }
+    if (userId !== '') {
+        console.log('we have an userId: ', userId)
+    }
+    console.log('========= End of utilBuildChatflow check for appId, orgId, and userId =========')
 
+    const chatflowid = req.params.id
     // Check if chatflow exists
     const chatflow = await appServer.AppDataSource.getRepository(ChatFlow).findOneBy({
         id: chatflowid

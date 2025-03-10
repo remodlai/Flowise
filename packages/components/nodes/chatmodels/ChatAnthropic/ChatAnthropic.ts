@@ -115,8 +115,11 @@ class ChatAnthropic_ChatModels implements INode {
         const streaming = nodeData.inputs?.streaming as boolean
         const cache = nodeData.inputs?.cache as BaseCache
 
+        //REMODL TODO: refactor this to use our supabase db credentials table
         const credentialData = await getCredentialData(nodeData.credential ?? '', options)
+        console.log(credentialData ? `'Credential data found' ${JSON.stringify(credentialData)}`: 'No credential data found')
         const anthropicApiKey = getCredentialParam('anthropicApiKey', credentialData, nodeData)
+        console.log(anthropicApiKey ? `'Anthropic API key found' ${anthropicApiKey}` : 'No anthropic API key found')
 
         const allowImageUploads = nodeData.inputs?.allowImageUploads as boolean
 

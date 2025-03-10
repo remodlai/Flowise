@@ -72,23 +72,52 @@ export const storeSecret = async (
  */
 export const getSecret = async (id: string): Promise<any> => {
     try {
+        logger.info(`Getting secret with ID: ${id}`)
+        
         // Get from Supabase
         const { data, error } = await supabase
             .from('secrets')
-            .select('value')
+            .select('value, metadata')
             .eq('id', id)
             .single()
         
-        if (error) throw error
-        if (!data) throw new Error('Secret not found')
+        if (error) {
+            logger.error(`Error retrieving secret from Supabase: ${error.message}`)
+            throw error
+        }
+        
+        if (!data) {
+            logger.error(`Secret not found with ID: ${id}`)
+            throw new Error(`Secret not found with ID: ${id}`)
+        }
+        
+        logger.info(`Retrieved secret from Supabase with metadata: ${JSON.stringify(data.metadata)}`)
         
         // Decrypt the value
+        logger.info(`Getting master encryption key`)
         const masterKey = await getMasterEncryptionKey()
-        const decryptedBytes = AES.decrypt(data.value, masterKey)
-        const decryptedValue = decryptedBytes.toString(enc.Utf8)
+        logger.info(`Got master encryption key, decrypting value`)
         
-        return JSON.parse(decryptedValue)
+        try {
+            const decryptedBytes = AES.decrypt(data.value, masterKey)
+            const decryptedValue = decryptedBytes.toString(enc.Utf8)
+            
+            if (!decryptedValue) {
+                logger.error(`Failed to decrypt secret value: empty decrypted string`)
+                throw new Error('Failed to decrypt secret value: empty decrypted string')
+            }
+            
+            logger.info(`Successfully decrypted secret value, parsing JSON`)
+            const parsedValue = JSON.parse(decryptedValue)
+            logger.info(`Parsed secret value: ${JSON.stringify(parsedValue)}`)
+            
+            return parsedValue
+        } catch (decryptError) {
+            logger.error(`Error decrypting secret value: ${getErrorMessage(decryptError)}`)
+            throw new Error(`Error decrypting secret value: ${getErrorMessage(decryptError)}`)
+        }
     } catch (error) {
+        logger.error(`Error retrieving secret: ${getErrorMessage(error)}`)
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error retrieving secret: ${getErrorMessage(error)}`
@@ -121,7 +150,7 @@ export const getSecretByKeyId = async (keyId: string, applicationId?: string): P
         
         if (error) throw error
         if (!data || data.length === 0) {
-            console.warn(`No secret found with key ID: ${keyId}${applicationId && applicationId !== 'global' ? ` and application ID: ${applicationId}` : ''}`)
+           // console.warn(`No secret found with key ID: ${keyId}${applicationId && applicationId !== 'global' ? ` and application ID: ${applicationId}` : ''}`)
             return null
         }
         

@@ -1,23 +1,30 @@
 import { omit } from 'lodash'
 import { StatusCodes } from 'http-status-codes'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
-import { Credential } from '../../database/entities/Credential'
-import { transformToCredentialEntity, decryptCredentialData } from '../../utils'
 import { ICredentialReturnResponse } from '../../Interface'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'
 import logger from '../../utils/logger'
+import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
+import { decryptCredentialData } from '../../utils'
+import { storeSecret, getSecret, updateSecret, deleteSecret, listSecrets } from '../secrets'
+import { supabase } from '../../utils/supabase'
 
 const createCredential = async (requestBody: any, req?: any) => {
     try {
-        const appServer = getRunningExpressApp()
-        const newCredential = await transformToCredentialEntity(requestBody)
-        //REMODL TODO: refactor this to use our supabase db credentials table
-        const credential = await appServer.AppDataSource.getRepository(Credential).create(newCredential)
-        const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
-        
         // Get application ID from request or body
         const applicationId = requestBody.applicationId || getApplicationIdFromRequest(req)
+        
+        // Store credential in Supabase secrets table
+        const credentialId = await storeSecret(
+            requestBody.name,
+            'credential',
+            requestBody.plainDataObj || {},
+            {
+                credentialName: requestBody.credentialName,
+                applicationId: applicationId || null,
+                createdAt: new Date().toISOString()
+            }
+        )
         
         // Associate credential with application if applicationId is provided
         if (applicationId) {
@@ -25,7 +32,7 @@ const createCredential = async (requestBody: any, req?: any) => {
                 // Dynamically import applicationcredentials service to avoid circular dependencies
                 const applicationcredentials = await import('../applicationcredentials')
                 await applicationcredentials.associateCredentialWithApplication(
-                    dbResponse.id,
+                    credentialId,
                     applicationId
                 )
             } catch (error) {
@@ -39,7 +46,7 @@ const createCredential = async (requestBody: any, req?: any) => {
                 const defaultAppId = await applicationcredentials.getDefaultApplicationId()
                 if (defaultAppId) {
                     await applicationcredentials.associateCredentialWithApplication(
-                        dbResponse.id,
+                        credentialId,
                         defaultAppId
                     )
                 }
@@ -49,7 +56,15 @@ const createCredential = async (requestBody: any, req?: any) => {
             }
         }
         
-        return dbResponse
+        // Return the created credential
+        return {
+            id: credentialId,
+            name: requestBody.name,
+            credentialName: requestBody.credentialName,
+            encryptedData: credentialId, // Store the secret ID as the encryptedData
+            updatedDate: new Date(),
+            createdDate: new Date()
+        }
     } catch (error) {
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,
@@ -58,11 +73,9 @@ const createCredential = async (requestBody: any, req?: any) => {
     }
 }
 
-// Delete all credentials from chatflowid
+// Delete credential by ID
 const deleteCredentials = async (credentialId: string, req?: any): Promise<any> => {
     try {
-        const appServer = getRunningExpressApp()
-        
         // Get application ID from request
         const applicationId = getApplicationIdFromRequest(req)
         
@@ -86,11 +99,9 @@ const deleteCredentials = async (credentialId: string, req?: any): Promise<any> 
                 // Continue even if verification fails
             }
         }
-        //REMODL TODO: refactor this to use our supabase db credentials table
-        const dbResponse = await appServer.AppDataSource.getRepository(Credential).delete({ id: credentialId })
-        if (!dbResponse) {
-            throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Credential ${credentialId} not found`)
-        }
+        
+        // Delete the credential from Supabase
+        await deleteSecret(credentialId)
         
         // Remove credential association from application
         try {
@@ -101,7 +112,11 @@ const deleteCredentials = async (credentialId: string, req?: any): Promise<any> 
             // Continue even if association removal fails - the credential is still deleted
         }
         
-        return dbResponse
+        // Return a response that matches the original format
+        return {
+            affected: 1,
+            raw: []
+        }
     } catch (error) {
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,
@@ -140,52 +155,67 @@ const getApplicationIdFromRequest = (req?: any, paramCredentialName?: any): stri
     
     return undefined
 }
-//REMODL TODO: refactor this to use our supabase db credentials table
+
 const getAllCredentials = async (paramCredentialName: any, req?: any) => {
     try {
-        const appServer = getRunningExpressApp()
-        let dbResponse = []
-        if (paramCredentialName) {
-            if (Array.isArray(paramCredentialName)) {
-                for (let i = 0; i < paramCredentialName.length; i += 1) {
-                    const name = paramCredentialName[i] as string
-                    const credentials = await appServer.AppDataSource.getRepository(Credential).findBy({
-                        credentialName: name
-                    })
-                    dbResponse.push(...credentials)
-                }
-            } else {
-                const credentials = await appServer.AppDataSource.getRepository(Credential).findBy({
-                    credentialName: paramCredentialName as string
-                })
-                dbResponse = [...credentials]
-            }
-        } else {
-            const credentials = await appServer.AppDataSource.getRepository(Credential).find()
-            for (const credential of credentials) {
-                dbResponse.push(omit(credential, ['encryptedData']))
-            }
-        }
-
-        // Get application ID from request using the helper function
+        logger.info(`Getting all credentials. Param credential name: ${paramCredentialName}`)
+        logger.info(`Request headers: ${JSON.stringify(req?.headers)}`)
+        logger.info(`Request query: ${JSON.stringify(req?.query)}`)
+        
+        // Get all credentials from Supabase
+        const credentials = await listSecrets('credential')
+        logger.info(`Found ${credentials.length} total credentials in Supabase`)
+        
+        // Get application ID from request
         const applicationId = getApplicationIdFromRequest(req, paramCredentialName)
+        logger.info(`Application ID from request: ${applicationId}`)
+        
+        // Filter credentials by name if provided
+        let filteredCredentials = credentials
+        if (paramCredentialName) {
+            logger.info(`Filtering credentials by name: ${paramCredentialName}`)
+            if (Array.isArray(paramCredentialName)) {
+                filteredCredentials = credentials.filter(cred => 
+                    paramCredentialName.includes(cred.metadata?.credentialName)
+                )
+            } else {
+                filteredCredentials = credentials.filter(cred => 
+                    cred.metadata?.credentialName === paramCredentialName
+                )
+            }
+            logger.info(`After filtering by name, found ${filteredCredentials.length} credentials`)
+        }
         
         // Filter credentials by application if an applicationId is available
         if (applicationId) {
             try {
-                logger.debug(`Filtering credentials by application ID: ${applicationId}`)
+                logger.info(`Filtering credentials by application ID: ${applicationId}`)
                 const applicationcredentials = await import('../applicationcredentials')
                 const credentialIds = await applicationcredentials.getCredentialIdsForApplication(applicationId)
+                logger.info(`Found ${credentialIds.length} credential IDs for application ${applicationId}: ${JSON.stringify(credentialIds)}`)
                 
                 // Filter credentials by IDs from application_credentials
-                return dbResponse.filter(cred => credentialIds.includes(cred.id))
+                filteredCredentials = filteredCredentials.filter(cred => credentialIds.includes(cred.id))
+                logger.info(`After filtering by application, found ${filteredCredentials.length} credentials`)
             } catch (error) {
                 logger.error(`Error filtering credentials by application: ${getErrorMessage(error)}`)
                 // Return all credentials if filtering fails
             }
         }
-
-        return dbResponse
+        
+        // Format the response to match the original format
+        const formattedCredentials = filteredCredentials.map(cred => ({
+            id: cred.id,
+            name: cred.name,
+            credentialName: cred.metadata?.credentialName,
+            applicationId: cred.metadata?.applicationId || null,
+            encryptedData: cred.id, // Store the secret ID as the encryptedData
+            updatedDate: new Date(cred.metadata?.updatedAt || Date.now()),
+            createdDate: new Date(cred.metadata?.createdAt || Date.now())
+        }))
+        
+        logger.info(`Returning ${formattedCredentials.length} credentials`)
+        return formattedCredentials
     } catch (error) {
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,
@@ -193,11 +223,9 @@ const getAllCredentials = async (paramCredentialName: any, req?: any) => {
         )
     }
 }
-//REMODL TODO: refactor this to use our supabase db credentials table
+
 const getCredentialById = async (credentialId: string, req?: any): Promise<any> => {
     try {
-        const appServer = getRunningExpressApp()
-        
         // Get application ID from request
         const applicationId = getApplicationIdFromRequest(req)
         
@@ -222,40 +250,53 @@ const getCredentialById = async (credentialId: string, req?: any): Promise<any> 
             }
         }
         
-        const credential = await appServer.AppDataSource.getRepository(Credential).findOneBy({
-            id: credentialId
-        })
-        if (!credential) {
-            throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Credential ${credentialId} not found`)
-        }
-
-        // Decrpyt credentialData
-        const decryptedCredentialData = await decryptCredentialData(
-            credential.encryptedData,
-            credential.credentialName,
-            appServer.nodesPool.componentCredentials
-        )
-        const returnCredential: ICredentialReturnResponse = {
-            ...credential,
-            plainDataObj: decryptedCredentialData
-        }
-
-        // Get application information for this credential
-        try {
-            const applicationcredentials = await import('../applicationcredentials')
-            const credentialAppId = await applicationcredentials.getApplicationIdForCredential(credentialId)
+        // Get the credential data from Supabase
+        const secretData = await getSecret(credentialId)
+        
+        // Get the credential metadata from Supabase
+        const { data, error } = await supabase
+            .from('secrets')
+            .select('name, metadata')
+            .eq('id', credentialId)
+            .single()
             
-            if (credentialAppId) {
-                // Add application ID to the return object
-                (returnCredential as any).applicationId = credentialAppId
-            }
-        } catch (error) {
-            logger.error(`Error getting application for credential: ${getErrorMessage(error)}`)
-            // Continue even if getting application fails
+        if (error) throw error
+        if (!data) throw new Error('Credential not found')
+        
+        // Get the component credentials from the app server
+        const appServer = getRunningExpressApp()
+        
+        // Prepare the return object
+        const returnCredential: ICredentialReturnResponse = {
+            id: credentialId,
+            name: data.name,
+            credentialName: data.metadata?.credentialName,
+            plainDataObj: secretData,
+            encryptedData: '', // Not needed as we're using Supabase
+            updatedDate: new Date(data.metadata?.updatedAt || Date.now()),
+            createdDate: new Date(data.metadata?.createdAt || Date.now())
         }
-
-        const dbResponse = omit(returnCredential, ['encryptedData'])
-        return dbResponse
+        
+        // Add application ID to the return object if available
+        if (data.metadata?.applicationId) {
+            (returnCredential as any).applicationId = data.metadata.applicationId
+        } else {
+            // Try to get application ID from application_credentials table
+            try {
+                const applicationcredentials = await import('../applicationcredentials')
+                const credentialAppId = await applicationcredentials.getApplicationIdForCredential(credentialId)
+                
+                if (credentialAppId) {
+                    // Add application ID to the return object
+                    (returnCredential as any).applicationId = credentialAppId
+                }
+            } catch (error) {
+                logger.error(`Error getting application for credential: ${getErrorMessage(error)}`)
+                // Continue even if getting application fails
+            }
+        }
+        
+        return returnCredential
     } catch (error) {
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,
@@ -263,11 +304,9 @@ const getCredentialById = async (credentialId: string, req?: any): Promise<any> 
         )
     }
 }
-//REMODL TODO: refactor this to use our supabase db credentials table
+
 const updateCredential = async (credentialId: string, requestBody: any, req?: any): Promise<any> => {
     try {
-        const appServer = getRunningExpressApp()
-        
         // Get application ID from request or body
         const applicationId = requestBody.applicationId || getApplicationIdFromRequest(req)
         
@@ -292,19 +331,40 @@ const updateCredential = async (credentialId: string, requestBody: any, req?: an
             }
         }
         
-        const credential = await appServer.AppDataSource.getRepository(Credential).findOneBy({
-            id: credentialId
-        })
-        if (!credential) {
-            throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Credential ${credentialId} not found`)
+        // Get the current credential data
+        const currentData = await getSecret(credentialId)
+        
+        // Get the current credential metadata
+        const { data, error } = await supabase
+            .from('secrets')
+            .select('name, metadata')
+            .eq('id', credentialId)
+            .single()
+            
+        if (error) throw error
+        if (!data) throw new Error('Credential not found')
+        
+        // Merge the current data with the new data
+        const updatedData = { ...currentData, ...requestBody.plainDataObj }
+        
+        // Update the metadata
+        const updatedMetadata = {
+            ...data.metadata,
+            credentialName: requestBody.credentialName || data.metadata.credentialName,
+            applicationId: applicationId || data.metadata.applicationId,
+            updatedAt: new Date().toISOString()
         }
         
-        const decryptedCredentialData = await decryptCredentialData(credential.encryptedData)
-        requestBody.plainDataObj = { ...decryptedCredentialData, ...requestBody.plainDataObj }
-        const updateCredential = await transformToCredentialEntity(requestBody)
-        await appServer.AppDataSource.getRepository(Credential).merge(credential, updateCredential)
+        // Update the name if provided
+        if (requestBody.name) {
+            await supabase
+                .from('secrets')
+                .update({ name: requestBody.name })
+                .eq('id', credentialId)
+        }
         
-        const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
+        // Update the credential in Supabase
+        await updateSecret(credentialId, updatedData, updatedMetadata)
         
         // Update application association if applicationId is provided
         if (applicationId) {
@@ -320,7 +380,16 @@ const updateCredential = async (credentialId: string, requestBody: any, req?: an
             }
         }
         
-        return dbResponse
+        // Return the updated credential
+        return {
+            id: credentialId,
+            name: requestBody.name || data.name,
+            credentialName: requestBody.credentialName || data.metadata.credentialName,
+            applicationId: applicationId || data.metadata.applicationId,
+            encryptedData: '', // Not needed as we're using Supabase
+            updatedDate: new Date(data.metadata?.updatedAt || Date.now()),
+            createdDate: new Date(data.metadata?.createdAt || Date.now())
+        }
     } catch (error) {
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,

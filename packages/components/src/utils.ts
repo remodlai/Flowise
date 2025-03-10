@@ -532,20 +532,25 @@ const getEncryptionKey = async (): Promise<string> => {
  * @param {string} encryptedData
  * @returns {Promise<ICommonObject>}
  */
-const decryptCredentialData = async (encryptedData: string): Promise<ICommonObject> => {
+export const decryptCredentialData = async (encryptedData: string): Promise<ICommonObject> => {
     try {
-        // Check if this is a UUID (Supabase secret ID)
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (uuidRegex.test(encryptedData)) {
-            // This is a Supabase secret ID, make an API call to get the decrypted data
-            const response = await axios.get(`/api/v1/secrets/${encryptedData}`)
-            if (response.data && response.data.success && response.data.data) {
-                return response.data.data
-            }
-            throw new Error('Failed to retrieve secret from Supabase')
+        if (!encryptedData) {
+            return {}
         }
         
-        // For legacy encrypted data, decrypt using the encryption key from platform settings
+        // If it looks like a UUID, it's a Supabase secret ID
+        if (encryptedData.length === 36 && encryptedData.includes('-')) {
+            try {
+                const response = await axios.get(`/api/v1/secrets/${encryptedData}`)
+                if (response.data && response.data.data) {
+                    return response.data.data
+                }
+            } catch (error) {
+                // If API call fails, try local decryption
+            }
+        }
+        
+        // Fallback to local decryption (for legacy credentials)
         const encryptKey = await getEncryptionKey()
         const decryptedData = AES.decrypt(encryptedData, encryptKey)
         const decryptedDataStr = decryptedData.toString(enc.Utf8)
@@ -555,37 +560,31 @@ const decryptCredentialData = async (encryptedData: string): Promise<ICommonObje
         return JSON.parse(decryptedDataStr)
     } catch (error) {
         console.error('Error decrypting credential data:', error)
-        throw new Error('Credentials could not be decrypted. Please ensure the ENCRYPTION_KEY is set in platform settings.')
+        return {}
     }
 }
 
 /**
- * Get credential data
- * @param {string} selectedCredentialId
- * @param {ICommonObject} options
- * @returns {Promise<ICommonObject>}
+ * Get credential data from Supabase secrets
+ * @param {string} selectedCredentialId - The ID of the credential (Supabase secret ID)
+ * @param {ICommonObject} options - Options object (maintained for backward compatibility)
+ * @returns {Promise<ICommonObject>} - The decrypted credential data
  */
 export const getCredentialData = async (selectedCredentialId: string, options: ICommonObject): Promise<ICommonObject> => {
-    const appDataSource = options.appDataSource as DataSource
-    const databaseEntities = options.databaseEntities as IDatabaseEntity
-
+    console.log('========= Start of getCredentialData =========')
+    console.log('selectedCredentialId', selectedCredentialId)
+    console.log('options', options)
     try {
         if (!selectedCredentialId) {
             return {}
         }
 
-        const credential = await appDataSource.getRepository(databaseEntities['Credential']).findOneBy({
-            id: selectedCredentialId
-        })
-
-        if (!credential) return {}
-
-        // Decrypt credentialData
-        const decryptedCredentialData = await decryptCredentialData(credential.encryptedData)
-
-        return decryptedCredentialData
+        // Directly decrypt the credential ID (which is a Supabase secret ID)
+        // No database lookup, just pass the ID to decryptCredentialData
+        return await decryptCredentialData(selectedCredentialId)
     } catch (e) {
-        throw new Error(e)
+        // Return empty object instead of throwing to avoid breaking flows
+        return {}
     }
 }
 

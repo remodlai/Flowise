@@ -15,9 +15,9 @@ export class UserController {
     static async getAllUsers(req: Request, res: Response) {
         try {
             console.log('Getting all users...')
-            console.log('Request headers:', req.headers)
-            console.log('Request user:', req.user)
-            console.log('Request applicationId:', req.applicationId)
+           // console.log('Request headers:', req.headers)
+            //console.log('Request user:', req.user)
+            //console.log('Request applicationId:', req.applicationId)
             
             // Get users from Supabase Auth
             const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
