@@ -44,7 +44,7 @@ Secret not found with key ID: eyJhbGciOiJIUzI1NiIsImtpZCI6Ilp5eldWNEQ0dUVndzdTQk
    - Use the service key for operations that don't require user context
 
 5. **Leverage Existing Authorization Functions**:
-   - Use `authorize` and `authorize.resource` functions for permission checks
+   - Use `authorize` and `authorize_resource` functions for permission checks
    - Ensure these functions work with both built-in and dynamic roles
 
 ### Implementation Progress
@@ -83,19 +83,54 @@ These changes ensure that:
 - Application context filtering works correctly for all users, including platform admins
 - The system provides better logging for authentication and authorization decisions
 
+#### March 16, 2025: Fixed Credential Retrieval in Canvas View
+
+We've implemented a fix for the credential retrieval issue in the canvas view:
+
+1. **Application ID Not Being Passed to Secret API**:
+   - Modified the `decryptCredentialData` function in `packages/components/src/utils.ts` to include the application ID from localStorage when making API calls to retrieve secrets.
+   - Added logic to check if we're in a browser environment before trying to access localStorage.
+   - Added the application ID as a query parameter in the API request to ensure the correct application context is used when retrieving secrets.
+
+This change ensures that when testing agents in the canvas view, the system can properly retrieve credentials associated with the selected application. It fixes the "API key not found" errors that were occurring for all nodes that require credentials.
+
+#### March 17, 2025: Updated Server-Side Secret Retrieval and RLS Policies
+
+We've implemented two additional fixes to address the credential retrieval issues:
+
+1. **Server-Side Secret Retrieval**:
+   - Modified the `getSecretById` function in `packages/server/src/routes/platform/secrets.ts` to check both the secrets table and the application_credentials table.
+   - Added logic to verify that the requested secret is associated with the specified application.
+   - Improved error handling and logging to help diagnose credential retrieval issues.
+
+2. **RLS Policies for Secrets and Application Credentials**:
+   - Created proper RLS policies for the secrets and application_credentials tables.
+   - Used the existing `authorize` and `authorize_resource` functions to check permissions.
+   - Added policies for platform admins, application users, and API keys.
+   - Ensured that the policies match our JWT claims structure.
+
+These changes ensure that:
+- Credentials can only be accessed by users who have permission to access the associated application
+- API keys can only access credentials associated with their application
+- The system properly checks both the secrets and application_credentials tables
+- RLS policies are properly aligned with our JWT claims structure
+
 ### Next Steps
 
 1. ✅ Identify the specific code location where the JWT is being used as a key ID
 2. ✅ Fix the immediate issue to unblock credential retrieval
 3. ✅ Fix the API key user UUID issue
 4. ✅ Fix the application context filtering for platform admins
-5. Implement a more comprehensive solution for JWT claims and RLS policies
-6. Test with various credential types and authentication methods
-7. Document the final solution in detail
+5. ✅ Fix the credential retrieval in canvas view
+6. ✅ Update the server-side secret retrieval to check both tables
+7. ✅ Implement proper RLS policies using authorize and authorize_resource
+8. Test with various credential types and authentication methods
+9. Document the final solution in detail
 
 ### Implementation Plan
 
 1. ✅ First, we'll focus on fixing the JWT as key ID bug, as this is the most critical issue
 2. ✅ Next, we'll fix the API key user UUID issue and application context filtering
-3. Then we'll update the RLS policies to match our JWT claims structure
-4. Finally, we'll implement proper token refresh and standardize application ID handling
+3. ✅ Then, we'll fix the credential retrieval in canvas view
+4. ✅ Next, we'll update the server-side secret retrieval and RLS policies
+5. Finally, we'll test with various credential types and authentication methods and document the solution

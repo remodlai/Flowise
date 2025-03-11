@@ -597,10 +597,27 @@ export const decryptCredentialData = async (
         
         // For our Supabase implementation, the encryptedData is actually the secret ID
         // So we make a direct API call to get the secret
-        const url = `/api/v1/secrets/${encryptedData}`
+        let url = `/api/v1/secrets/${encryptedData}`
         let decryptedDataStr: string
         
         try {
+            // Get application ID from localStorage if available
+            let applicationId = ''
+            try {
+                // Check if we're in a browser environment
+                if (typeof localStorage !== 'undefined') {
+                    applicationId = localStorage.getItem('selectedApplicationId') || ''
+                    if (applicationId) {
+                        logger.debug(`Adding applicationId query parameter: ${applicationId}`)
+                        // Add applicationId as a query parameter
+                        url = `${url}?applicationId=${applicationId}`
+                    }
+                }
+            } catch (e) {
+                logger.debug(`Error getting application ID from localStorage: ${e}`)
+                // Continue without application ID if there's an error
+            }
+            
             logger.debug(`Making API call to ${url}`)
             // Call the API to get the secret from Supabase
             const response = await axios.get(url)

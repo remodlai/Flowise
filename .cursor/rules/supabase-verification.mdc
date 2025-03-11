@@ -1,0 +1,6 @@
+---
+description: rules for always verifying actual database content
+globs: 
+alwaysApply: true
+---
+#You must ALWAYS verify actual current implementation in supabase via [supabase-usage.mdc](mdc:.cursor/rules/supabase-usage.mdc), ending each command with | cat.  DO NOT rely on any .sql in the codeabase as source of truth. it may be outdated.
