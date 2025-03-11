@@ -27,7 +27,8 @@ import {
     Tab,
     Tabs,
     ListItemIcon,
-    Grid
+    Grid,
+    IconButton
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 
@@ -320,9 +321,7 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
     }
 
     const handleClose = (event) => {
-        if (anchorRef.current && anchorRef.current.contains(event.target)) {
-            return
-        }
+        // Simplified logic - just close the modal
         setOpen(false)
     }
 
@@ -380,25 +379,34 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                 {open ? <IconMinus /> : <IconPlus />}
             </StyledFab>
             {open && (
-                <ClickAwayListener onClickAway={handleClose}>
-                    <Box
-                        sx={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: '100%',
-                            background: 'rgba(0, 0, 0, 0.5)',
-                            zIndex: 1300,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}
+                <Box
+                    onClick={handleClose}
+                    sx={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        background: 'rgba(0, 0, 0, 0.5)',
+                        zIndex: 1300,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Box 
+                        onClick={(e) => e.stopPropagation()}
+                        sx={{ width: 'auto', maxWidth: '90%', maxHeight: '90%' }}
                     >
                         <Transitions in={open} type="fade">
                             <BlockLibraryCard>
                                 <Box sx={{ p: 3 }}>
-                                    <Typography variant='h4' sx={{ mb: 2 }}>Block Library</Typography>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Typography variant='h4'>Block Library</Typography>
+                                        <IconButton onClick={() => setOpen(false)} size="small">
+                                            <IconX size={20} />
+                                        </IconButton>
+                                    </Box>
                                     <SearchInput
                                         fullWidth
                                         placeholder="Search nodes..."
@@ -491,7 +499,7 @@ const AddNodes = ({ nodesData, node, isAgentCanvas }) => {
                             </BlockLibraryCard>
                         </Transitions>
                     </Box>
-                </ClickAwayListener>
+                </Box>
             )}
         </>
     )
