@@ -2,7 +2,20 @@ import { StatusCodes } from 'http-status-codes'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'
 import logger from '../../utils/logger'
-import { supabase, isPlatformAdmin } from '../../utils/supabase'
+import { isPlatformAdmin } from '../../utils/supabase'
+import { getInstance } from '../../index'
+
+// Get the Supabase client from the App instance
+const getSupabaseClient = () => {
+    const app = getInstance()
+    if (!app) {
+        throw new Error('App instance not available')
+    }
+    if (!app.Supabase) {
+        throw new Error('Supabase client not initialized')
+    }
+    return app.Supabase
+}
 
 /**
  * Get the application ID for a credential
@@ -11,6 +24,7 @@ import { supabase, isPlatformAdmin } from '../../utils/supabase'
  */
 export const getApplicationIdForCredential = async (credentialId: string): Promise<string | null> => {
     try {
+        const supabase = getSupabaseClient()
         const { data, error } = await supabase
             .from('application_credentials')
             .select('application_id')
@@ -36,6 +50,7 @@ export const getCredentialIdsForApplication = async (applicationId: string, req?
     try {
         logger.info(`[applicationcredentials.getCredentialIdsForApplication] Getting credential IDs for application: ${applicationId}`)
         
+        const supabase = getSupabaseClient()
         const { data, error } = await supabase
             .from('application_credentials')
             .select('credential_id')
@@ -67,33 +82,42 @@ export const associateCredentialWithApplication = async (
     applicationId: string
 ): Promise<boolean> => {
     try {
-        // Check if mapping already exists
-        const { data: existingMapping, error: checkError } = await supabase
+        logger.info(`[applicationcredentials.associateCredentialWithApplication] Associating credential ${credentialId} with application ${applicationId}`)
+        
+        // Check if the association already exists
+        const supabase = getSupabaseClient()
+        const { data: existingAssociation, error: checkError } = await supabase
             .from('application_credentials')
-            .select('id')
+            .select('*')
             .eq('credential_id', credentialId)
+            .eq('application_id', applicationId)
             .maybeSingle()
-
-        if (checkError) throw checkError
-
-        if (existingMapping) {
-            // Update existing mapping
-            const { error: updateError } = await supabase
-                .from('application_credentials')
-                .update({ application_id: applicationId, updated_at: new Date().toISOString() })
-                .eq('credential_id', credentialId)
-
-            if (updateError) throw updateError
-        } else {
-            // Create new mapping
-            const { error: insertError } = await supabase.from('application_credentials').insert({
+        
+        if (checkError) {
+            logger.error(`[applicationcredentials.associateCredentialWithApplication] Error checking existing association: ${getErrorMessage(checkError)}`)
+            throw checkError
+        }
+        
+        // If the association already exists, return true
+        if (existingAssociation) {
+            logger.info(`[applicationcredentials.associateCredentialWithApplication] Association already exists`)
+            return true
+        }
+        
+        // Create the association
+        const { error: insertError } = await supabase
+            .from('application_credentials')
+            .insert({
                 credential_id: credentialId,
                 application_id: applicationId
             })
-
-            if (insertError) throw insertError
+        
+        if (insertError) {
+            logger.error(`[applicationcredentials.associateCredentialWithApplication] Error creating association: ${getErrorMessage(insertError)}`)
+            throw insertError
         }
-
+        
+        logger.info(`[applicationcredentials.associateCredentialWithApplication] Association created successfully`)
         return true
     } catch (error) {
         logger.error(`[applicationcredentials.associateCredentialWithApplication] ${getErrorMessage(error)}`)
@@ -108,10 +132,14 @@ export const associateCredentialWithApplication = async (
  */
 export const removeCredentialAssociation = async (credentialId: string): Promise<boolean> => {
     try {
-        const { error } = await supabase.from('application_credentials').delete().eq('credential_id', credentialId)
-
+        const supabase = getSupabaseClient()
+        const { error } = await supabase
+            .from('application_credentials')
+            .delete()
+            .eq('credential_id', credentialId)
+        
         if (error) throw error
-
+        
         return true
     } catch (error) {
         logger.error(`[applicationcredentials.removeCredentialAssociation] ${getErrorMessage(error)}`)
@@ -125,15 +153,15 @@ export const removeCredentialAssociation = async (credentialId: string): Promise
  */
 export const getDefaultApplicationId = async (): Promise<string | null> => {
     try {
+        const supabase = getSupabaseClient()
         const { data, error } = await supabase
             .from('applications')
             .select('id')
-            .eq('name', 'Platform Sandbox')
-            .limit(1)
+            .eq('is_default', true)
             .maybeSingle()
-
+        
         if (error) throw error
-
+        
         return data?.id || null
     } catch (error) {
         logger.error(`[applicationcredentials.getDefaultApplicationId] ${getErrorMessage(error)}`)
@@ -151,25 +179,23 @@ export const isUserPlatformAdmin = async (userId: string): Promise<boolean> => {
 }
 
 /**
- * Test function to verify Supabase client is working correctly
+ * Test the Supabase connection
  * @returns True if successful, false otherwise
  */
 export const testSupabaseConnection = async (): Promise<boolean> => {
     try {
-        logger.info(`[applicationcredentials.testSupabaseConnection] Testing Supabase connection`)
-        
-        // Test query to application_credentials table
+        const supabase = getSupabaseClient()
         const { data, error } = await supabase
             .from('application_credentials')
-            .select('*')
+            .select('credential_id')
             .limit(1)
-            
+        
         if (error) {
             logger.error(`[applicationcredentials.testSupabaseConnection] Supabase error: ${JSON.stringify(error)}`)
             return false
         }
         
-        logger.info(`[applicationcredentials.testSupabaseConnection] Supabase connection successful. Data: ${JSON.stringify(data)}`)
+        logger.info(`[applicationcredentials.testSupabaseConnection] Supabase connection successful, found ${data?.length || 0} records`)
         return true
     } catch (error) {
         logger.error(`[applicationcredentials.testSupabaseConnection] ${getErrorMessage(error)}`)
