@@ -145,7 +145,7 @@ export class App {
             logger.info('[server]: Initializing Supabase client')
             
             const supabaseUrl = process.env.SUPABASE_URL
-            const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+            const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY
             
             if (!supabaseUrl || !supabaseServiceKey) {
                 logger.warn('[server]: Supabase URL or service key not provided, Supabase integration will not be available')
