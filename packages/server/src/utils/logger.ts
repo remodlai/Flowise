@@ -74,24 +74,28 @@ const logger = createLogger({
     defaultMeta: {
         package: 'server'
     },
+    level: 'debug',
     transports: [
-        new transports.Console(),
+        new transports.Console({
+            level: 'debug'
+        }),
         ...(!process.env.STORAGE_TYPE || process.env.STORAGE_TYPE === 'local'
             ? [
                   new transports.File({
                       filename: path.join(logDir, config.logging.server.filename ?? 'server.log'),
-                      level: config.logging.server.level ?? 'info'
+                      level: 'debug'
                   }),
                   new transports.File({
                       filename: path.join(logDir, config.logging.server.errorFilename ?? 'server-error.log'),
-                      level: 'error' // Log only errors to this file
+                      level: 'debug'
                   })
               ]
             : []),
         ...(process.env.STORAGE_TYPE === 's3'
             ? [
                   new transports.Stream({
-                      stream: s3ServerStream
+                      stream: s3ServerStream,
+                      level: 'debug'
                   })
               ]
             : [])

@@ -387,9 +387,9 @@ export interface IPredictionQueueAppServer {
 export interface IExecuteFlowParams extends IPredictionQueueAppServer {
     incomingInput: IncomingInput
     chatflow: IChatFlow
-    appId: string
-    orgId: string
-    userId: string
+    //appId: string
+    //orgId: string
+    //userId: string
     chatId: string
     baseURL: string
     isInternal: boolean

@@ -5,7 +5,7 @@ import * as path from 'path'
 import { JSDOM } from 'jsdom'
 import { z } from 'zod'
 import { DataSource } from 'typeorm'
-import { ICommonObject, IDatabaseEntity, IDocument, IMessage, INodeData, IVariable, MessageContentImageUrl } from './Interface'
+import { ICommonObject, IDatabaseEntity, IDocument, IMessage, INodeData, IVariable, MessageContentImageUrl, INodeParams } from './Interface'
 import { AES, enc } from 'crypto-js'
 import { omit } from 'lodash'
 import { AIMessage, HumanMessage, BaseMessage } from '@langchain/core/messages'
@@ -14,6 +14,7 @@ import { getFileFromStorage } from './storageUtils'
 import { customGet } from '../nodes/sequentialagents/commonUtils'
 import { TextSplitter } from 'langchain/text_splitter'
 import { DocumentLoader } from 'langchain/document_loaders/base'
+import logger from '../../server/src/utils/logger'
 
 export const numberOrExpressionRegex = '^(\\d+\\.?\\d*|{{.*}})$' //return true if string consists only numbers OR expression {{}}
 export const notEmptyRegex = '(.|\\s)*\\S(.|\\s)*' //return true if string is not empty or blank
@@ -516,10 +517,14 @@ export const getEncryptionKeyPath = (): string => {
 const getEncryptionKey = async (): Promise<string> => {
     try {
         // Import the platform settings utility
+        logger.debug('========= Start of getEncryptionKey from Components=========')
         const { getEncryptionKey: getPlatformEncryptionKey } = await import('./platformSettings')
         
         // Get the encryption key from platform settings
-        return await getPlatformEncryptionKey()
+        const encryptionKey = await getPlatformEncryptionKey()
+        logger.debug(`[components]: Encryption key: ${encryptionKey}`)
+        logger.debug('========= End of getEncryptionKey =========')
+        return encryptionKey
     } catch (error) {
         // Log the error and rethrow
         console.error('Error retrieving encryption key:', error)
@@ -527,78 +532,174 @@ const getEncryptionKey = async (): Promise<string> => {
     }
 }
 
+// Add the IComponentCredentials interface
+export interface IComponentCredentials {
+    [key: string]: {
+        label: string
+        name: string
+        type: string
+        inputs: INodeParams[]
+    }
+}
+
+// Add the redactCredentialWithPasswordType function
+export const redactCredentialWithPasswordType = (
+    componentCredentialName: string,
+    decryptedCredentialObj: ICommonObject,
+    componentCredentials: IComponentCredentials
+): ICommonObject => {
+    console.log('Redacting credential with password type')
+    const plainDataObj = { ...decryptedCredentialObj }
+    
+    // Check if the component credential exists
+    if (!componentCredentials[componentCredentialName]) {
+        console.log('Component credential not found:', componentCredentialName)
+        return plainDataObj
+    }
+    
+    // Get the inputs for the component credential
+    const inputs = componentCredentials[componentCredentialName].inputs || []
+    
+    // Redact any password fields
+    for (const cred in plainDataObj) {
+        const inputParam = inputs.find((inp) => inp.type === 'password' && inp.name === cred)
+        if (inputParam) {
+            console.log('Redacting password field:', cred)
+            plainDataObj[cred] = '********'
+        }
+    }
+    
+    return plainDataObj
+}
+
 /**
  * Decrypt credential data
  * @param {string} encryptedData
- * @param {ICommonObject} options
+ * @param {string} componentCredentialName
+ * @param {IComponentCredentials} componentCredentials
  * @returns {Promise<ICommonObject>}
  */
-export const decryptCredentialData = async (encryptedData: string, options?: ICommonObject): Promise<ICommonObject> => {
-    console.log('========= Start of decryptCredentialData =========')
-    console.log('encryptedData', encryptedData)
-    console.log('options', options ? JSON.stringify(options) : 'none')
+export const decryptCredentialData = async (
+    encryptedData: string,
+    componentCredentialName?: string,
+    componentCredentials?: IComponentCredentials
+): Promise<ICommonObject> => {
+    logger.debug('========= Start of decryptCredentialData (components) =========')
+    logger.debug(`encryptedData: ${encryptedData}`)
+    logger.debug(`componentCredentialName: ${componentCredentialName || 'none'}`)
+    logger.debug(`componentCredentials: ${componentCredentials ? 'provided' : 'none'}`)
+    
     try {
         if (!encryptedData) {
-            console.log('No encrypted data provided, returning empty object')
+            logger.debug('No encrypted data provided, returning empty object')
             return {}
         }
         
-        // Extract applicationId from options if available
-        const applicationId = options?.applicationId || options?.appId
-        console.log('applicationId from options:', applicationId || 'none')
+        // For our Supabase implementation, the encryptedData is actually the secret ID
+        // So we make a direct API call to get the secret
+        const url = `/api/v1/secrets/${encryptedData}`
+        let decryptedDataStr: string
         
-        // Build the URL with applicationId as a query parameter if available
-        const url = applicationId 
-            ? `/api/v1/secrets/${encryptedData}?applicationId=${applicationId}`
-            : `/api/v1/secrets/${encryptedData}`
-        
-        console.log(`Making API call to ${url}`)
-        // Call the API to get the secret from Supabase
-        const response = await axios.get(url)
-        console.log('API response status:', response.status)
-        console.log('API response data:', JSON.stringify(response.data))
-        
-        if (response.data && response.data.data) {
-            console.log('Returning data from API response')
-            return response.data.data
+        try {
+            logger.debug(`Making API call to ${url}`)
+            // Call the API to get the secret from Supabase
+            const response = await axios.get(url)
+            logger.debug(`API response status: ${response.status}`)
+            logger.debug(`API response headers: ${JSON.stringify(response.headers)}`)
+            
+            if (response.data && response.data.data) {
+                logger.debug('Got data from API response')
+                logger.debug(`Response data: ${JSON.stringify(response.data)}`)
+                // Convert the data object to a string
+                decryptedDataStr = JSON.stringify(response.data.data)
+            } else {
+                logger.debug(`No data in API response: ${JSON.stringify(response.data)}`)
+                throw new Error('Failed to retrieve secret value.')
+            }
+        } catch (error) {
+            logger.error(`Error retrieving secret: ${error}`)
+            logger.debug(`Full error: ${JSON.stringify(error)}`)
+            logger.debug(`Error response: ${error.response ? JSON.stringify(error.response.data) : 'no response'}`)
+            throw new Error('Credentials could not be decrypted.')
         }
         
-        console.log('No data in API response, returning empty object')
-        return {}
+        if (!decryptedDataStr) {
+            logger.debug('Decrypted data string is empty')
+            return {}
+        }
+        
+        try {
+            logger.debug('Parsing decrypted data string to JSON')
+            const plainDataObj = JSON.parse(decryptedDataStr)
+            logger.debug(`Parsed data: ${JSON.stringify(plainDataObj)}`)
+            
+            // If componentCredentialName and componentCredentials are provided, redact sensitive information
+            if (componentCredentialName && componentCredentials) {
+                logger.debug(`Redacting sensitive information for ${componentCredentialName}`)
+                const redactedData = redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
+                logger.debug(`Redacted data: ${JSON.stringify(redactedData)}`)
+                logger.debug('========= End of decryptCredentialData (components) =========')
+                return redactedData
+            }
+            
+            logger.debug('No redaction needed, returning plain data')
+            logger.debug('========= End of decryptCredentialData (components) =========')
+            return plainDataObj
+        } catch (e) {
+            logger.error(`Error parsing decrypted data: ${e}`)
+            logger.debug(`Full error: ${JSON.stringify(e)}`)
+            logger.debug(`Stack trace: ${e.stack}`)
+            throw new Error('Credentials could not be decrypted.')
+        }
     } catch (error) {
-        console.error('Error in decryptCredentialData:', error)
+        logger.error(`Error in decryptCredentialData: ${error}`)
+        logger.debug(`Full error: ${JSON.stringify(error)}`)
+        logger.debug(`Stack trace: ${error.stack}`)
+        logger.debug('========= End of decryptCredentialData (components) with error =========')
         return {}
-    } finally {
-        console.log('========= End of decryptCredentialData =========')
     }
 }
 
 /**
- * Get credential data from Supabase secrets
- * @param {string} selectedCredentialId - The ID of the credential (Supabase secret ID)
- * @param {ICommonObject} options - Options object (maintained for backward compatibility)
- * @returns {Promise<ICommonObject>} - The decrypted credential data
+ * Get credential data
+ * @param {string} selectedCredentialId
+ * @param {ICommonObject} options
+ * @returns {Promise<ICommonObject>}
  */
 export const getCredentialData = async (selectedCredentialId: string, options: ICommonObject): Promise<ICommonObject> => {
-    console.log('========= Start of getCredentialData =========')
-    console.log('selectedCredentialId', selectedCredentialId)
-    console.log('options', options ? JSON.stringify(options) : 'none')
+    logger.debug('========= Start of getCredentialData =========')
+    logger.debug(`selectedCredentialId: ${selectedCredentialId}`)
+    logger.debug(`options: ${options ? JSON.stringify(options) : 'none'}`)
+    
     try {
         if (!selectedCredentialId) {
-            console.log('No credential ID provided, returning empty object')
+            logger.debug('No credential ID provided, returning empty object')
             return {}
         }
 
-        // Pass options to decryptCredentialData to include applicationId
-        const result = await decryptCredentialData(selectedCredentialId, options)
-        console.log('API call result:', JSON.stringify(result))
-        return result
+        // In our Supabase implementation, the selectedCredentialId is the secret ID
+        // So we can directly decrypt it without needing to query the database
+        try {
+            logger.debug(`Calling decryptCredentialData with ID: ${selectedCredentialId}`)
+            // We don't pass componentCredentialName and componentCredentials here
+            // because that's handled by the caller (usually a node's init method)
+            const decryptedCredentialData = await decryptCredentialData(selectedCredentialId)
+            logger.debug(`Decrypted credential data: ${decryptedCredentialData ? JSON.stringify(decryptedCredentialData) : 'empty'}`)
+            return decryptedCredentialData
+        } catch (error) {
+            logger.error(`Error decrypting credential data: ${error}`)
+            logger.debug(`Full error: ${JSON.stringify(error)}`)
+            logger.debug(`Stack trace: ${error.stack}`)
+            return {}
+        }
     } catch (e) {
-        console.error('Error in getCredentialData:', e)
+        logger.error(`Error in getCredentialData: ${e}`)
+        logger.debug(`Full error: ${JSON.stringify(e)}`)
+        logger.debug(`Stack trace: ${e.stack}`)
         // Return empty object instead of throwing to avoid breaking flows
         return {}
     } finally {
-        console.log('========= End of getCredentialData =========')
+        logger.debug('========= End of getCredentialData =========')
     }
 }
 

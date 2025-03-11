@@ -10,6 +10,7 @@ import { StatusCodes } from 'http-status-codes'
  */
 export const getAllSecrets = async (req: Request, res: Response) => {
     try {
+        logger.info('========= Start of getAllSecrets =========')
         const { data, error } = await supabase
             .from('secrets')
             .select('*')
@@ -43,6 +44,7 @@ export const getAllSecrets = async (req: Request, res: Response) => {
  */
 export const getSecretById = async (req: Request, res: Response) => {
     try {
+        logger.info('========= Start of getSecretById =========')
         const { id } = req.params
 
         const { data, error } = await supabase
@@ -86,6 +88,7 @@ export const getSecretById = async (req: Request, res: Response) => {
  */
 export const createSecret = async (req: Request, res: Response) => {
     try {
+        logger.info('========= Start of createSecret =========')
         const { name, type, value, metadata } = req.body
 
         if (!name || !value) {
@@ -134,6 +137,7 @@ export const createSecret = async (req: Request, res: Response) => {
  */
 export const updateSecret = async (req: Request, res: Response) => {
     try {
+        logger.info('========= Start of updateSecret =========')
         const { id } = req.params
         const { name, type, value, metadata } = req.body
 
@@ -207,6 +211,7 @@ export const updateSecret = async (req: Request, res: Response) => {
  */
 export const deleteSecret = async (req: Request, res: Response) => {
     try {
+        logger.info('========= Start of deleteSecret =========')
         const { id } = req.params
 
         // Check if secret exists

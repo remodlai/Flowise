@@ -107,14 +107,6 @@ class ChatAnthropic_ChatModels implements INode {
     }
 
     async init(nodeData: INodeData, _: string, options: ICommonObject): Promise<any> {
-        logger.debug(`========= Start of init for ChatAnthropic File: /Users/brianbagdasarian/fw-dev/Flowise/packages/components/nodes/chatmodels/ChatAnthropic/ChatAnthropic.ts line 110 =========`) 
-        logger.debug(`nodeData`, JSON.stringify(nodeData))
-        logger.debug(`options`, JSON.stringify(options))
-        logger.debug(`========= End of init for ChatAnthropic =========`)
-        logger.info('========= Start of init for ChatAnthropic =========')
-        logger.info('nodeData', JSON.stringify(nodeData))
-        logger.info('options', JSON.stringify(options))
-        logger.info('========= End of init for ChatAnthropic =========')
         const temperature = nodeData.inputs?.temperature as string
         const modelName = nodeData.inputs?.modelName as string
         const maxTokens = nodeData.inputs?.maxTokensToSample as string
@@ -122,24 +114,19 @@ class ChatAnthropic_ChatModels implements INode {
         const topK = nodeData.inputs?.topK as string
         const streaming = nodeData.inputs?.streaming as boolean
         const cache = nodeData.inputs?.cache as BaseCache
-
-        console.log('========= Start of init for ChatAnthropic =========')
-        console.log('nodeData', JSON.stringify(nodeData))
-        console.log('options', JSON.stringify(options))
-        console.log('========= End of init for ChatAnthropic =========')
-        //REMODL TODO: refactor this to use our supabase db credentials table
+        logger.info('========= Start of init for ChatAnthropic =========')
+        logger.info('nodeData', JSON.stringify(nodeData))
+        logger.info('options', JSON.stringify(options))
+        logger.info('========= End of init for ChatAnthropic =========')
         const credentialData = await getCredentialData(nodeData.credential ?? '', options)
-        console.log(credentialData ? `'Credential data found' ${JSON.stringify(credentialData)}`: 'No credential data found')
         const anthropicApiKey = getCredentialParam('anthropicApiKey', credentialData, nodeData)
-        console.log(anthropicApiKey ? `'Anthropic API key found' ${anthropicApiKey}` : 'No anthropic API key found')
 
         const allowImageUploads = nodeData.inputs?.allowImageUploads as boolean
 
-        const obj: Partial<AnthropicInput> & BaseLLMParams & { anthropicApiKey?: string; apiKey?: string } = {
+        const obj: Partial<AnthropicInput> & BaseLLMParams & { anthropicApiKey?: string } = {
             temperature: parseFloat(temperature),
             modelName,
             anthropicApiKey,
-            apiKey: anthropicApiKey,
             streaming: streaming ?? true
         }
 

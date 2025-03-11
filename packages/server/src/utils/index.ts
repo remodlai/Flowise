@@ -455,9 +455,9 @@ type BuildFlowParams = {
     uploads?: IFileUpload[]
     baseURL?: string
     uploadedFilesContent?: string
-    appId: string
-    orgId: string
-    userId: string
+    // appId: string
+    // orgId: string
+    // userId: string
 }
 
 /**
@@ -489,21 +489,21 @@ export const buildFlow = async ({
     stopNodeId,
     uploads,
     baseURL,
-    appId,
-    orgId,
-    userId
+    // appId,
+    // orgId,
+    // userId
 }: BuildFlowParams) => {
     
     logger.debug('========= Start of buildFlow (file: packages/server/src/utils/index.ts LINE: 497) =========')
-    if (appId) {
-        logger.debug(`'appId', ${appId}`)
-    }
-    if (orgId) {
-        logger.debug(`'orgId', ${orgId}`)
-    }
-    if (userId) {
-        logger.debug(`'userId', ${userId}`)
-    }
+    // if (appId) {
+    //     logger.debug(`'appId', ${appId}`)
+    // }
+    // if (orgId) {
+    //     logger.debug(`'orgId', ${orgId}`)
+    // }
+    // if (userId) {
+    //     logger.debug(`'userId', ${userId}`)
+    // }
     logger.debug(`'startingNodeIds', ${JSON.stringify(startingNodeIds)} `)
     logger.debug(`'reactFlowNodes', ${JSON.stringify(reactFlowNodes)}`)
     logger.debug(`'reactFlowEdges', ${JSON.stringify(reactFlowEdges)}`)
@@ -542,12 +542,16 @@ export const buildFlow = async ({
         chatId,
         sessionId,
         chatHistory,
-        //REMODL: Adding appId, orgId, userId to the flowData
-        appId,
-        orgId,
-        userId,
+        //appId,
+        //orgId,
+        //userId,
         ...overrideConfig
     }
+    logger.debug(`========= Start of flowData =========`)
+    logger.debug('  ')
+    logger.debug(`flowData, ${JSON.stringify(flowData)}`)
+    logger.debug(`========= End of flowData =========`)
+    logger.debug('  ')
     while (nodeQueue.length) {
         const { nodeId, depth } = nodeQueue.shift() as INodeQueue
 
@@ -558,21 +562,21 @@ export const buildFlow = async ({
         try {
             const nodeInstanceFilePath = componentNodes[reactFlowNode.data.name].filePath as string
 
-
-            logger.debug(`++++++++++++${nodeInstanceFilePath}++++++++++++`)
-
-            logger.debug(`nodeInstanceFilePath for ${reactFlowNode.data.name}, ${nodeInstanceFilePath}`)
-
             const nodeModule = await import(nodeInstanceFilePath)
-            logger.debug(`nodeModule`, JSON.stringify(nodeModule))
-            
+            logger.debug('  ')
+            logger.debug(`Current nodeModule: ${JSON.stringify(nodeModule)}`)
+            logger.debug('  ')
             const newNodeInstance = new nodeModule.nodeClass()
-            logger.debug(`========= Start of flowNodeData for ${reactFlowNode.data.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 562 =========`)
-           
+            logger.debug('  ')
+            logger.debug(`Current newNodeInstance: ${JSON.stringify(newNodeInstance)}`)
+            //logger.debug('  ')
+            //logger.debug(`========= Start of flowNodeData for ${reactFlowNode.data.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 562 =========`)
+            logger.debug('  ')
+            logger.debug(`'reactFlowNode', ${JSON.stringify(reactFlowNode.data)}`)
             let flowNodeData = cloneDeep(reactFlowNode.data)
             //REMODL: Logging for each flowNodeData
             logger.debug(`'flowNodeData', ${JSON.stringify(flowNodeData)}`)
-            logger.debug(`========= End of flowNodeData for ${reactFlowNode.data.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 562 =========`)
+            //logger.debug(`========= End of flowNodeData for ${reactFlowNode.data.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 562 =========`)
             // Only override the config if its status is true
             if (overrideConfig && apiOverrideStatus) {
                 flowNodeData = replaceInputsWithConfig(flowNodeData, overrideConfig, nodeOverrides, variableOverrides)
@@ -606,9 +610,9 @@ export const buildFlow = async ({
                     dynamicVariables,
                     uploads,
                     baseURL,
-                    appId,
-                    orgId,
-                    userId
+                    //appId,
+                    //orgId,
+                    //userId
                 })
                 if (indexResult) upsertHistory['result'] = indexResult
                 logger.debug(`[server]: Finished upserting ${reactFlowNode.data.label} (${reactFlowNode.data.id})`)
@@ -635,9 +639,9 @@ export const buildFlow = async ({
                     uploads,
                     baseURL,
                     componentNodes: componentNodes as ICommonObject,
-                    appId,
-                    orgId,
-                    userId
+                    //appId,
+                    //orgId,
+                    //userId
                 })
 
                 // Save dynamic variables
@@ -1309,17 +1313,14 @@ export const findAvailableConfigs = (reactFlowNodes: IReactFlowNode[], component
                 // get component credential inputs
                 for (const name of inputParam.credentialNames ?? []) {
                     logger.debug('========= Start of findAvailableConfigs for credential =========')
-                    console.log('========= Start of findAvailableConfigs for credential =========')
-                    console.log('name', name)
-                    console.log('componentCredentials', componentCredentials)
-                    console.log('========= End of findAvailableConfigs for credential =========')
+                
+                    logger.debug('name', name)
+                    logger.debug('componentCredentials', componentCredentials)
                     logger.debug('========= End of findAvailableConfigs for credential =========')
                     if (Object.prototype.hasOwnProperty.call(componentCredentials, name)) {
                         const inputs = componentCredentials[name]?.inputs ?? []
                         logger.debug('========= Start of findAvailableConfigs for inputs =========')
-                        console.log('========= Start of findAvailableConfigs for inputs =========')
-                        console.log('inputs', JSON.stringify(inputs))
-                        console.log('========= End of findAvailableConfigs for inputs =========')
+                        logger.debug('inputs', JSON.stringify(inputs))
                         logger.debug('========= End of findAvailableConfigs for inputs =========')
                         for (const input of inputs) {
                             obj = {
@@ -1444,11 +1445,15 @@ export const isFlowValidForStream = (reactFlowNodes: IReactFlowNode[], endingNod
  */
 export const getEncryptionKey = async (): Promise<string> => {
     try {
+        logger.debug('========= Start of getEncryptionKey =========')
         // Import the platform settings utility
         const { getEncryptionKey: getPlatformEncryptionKey } = await import('./platformSettings')
         
         // Get the encryption key from platform settings
-        return await getPlatformEncryptionKey()
+        const encryptionKey = await getPlatformEncryptionKey()
+        logger.info(`[server]: Encryption key: ${encryptionKey}`)
+        logger.debug('========= End of getEncryptionKey =========')
+        return encryptionKey
     } catch (error) {
         // Log the error and rethrow
         logger.error(`Error retrieving encryption key: ${error}`)
@@ -1500,16 +1505,34 @@ export const decryptCredentialData = async (
     componentCredentials?: IComponentCredentials
 ): Promise<ICredentialDataDecrypted> => {
     try {
+        logger.debug(`========= START decryptCredentialData (server) =========`)
+        logger.debug(`encryptedData: ${encryptedData}`)
+        logger.debug(`componentCredentialName: ${componentCredentialName || 'none'}`)
+        logger.debug(`componentCredentials provided: ${componentCredentials ? 'yes' : 'no'}`)
+        
         // Get the secret from Supabase
+        logger.debug(`Importing getSecret function`)
         const { getSecret } = await import('../services/secrets')
+        logger.debug(`Calling getSecret with ID: ${encryptedData}`)
         const plainDataObj = await getSecret(encryptedData)
+        logger.debug(`getSecret returned data: ${JSON.stringify(plainDataObj)}`)
         
         if (componentCredentialName && componentCredentials) {
-            return redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
+            logger.debug(`Redacting credential with password type for ${componentCredentialName}`)
+            const redactedData = redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
+            logger.debug(`Redacted data: ${JSON.stringify(redactedData)}`)
+            logger.debug(`========= END decryptCredentialData (server) =========`)
+            return redactedData
         }
         
+        logger.debug(`No redaction needed, returning plain data`)
+        logger.debug(`========= END decryptCredentialData (server) =========`)
         return plainDataObj
-    } catch (error) {
+    } catch (error: any) {
+        logger.error(`Error in decryptCredentialData: ${getErrorMessage(error)}`)
+        logger.debug(`Full error: ${JSON.stringify(error)}`)
+        logger.debug(`Stack trace: ${error.stack}`)
+        logger.debug(`========= END decryptCredentialData (server) with error =========`)
         throw new Error(`Error getting credential data: ${getErrorMessage(error)}`)
     }
 }

@@ -191,9 +191,9 @@ export const executeUpsert = async ({
         cachePool,
         isUpsert,
         stopNodeId,
-        appId,
-        orgId,
-        userId
+        //appId,
+        //orgId,
+        //userId
     })
 
     // Save to DB
@@ -258,9 +258,9 @@ export const upsertVector = async (req: Request, isInternal: boolean = false) =>
             incomingInput,
             chatflow,
             chatId,
-            appId,
-            orgId,
-            userId,
+            //appId,
+            //orgId,
+            //userId,
             appDataSource: appServer.AppDataSource,
             telemetry: appServer.telemetry,
             cachePool: appServer.cachePool,

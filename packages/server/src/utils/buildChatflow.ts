@@ -440,7 +440,7 @@ export const executeFlow = async ({
         ...incomingInput.overrideConfig
     }
     console.log('========= executeFlow flowConfig =========')
-    console.log(flowConfig)
+   
     logger.debug(`[server]: Start building flow ${chatflowid}`)
     logger.debug(`[server]: flowConfig: ${JSON.stringify(flowConfig)}`)
     console.log('========= End of executeFlow flowConfig =========')
@@ -470,10 +470,10 @@ export const executeFlow = async ({
         cachePool,
         isUpsert: false,
         uploads,
-        baseURL,
-        appId: appId as string,
-        orgId: orgId as string,
-        userId: userId as string
+        baseURL
+        // appId: appId || '',
+        // orgId: orgId || '',
+        // userId: userId || ''
     })
     logger.info('========= start of executeFlow reactFlowNodes =========')
     logger.info('current appId', appId || 'no appId')
@@ -776,15 +776,15 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
 
     //log the request body
     logger.info(`'current req.body', ${JSON.stringify(req.body)}`)
-    logger.info(`'current req.headers', ${JSON.stringify(req.headers)}`)
+    //logger.info(`'current req.headers', ${JSON.stringify(req.headers)}`)
 
 
     //We expect that appId, orgId, and userId are present in the request body. If not, we will log an error and throw an error
 
     //REMODL: We initialize the variables to empty strings
-    let appId = ''
-    let orgId = ''
-    let userId = ''
+    let appId: string = ''
+    let orgId: string = ''
+    let userId: string = ''
 
     //check to make sure appId is present, and if so log it, and set it to appId variable
     if (req.body.appId) {
@@ -895,11 +895,13 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
     //REMODL: We get the incoming input from the request body
     const incomingInput: IncomingInput = req.body
 
-    logger.info(`'========= LINE 897: incomingInput', ${incomingInput} =========`)
-    logger.info(`'incomingInput', ${JSON.stringify(incomingInput)}`)
-    logger.info(`'========= End of LINE 897: incomingInput'=========`)
+    //logger.info(`'========= LINE 897: incomingInput', ${incomingInput} =========`)
+    //logger.info(`'incomingInput', ${JSON.stringify(incomingInput)}`)
+    //logger.info(`'========= End of LINE 897: incomingInput'=========`)
     //REMODL: We get the chatId from the incoming input
+
     const chatId = incomingInput.chatId ?? incomingInput.overrideConfig?.sessionId ?? uuidv4()
+    
     //REMODL: We get the files from the request
     const files = (req.files as Express.Multer.File[]) || []
     //REMODL: We get the abort controller id
@@ -917,15 +919,15 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
         logger.info(`'========= LINE 905: executeData =========`)
         const executeData: IExecuteFlowParams = {
             //The incoming request body. By this time we have ensured and validated that the appId, orgId and userId are present and valid, present as req.body.appId, req.body.orgId, and req.body.userId
-            incomingInput,
+            incomingInput: req.body,
             //REMODL: We need to include our appId, orgId, and userId in the executeData object
             chatflow,
             //REMODL: We get the chatId from the incoming input. This is the chatID or sessionId from the overrideConfig in the incoming input
             chatId,
             //REMODL: We get the appId, orgId, and userId from the incoming input. We have already validated that these are present and valid
-           appId,
-           orgId,
-           userId,  
+           // appId,
+           //    orgId,
+           // userId,  
             //REMODL: We get the baseURL from the request
             baseURL,
             //REMODL: We get the isInternal flag from the incoming input
@@ -951,9 +953,9 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
             chatflowId: executeData.chatflow.id,
             chatflowName: executeData.chatflow.name,
             chatId: executeData.chatId,
-            appId: executeData.appId,
-            orgId: executeData.orgId,
-            userId: executeData.userId,
+            appId: incomingInput.appId,
+            orgId: incomingInput.orgId,
+            userId: incomingInput.userId,
             isInternal: executeData.isInternal,
             hasFiles: executeData.files && executeData.files.length > 0,
             question: executeData.incomingInput.question

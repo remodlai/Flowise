@@ -37,13 +37,7 @@ const createAndStreamInternalPrediction = async (req: Request, res: Response, ne
     let orgId = req.body.orgId
     let userId = req.body.userId
     console.log('chatId', chatId)
-    logger.info(`chatId: ${chatId}`)
-    logger.info(`appId: ${appId}`)
-    logger.info(`orgId: ${orgId}`)
-    logger.info(`userId: ${userId}`)
-    //console.log('req.body', req.body)
-    //console.log('request headers', req.headers)
-    logger.info(`request headers: ${JSON.stringify(req.headers)}`)
+   
     if (appId && orgId && userId) {
         logger.info('appId, orgId, and userId are present')
     } else {
@@ -58,8 +52,8 @@ const createAndStreamInternalPrediction = async (req: Request, res: Response, ne
         res.setHeader('Cache-Control', 'no-cache')
         res.setHeader('Connection', 'keep-alive')
         res.setHeader('X-Accel-Buffering', 'no') //nginx config: https://serverfault.com/a/801629
-        res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
-        res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
+        // res.setHeader('X-Application-Id', req.body.appId || req.headers['x-application-id'])
+        // res.setHeader('x-application-id', req.body.appId || req.headers['x-application-id'])
        
         res.flushHeaders()
         if (process.env.MODE === MODE.QUEUE) {

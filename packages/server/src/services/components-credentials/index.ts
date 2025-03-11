@@ -7,6 +7,8 @@ import logger from '../../utils/logger'
 // Get all component credentials
 const getAllComponentsCredentials = async (): Promise<any> => {
     try {
+        logger.info('========= Start of getAllComponentsCredentials =========')
+        console.log('========= Start of getAllComponentsCredentials =========')
         const appServer = getRunningExpressApp()
         const dbResponse = []
         //REMODL TODO: WILL NEED TO CONFIRM CREDENTIALS - this is calling legacy database
@@ -14,7 +16,9 @@ const getAllComponentsCredentials = async (): Promise<any> => {
             logger.debug('========= Start of getAllComponentsCredentials for credName =========')
             console.log('========= Start of getAllComponentsCredentials for credName =========')
             console.log('credName', credName)
+            logger.debug('credName', credName)
             console.log('appServer.nodesPool.componentCredentials', appServer.nodesPool.componentCredentials)
+            logger.debug('appServer.nodesPool.componentCredentials', appServer.nodesPool.componentCredentials)
             logger.debug('credName', credName)
             logger.debug('appServer.nodesPool.componentCredentials', appServer.nodesPool.componentCredentials)
             const clonedCred = cloneDeep(appServer.nodesPool.componentCredentials[credName])
@@ -22,6 +26,8 @@ const getAllComponentsCredentials = async (): Promise<any> => {
             logger.debug('========= End of getAllComponentsCredentials for credName =========')
             console.log('========= End of getAllComponentsCredentials for credName =========')
         }
+        logger.debug('========= End of getAllComponentsCredentials =========')
+        console.log('========= End of getAllComponentsCredentials =========')
         return dbResponse
     } catch (error) {
         throw new InternalFlowiseError(
@@ -33,6 +39,8 @@ const getAllComponentsCredentials = async (): Promise<any> => {
 
 const getComponentByName = async (credentialName: string) => {
     try {
+        logger.info('========= Start of getComponentByName =========')
+        console.log('========= Start of getComponentByName =========')
         const appServer = getRunningExpressApp()
         if (!credentialName.includes('&amp;')) {
             if (Object.prototype.hasOwnProperty.call(appServer.nodesPool.componentCredentials, credentialName)) {
@@ -68,6 +76,8 @@ const getComponentByName = async (credentialName: string) => {
 // Returns specific component credential icon via name
 const getSingleComponentsCredentialIcon = async (credentialName: string) => {
     try {
+        logger.info('========= Start of getSingleComponentsCredentialIcon =========')
+        console.log('========= Start of getSingleComponentsCredentialIcon =========')
         const appServer = getRunningExpressApp()
         if (Object.prototype.hasOwnProperty.call(appServer.nodesPool.componentCredentials, credentialName)) {
             const credInstance = appServer.nodesPool.componentCredentials[credentialName]

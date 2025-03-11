@@ -73,7 +73,8 @@ export const storeSecret = async (
  */
 export const getSecret = async (id: string, applicationId?: string): Promise<any> => {
     try {
-        logger.info(`Getting secret with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
+        logger.debug(`========= START getSecret =========`)
+        logger.debug(`Getting secret with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
         
         // Get from Supabase using service key
         let query = supabase
@@ -81,16 +82,22 @@ export const getSecret = async (id: string, applicationId?: string): Promise<any
             .select('value, metadata')
             .eq('id', id);
         
+        logger.debug(`Supabase query built: ${query.toString()}`)
+        
         // If applicationId is provided and not 'global', filter by it
         if (applicationId && applicationId !== 'global') {
-            logger.info(`Filtering secret by application ID: ${applicationId}`)
+            logger.debug(`Filtering secret by application ID: ${applicationId}`)
             query = query.eq('metadata->applicationId', applicationId)
+            logger.debug(`Updated query with application filter: ${query.toString()}`)
         }
         
+        logger.debug(`Executing Supabase query...`)
         const { data, error } = await query.maybeSingle()
+        logger.debug(`Query executed. Data received: ${data ? 'yes' : 'no'}, Error: ${error ? error.message : 'none'}`)
         
         if (error) {
             logger.error(`Error retrieving secret from Supabase: ${error.message}`)
+            logger.debug(`Full error object: ${JSON.stringify(error)}`)
             throw error
         }
         
@@ -99,33 +106,41 @@ export const getSecret = async (id: string, applicationId?: string): Promise<any
             throw new Error(`Secret not found with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
         }
         
-        logger.info(`Retrieved secret from Supabase with metadata: ${JSON.stringify(data.metadata)}`)
+        logger.debug(`Retrieved secret from Supabase with metadata: ${JSON.stringify(data.metadata)}`)
+        logger.debug(`Value exists: ${!!data.value}`)
         
         // Decrypt the value
-        logger.info(`Getting master encryption key`)
+        logger.debug(`Getting master encryption key`)
         const masterKey = await getMasterEncryptionKey()
-        logger.info(`Got master encryption key, decrypting value`)
+        logger.debug(`Got master encryption key, length: ${masterKey ? masterKey.length : 0}`)
         
         try {
+            logger.debug(`Starting decryption process`)
             const decryptedBytes = AES.decrypt(data.value, masterKey)
+            logger.debug(`Decryption completed, converting to string`)
             const decryptedValue = decryptedBytes.toString(enc.Utf8)
+            logger.debug(`Converted to string, length: ${decryptedValue ? decryptedValue.length : 0}`)
             
             if (!decryptedValue) {
                 logger.error(`Failed to decrypt secret value: empty decrypted string`)
                 throw new Error('Failed to decrypt secret value: empty decrypted string')
             }
             
-            logger.info(`Successfully decrypted secret value, parsing JSON`)
+            logger.debug(`Successfully decrypted secret value, parsing JSON`)
             const parsedValue = JSON.parse(decryptedValue)
-            logger.info(`Parsed secret value: ${JSON.stringify(parsedValue)}`)
+            logger.debug(`Parsed secret value: ${JSON.stringify(parsedValue)}`)
+            logger.debug(`========= END getSecret =========`)
             
             return parsedValue
         } catch (decryptError) {
             logger.error(`Error decrypting secret value: ${getErrorMessage(decryptError)}`)
+            logger.debug(`Full decrypt error: ${JSON.stringify(decryptError)}`)
             throw new Error(`Error decrypting secret value: ${getErrorMessage(decryptError)}`)
         }
     } catch (error) {
         logger.error(`Error retrieving secret: ${getErrorMessage(error)}`)
+        logger.debug(`Full error in getSecret: ${JSON.stringify(error)}`)
+        logger.debug(`========= END getSecret with error =========`)
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error retrieving secret: ${getErrorMessage(error)}`
