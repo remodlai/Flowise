@@ -470,10 +470,10 @@ export const executeFlow = async ({
         cachePool,
         isUpsert: false,
         uploads,
-        baseURL
-        // appId: appId || '',
-        // orgId: orgId || '',
-        // userId: userId || ''
+        baseURL,
+        appId: incomingInput.appId || '',
+        orgId: incomingInput.orgId || '',
+        userId: incomingInput.userId || ''
     })
     logger.info('========= start of executeFlow reactFlowNodes =========')
     logger.info('current appId', appId || 'no appId')

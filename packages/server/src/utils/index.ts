@@ -455,9 +455,9 @@ type BuildFlowParams = {
     uploads?: IFileUpload[]
     baseURL?: string
     uploadedFilesContent?: string
-    // appId: string
-    // orgId: string
-    // userId: string
+    appId: string
+    orgId: string
+    userId: string
 }
 
 /**
