@@ -9,21 +9,21 @@ This document outlines the implementation plan for integrating Supabase Storage 
   - [x] Ensure permissions are properly categorized
   - [x] Include create, read, update, delete, and share permissions
 
-- [x] Enhance file metadata table
-  - [x] Add columns for context_type, context_id, resource_type, resource_id
-  - [x] Add columns for is_public, access_level
-  - [x] Add columns for created_by, updated_at
-  - [x] Add column for metadata (JSONB)
-  - [x] Add column for virtual_path
-  - [x] Create appropriate indexes
-  - [x] Enable row-level security
+- [ ] Enhance file metadata table
+  - [ ] Add columns for context_type, context_id, resource_type, resource_id
+  - [ ] Add columns for is_public, access_level
+  - [ ] Add columns for created_by, updated_at
+  - [ ] Add column for metadata (JSONB)
+  - [ ] Add column for virtual_path
+  - [ ] Create appropriate indexes
+  - [ ] Enable row-level security
 
-- [x] Create RLS policies for file access
-  - [x] Policy for file owners
-  - [x] Policy for organization members
-  - [x] Policy for application users
-  - [x] Policy for public files
-  - [x] Policy for admin access
+- [ ] Create RLS policies for file access
+  - [ ] Policy for file owners
+  - [ ] Policy for organization members
+  - [ ] Policy for application users
+  - [ ] Policy for public files
+  - [ ] Policy for admin access
 
 - [x] Create helper function for file access checks
   - [x] Function to check if a user has access to a file
