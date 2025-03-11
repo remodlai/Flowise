@@ -33,7 +33,7 @@ export const getCurrentApplicationId = (req?: Request): string | null => {
 export const applicationContextMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // Check for application ID in headers or query parameters
-        const applicationId = req.headers['x-application-id'] as string || req.query.applicationId as string
+        const applicationId = req.headers['x-application-id'] as string || req.query.applicationId as string || req.body.appId as string
         
         if (applicationId) {
             // If "global" is specified and user is platform admin, allow global access

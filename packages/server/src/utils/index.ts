@@ -1021,17 +1021,17 @@ export const resolveVariables = async (
 ): Promise<INodeData> => {
     let flowNodeData = cloneDeep(reactFlowNodeData)
     logger.debug(`========= Start of resolveVariables start of resolveVariables for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1009 =========`)
-    logger.debug(JSON.stringify(flowNodeData))
+    //logger.debug(JSON.stringify(flowNodeData))
     logger.debug(`========= End of resolveVariables end of resolveVariables for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1009 =========`)
     const types = 'inputs'
 
     const getParamValues = async (paramsObj: ICommonObject) => {
         logger.debug(`========= Start of getParamValues start of getParamValues for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
-        logger.debug(JSON.stringify(paramsObj))
+        //logger.debug(JSON.stringify(paramsObj))
         logger.debug(`========= End of getParamValues end of getParamValues for ${reactFlowNodeData.name} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
         for (const key in paramsObj) {
             logger.debug(`========= Start of getParamValues for ${key} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
-            logger.debug(JSON.stringify(paramsObj[key]))
+            //logger.debug(JSON.stringify(paramsObj[key]))
             logger.debug(`========= End of getParamValues for ${key} File: /Users/brianbagdasarian/fw-dev/Flowise/packages/server/src/utils/index.ts line 1017 =========`)
             const paramValue: string = paramsObj[key]
             if (Array.isArray(paramValue)) {

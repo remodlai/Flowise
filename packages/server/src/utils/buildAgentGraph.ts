@@ -32,6 +32,7 @@ import { Variable } from '../database/entities/Variable'
 import { DataSource } from 'typeorm'
 import { CachePool } from '../CachePool'
 
+
 /**
  * Build Agent Graph
  */
@@ -93,8 +94,17 @@ export const buildAgentGraph = async ({
             uploads,
             baseURL,
             signal: signal ?? new AbortController(),
-            callbacks: [] as BaseCallbackHandler[]
+            callbacks: [] as BaseCallbackHandler[],
+            appId: flowConfig.appId || '',
+            orgId: flowConfig.orgId || '',
+            userId: flowConfig.userId || ''
         }
+
+        logger.info('========= buildAgentGraph multi-tenant context =========')
+        logger.info(`appId from flowConfig: ${flowConfig.appId || 'not provided'}`)
+        logger.info(`orgId from flowConfig: ${flowConfig.orgId || 'not provided'}`)
+        logger.info(`userId from flowConfig: ${flowConfig.userId || 'not provided'}`)
+        logger.info('========= End of buildAgentGraph multi-tenant context =========')
 
         // Add a direct token streaming handler for token-by-token streaming
         if (shouldStreamResponse && sseStreamer && chatId) {
@@ -120,11 +130,15 @@ export const buildAgentGraph = async ({
                 handleLLMNewToken(token: string, options?: any): Promise<void> {
                     // Extract node information if available
                     const currentReasoningNode = agentReasoning?.length ? agentReasoning[agentReasoning.length - 1].nodeName : null;
-                   console.log('currentReasoningNode', currentReasoningNode)
+                    // Use safer logging
+                    logger.debug(`currentReasoningNode: ${currentReasoningNode}`)
                     // Get the source node ID from the current reasoning
                     let sourceNodeId = currentReasoningNode || '';
                     let edgesToCheck = edges.filter(edge => edge.source.includes(sourceNodeId));
-                    console.log('edgesToCheck', edgesToCheck[0].target)
+                    // Use safer logging
+                    if (edgesToCheck.length > 0) {
+                        logger.debug(`edgesToCheck target: ${edgesToCheck[0].target}`)
+                    }
                     // Find the target node that this token is flowing to
                     let targetNodeId = edgesToCheck.length === 1 ? edgesToCheck[0].target : '';
                     if (sourceNodeId) {
@@ -156,7 +170,8 @@ export const buildAgentGraph = async ({
             // Add tokenHandler to the options so it gets passed to the LLM
             options.callbacks.push(tokenHandler);
             
-            console.log(`Token streaming handler registered for direct streaming to chatId: ${chatId}`);
+            // Use safer logging
+            logger.debug(`Token streaming handler registered for direct streaming to chatId: ${chatId}`);
         }
 
         let streamResults
@@ -290,7 +305,11 @@ export const buildAgentGraph = async ({
                                                 nodeId: parentNode.data.id
                                             }
                                             agentReasoning.push(reasoning)
-                                            console.log('reasoning', reasoning)
+                                            // Use safer logging
+                                            // logger.debug(`Reasoning: ${JSON.stringify({
+                                            //     nodeName: reasoning.nodeName,
+                                            //     nodeId: reasoning.nodeId
+                                            // })}`)
                                             
                                         }
                                     }
@@ -358,7 +377,8 @@ export const buildAgentGraph = async ({
                         let currentNodeNameRef = edges.find((edge) => edge.source === lastMessageRaw.additional_kwargs.nodeId)?.target
                         if (shouldStreamResponse && sseStreamer) {
                             sseStreamer.streamTokenEvent(chatId, finalResult, currentNodeNameRef)
-                            console.log('currentNodeNameRef', currentNodeNameRef)
+                            // Use safer logging
+                            logger.debug(`currentNodeNameRef: ${currentNodeNameRef}`)
                         }
                     }
                 }
@@ -481,6 +501,8 @@ export const buildAgentGraph = async ({
         return streamResults
     } catch (e) {
         logger.error('[server]: Error:', e)
+        // Include multi-tenant context in error message
+        logger.error(`[server]: Error in buildAgentGraph with appId: ${flowConfig.appId || 'not provided'}, orgId: ${flowConfig.orgId || 'not provided'}, userId: ${flowConfig.userId || 'not provided'}`)
         throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error buildAgentGraph - ${getErrorMessage(e)}`)
     }
 }
@@ -512,6 +534,7 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
         workerNodeIds,
         componentNodes,
         options,
+        startingNodeIds,
         prependHistoryMessages = [],
         chatHistory = [],
         overrideConfig = {},
@@ -520,7 +543,15 @@ const compileMultiAgentsGraph = async (params: MultiAgentsGraphParams) => {
         uploadedFilesContent
     } = params
 
+    // Get the question from params
     let question = params.question
+
+    // Log multi-tenant context
+    logger.info('========= compileMultiAgentsGraph multi-tenant context =========')
+    logger.info(`appId from options: ${options.appId || 'not provided'}`)
+    logger.info(`orgId from options: ${options.orgId || 'not provided'}`)
+    logger.info(`userId from options: ${options.userId || 'not provided'}`)
+    logger.info('========= End of compileMultiAgentsGraph multi-tenant context =========')
 
     const channels: ITeamState = {
         messages: {
@@ -727,7 +758,15 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
         uploadedFilesContent
     } = params
 
+    // Get the question from params
     let question = params.question
+
+    // Log multi-tenant context
+    logger.info('========= compileSeqAgentsGraph multi-tenant context =========')
+    logger.info(`appId from options: ${options.appId || 'not provided'}`)
+    logger.info(`orgId from options: ${options.orgId || 'not provided'}`)
+    logger.info(`userId from options: ${options.userId || 'not provided'}`)
+    logger.info('========= End of compileSeqAgentsGraph multi-tenant context =========')
 
     let channels: ISeqAgentsState = {
         messages: {
@@ -775,6 +814,13 @@ const compileSeqAgentsGraph = async (params: SeqAgentsGraphParams) => {
     const { nodeOverrides, variableOverrides, apiOverrideStatus } = getAPIOverrideConfig(agentflow)
 
     const initiateNode = async (node: IReactFlowNode) => {
+        // Log multi-tenant context for node initialization
+        logger.debug(`========= Initializing node ${node.data.name} (${node.id}) with multi-tenant context =========`)
+        logger.debug(`appId: ${options.appId || 'not provided'}`)
+        logger.debug(`orgId: ${options.orgId || 'not provided'}`)
+        logger.debug(`userId: ${options.userId || 'not provided'}`)
+        logger.debug(`========= End of multi-tenant context for node ${node.data.name} =========`)
+
         const nodeInstanceFilePath = componentNodes[node.data.name].filePath as string
         const nodeModule = await import(nodeInstanceFilePath)
         const newNodeInstance = new nodeModule.nodeClass()
