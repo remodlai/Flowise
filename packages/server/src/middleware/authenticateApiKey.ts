@@ -1,6 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
 import { validateAPIKey } from '../utils/validateKey'
 import logger from '../utils/logger'
+import { isLikelyJWT } from '../utils/validateKey'
+import { randomUUID } from 'crypto'
+
+// A constant UUID for API key users to avoid UUID validation errors
+const API_KEY_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 /**
  * Middleware to authenticate API keys
@@ -29,13 +34,19 @@ export const authenticateApiKey = async (req: Request, res: Response, next: Next
     // Extract the token
     const token = authHeader.split(' ')[1]
     
+    // Check if this is a JWT token
+    if (isLikelyJWT(token)) {
+      logger.debug('JWT token detected in authenticateApiKey middleware, skipping API key authentication')
+      return next() // It's a JWT token, proceed to Supabase authentication
+    }
+    
     // Validate the API key
     const isValidApiKey = await validateAPIKey(req)
     
     if (isValidApiKey) {
-      // Set a minimal user object for API key authentication
+      // Set a minimal user object for API key authentication with a valid UUID
       req.user = {
-        userId: 'api-key-user',
+        userId: API_KEY_USER_ID, // Use a constant valid UUID instead of 'api-key-user'
         email: 'api-key@example.com',
         provider: 'api-key',
         userMetadata: {},

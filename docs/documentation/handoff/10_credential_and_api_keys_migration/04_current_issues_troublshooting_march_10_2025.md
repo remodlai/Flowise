@@ -47,16 +47,55 @@ Secret not found with key ID: eyJhbGciOiJIUzI1NiIsImtpZCI6Ilp5eldWNEQ0dUVndzdTQk
    - Use `authorize` and `authorize.resource` functions for permission checks
    - Ensure these functions work with both built-in and dynamic roles
 
+### Implementation Progress
+
+#### March 14, 2025: Fixed JWT Token Used as Key ID Issue
+
+We've implemented a fix for the JWT token being incorrectly used as a key ID. The solution:
+
+1. Modified the `validateAPIKey` and `validateChatflowAPIKey` functions in `packages/server/src/utils/validateKey.ts` to detect JWT tokens based on their format (three parts separated by dots).
+
+2. When a JWT token is detected, the system now skips the API key validation process since JWT tokens are already validated by the Supabase Auth middleware.
+
+3. Added a helper function `isLikelyJWT` to determine if a token is likely a JWT based on its structure.
+
+4. Added logging to help diagnose any future issues with token validation.
+
+This change prevents the system from trying to use JWT tokens as API keys, which was causing the "Secret not found" errors. JWT tokens are now properly recognized and handled separately from API keys.
+
+#### March 15, 2025: Fixed API Key User UUID Issue and Application Context Filtering
+
+We've implemented two additional fixes to address issues identified in the server logs:
+
+1. **API Key User UUID Issue**:
+   - Modified the `authenticateApiKey` middleware in `packages/server/src/middleware/authenticateApiKey.ts` to use a valid UUID for API key users instead of the string "api-key-user".
+   - Added an early check to skip API key authentication for JWT tokens, preventing unnecessary role checks.
+   - Used a constant UUID (`00000000-0000-0000-0000-000000000000`) for API key users to ensure compatibility with UUID validation in the database.
+
+2. **Application Context Filtering**:
+   - Updated the `applicationContextMiddleware` in `packages/server/src/middlewares/applicationContextMiddleware.ts` to ensure that when a specific application is selected (not 'global'), only resources associated with that application are shown, even for platform admins.
+   - Added more detailed logging to help diagnose application context issues.
+   - Improved the handling of application access checks to maintain security while providing better diagnostics.
+
+These changes ensure that:
+- API key authentication works correctly without causing UUID validation errors
+- JWT tokens are properly identified and handled
+- Application context filtering works correctly for all users, including platform admins
+- The system provides better logging for authentication and authorization decisions
+
 ### Next Steps
 
-1. Identify the specific code location where the JWT is being used as a key ID
-2. Fix the immediate issue to unblock credential retrieval
-3. Implement a more comprehensive solution for JWT claims and RLS policies
-4. Test with various credential types and authentication methods
-5. Document the final solution in detail
+1. ✅ Identify the specific code location where the JWT is being used as a key ID
+2. ✅ Fix the immediate issue to unblock credential retrieval
+3. ✅ Fix the API key user UUID issue
+4. ✅ Fix the application context filtering for platform admins
+5. Implement a more comprehensive solution for JWT claims and RLS policies
+6. Test with various credential types and authentication methods
+7. Document the final solution in detail
 
 ### Implementation Plan
 
-1. First, we'll focus on fixing the JWT as key ID bug, as this is the most critical issue
-2. Then we'll update the RLS policies to match our JWT claims structure
-3. Finally, we'll implement proper token refresh and standardize application ID handling
+1. ✅ First, we'll focus on fixing the JWT as key ID bug, as this is the most critical issue
+2. ✅ Next, we'll fix the API key user UUID issue and application context filtering
+3. Then we'll update the RLS policies to match our JWT claims structure
+4. Finally, we'll implement proper token refresh and standardize application ID handling

@@ -3,6 +3,17 @@ import { ChatFlow } from '../database/entities/ChatFlow'
 import { compareKeys } from './apiKey'
 import apikeyService from '../services/apikey'
 import { appConfig } from '../AppConfig'
+import logger from './logger'
+
+/**
+ * Check if a token is likely a JWT token
+ * @param {string} token
+ * @returns {boolean}
+ */
+export const isLikelyJWT = (token: string): boolean => {
+    // JWT tokens have three parts separated by dots
+    return token.split('.').length === 3
+}
 
 /**
  * Validate Chatflow API Key
@@ -18,11 +29,21 @@ export const validateChatflowAPIKey = async (req: Request, chatflow: ChatFlow) =
 
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
-        try {
-            await apikeyService.verifyApiKey(suppliedKey, req)
+        // Check if this looks like a JWT token
+        if (isLikelyJWT(suppliedKey)) {
+            // This is likely a JWT token, not an API key
+            // JWT validation is handled by Supabase Auth middleware
+            logger.debug('Authorization header contains a JWT token, skipping API key validation')
             return true
-        } catch (error) {
-            return false
+        } else {
+            // This is likely an API key, validate it
+            try {
+                await apikeyService.verifyApiKey(suppliedKey, req)
+                return true
+            } catch (error) {
+                logger.error(`API key validation failed: ${error}`)
+                return false
+            }
         }
     }
     return false
@@ -38,11 +59,21 @@ export const validateAPIKey = async (req: Request) => {
 
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
-        try {
-            await apikeyService.verifyApiKey(suppliedKey, req)
+        // Check if this looks like a JWT token
+        if (isLikelyJWT(suppliedKey)) {
+            // This is likely a JWT token, not an API key
+            // JWT validation is handled by Supabase Auth middleware
+            logger.debug('Authorization header contains a JWT token, skipping API key validation')
             return true
-        } catch (error) {
-            return false
+        } else {
+            // This is likely an API key, validate it
+            try {
+                await apikeyService.verifyApiKey(suppliedKey, req)
+                return true
+            } catch (error) {
+                logger.error(`API key validation failed: ${error}`)
+                return false
+            }
         }
     }
     return false

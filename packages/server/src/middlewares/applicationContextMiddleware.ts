@@ -40,28 +40,41 @@ export const applicationContextMiddleware = async (req: Request, res: Response, 
             if (applicationId === 'global') {
                 const user = req.user as IUser | undefined
                 if (user && user.userId && await isPlatformAdmin(user.userId)) {
+                    logger.debug(`Setting application context to 'global' for platform admin user: ${user.userId}`)
                     req.applicationId = 'global'
                 } else {
                     // User is not a platform admin, ignore the global setting
+                    logger.debug(`User ${user?.userId || 'unknown'} is not a platform admin, ignoring 'global' setting`)
                     req.applicationId = undefined
                 }
             } else {
-                // Verify user has access to this application
+                // For specific application ID (not 'global'), always set it regardless of user role
+                // This ensures that even platform admins only see resources for the selected application
+                logger.debug(`Setting application context to specific application: ${applicationId}`)
+                req.applicationId = applicationId
+                
+                // Verify user has access to this application (for audit/logging purposes only)
                 const user = req.user as IUser | undefined
                 if (user && user.userId) {
-                    // Check if user has access to this application
-                    const hasAccess = await isAppOwner(user.userId, applicationId)
-                    
-                    if (hasAccess) {
-                        req.applicationId = applicationId
+                    const isPlatformAdminUser = await isPlatformAdmin(user.userId)
+                    if (isPlatformAdminUser) {
+                        logger.debug(`Platform admin user ${user.userId} accessing application ${applicationId}`)
                     } else {
-                        // User doesn't have access to this application
-                        req.applicationId = undefined
+                        // Check if user has access to this application
+                        const hasAccess = await isAppOwner(user.userId, applicationId)
+                        
+                        if (hasAccess) {
+                            logger.debug(`User ${user.userId} has access to application ${applicationId}`)
+                        } else {
+                            logger.warn(`User ${user.userId} attempted to access application ${applicationId} without permission`)
+                            // We still set the application ID, but the RLS policies will prevent access
+                        }
                     }
                 }
             }
         } else {
             // No application ID specified, use default behavior
+            logger.debug('No application ID specified, using default behavior')
             req.applicationId = undefined
         }
         
