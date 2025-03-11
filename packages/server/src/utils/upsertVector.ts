@@ -4,11 +4,11 @@ import { cloneDeep, omit } from 'lodash'
 import {
     ICommonObject,
     IMessage
-} from '../../../components/src/Interface'
+} from 'flowise-components'
 import {
     mapMimeTypeToInputField,
     mapExtToInputField
-} from '../../../components/src/utils'
+} from 'flowise-components'
 
 import {
    
@@ -16,7 +16,7 @@ import {
     
     getFileFromUpload,
     removeSpecificFileFromUpload
-} from '../../../components/src/storageUtils'
+} from 'flowise-components'
 import logger from '../utils/logger'
 import {
     buildFlow,
