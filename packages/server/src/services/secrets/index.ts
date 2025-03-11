@@ -110,23 +110,13 @@ export const getSecret = async (id: string, applicationId?: string): Promise<any
         
         // Get from Supabase using service key
         const supabase = getSupabaseClient()
-        let query = supabase
+        
+        // Get the secret by ID
+        const { data, error } = await supabase
             .from('secrets')
             .select('value, metadata')
-            .eq('id', id);
-        
-        logger.debug(`Supabase query built: ${query.toString()}`)
-        
-        // If applicationId is provided and not 'global', filter by it
-        if (applicationId && applicationId !== 'global') {
-            logger.debug(`Filtering secret by application ID: ${applicationId}`)
-            query = query.eq('metadata->applicationId', applicationId)
-            logger.debug(`Updated query with application filter: ${query.toString()}`)
-        }
-        
-        logger.debug(`Executing Supabase query...`)
-        const { data, error } = await query.maybeSingle()
-        logger.debug(`Query executed. Data received: ${data ? 'yes' : 'no'}, Error: ${error ? error.message : 'none'}`)
+            .eq('id', id)
+            .maybeSingle();
         
         if (error) {
             logger.error(`Error retrieving secret from Supabase: ${error.message}`)
@@ -135,8 +125,33 @@ export const getSecret = async (id: string, applicationId?: string): Promise<any
         }
         
         if (!data) {
-            logger.error(`Secret not found with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
-            throw new Error(`Secret not found with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
+            logger.error(`Secret not found with ID: ${id}`)
+            throw new Error(`Secret not found with ID: ${id}`)
+        }
+        
+        // If applicationId is provided and not 'global', verify the credential belongs to the application
+        if (applicationId && applicationId !== 'global') {
+            logger.debug(`Verifying credential belongs to application: ${applicationId}`)
+            
+            try {
+                // Import applicationcredentials dynamically to avoid circular dependencies
+                const applicationcredentials = await import('../applicationcredentials')
+                const credentialIds = await applicationcredentials.getCredentialIdsForApplication(applicationId)
+                
+                // Check if the secret ID is in the list of credential IDs for the application
+                if (!credentialIds.includes(id)) {
+                    logger.error(`Secret with ID ${id} does not belong to application ${applicationId}`)
+                    throw new Error(`Secret with ID ${id} does not belong to application ${applicationId}`)
+                }
+                
+                logger.debug(`Verified secret belongs to application ${applicationId}`)
+            } catch (error) {
+                if (error instanceof Error && error.message.includes('does not belong to application')) {
+                    throw error
+                }
+                logger.error(`Error verifying application credential: ${getErrorMessage(error)}`)
+                // Continue even if verification fails
+            }
         }
         
         logger.debug(`Retrieved secret from Supabase with metadata: ${JSON.stringify(data.metadata)}`)
@@ -193,30 +208,50 @@ export const getSecretByKeyId = async (keyId: string, applicationId?: string): P
         
         // Get from Supabase using service key
         const supabase = getSupabaseClient()
-        let query = supabase
+        
+        // First, get the secret ID by key_id
+        const { data: secretData, error: secretError } = await supabase
             .from('secrets')
-            .select('value, metadata')
-            .eq('key_id', keyId);
+            .select('id, value, metadata')
+            .eq('key_id', keyId)
+            .maybeSingle();
         
-        // If applicationId is provided and not 'global', filter by it
+        if (secretError) {
+            logger.error(`Error retrieving secret from Supabase: ${secretError.message}`)
+            throw secretError
+        }
+        
+        if (!secretData) {
+            logger.error(`Secret not found with key ID: ${keyId}`)
+            throw new Error(`Secret not found with key ID: ${keyId}`)
+        }
+        
+        // If applicationId is provided and not 'global', verify the credential belongs to the application
         if (applicationId && applicationId !== 'global') {
-            logger.info(`Filtering secret by application ID: ${applicationId}`)
-            query = query.eq('metadata->applicationId', applicationId)
+            logger.info(`Verifying credential belongs to application: ${applicationId}`)
+            
+            try {
+                // Import applicationcredentials dynamically to avoid circular dependencies
+                const applicationcredentials = await import('../applicationcredentials')
+                const credentialIds = await applicationcredentials.getCredentialIdsForApplication(applicationId)
+                
+                // Check if the secret ID is in the list of credential IDs for the application
+                if (!credentialIds.includes(secretData.id)) {
+                    logger.error(`Secret with ID ${secretData.id} does not belong to application ${applicationId}`)
+                    throw new Error(`Secret with key ID ${keyId} does not belong to application ${applicationId}`)
+                }
+                
+                logger.info(`Verified secret belongs to application ${applicationId}`)
+            } catch (error) {
+                if (error instanceof Error && error.message.includes('does not belong to application')) {
+                    throw error
+                }
+                logger.error(`Error verifying application credential: ${getErrorMessage(error)}`)
+                // Continue even if verification fails
+            }
         }
         
-        const { data, error } = await query.maybeSingle()
-        
-        if (error) {
-            logger.error(`Error retrieving secret from Supabase: ${error.message}`)
-            throw error
-        }
-        
-        if (!data) {
-            logger.error(`Secret not found with key ID: ${keyId}${applicationId ? ` for application: ${applicationId}` : ''}`)
-            throw new Error(`Secret not found with key ID: ${keyId}${applicationId ? ` for application: ${applicationId}` : ''}`)
-        }
-        
-        logger.info(`Retrieved secret from Supabase with metadata: ${JSON.stringify(data.metadata)}`)
+        logger.info(`Retrieved secret from Supabase with metadata: ${JSON.stringify(secretData.metadata)}`)
         
         // Decrypt the value
         logger.info(`Getting master encryption key`)
@@ -224,7 +259,7 @@ export const getSecretByKeyId = async (keyId: string, applicationId?: string): P
         logger.info(`Got master encryption key, decrypting value`)
         
         try {
-            const decryptedBytes = AES.decrypt(data.value, masterKey)
+            const decryptedBytes = AES.decrypt(secretData.value, masterKey)
             const decryptedValue = decryptedBytes.toString(enc.Utf8)
             
             if (!decryptedValue) {
