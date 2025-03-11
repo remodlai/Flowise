@@ -38,6 +38,8 @@ export const getApplicationIdForTool = async (toolId: string): Promise<string | 
  */
 export const getToolIdsForApplication = async (applicationId: string): Promise<string[]> => {
     try {
+        logger.debug(`Getting tool IDs for application: ${applicationId}`)
+        
         const { data, error } = await supabase
             .from('application_tools')
             .select('tool_id')
@@ -48,7 +50,7 @@ export const getToolIdsForApplication = async (applicationId: string): Promise<s
             return []
         }
 
-        return data?.map((item) => item.tool_id) || []
+        return data?.map((item: { tool_id: string }) => item.tool_id) || []
     } catch (error) {
         logger.error('Error in getToolIdsForApplication:', error)
         return []

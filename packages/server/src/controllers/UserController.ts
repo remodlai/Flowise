@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import { supabase } from '../utils/supabase'
 import { handleError } from '../utils/errorHandler'
+import { ISupabaseUser, ISupabaseOrganization, ISupabaseOrganizationUser, ISupabaseUserRole } from '../Interface.Supabase'
+import { IUser } from '../Interface'
 
 /**
  * User Controller
@@ -31,13 +33,13 @@ export class UserController {
             
             // Get application ID from request context
             const applicationId = req.applicationId
-            const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
+            const isPlatformAdmin = (req.user as IUser)?.is_platform_admin === true
             
             console.log(`Application context: ${applicationId}, isPlatformAdmin: ${isPlatformAdmin}`)
             
             // Filter users by application if an applicationId is specified and not 'global'
             let filteredUsers = authUsers.users
-            let userOrganizationsMap = new Map()
+            let userOrganizationsMap = new Map<string, Array<{organization_id: string, role: string}>>()
             
             // Get all organization users
             const { data: allOrgUsers, error: allOrgUsersError } = await supabase
@@ -50,11 +52,11 @@ export class UserController {
                 console.log(`Found ${allOrgUsers?.length || 0} total organization user records`)
                 
                 // Create a map of user ID to their organizations
-                allOrgUsers.forEach(ou => {
+                allOrgUsers.forEach((ou: ISupabaseOrganizationUser) => {
                     if (!userOrganizationsMap.has(ou.user_id)) {
                         userOrganizationsMap.set(ou.user_id, [])
                     }
-                    userOrganizationsMap.get(ou.user_id).push({
+                    userOrganizationsMap.get(ou.user_id)!.push({
                         organization_id: ou.organization_id,
                         role: ou.role
                     })
@@ -62,67 +64,47 @@ export class UserController {
             }
             
             // Get all organizations
-            const { data: allOrganizations, error: allOrgsError } = await supabase
+            const { data: organizations, error: orgsError } = await supabase
                 .from('organizations')
                 .select('*')
             
-            if (allOrgsError) {
-                console.error('Error fetching all organizations:', allOrgsError)
+            if (orgsError) {
+                console.error('Error fetching organizations:', orgsError)
             }
             
-            // Create a map of organization ID to organization details
-            const organizationsMap = new Map()
-            if (allOrganizations) {
-                allOrganizations.forEach(org => {
-                    organizationsMap.set(org.id, org)
-                })
-            }
+            // Create a map of organization ID to organization data
+            const organizationsMap = new Map<string, ISupabaseOrganization>()
+            organizations?.forEach((org: ISupabaseOrganization) => {
+                organizationsMap.set(org.id, org)
+            })
             
-            // Only filter if not in global view or not a platform admin
-            if (applicationId && applicationId !== 'global') {
-                console.log(`Filtering users by application ID: ${applicationId}`)
+            // If we have an application ID and the user is not a platform admin,
+            // filter users to only those in the same organization as the application
+            if (applicationId && applicationId !== 'global' && !isPlatformAdmin) {
+                console.log('Filtering users by application organization')
                 
-                // Get organizations associated with this application
-                const { data: organizations, error: orgError } = await supabase
-                    .from('organizations')
-                    .select('id')
-                    .eq('application_id', applicationId)
+                // Get the application's organization
+                const { data: application, error: appError } = await supabase
+                    .from('applications')
+                    .select('organization_id')
+                    .eq('id', applicationId)
+                    .single()
                 
-                if (orgError) {
-                    console.error('Error fetching organizations:', orgError)
-                } else {
-                    console.log(`Found ${organizations?.length || 0} organizations for application ${applicationId}`)
-                    
-                    if (organizations && organizations.length > 0) {
-                        const orgIds = organizations.map(org => org.id)
-                        
-                        // Get users from these organizations
-                        const { data: orgUsers, error: orgUsersError } = await supabase
-                            .from('organization_users')
-                            .select('user_id')
-                            .in('organization_id', orgIds)
-                        
-                        if (orgUsersError) {
-                            console.error('Error fetching organization users:', orgUsersError)
-                        } else {
-                            console.log(`Found ${orgUsers?.length || 0} users in these organizations`)
-                            
-                            if (orgUsers && orgUsers.length > 0) {
-                                const allowedUserIds = orgUsers.map(u => u.user_id)
-                                
-                                // Filter users by allowed IDs
-                                filteredUsers = filteredUsers.filter(user => allowedUserIds.includes(user.id))
-                                console.log(`Filtered to ${filteredUsers.length} users`)
-                            } else {
-                                console.log('No users found in these organizations')
-                                filteredUsers = []
-                            }
-                        }
-                    } else {
-                        console.log('No organizations found for this application')
-                        filteredUsers = []
-                    }
+                if (appError) {
+                    console.error('Error fetching application:', appError)
+                    throw appError
                 }
+                
+                const appOrgId = application.organization_id
+                console.log(`Application organization ID: ${appOrgId}`)
+                
+                // Filter users to only those in the application's organization
+                filteredUsers = authUsers.users.filter((user: ISupabaseUser) => {
+                    const userOrgs = userOrganizationsMap.get(user.id) || []
+                    return userOrgs.some(org => org.organization_id === appOrgId)
+                })
+                
+                console.log(`Filtered to ${filteredUsers.length} users in the application's organization`)
             } else if (!isPlatformAdmin) {
                 // Non-platform admins can only see users they have access to
                 // For now, return an empty list if not in an application context
@@ -143,15 +125,15 @@ export class UserController {
             }
             
             // Create a map of user ID to profile
-            const profilesMap = new Map()
+            const profilesMap = new Map<string, ISupabaseUser>()
             if (userProfiles) {
-                userProfiles.forEach(profile => {
+                userProfiles.forEach((profile: ISupabaseUser) => {
                     profilesMap.set(profile.user_id, profile)
                 })
             }
             
             // Format user data
-            const formattedUsers = filteredUsers.map(user => {
+            const formattedUsers = filteredUsers.map((user: ISupabaseUser) => {
                 const profile = profilesMap.get(user.id)
                 const meta = profile?.meta || {}
                 const userOrgs = userOrganizationsMap.get(user.id) || []
@@ -269,15 +251,17 @@ export class UserController {
                 }
                 
                 // Transform the roles into a format similar to what was expected from user_roles
-                dbUserRoles = userRolesData?.map(ur => {
+                dbUserRoles = userRolesData?.map((ur: ISupabaseUserRole) => {
                     // Get the role data - handle both object and array formats
                     const role = Array.isArray(ur.roles) 
                         ? ur.roles[0] as RoleData
-                        : ur.roles as RoleData;
+                        : ur.roles as RoleData
                     
                     return {
-                        role: role?.name || '',
-                        resource_type: ur.resource_type || role?.context_type || '',
+                        id: ur.id,
+                        role: role.name,
+                        base_role: role.base_role,
+                        context_type: role.context_type,
                         resource_id: ur.resource_id
                     }
                 }) || []
@@ -510,7 +494,7 @@ export class UserController {
             }
             
             // Get organization details
-            const orgIds = orgUsers.map(ou => ou.organization_id)
+            const orgIds = orgUsers.map((ou: ISupabaseOrganizationUser) => ou.organization_id)
             const { data: organizations, error: orgsError } = await supabase
                 .from('organizations')
                 .select('*')
@@ -522,13 +506,13 @@ export class UserController {
             }
             
             // Create a map of organization ID to role
-            const roleMap = new Map()
-            orgUsers.forEach(ou => {
+            const roleMap = new Map<string, string>()
+            orgUsers.forEach((ou: ISupabaseOrganizationUser) => {
                 roleMap.set(ou.organization_id, ou.role)
             })
             
             // Add role to each organization
-            const orgsWithRoles = organizations.map(org => ({
+            const orgsWithRoles = organizations.map((org: ISupabaseOrganization) => ({
                 ...org,
                 role: roleMap.get(org.id) || 'member'
             }))

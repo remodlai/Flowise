@@ -1,7 +1,8 @@
 import { Request, Response } from 'express'
 import { supabase } from '../utils/supabase'
 import { handleError } from '../utils/errorHandler'
-
+import { IPermissions } from '../Interface'
+import { ISupabaseRole, ISupabasePermission, ISupabaseRolePermission, ISupabaseUserRole } from '../Interface.Supabase'
 /**
  * Custom Role Controller
  * Handles API endpoints for managing custom roles
@@ -45,24 +46,26 @@ export class CustomRoleController {
         try {
             const { id } = req.params
 
-            const { data: role, error: roleError } = await supabase
+            // Get role from database
+            const { data: role, error } = await supabase
                 .from('roles')
                 .select('*')
                 .eq('id', id)
                 .single()
 
-            if (roleError) throw roleError
+            if (error) throw error
+            if (!role) return res.status(404).json({ error: 'Role not found' })
 
             // Get permissions for this role
-            const { data: permissions, error: permissionsError } = await supabase
+            const { data: rolePermissions, error: permissionsError } = await supabase
                 .from('role_permissions')
-                .select('permission')
+                .select('permission_id')
                 .eq('role_id', id)
 
             if (permissionsError) throw permissionsError
 
             // Format permissions as an array of strings
-            const permissionList = permissions.map(p => p.permission)
+            const permissionList = rolePermissions.map((p: { permission_id: string }) => p.permission_id)
 
             return res.json({
                 role: {
@@ -71,7 +74,7 @@ export class CustomRoleController {
                 }
             })
         } catch (error) {
-            return handleError(res, error, 'Error fetching custom role')
+            handleError(res, error, 'Error fetching custom role')
         }
     }
 
@@ -214,19 +217,33 @@ export class CustomRoleController {
         try {
             const { id } = req.params
 
-            const { data, error } = await supabase
+            // Get permissions for this role
+            const { data: rolePermissions, error: permissionsError } = await supabase
                 .from('role_permissions')
-                .select('permission')
+                .select('permission_id')
                 .eq('role_id', id)
 
-            if (error) throw error
+            if (permissionsError) throw permissionsError
 
-            // Format permissions as an array of strings
-            const permissions = data.map(p => p.permission)
+            // Get full permission details
+            const permissionIds = rolePermissions.map((p: { permission_id: string }) => p.permission_id)
+
+            // If no permissions, return empty array
+            if (permissionIds.length === 0) {
+                return res.json({ permissions: [] })
+            }
+
+            // Get permission details
+            const { data: permissions, error: permissionsDetailsError } = await supabase
+                .from('permissions')
+                .select('*')
+                .in('id', permissionIds)
+
+            if (permissionsDetailsError) throw permissionsDetailsError
 
             return res.json({ permissions })
         } catch (error) {
-            return handleError(res, error, 'Error fetching role permissions')
+            handleError(res, error, 'Error fetching role permissions')
         }
     }
 
@@ -303,7 +320,7 @@ export class CustomRoleController {
 
             if (error) throw error
 
-            return res.json({ users: data.map(u => u.user_id) })
+            return res.json({ users: data.map((u: any) => u.user_id) })
         } catch (error) {
             return handleError(res, error, 'Error fetching role users')
         }
@@ -420,44 +437,26 @@ export class CustomRoleController {
      */
     static async getAllPermissions(req: Request, res: Response) {
         try {
-            const { context_type } = req.query
-
-            let query = supabase
+            // Get all permissions
+            const { data: permissions, error } = await supabase
                 .from('permissions')
-                .select('*, permission_categories(name, description)')
-
-            if (context_type) {
-                // Filter permissions that apply to the specified context
-                query = query.contains('context_types', [context_type])
-            }
-
-            const { data, error } = await query.order('name')
+                .select('*')
+                .order('name')
 
             if (error) throw error
 
             // Group permissions by category
-            const permissionsByCategory = data.reduce((acc, permission) => {
-                const categoryName = permission.permission_categories.name
-                
-                if (!acc[categoryName]) {
-                    acc[categoryName] = {
-                        name: categoryName,
-                        description: permission.permission_categories.description,
-                        permissions: []
-                    }
+            const groupedPermissions = permissions.reduce((acc: Record<string, ISupabasePermission[]>, permission: ISupabasePermission) => {
+                const category = permission.category || 'Other'
+                if (!acc[category]) {
+                    acc[category] = []
                 }
-                
-                acc[categoryName].permissions.push({
-                    name: permission.name,
-                    description: permission.description,
-                    context_types: permission.context_types
-                })
-                
+                acc[category].push(permission)
                 return acc
             }, {})
 
             return res.json({ 
-                categories: Object.values(permissionsByCategory)
+                categories: Object.values(groupedPermissions)
             })
         } catch (error) {
             return handleError(res, error, 'Error fetching permissions')

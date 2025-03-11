@@ -8,7 +8,7 @@ import platformRoutes from './platform'
 import platformAdminRoutes from './platform/index'
 import { supabase } from '../utils/supabase'
 import { getUserContextFromJWT } from './auth/user-context'
-
+import { ISupabaseOrganization } from '../Interface.Supabase'
 // Create a router for v1 API routes
 const router = express.Router()
 
@@ -181,7 +181,7 @@ router.get('/debug/organizations', async (req, res) => {
         
         if (applicationId && applicationId !== 'global') {
             console.log(`Debug - Filtering organizations by application_id: ${applicationId}`)
-            filteredOrgs = allOrgs.filter(org => org.application_id === applicationId)
+            filteredOrgs = allOrgs.filter((org: ISupabaseOrganization) => org.application_id === applicationId)
         } else if (!isPlatformAdmin) {
             console.log(`Debug - User is not a platform admin and no application context, returning empty array`)
             filteredOrgs = []

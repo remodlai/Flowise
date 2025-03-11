@@ -1,4 +1,4 @@
-import { supabase } from '../../utils/supabase'
+import { createClient } from '@supabase/supabase-js'
 import { AES, enc } from 'crypto-js'
 import { randomBytes } from 'crypto'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
@@ -6,8 +6,35 @@ import { StatusCodes } from 'http-status-codes'
 import { getErrorMessage } from '../../errors/utils'
 import { getEncryptionKey } from '../../utils/platformSettings'
 import logger from '../../utils/logger'
+import { getInstance } from '../../index'
 
-// Get the master encryption key
+// Create a Supabase client with the service role key
+// This has admin privileges and can bypass RLS
+// DEPRECATED: Use the centralized client from App class instead
+// const supabaseUrl = process.env.SUPABASE_URL || ''
+// const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+// const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+/**
+ * Get the Supabase client from the App instance
+ * This ensures we're using a single, properly initialized client
+ */
+const getSupabaseClient = () => {
+    const app = getInstance()
+    if (!app) {
+        throw new Error('App instance not available')
+    }
+    // Use the direct Supabase property instead of the getter method
+    if (!app.Supabase) {
+        throw new Error('Supabase client not initialized')
+    }
+    return app.Supabase
+}
+
+/**
+ * Get the master encryption key
+ * @returns The master encryption key
+ */
 const getMasterEncryptionKey = async (): Promise<string> => {
     try {
         return await getEncryptionKey()
@@ -37,19 +64,24 @@ export const storeSecret = async (
     keyId?: string
 ): Promise<string> => {
     try {
-        // Encrypt the value
+        logger.debug(`Storing secret: ${name}, type: ${type}`)
+        
+        // Get the master encryption key
         const masterKey = await getMasterEncryptionKey()
+        
+        // Encrypt the value
         const encryptedValue = AES.encrypt(JSON.stringify(value), masterKey).toString()
         
         // Store in Supabase
+        const supabase = getSupabaseClient()
         const { data, error } = await supabase
             .from('secrets')
             .insert({
-                key_id: keyId || null,
                 name,
                 type,
                 value: encryptedValue,
-                metadata
+                metadata,
+                key_id: keyId
             })
             .select('id')
             .single()
@@ -77,6 +109,7 @@ export const getSecret = async (id: string, applicationId?: string): Promise<any
         logger.debug(`Getting secret with ID: ${id}${applicationId ? ` for application: ${applicationId}` : ''}`)
         
         // Get from Supabase using service key
+        const supabase = getSupabaseClient()
         let query = supabase
             .from('secrets')
             .select('value, metadata')
@@ -149,74 +182,92 @@ export const getSecret = async (id: string, applicationId?: string): Promise<any
 }
 
 /**
- * Get a secret by key ID (for API keys)
- * @param keyId The API key ID
+ * Retrieve a secret by its key ID
+ * @param keyId Key ID of the secret to retrieve
  * @param applicationId Optional application ID to filter by
- * @returns The secret data
+ * @returns The decrypted secret value
  */
 export const getSecretByKeyId = async (keyId: string, applicationId?: string): Promise<any> => {
     try {
-        // Build the query
+        logger.info(`Getting secret with key ID: ${keyId}${applicationId ? ` for application: ${applicationId}` : ''}`)
+        
+        // Get from Supabase using service key
+        const supabase = getSupabaseClient()
         let query = supabase
             .from('secrets')
-            .select('id, value, metadata')
-            .eq('key_id', keyId)
+            .select('value, metadata')
+            .eq('key_id', keyId);
         
-        // Filter by application ID if provided and not 'global'
+        // If applicationId is provided and not 'global', filter by it
         if (applicationId && applicationId !== 'global') {
-            console.log(`Filtering secret by application ID: ${applicationId} for key ID: ${keyId}`)
+            logger.info(`Filtering secret by application ID: ${applicationId}`)
             query = query.eq('metadata->applicationId', applicationId)
         }
         
-        // Execute the query
-        const { data, error } = await query
+        const { data, error } = await query.maybeSingle()
         
-        if (error) throw error
-        if (!data || data.length === 0) {
-           // console.warn(`No secret found with key ID: ${keyId}${applicationId && applicationId !== 'global' ? ` and application ID: ${applicationId}` : ''}`)
-            return null
+        if (error) {
+            logger.error(`Error retrieving secret from Supabase: ${error.message}`)
+            throw error
         }
         
-        // If multiple rows are found, use the first one but log a warning
-        if (data.length > 1) {
-            console.warn(`Multiple secrets found with key ID: ${keyId}, using the first one`)
+        if (!data) {
+            logger.error(`Secret not found with key ID: ${keyId}${applicationId ? ` for application: ${applicationId}` : ''}`)
+            throw new Error(`Secret not found with key ID: ${keyId}${applicationId ? ` for application: ${applicationId}` : ''}`)
         }
         
-        const secretData = data[0]
+        logger.info(`Retrieved secret from Supabase with metadata: ${JSON.stringify(data.metadata)}`)
         
         // Decrypt the value
+        logger.info(`Getting master encryption key`)
         const masterKey = await getMasterEncryptionKey()
-        const decryptedBytes = AES.decrypt(secretData.value, masterKey)
-        const decryptedValue = decryptedBytes.toString(enc.Utf8)
+        logger.info(`Got master encryption key, decrypting value`)
         
-        return {
-            id: secretData.id,
-            value: JSON.parse(decryptedValue),
-            metadata: secretData.metadata
+        try {
+            const decryptedBytes = AES.decrypt(data.value, masterKey)
+            const decryptedValue = decryptedBytes.toString(enc.Utf8)
+            
+            if (!decryptedValue) {
+                logger.error(`Failed to decrypt secret value: empty decrypted string`)
+                throw new Error('Failed to decrypt secret value: empty decrypted string')
+            }
+            
+            logger.info(`Successfully decrypted secret value, parsing JSON`)
+            const parsedValue = JSON.parse(decryptedValue)
+            logger.info(`Parsed secret value: ${JSON.stringify(parsedValue)}`)
+            
+            return parsedValue
+        } catch (decryptError) {
+            logger.error(`Error decrypting secret value: ${getErrorMessage(decryptError)}`)
+            throw new Error(`Error decrypting secret value: ${getErrorMessage(decryptError)}`)
         }
     } catch (error) {
-        console.error(`Error retrieving secret by key ID: ${getErrorMessage(error)}`)
-        return null
+        logger.error(`Error retrieving secret by key ID: ${getErrorMessage(error)}`)
+        throw new InternalFlowiseError(
+            StatusCodes.INTERNAL_SERVER_ERROR,
+            `Error retrieving secret by key ID: ${getErrorMessage(error)}`
+        )
     }
 }
 
 /**
- * Update an existing secret
+ * Update a secret in Supabase
  * @param id ID of the secret to update
- * @param value New value
- * @param metadata New metadata (optional)
+ * @param value New value to encrypt and store
+ * @param metadata Optional new metadata to store
  */
 export const updateSecret = async (id: string, value: any, metadata?: any): Promise<void> => {
     try {
-        // Encrypt the value
+        // Get the master encryption key
         const masterKey = await getMasterEncryptionKey()
+        
+        // Encrypt the value
         const encryptedValue = AES.encrypt(JSON.stringify(value), masterKey).toString()
         
         // Update in Supabase
+        const supabase = getSupabaseClient()
         const updateData: any = { value: encryptedValue }
-        if (metadata !== undefined) {
-            updateData.metadata = metadata
-        }
+        if (metadata) updateData.metadata = metadata
         
         const { error } = await supabase
             .from('secrets')
@@ -233,11 +284,13 @@ export const updateSecret = async (id: string, value: any, metadata?: any): Prom
 }
 
 /**
- * Delete a secret
+ * Delete a secret from Supabase
  * @param id ID of the secret to delete
  */
 export const deleteSecret = async (id: string): Promise<void> => {
     try {
+        // Delete from Supabase
+        const supabase = getSupabaseClient()
         const { error } = await supabase
             .from('secrets')
             .delete()
@@ -255,15 +308,16 @@ export const deleteSecret = async (id: string): Promise<void> => {
 /**
  * List all secrets of a specific type
  * @param type Type of secrets to list
- * @returns Array of secrets
+ * @returns Array of secrets with their metadata
  */
 export const listSecrets = async (type: string): Promise<any[]> => {
     try {
+        // Get from Supabase
+        const supabase = getSupabaseClient()
         const { data, error } = await supabase
             .from('secrets')
-            .select('id, key_id, name, metadata')
+            .select('id, name, key_id, metadata, created_at, updated_at')
             .eq('type', type)
-            .order('name')
         
         if (error) throw error
         

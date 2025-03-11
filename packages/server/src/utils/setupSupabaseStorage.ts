@@ -8,6 +8,7 @@
 
 import { supabase } from './supabase'
 import { STORAGE_BUCKETS } from './supabaseStorage'
+import { ISupabaseBucket } from '../Interface.Supabase'
 
 /**
  * Main function to set up all Supabase Storage buckets and their security policies
@@ -53,7 +54,9 @@ export const setupSupabaseStorage = async () => {
  */
 const createBucketIfNotExists = async (bucketName: string, isPublic: boolean) => {
   try {
-    // Check if bucket already exists
+    console.log(`Checking if bucket exists: ${bucketName}`)
+    
+    // List all buckets
     const { data: buckets, error: listError } = await supabase.storage.listBuckets()
     
     if (listError) {
@@ -61,7 +64,7 @@ const createBucketIfNotExists = async (bucketName: string, isPublic: boolean) =>
       throw listError
     }
     
-    const bucketExists = buckets.some(bucket => bucket.name === bucketName)
+    const bucketExists = buckets.some((bucket: ISupabaseBucket) => bucket.name === bucketName)
     
     // Create bucket if it doesn't exist
     if (!bucketExists) {

@@ -135,3 +135,53 @@ Ask me about NodePool
     - The system should now be able to access application credentials during flow execution, even when the token has expired
     - This should fix the issue where credential retrieval was failing and returning 0 credentials
     - The fix is minimal and focused on the specific issue, without changing any application code
+
+### **Latest Improvements (March 12, 2025)**
+
+18. **Centralized Supabase Client Implementation**:
+   - Implemented a centralized Supabase client in the App class to improve connection management and error handling
+   - Added proper initialization and shutdown procedures for the Supabase client
+   - Exposed the Supabase client as `app.Supabase` for direct access, following the same pattern as other elements like `app.AppDataSource`
+   - Modified the `supabase.ts` utility to use the centralized client from the App class, with a fallback to direct initialization if the App instance is not available
+   - This ensures that all Supabase operations use the same client instance, improving connection pooling and error handling
+
+19. **Enhanced Type Safety with TypeScript Interfaces**:
+   - Created a new `Interface.Supabase.ts` file with comprehensive type definitions for Supabase-specific data structures:
+     - `ISupabaseUser`: Type for Supabase auth users
+     - `ISupabaseOrganization`: Type for organizations in the organizations table
+     - `ISupabaseOrganizationUser`: Type for organization-user relationships
+     - `ISupabaseApplication`: Type for applications in the applications table
+     - `ISupabaseRole`: Type for roles in the roles table
+     - `ISupabasePermission`: Type for permissions in the permissions table
+     - `ISupabaseUserRole`: Type for user-role relationships
+     - `ISupabaseRolePermission`: Type for role-permission relationships
+     - `ISupabaseSecret`: Type for secrets in the secrets table
+     - `ISupabaseBucket`: Type for storage buckets
+     - `ISupabaseResponse<T>`: Generic type for Supabase API responses
+   - Updated the `Interface.ts` file to import and re-export these Supabase interfaces
+   - Fixed TypeScript errors in controller and service files by adding proper type annotations
+   - This improves type safety and makes the codebase more maintainable
+
+20. **Improved Logging for Credential Retrieval**:
+   - Enhanced the logging in the `getSecret` function to provide more detailed information about the secret retrieval process
+   - Added comprehensive logging to the `decryptCredentialData` function in both the server and components packages
+   - Improved error handling and logging in the `getCredentialData` function
+   - Set the logger level to 'debug' to capture all relevant information
+   - This provides better visibility into the credential retrieval process and helps diagnose issues
+
+21. **Architectural Improvements**:
+   - Implemented a proxy pattern in the `supabase.ts` utility to ensure that the latest client is always used
+   - Added proper error handling and fallback mechanisms in the Supabase client initialization
+   - Improved the organization of type definitions by separating Supabase-specific types into their own file
+   - Enhanced the readability and maintainability of the codebase with better type annotations and documentation
+   - These changes make the codebase more robust and easier to maintain
+
+22. **Next Steps**:
+   - Test the centralized Supabase client implementation with various credential types
+   - Verify that the token refresh mechanism works correctly with the new implementation
+   - Ensure that the credential retrieval process correctly uses the application ID
+   - Update the secrets endpoint to verify that the credential belongs to the application
+   - Add more comprehensive logging to track the credential retrieval process end-to-end
+   - Document the final architecture for credential handling in detail
+
+These improvements address several of the issues identified earlier, particularly around Supabase client management and type safety. The centralized client implementation should help with connection management and error handling, while the enhanced type definitions make the codebase more maintainable and less prone to errors.

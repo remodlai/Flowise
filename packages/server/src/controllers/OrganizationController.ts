@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { supabase } from '../utils/supabase'
 import { handleError } from '../utils/errorHandler'
 import { getCurrentApplicationId } from '../middlewares/applicationContextMiddleware'
+import { ISupabaseUser, ISupabaseOrganization, ISupabaseOrganizationUser } from '../Interface.Supabase'
 
 /**
  * Organization Controller
@@ -224,13 +225,13 @@ export class OrganizationController {
             // Get organization members from Supabase
             const { data: orgUsers, error: orgUsersError } = await supabase
                 .from('organization_users')
-                .select('user_id, role, created_at')
+                .select('*')
                 .eq('organization_id', id)
             
             if (orgUsersError) throw orgUsersError
             
             // Get user details for each member
-            const userIds = orgUsers.map(user => user.user_id)
+            const userIds = orgUsers.map((user: ISupabaseOrganizationUser) => user.user_id)
             
             if (userIds.length === 0) {
                 return res.json({ members: [] })
@@ -252,19 +253,19 @@ export class OrganizationController {
             }
             
             // Create a map of user_id to profile
-            const profileMap = new Map()
+            const profileMap = new Map<string, any>()
             if (profiles) {
-                profiles.forEach(profile => {
+                profiles.forEach((profile: any) => {
                     profileMap.set(profile.user_id, profile)
                 })
             }
             
             // Filter auth users to only include organization members
-            const filteredUsers = authUsers.users.filter(user => userIds.includes(user.id))
+            const filteredUsers = authUsers.users.filter((user: ISupabaseUser) => userIds.includes(user.id))
             
             // Format the response
-            const members = filteredUsers.map(user => {
-                const orgUser = orgUsers.find(ou => ou.user_id === user.id)
+            const members = filteredUsers.map((user: ISupabaseUser) => {
+                const orgUser = orgUsers.find((ou: ISupabaseOrganizationUser) => ou.user_id === user.id)
                 const profile = profileMap.get(user.id)
                 const meta = profile?.meta || {}
                 
@@ -296,51 +297,54 @@ export class OrganizationController {
     static async addOrganizationMember(req: Request, res: Response) {
         try {
             const { id } = req.params
-            const { email, role } = req.body
-            
-            if (!email) {
-                return res.status(400).json({ error: 'Email is required' })
+            const { user_id, role } = req.body
+
+            if (!user_id) {
+                return res.status(400).json({ error: 'User ID is required' })
             }
-            
-            // Get user by email
-            const { data: userData, error: userError } = await supabase.auth.admin.listUsers()
-            
-            if (userError) throw userError
-            
-            const user = userData.users.find(u => u.email === email)
-            
-            if (!user) {
+
+            // Check if user exists
+            const { data: user, error: userError } = await supabase.auth.admin.getUserById(user_id)
+
+            if (userError || !user) {
                 return res.status(404).json({ error: 'User not found' })
             }
-            
+
             // Check if user is already a member
             const { data: existingMember, error: memberError } = await supabase
                 .from('organization_users')
                 .select('*')
                 .eq('organization_id', id)
-                .eq('user_id', user.id)
+                .eq('user_id', user_id)
                 .maybeSingle()
-            
+
             if (memberError) throw memberError
-            
+
             if (existingMember) {
                 return res.status(400).json({ error: 'User is already a member of this organization' })
             }
-            
+
             // Add user to organization
-            const { data, error } = await supabase
+            const { data: newMember, error: addError } = await supabase
                 .from('organization_users')
                 .insert({
                     organization_id: id,
-                    user_id: user.id,
+                    user_id,
                     role: role || 'member'
                 })
-                .select()
+                .select('*')
                 .single()
+
+            if (addError) throw addError
+
+            // Get user details
+            const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
             
-            if (error) throw error
+            if (authError) throw authError
             
-            return res.json({ member: data })
+            const userData = authUsers.users.find((u: ISupabaseUser) => u.id === user_id)
+            
+            return res.json({ member: newMember })
         } catch (error) {
             return handleError(res, error, 'Error adding organization member')
         }

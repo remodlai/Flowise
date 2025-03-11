@@ -144,35 +144,70 @@ const getDefaultApplicationId = async (): Promise<string | null> => {
 
 /**
  * Get all applications a user has access to
- * @param userId The ID of the user
- * @returns Array of application objects
+ * @param userId User ID
+ * @returns Array of applications
  */
 const getUserApplications = async (userId: string): Promise<IApplication[]> => {
     try {
-        // Get applications where the user has admin or member role
+        // Get applications the user has access to through organization membership
         const { data, error } = await supabase
-            .from('user_roles')
+            .from('organization_users')
             .select(`
-                resource_id,
-                roles!inner(name),
-                applications!inner(id, name, description, logo_url)
+                organizations (
+                    id,
+                    name,
+                    applications (
+                        id,
+                        name,
+                        description,
+                        logo_url
+                    )
+                ),
+                roles (
+                    id,
+                    name
+                )
             `)
             .eq('user_id', userId)
-            .eq('resource_type', 'application')
         
         if (error) throw error
         
-        // Format the response
-        const applications = data.map((item: any) => ({
-            id: item.applications.id,
-            name: item.applications.name,
-            description: item.applications.description,
-            logo_url: item.applications.logo_url,
-            is_admin: ['app_admin', 'platform_admin'].includes(item.roles.name)
-        }))
+        // Extract applications from the nested data
+        interface OrganizationData {
+            organizations: {
+                id: string;
+                name: string;
+                applications: Array<{
+                    id: string;
+                    name: string;
+                    description: string | null;
+                    logo_url: string | null;
+                }>;
+                logo_url?: string | null;
+            };
+            roles: {
+                id: string;
+                name: string;
+            };
+        }
+
+        const applications: IApplication[] = data.flatMap((item: OrganizationData) => 
+            item.organizations.applications.map((app: {
+                id: string;
+                name: string;
+                description: string | null;
+                logo_url: string | null;
+            }) => ({
+                id: app.id,
+                name: app.name,
+                description: app.description,
+                logo_url: item.organizations.logo_url,
+                is_admin: ['app_admin', 'platform_admin'].includes(item.roles.name)
+            }))
+        )
         
         // Sort by name
-        return applications.sort((a, b) => a.name.localeCompare(b.name))
+        return applications.sort((a: IApplication, b: IApplication) => a.name.localeCompare(b.name))
     } catch (error) {
         logger.error(`[applicationchatflows.getUserApplications] ${getErrorMessage(error)}`)
         return []

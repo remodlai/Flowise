@@ -414,5 +414,21 @@ export interface IVariableOverride {
     enabled: boolean
 }
 
+
+export interface IPermissions {
+    id: string
+    name: string
+    description: string
+    createdDate: Date
+    updatedDate: Date
+}[]
+
+
+
+
+
 // DocumentStore related
 export * from './Interface.DocumentStore'
+
+// Supabase related
+export * from './Interface.Supabase'

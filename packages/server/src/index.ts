@@ -34,6 +34,7 @@ import { applicationContextMiddleware } from './middlewares/applicationContextMi
 import { jwtDebugMiddleware } from './middleware/jwtDebug'
 import { authenticateApiKey } from './middleware/authenticateApiKey'
 import storageRoutes from './routes/storage'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // Extend Express Request type
 declare global {
@@ -78,6 +79,7 @@ export class App {
     metricsProvider: IMetricsProvider
     queueManager: QueueManager
     redisSubscriber: RedisEventSubscriber
+    Supabase: SupabaseClient | null = null
 
     constructor() {
         this.app = express()
@@ -136,6 +138,47 @@ export class App {
         } catch (error) {
             logger.error('❌ [server]: Error during Data Source initialization:', error)
         }
+    }
+
+    async initSupabase() {
+        try {
+            logger.info('[server]: Initializing Supabase client')
+            
+            const supabaseUrl = process.env.SUPABASE_URL
+            const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+            
+            if (!supabaseUrl || !supabaseServiceKey) {
+                logger.warn('[server]: Supabase URL or service key not provided, Supabase integration will not be available')
+                return
+            }
+            
+            this.Supabase = createClient(supabaseUrl, supabaseServiceKey, {
+                auth: {
+                    persistSession: false,
+                    autoRefreshToken: false
+                }
+            })
+            
+            // Test the connection
+            const { error } = await this.Supabase.from('secrets').select('id').limit(1)
+            
+            if (error) {
+                logger.error(`[server]: Failed to connect to Supabase: ${error.message}`)
+                this.Supabase = null
+            } else {
+                logger.info('[server]: Supabase client initialized successfully')
+            }
+        } catch (error) {
+            logger.error(`[server]: Error initializing Supabase client: ${error}`)
+            this.Supabase = null
+        }
+    }
+
+    getSupabaseClient(): SupabaseClient {
+        if (!this.Supabase) {
+            throw new Error('Supabase client not initialized')
+        }
+        return this.Supabase
     }
 
     async config() {
@@ -210,6 +253,9 @@ export class App {
             }
         }
 
+        // Initialize Supabase before other services that might depend on it
+        await this.initSupabase()
+
         // Mount the main API router
         this.app.use('/api/v1', flowiseApiV1Router)
         
@@ -262,6 +308,12 @@ export class App {
             await Promise.all(removePromises)
         } catch (e) {
             logger.error(`❌[server]: Flowise Server shut down error: ${e}`)
+        }
+
+        // Close Supabase connection if it exists
+        if (this.Supabase) {
+            logger.info('[server]: Closing Supabase connection')
+            this.Supabase = null
         }
     }
 }

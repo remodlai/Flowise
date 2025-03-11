@@ -1,16 +1,50 @@
 import { createClient } from '@supabase/supabase-js'
 import { Request, Response, NextFunction } from 'express'
 import { IUser } from '../Interface'
+import { getInstance } from '../index'
+import logger from './logger'
 
+// DEPRECATED: Direct client initialization
+// This is kept for backward compatibility but will be removed in a future version
+// Use the centralized client from App class instead
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// For backward compatibility, we'll still export a supabase client
+// But we'll try to get it from the App instance first
+let _supabase: any;
+
+// This function gets the Supabase client from the App instance if available,
+// or falls back to the direct client if not
+const getSupabaseClient = () => {
+  try {
+    const app = getInstance();
+    if (app && app.Supabase) {
+      return app.Supabase;
+    }
+  } catch (error) {
+    logger.warn('[supabase]: Could not get Supabase client from App instance, falling back to direct client');
+  }
+  
+  // Fallback to direct client if App instance is not available
+  if (!_supabase) {
+    _supabase = createClient(supabaseUrl, supabaseServiceKey);
+  }
+  return _supabase;
+};
+
+// Export a proxy that will always use the latest client
+export const supabase = new Proxy({} as any, {
+  get: (target, prop) => {
+    const client = getSupabaseClient();
+    return client[prop];
+  }
+});
 
 // Authorization utility functions
 export const checkUserRole = async (userId: string, role: string, entityId?: string): Promise<boolean> => {
   try {
-    console.log(`Checking if user ${userId} has role ${role} ${entityId ? `for entity ${entityId}` : ''}`);
+    logger.debug(`Checking if user ${userId} has role ${role} ${entityId ? `for entity ${entityId}` : ''}`);
     
     // First, get the role ID for the specified role
     const { data: roleData, error: roleError } = await supabase
@@ -20,12 +54,12 @@ export const checkUserRole = async (userId: string, role: string, entityId?: str
       .maybeSingle();
     
     if (roleError) {
-      console.error('Error fetching role:', roleError);
+      logger.error('Error fetching role:', roleError);
       return false;
     }
     
     if (!roleData) {
-      console.error(`Role '${role}' not found`);
+      logger.error(`Role '${role}' not found`);
       return false;
     }
     
@@ -44,7 +78,7 @@ export const checkUserRole = async (userId: string, role: string, entityId?: str
     const { data, error } = await query.maybeSingle();
     
     if (error) {
-      console.error(`Error checking role:`, error);
+      logger.error(`Error checking role:`, error);
       return false;
     }
     
@@ -56,7 +90,7 @@ export const checkUserRole = async (userId: string, role: string, entityId?: str
     
     return !!data;
   } catch (error) {
-    console.error(`Error checking ${role} status:`, error);
+    logger.error(`Error checking ${role} status:`, error);
     return false;
   }
 };
