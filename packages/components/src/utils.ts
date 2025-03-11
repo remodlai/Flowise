@@ -781,7 +781,13 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
         
         if (!applicationId) {
             logger.debug('WARNING: No application ID found in options. This may cause credential retrieval to fail.')
-            logger.debug(`Full options object: ${JSON.stringify(options, null, 2)}`)
+            logger.debug(`Options keys: ${Object.keys(options).join(', ')}`)
+            logger.debug(`Relevant options: ${JSON.stringify({
+                appId: options.appId,
+                flowConfig: options.flowConfig ? {
+                    appId: options.flowConfig.appId
+                } : undefined
+            }, null, 2)}`)
         }
 
         // In our Supabase implementation, the selectedCredentialId is the secret ID

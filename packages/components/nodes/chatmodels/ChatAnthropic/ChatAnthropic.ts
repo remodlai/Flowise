@@ -117,7 +117,7 @@ class ChatAnthropic_ChatModels implements INode {
         
         logger.info('========= Start of init for ChatAnthropic =========')
         logger.info(`nodeData.credential: ${nodeData.credential ?? 'none'}`)
-        logger.info(`options keys: ${Object.keys(options).join(', ')}`)
+        logger.info(`options keys: ${JSON.stringify(Object.keys(options), null, 2)}`)
         logger.info(`options.appId: ${options.appId ?? 'not present'}`)
         logger.info(`options.orgId: ${options.orgId ?? 'not present'}`)
         logger.info(`options.userId: ${options.userId ?? 'not present'}`)
@@ -132,8 +132,17 @@ class ChatAnthropic_ChatModels implements INode {
             logger.info('options.flowConfig is not present')
         }
         
-        // Log all options for debugging
-        logger.info(`Full options object: ${JSON.stringify(options, null, 2)}`)
+        // Replace full options object logging with selective logging
+        logger.info(`Relevant options: ${JSON.stringify({
+            appId: options.appId,
+            orgId: options.orgId,
+            userId: options.userId,
+            flowConfig: options.flowConfig ? {
+                appId: options.flowConfig.appId,
+                orgId: options.flowConfig.orgId,
+                userId: options.flowConfig.userId
+            } : undefined
+        }, null, 2)}`)
         
         try {
             logger.info(`Calling getCredentialData with credential ID: ${nodeData.credential ?? 'none'}`)
@@ -147,8 +156,8 @@ class ChatAnthropic_ChatModels implements INode {
             
             if (!anthropicApiKey) {
                 logger.error('Anthropic API key is missing or empty')
-                logger.error(`credentialData keys: ${Object.keys(credentialData).join(', ')}`)
-                logger.error(`nodeData.inputs keys: ${Object.keys(nodeData.inputs || {}).join(', ')}`)
+                logger.error(`credentialData keys: ${JSON.stringify(Object.keys(credentialData), null, 2)}`)
+                logger.error(`nodeData.inputs keys: ${JSON.stringify(Object.keys(nodeData.inputs || {}), null, 2)}`)
                 throw new Error('Anthropic API key not found')
             }
             
