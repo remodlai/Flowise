@@ -3,11 +3,17 @@ import * as path from 'path'
 import {
     addArrayFilesToStorage,
     getFileFromUpload,
-    IDocument,
-    mapExtToInputField,
-    mapMimeTypeToInputField,
+  
     removeSpecificFileFromUpload
-} from 'flowise-components'
+} from '@components/storageUtils'
+import {
+    IDocument
+} from '@components/Interface'
+import {
+    mapExtToInputField,
+    mapMimeTypeToInputField
+} from '@components/utils'
+
 import { getRunningExpressApp } from './getRunningExpressApp'
 import { getErrorMessage } from '../errors/utils'
 

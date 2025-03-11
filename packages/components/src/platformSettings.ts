@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getApiBaseUrl } from './utils'
 
 /**
  * Get a platform setting from the server
@@ -8,7 +9,9 @@ import axios from 'axios'
  */
 export const getPlatformSetting = async (key: string, defaultValue: string = ''): Promise<string> => {
     try {
-        const response = await axios.get(`/api/v1/platform/settings/${key}`)
+        // Use the configurable base URL
+        const baseUrl = getApiBaseUrl()
+        const response = await axios.get(`${baseUrl}/api/v1/platform/settings/${key}`)
         
         if (response.data && response.data.success && response.data.data) {
             return response.data.data.value || defaultValue

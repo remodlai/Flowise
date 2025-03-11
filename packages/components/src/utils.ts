@@ -15,6 +15,7 @@ import { customGet } from '../nodes/sequentialagents/commonUtils'
 import { TextSplitter } from 'langchain/text_splitter'
 import { DocumentLoader } from 'langchain/document_loaders/base'
 import logger from '../../server/src/utils/logger'
+import { BaseCache } from '@langchain/core/caches'
 
 export const numberOrExpressionRegex = '^(\\d+\\.?\\d*|{{.*}})$' //return true if string consists only numbers OR expression {{}}
 export const notEmptyRegex = '(.|\\s)*\\S(.|\\s)*' //return true if string is not empty or blank
@@ -591,6 +592,8 @@ export const decryptCredentialData = async (
     logger.debug(`componentCredentialName: ${componentCredentialName || 'none'}`)
     logger.debug(`componentCredentials: ${componentCredentials ? 'provided' : 'none'}`)
     logger.debug(`applicationId from parameter: ${applicationId || 'none'}`)
+    logger.debug(`REMODL_API_BASE_URL environment variable: ${process.env.REMODL_API_BASE_URL ?? 'not set'}`)
+    logger.debug(`API base URL from getApiBaseUrl(): ${getApiBaseUrl()}`)
     
     try {
         if (!encryptedData) {
@@ -600,7 +603,9 @@ export const decryptCredentialData = async (
         
         // For our Supabase implementation, the encryptedData is actually the secret ID
         // So we make a direct API call to get the secret
-        let url = `/api/v1/secrets/${encryptedData}`
+        // Use the configurable base URL
+        const baseUrl = getApiBaseUrl()
+        let url = `${baseUrl}/api/v1/secrets/${encryptedData}`
         let decryptedDataStr: string
         
         try {
@@ -627,6 +632,8 @@ export const decryptCredentialData = async (
                     }
                 } catch (e) {
                     logger.debug(`Error getting application ID from localStorage: ${e}`)
+                    logger.debug(`Error message: ${e.message}`)
+                    logger.debug(`Stack trace: ${e.stack}`)
                     // Continue without application ID if there's an error
                 }
             }
@@ -635,36 +642,63 @@ export const decryptCredentialData = async (
             // Call the API to get the secret from Supabase
             try {
                 logger.debug(`Starting axios.get request to ${url}`)
-                const response = await axios.get(url)
+                logger.debug(`Axios version: ${axios.VERSION || 'unknown'}`)
+                logger.debug(`Node.js version: ${process.version}`)
+                
+                // Add timeout and additional logging
+                const axiosConfig = {
+                    timeout: 10000, // 10 seconds timeout
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                };
+                logger.debug(`Axios config: ${JSON.stringify(axiosConfig, null, 2)}`)
+                
+                const response = await axios.get(url, axiosConfig)
                 logger.debug(`API response status: ${response.status}`)
-                logger.debug(`API response headers: ${JSON.stringify(response.headers)}`)
-                logger.debug(`API response data structure: ${JSON.stringify(Object.keys(response.data))}`)
+                logger.debug(`API response headers: ${JSON.stringify(response.headers, null, 2)}`)
+                logger.debug(`API response data structure: ${JSON.stringify(Object.keys(response.data || {}), null, 2)}`)
                 
                 if (response.data && response.data.data) {
                     logger.debug('Got data from API response')
                     logger.debug(`Response data.data exists: ${!!response.data.data}`)
+                    logger.debug(`Response data.data type: ${typeof response.data.data}`)
+                    logger.debug(`Response data.data keys: ${Object.keys(response.data.data).join(', ')}`)
+                    
                     // Convert the data object to a string
                     decryptedDataStr = JSON.stringify(response.data.data)
                     logger.debug(`Decrypted data string length: ${decryptedDataStr.length}`)
+                    logger.debug(`First 50 chars of decrypted data string: ${decryptedDataStr.substring(0, 50)}...`)
                 } else {
-                    logger.debug(`No data in API response: ${JSON.stringify(response.data)}`)
+                    logger.debug(`No data in API response: ${JSON.stringify(response.data, null, 2)}`)
                     throw new Error('Failed to retrieve secret value.')
                 }
-            } catch (error) {
+            } catch (error: any) {
                 logger.error(`Error making API call to ${url}: ${error}`)
+                logger.debug(`Error type: ${error.constructor.name}`)
+                logger.debug(`Error message: ${error.message}`)
+                
                 if (error.response) {
                     logger.error(`Response status: ${error.response.status}`)
-                    logger.error(`Response data: ${JSON.stringify(error.response.data)}`)
+                    logger.error(`Response data: ${JSON.stringify(error.response.data, null, 2)}`)
+                    logger.error(`Response headers: ${JSON.stringify(error.response.headers, null, 2)}`)
+                } else if (error.request) {
+                    logger.error(`No response received. Request: ${JSON.stringify(error.request, null, 2)}`)
                 } else {
-                    logger.error(`No response object in error: ${error.message}`)
-                    logger.error(`Error stack: ${error.stack}`)
+                    logger.error(`Error setting up request: ${error.message}`)
                 }
+                
+                logger.error(`Error stack: ${error.stack}`)
                 throw error
             }
         } catch (error) {
             logger.error(`Error retrieving secret: ${error}`)
-            logger.debug(`Full error: ${JSON.stringify(error)}`)
-            logger.debug(`Error response: ${error.response ? JSON.stringify(error.response.data) : 'no response'}`)
+            logger.debug(`Error type: ${error.constructor.name}`)
+            logger.debug(`Error message: ${error.message}`)
+            logger.debug(`Full error: ${JSON.stringify(error, null, 2)}`)
+            logger.debug(`Error response: ${error.response ? JSON.stringify(error.response.data, null, 2) : 'no response'}`)
+            logger.debug(`Stack trace: ${error.stack}`)
             throw new Error('Credentials could not be decrypted.')
         }
         
@@ -676,13 +710,15 @@ export const decryptCredentialData = async (
         try {
             logger.debug('Parsing decrypted data string to JSON')
             const plainDataObj = JSON.parse(decryptedDataStr)
-            logger.debug(`Parsed data: ${JSON.stringify(plainDataObj)}`)
+            logger.debug(`Parsed data keys: ${Object.keys(plainDataObj).join(', ')}`)
+            logger.debug(`Parsed data: ${JSON.stringify(plainDataObj, null, 2)}`)
             
             // If componentCredentialName and componentCredentials are provided, redact sensitive information
             if (componentCredentialName && componentCredentials) {
                 logger.debug(`Redacting sensitive information for ${componentCredentialName}`)
                 const redactedData = redactCredentialWithPasswordType(componentCredentialName, plainDataObj, componentCredentials)
-                logger.debug(`Redacted data: ${JSON.stringify(redactedData)}`)
+                logger.debug(`Redacted data keys: ${Object.keys(redactedData).join(', ')}`)
+                logger.debug(`Redacted data: ${JSON.stringify(redactedData, null, 2)}`)
                 logger.debug('========= End of decryptCredentialData (components) =========')
                 return redactedData
             }
@@ -692,13 +728,17 @@ export const decryptCredentialData = async (
             return plainDataObj
         } catch (e) {
             logger.error(`Error parsing decrypted data: ${e}`)
-            logger.debug(`Full error: ${JSON.stringify(e)}`)
+            logger.debug(`Error type: ${e.constructor.name}`)
+            logger.debug(`Error message: ${e.message}`)
+            logger.debug(`Full error: ${JSON.stringify(e, null, 2)}`)
             logger.debug(`Stack trace: ${e.stack}`)
             throw new Error('Credentials could not be decrypted.')
         }
     } catch (error) {
         logger.error(`Error in decryptCredentialData: ${error}`)
-        logger.debug(`Full error: ${JSON.stringify(error)}`)
+        logger.debug(`Error type: ${error.constructor.name}`)
+        logger.debug(`Error message: ${error.message}`)
+        logger.debug(`Full error: ${JSON.stringify(error, null, 2)}`)
         logger.debug(`Stack trace: ${error.stack}`)
         logger.debug('========= End of decryptCredentialData (components) with error =========')
         return {}
@@ -715,6 +755,8 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
     logger.debug('========= Start of getCredentialData =========')
     logger.debug(`selectedCredentialId: ${selectedCredentialId}`)
     logger.debug(`options keys: ${Object.keys(options).join(', ')}`)
+    logger.debug(`REMODL_API_BASE_URL environment variable: ${process.env.REMODL_API_BASE_URL ?? 'not set'}`)
+    logger.debug(`API base URL from getApiBaseUrl(): ${getApiBaseUrl()}`)
     
     try {
         if (!selectedCredentialId) {
@@ -745,17 +787,21 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
             logger.debug(`Calling decryptCredentialData with ID: ${selectedCredentialId} and applicationId: ${applicationId}`)
             // But we do pass the application ID
             const decryptedCredentialData = await decryptCredentialData(selectedCredentialId, undefined, undefined, applicationId)
-            logger.debug(`Decrypted credential data: ${decryptedCredentialData ? JSON.stringify(decryptedCredentialData, null, 2) : 'empty'}`)
+            logger.debug(`Decrypted credential data received: ${decryptedCredentialData ? 'yes' : 'no'}`)
+            logger.debug(`Decrypted credential data keys: ${decryptedCredentialData ? Object.keys(decryptedCredentialData).join(', ') : 'none'}`)
+            logger.debug(`Decrypted credential data: ${JSON.stringify(decryptedCredentialData, null, 2)}`)
             return decryptedCredentialData
         } catch (error) {
             logger.error(`Error decrypting credential data: ${error}`)
-            logger.debug(`Full error: ${JSON.stringify(error)}`)
+            logger.debug(`Full error: ${JSON.stringify(error, null, 2)}`)
+            logger.debug(`Error message: ${error.message}`)
             logger.debug(`Stack trace: ${error.stack}`)
             return {}
         }
     } catch (e) {
         logger.error(`Error in getCredentialData: ${e}`)
-        logger.debug(`Full error: ${JSON.stringify(e)}`)
+        logger.debug(`Full error: ${JSON.stringify(e, null, 2)}`)
+        logger.debug(`Error message: ${e.message}`)
         logger.debug(`Stack trace: ${e.stack}`)
         // Return empty object instead of throwing to avoid breaking flows
         return {}
@@ -776,21 +822,30 @@ export const defaultChain = (...values: any[]): any | undefined => {
 }
 
 export const getCredentialParam = (paramName: string, credentialData: ICommonObject, nodeData: INodeData, defaultValue?: any): any => {
-    console.log('========= Start of getCredentialParam =========')
-    console.log('paramName', paramName)
-    console.log('credentialData', JSON.stringify(credentialData))
-    console.log('nodeData inputs', JSON.stringify(nodeData.inputs))
-    console.log('defaultValue', defaultValue)
+    logger.debug('========= Start of getCredentialParam =========')
+    logger.debug(`paramName: ${paramName}`)
+    logger.debug(`credentialData keys: ${Object.keys(credentialData).join(', ')}`)
+    logger.debug(`credentialData content: ${JSON.stringify(credentialData, null, 2)}`)
+    logger.debug(`nodeData.id: ${nodeData.id}`)
+    logger.debug(`nodeData.credential: ${nodeData.credential}`)
+    logger.debug(`nodeData.inputs keys: ${Object.keys(nodeData.inputs || {}).join(', ')}`)
+    logger.debug(`defaultValue: ${defaultValue}`)
     
     const fromInputs = (nodeData.inputs as ICommonObject)[paramName]
     const fromCredential = credentialData[paramName]
     
-    console.log('Value from inputs:', fromInputs)
-    console.log('Value from credential:', fromCredential)
-    console.log('Using value:', fromInputs ?? fromCredential ?? defaultValue ?? undefined)
-    console.log('========= End of getCredentialParam =========')
+    logger.debug(`Value from inputs: ${fromInputs ? (typeof fromInputs === 'object' ? JSON.stringify(fromInputs) : fromInputs) : 'undefined'}`)
+    logger.debug(`Value from credential: ${fromCredential ? (typeof fromCredential === 'object' ? JSON.stringify(fromCredential) : fromCredential) : 'undefined'}`)
     
-    return fromInputs ?? fromCredential ?? defaultValue ?? undefined
+    const finalValue = fromInputs ?? fromCredential ?? defaultValue ?? undefined
+    logger.debug(`Using final value: ${finalValue ? (typeof finalValue === 'object' ? JSON.stringify(finalValue) : finalValue) : 'undefined'}`)
+    logger.debug(`Final value type: ${typeof finalValue}`)
+    logger.debug(`Final value exists: ${finalValue !== undefined}`)
+    logger.debug(`Final value is empty string: ${finalValue === ''}`)
+    logger.debug(`Final value is null: ${finalValue === null}`)
+    logger.debug('========= End of getCredentialParam =========')
+    
+    return finalValue
 }
 
 // reference https://www.freeformatter.com/json-escape.html
@@ -1342,4 +1397,16 @@ export const handleDocumentLoaderDocuments = async (loader: DocumentLoader, text
     }
 
     return docs
+}
+
+// Define a configurable API base URL
+// This can be set via environment variable or default to localhost:3000
+export const getApiBaseUrl = (): string => {
+    // Check for environment variable
+    if (typeof process !== 'undefined' && process.env && process.env.REMODL_API_BASE_URL) {
+        return process.env.REMODL_API_BASE_URL
+    }
+    
+    // Default to localhost:3000
+    return 'http://localhost:3000'
 }

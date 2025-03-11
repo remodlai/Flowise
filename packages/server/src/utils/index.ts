@@ -28,17 +28,22 @@ import {
 } from '../Interface'
 import { cloneDeep, get, isEqual } from 'lodash'
 import {
-    convertChatHistoryToText,
-    getInputVariables,
-    handleEscapeCharacters,
-    getEncryptionKeyPath,
+   
     ICommonObject,
     IDatabaseEntity,
     IMessage,
     FlowiseMemory,
-    IFileUpload,
-    getS3Config
-} from 'flowise-components'
+    IFileUpload
+   
+} from '@components/Interface'
+import { getS3Config } from '@components/storageUtils'
+
+import {
+    convertChatHistoryToText,
+    getInputVariables,
+    handleEscapeCharacters,
+    getEncryptionKeyPath
+} from '@components/utils'
 import { randomBytes } from 'crypto'
 import { AES, enc } from 'crypto-js'
 import multer from 'multer'

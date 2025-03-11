@@ -5,17 +5,21 @@ import { v4 as uuidv4 } from 'uuid'
 import { omit } from 'lodash'
 import {
     IFileUpload,
-    convertSpeechToText,
     ICommonObject,
+    IAction
+} from '@components/Interface'
+import { convertSpeechToText } from '@components/speechToText'
+import { 
     addSingleFileToStorage,
-    generateFollowUpPrompts,
-    IAction,
     addArrayFilesToStorage,
-    mapMimeTypeToInputField,
-    mapExtToInputField,
     getFileFromUpload,
     removeSpecificFileFromUpload
-} from 'flowise-components'
+} from '@components/storageUtils'
+import { 
+    mapMimeTypeToInputField,
+    mapExtToInputField
+} from '@components/utils'
+import { generateFollowUpPrompts } from '@components/followUpPrompts'
 import { StatusCodes } from 'http-status-codes'
 import {
     IncomingInput,
@@ -933,9 +937,9 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
             //REMODL: We get the chatId from the incoming input. This is the chatID or sessionId from the overrideConfig in the incoming input
             chatId,
             //REMODL: We get the appId, orgId, and userId from the incoming input. We have already validated that these are present and valid
-           // appId,
-           //    orgId,
-           // userId,  
+            appId,
+            orgId,
+            userId,  
             //REMODL: We get the baseURL from the request
             baseURL,
             //REMODL: We get the isInternal flag from the incoming input

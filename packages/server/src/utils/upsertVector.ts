@@ -3,13 +3,20 @@ import * as path from 'path'
 import { cloneDeep, omit } from 'lodash'
 import {
     ICommonObject,
-    IMessage,
-    addArrayFilesToStorage,
+    IMessage
+} from '../../../components/src/Interface'
+import {
     mapMimeTypeToInputField,
-    mapExtToInputField,
+    mapExtToInputField
+} from '../../../components/src/utils'
+
+import {
+   
+    addArrayFilesToStorage,
+    
     getFileFromUpload,
     removeSpecificFileFromUpload
-} from 'flowise-components'
+} from '../../../components/src/storageUtils'
 import logger from '../utils/logger'
 import {
     buildFlow,
@@ -258,9 +265,9 @@ export const upsertVector = async (req: Request, isInternal: boolean = false) =>
             incomingInput,
             chatflow,
             chatId,
-            //appId,
-            //orgId,
-            //userId,
+            appId,
+            orgId,
+            userId,
             appDataSource: appServer.AppDataSource,
             telemetry: appServer.telemetry,
             cachePool: appServer.cachePool,

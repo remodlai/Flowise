@@ -6,14 +6,18 @@ import {
     addSingleFileToStorage,
     getFileFromStorage,
     getFileFromUpload,
-    ICommonObject,
-    IDocument,
-    mapExtToInputField,
-    mapMimeTypeToInputField,
     removeFilesFromStorage,
     removeSpecificFileFromStorage,
     removeSpecificFileFromUpload
-} from 'flowise-components'
+} from '@components/storageUtils'
+import {
+    mapExtToInputField,
+    mapMimeTypeToInputField
+} from '@components/utils'
+import {
+    IDocument,
+    ICommonObject
+} from '@components/Interface'
 import {
     addLoaderSource,
     ChatType,

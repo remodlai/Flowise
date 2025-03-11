@@ -137,6 +137,7 @@ class ChatAnthropic_ChatModels implements INode {
         
         try {
             logger.info(`Calling getCredentialData with credential ID: ${nodeData.credential ?? 'none'}`)
+            logger.info(`REMODL_API_BASE_URL environment variable: ${process.env.REMODL_API_BASE_URL ?? 'not set'}`)
             const credentialData = await getCredentialData(nodeData.credential ?? '', options)
             logger.info(`Credential data received: ${JSON.stringify(credentialData, null, 2)}`)
             
@@ -144,8 +145,24 @@ class ChatAnthropic_ChatModels implements INode {
             const anthropicApiKey = getCredentialParam('anthropicApiKey', credentialData, nodeData)
             logger.info(`anthropicApiKey received: ${anthropicApiKey ? 'API key found (redacted)' : 'API key not found'}`)
             
+            if (!anthropicApiKey) {
+                logger.error('Anthropic API key is missing or empty')
+                logger.error(`credentialData keys: ${Object.keys(credentialData).join(', ')}`)
+                logger.error(`nodeData.inputs keys: ${Object.keys(nodeData.inputs || {}).join(', ')}`)
+                throw new Error('Anthropic API key not found')
+            }
+            
             const allowImageUploads = nodeData.inputs?.allowImageUploads as boolean
 
+            logger.info(`Creating ChatAnthropic model with parameters:`)
+            logger.info(`- modelName: ${modelName}`)
+            logger.info(`- temperature: ${parseFloat(temperature)}`)
+            logger.info(`- streaming: ${streaming ?? true}`)
+            logger.info(`- maxTokens: ${maxTokens ? parseInt(maxTokens, 10) : 'not set'}`)
+            logger.info(`- topP: ${topP ? parseFloat(topP) : 'not set'}`)
+            logger.info(`- topK: ${topK ? parseFloat(topK) : 'not set'}`)
+            logger.info(`- allowImageUploads: ${allowImageUploads ?? false}`)
+            
             const obj: Partial<AnthropicInput> & BaseLLMParams & { anthropicApiKey?: string } = {
                 temperature: parseFloat(temperature),
                 modelName,
@@ -160,11 +177,6 @@ class ChatAnthropic_ChatModels implements INode {
                 streaming: streaming ?? true
             }, null, 2)}`)
             
-            if (!anthropicApiKey) {
-                logger.error('Anthropic API key is missing or empty')
-                throw new Error('Anthropic API key not found')
-            }
-
             if (maxTokens) obj.maxTokens = parseInt(maxTokens, 10)
             if (topP) obj.topP = parseFloat(topP)
             if (topK) obj.topK = parseFloat(topK)
@@ -176,11 +188,17 @@ class ChatAnthropic_ChatModels implements INode {
                 }
             }
 
+            logger.info(`Creating ChatAnthropic instance with ID: ${nodeData.id}`)
             const model = new ChatAnthropic(nodeData.id, obj)
+            logger.info(`Setting multiModalOption: ${JSON.stringify(multiModalOption, null, 2)}`)
             model.setMultiModalOption(multiModalOption)
+            logger.info(`ChatAnthropic instance created successfully`)
+            logger.info('========= End of init for ChatAnthropic =========')
             return model
         } catch (error) {
             logger.error('Error initializing ChatAnthropic:', error)
+            logger.error(`Error stack: ${error.stack}`)
+            logger.info('========= End of init for ChatAnthropic with error =========')
             throw error
         }
     }

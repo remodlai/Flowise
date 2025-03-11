@@ -6,7 +6,7 @@ import {
     INodeData as INodeDataFromComponent,
     INodeParams,
     IServerSideEventStreamer
-} from 'flowise-components'
+} from '@components/Interface'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'
@@ -387,9 +387,9 @@ export interface IPredictionQueueAppServer {
 export interface IExecuteFlowParams extends IPredictionQueueAppServer {
     incomingInput: IncomingInput
     chatflow: IChatFlow
-    //appId: string
-    //orgId: string
-    //userId: string
+    appId: string
+    orgId: string
+    userId: string
     chatId: string
     baseURL: string
     isInternal: boolean
