@@ -5,14 +5,14 @@ import {
     getFileFromUpload,
   
     removeSpecificFileFromUpload
-} from '@components/storageUtils'
+} from 'flowise-components'
 import {
     IDocument
-} from '@components/Interface'
+} from 'flowise-components'
 import {
     mapExtToInputField,
     mapMimeTypeToInputField
-} from '@components/utils'
+} from 'flowise-components'
 
 import { getRunningExpressApp } from './getRunningExpressApp'
 import { getErrorMessage } from '../errors/utils'

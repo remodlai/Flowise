@@ -5,7 +5,7 @@ import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'
 import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { decryptCredentialData } from '../../utils'
-import { getFileFromUpload, removeSpecificFileFromUpload } from '@components/storageUtils'
+import { getFileFromUpload, removeSpecificFileFromUpload } from 'flowise-components'
 
 const getAssistantVectorStore = async (credentialId: string, vectorStoreId: string) => {
     try {

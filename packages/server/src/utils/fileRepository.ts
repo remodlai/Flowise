@@ -1,6 +1,6 @@
 import { ChatFlow } from '../database/entities/ChatFlow'
 import { IReactFlowObject } from '../Interface'
-import { addBase64FilesToStorage } from '@components/storageUtils'
+import { addBase64FilesToStorage } from 'flowise-components'
 
 export const containsBase64File = (chatflow: ChatFlow) => {
     const parsedFlowData: IReactFlowObject = JSON.parse(chatflow.flowData)

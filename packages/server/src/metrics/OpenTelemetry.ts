@@ -3,7 +3,7 @@ import { Resource } from '@opentelemetry/resources'
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
 import { MeterProvider, PeriodicExportingMetricReader, Histogram } from '@opentelemetry/sdk-metrics'
 import { diag, DiagLogLevel, DiagConsoleLogger, Attributes, Counter } from '@opentelemetry/api'
-import { getVersion } from '@components/utils'
+import { getVersion } from 'flowise-components'
 import express from 'express'
 
 export class OpenTelemetry implements IMetricsProvider {

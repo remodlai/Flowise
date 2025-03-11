@@ -1,10 +1,6 @@
+
 #!/usr/bin/env node
 
 const oclif = require('@oclif/core')
-
-console.log('Starting oclif run script')
-console.log('Node version:', process.version)
-console.log('Current directory:', process.cwd())
-console.log('Available commands:', oclif.commands ? Object.keys(oclif.commands) : 'Not available')
 
 oclif.run().then(require('@oclif/core/flush')).catch(require('@oclif/core/handle'))

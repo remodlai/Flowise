@@ -5,13 +5,6 @@ const oclif = require('@oclif/core')
 const path = require('path')
 const project = path.join(__dirname, '..', 'tsconfig.json')
 
-console.log('Starting oclif dev script')
-console.log('Node version:', process.version)
-console.log('Current directory:', process.cwd())
-console.log('Project path:', project)
-console.log('Available commands:', oclif.commands ? Object.keys(oclif.commands) : 'Not available')
-console.log('oclif version:', require('@oclif/core/package.json').version)
-
 // In dev mode -> use ts-node and dev plugins
 process.env.NODE_ENV = 'development'
 

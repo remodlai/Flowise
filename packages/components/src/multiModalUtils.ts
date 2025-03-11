@@ -11,8 +11,8 @@ import { getFileFromStorage } from './storageUtils'
 import { 
     uploadApplicationFile, 
     FILE_RESOURCE_TYPES 
-} from '../../server/src/services/storage'
-import { StorageError } from '../../server/src/errors'
+} from './storageService'
+import { StorageError } from './errors'
 
 /**
  * Adds images to messages for multi-modal LLM processing

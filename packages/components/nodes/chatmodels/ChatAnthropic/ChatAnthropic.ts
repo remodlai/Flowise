@@ -5,7 +5,7 @@ import { ICommonObject, IMultiModalOption, INode, INodeData, INodeOptionsValue, 
 import { getBaseClasses, getCredentialData, getCredentialParam } from '../../../src/utils'
 import { ChatAnthropic } from './FlowiseChatAnthropic'
 import { getModels, MODEL_TYPE } from '../../../src/modelLoader'
-import logger from '../../../../server/src/utils/logger'
+import logger from '../../../src/logger'
 class ChatAnthropic_ChatModels implements INode {
     label: string
     name: string

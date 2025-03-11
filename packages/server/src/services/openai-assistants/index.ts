@@ -5,7 +5,7 @@ import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { Credential } from '../../database/entities/Credential'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'
-import { getFileFromUpload, removeSpecificFileFromUpload } from '@components/storageUtils'
+import { getFileFromUpload, removeSpecificFileFromUpload } from 'flowise-components'
 
 // ----------------------------------------
 // Assistants

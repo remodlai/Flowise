@@ -6,7 +6,7 @@ import {
     INodeData as INodeDataFromComponent,
     INodeParams,
     IServerSideEventStreamer
-} from '@components/Interface'
+} from 'flowise-components'
 import { DataSource } from 'typeorm'
 import { CachePool } from './CachePool'
 import { Telemetry } from './utils/telemetry'

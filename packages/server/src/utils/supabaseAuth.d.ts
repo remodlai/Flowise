@@ -1,0 +1,10 @@
+import { Request, Response, NextFunction } from 'express';
+/**
+ * Middleware to authenticate user with Supabase
+ */
+export declare const authenticateUser: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+/**
+ * SQL function to add custom claims to JWT
+ * This needs to be executed in your Supabase database
+ */
+export declare const createCustomAccessTokenHook = "\n-- Create the auth hook function\ncreate or replace function public.custom_access_token_hook(event jsonb)\nreturns jsonb\nlanguage plpgsql\nstable\nas $$\ndeclare\n  claims jsonb;\n  user_metadata jsonb;\nbegin\n  -- Get the user metadata from the users table or any other source\n  select meta into user_metadata \n  from public.user_profiles \n  where user_id = (event->>'user_id')::uuid;\n\n  claims := event->'claims';\n\n  if user_metadata is not null then\n    -- Add first_name\n    if user_metadata->>'first_name' is not null then\n      claims := jsonb_set(claims, '{first_name}', to_jsonb(user_metadata->>'first_name'));\n    end if;\n    \n    -- Add last_name\n    if user_metadata->>'last_name' is not null then\n      claims := jsonb_set(claims, '{last_name}', to_jsonb(user_metadata->>'last_name'));\n    end if;\n    \n    -- Add organization\n    if user_metadata->>'organization' is not null then\n      claims := jsonb_set(claims, '{organization}', to_jsonb(user_metadata->>'organization'));\n    end if;\n    \n    -- Add role\n    if user_metadata->>'role' is not null then\n      claims := jsonb_set(claims, '{user_role}', to_jsonb(user_metadata->>'role'));\n    end if;\n  end if;\n\n  -- Update the 'claims' object in the original event\n  event := jsonb_set(event, '{claims}', claims);\n\n  -- Return the modified event\n  return event;\nend;\n$$;\n\n-- Grant necessary permissions\ngrant usage on schema public to supabase_auth_admin;\n\ngrant execute\n  on function public.custom_access_token_hook\n  to supabase_auth_admin;\n\nrevoke execute\n  on function public.custom_access_token_hook\n  from authenticated, anon, public;\n";

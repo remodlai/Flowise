@@ -1,4 +1,4 @@
-import { webCrawl, xmlScrape } from '@components/utils'
+import { webCrawl, xmlScrape } from 'flowise-components'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { getErrorMessage } from '../../errors/utils'

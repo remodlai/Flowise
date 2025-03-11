@@ -14,7 +14,7 @@ import { getFileFromStorage } from './storageUtils'
 import { customGet } from '../nodes/sequentialagents/commonUtils'
 import { TextSplitter } from 'langchain/text_splitter'
 import { DocumentLoader } from 'langchain/document_loaders/base'
-import logger from '../../server/src/utils/logger'
+import logger from './logger'
 import { BaseCache } from '@langchain/core/caches'
 
 export const numberOrExpressionRegex = '^(\\d+\\.?\\d*|{{.*}})$' //return true if string consists only numbers OR expression {{}}

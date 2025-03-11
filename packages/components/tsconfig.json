@@ -4,7 +4,8 @@
         "experimentalDecorators": true /* Enable experimental support for TC39 stage 2 draft decorators. */,
         "emitDecoratorMetadata": true /* Emit design-type metadata for decorated declarations in source files. */,
         "target": "ES2020", // or higher
-        "outDir": "./dist/",
+        "outDir": "dist",
+        "rootDir": ".",
         "resolveJsonModule": true,
         "esModuleInterop": true /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables `allowSyntheticDefaultImports` for type compatibility. */,
         "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
@@ -14,6 +15,7 @@
         "strictPropertyInitialization": false,
         "useUnknownInCatchVariables": false,
         "declaration": true,
+        "noEmitOnError": false,
         "module": "commonjs",
         "baseUrl": ".",
         "paths": {

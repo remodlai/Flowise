@@ -17,7 +17,7 @@
     ],
     "oclif": {
         "bin": "flowise",
-        "commands": "./dist/server/src/commands"
+        "commands": "./dist/commands"
     },
     "scripts": {
         "build": "tsc",

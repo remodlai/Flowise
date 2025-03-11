@@ -9,11 +9,11 @@ import {
     IUsedTool,
     IDocument,
     IServerSideEventStreamer
-} from '@components/Interface'
+} from 'flowise-components'
 import {
     ConsoleCallbackHandler,
     additionalCallbacks
-} from '@components/handler'
+} from 'flowise-components'
 import { omit, cloneDeep, flatten, uniq } from 'lodash'
 import { StateGraph, END, START } from '@langchain/langgraph'
 import { Document } from '@langchain/core/documents'

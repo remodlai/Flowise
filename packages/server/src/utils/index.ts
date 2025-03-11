@@ -35,15 +35,15 @@ import {
     FlowiseMemory,
     IFileUpload
    
-} from '@components/Interface'
-import { getS3Config } from '@components/storageUtils'
+} from 'flowise-components'
+import { getS3Config } from 'flowise-components'
 
 import {
     convertChatHistoryToText,
     getInputVariables,
     handleEscapeCharacters,
     getEncryptionKeyPath
-} from '@components/utils'
+} from 'flowise-components'
 import { randomBytes } from 'crypto'
 import { AES, enc } from 'crypto-js'
 import multer from 'multer'

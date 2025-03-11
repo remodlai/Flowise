@@ -9,15 +9,15 @@ import {
     removeFilesFromStorage,
     removeSpecificFileFromStorage,
     removeSpecificFileFromUpload
-} from '@components/storageUtils'
+} from 'flowise-components'
 import {
     mapExtToInputField,
     mapMimeTypeToInputField
-} from '@components/utils'
+} from 'flowise-components'
 import {
     IDocument,
     ICommonObject
-} from '@components/Interface'
+} from 'flowise-components'
 import {
     addLoaderSource,
     ChatType,

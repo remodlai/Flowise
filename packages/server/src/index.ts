@@ -1,3 +1,6 @@
+// Remove the import of register-alias
+// import './register-alias'
+
 import express, { Request, Response, NextFunction } from 'express'
 import path from 'path'
 import cors from 'cors'

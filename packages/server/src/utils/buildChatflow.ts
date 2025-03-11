@@ -7,19 +7,19 @@ import {
     IFileUpload,
     ICommonObject,
     IAction
-} from '@components/Interface'
-import { convertSpeechToText } from '@components/speechToText'
+} from 'flowise-components'
+import { convertSpeechToText } from 'flowise-components'
 import { 
     addSingleFileToStorage,
     addArrayFilesToStorage,
     getFileFromUpload,
     removeSpecificFileFromUpload
-} from '@components/storageUtils'
+} from 'flowise-components'
 import { 
     mapMimeTypeToInputField,
     mapExtToInputField
-} from '@components/utils'
-import { generateFollowUpPrompts } from '@components/followUpPrompts'
+} from 'flowise-components'
+import { generateFollowUpPrompts } from 'flowise-components'
 import { StatusCodes } from 'http-status-codes'
 import {
     IncomingInput,

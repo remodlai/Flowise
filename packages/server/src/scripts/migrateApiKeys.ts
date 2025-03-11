@@ -4,7 +4,7 @@ import { getRunningExpressApp } from '../utils/getRunningExpressApp'
 import { ApiKey } from '../database/entities/ApiKey'
 import { appConfig } from '../AppConfig'
 import logger from '../utils/logger'
-import { ICommonObject } from '@components/Interface'
+import { ICommonObject } from 'flowise-components'
 
 /**
  * One-time migration script to move API keys from JSON or DB to Supabase
