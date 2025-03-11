@@ -7,7 +7,7 @@ import { InternalFlowiseError } from '../../errors/internalFlowiseError'
 import { searchFileMetadata } from '../../services/fileMetadata'
 import { downloadFile } from '../../services/storage'
 import { StorageError } from '../../errors'
-
+//REMODL TODO: Integrate with supabase storage
 const streamUploadedFile = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (!req.query.chatflowId || !req.query.chatId || !req.query.fileName) {

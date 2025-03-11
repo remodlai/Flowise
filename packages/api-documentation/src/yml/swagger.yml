@@ -1205,6 +1205,15 @@ paths:
                                 question:
                                     type: string
                                     description: Question to ask during the prediction process
+                                appId:
+                                    type: string
+                                    description: Application ID for a given Remodl AI Platform application
+                                orgId:
+                                    type: string
+                                    description: Organization ID for a given Remodl AI Platform organization
+                                userId:
+                                    type: string
+                                    description: User ID for a given Remodl AI Platform Application user
                                 files:
                                     type: array
                                     items:
@@ -1977,6 +1986,15 @@ components:
         Prediction:
             type: object
             properties:
+                appId:
+                    type: string
+                    description: Application ID for a given Remodl AI Platform application
+                orgId:
+                    type: string
+                    description: Organization ID for a given Remodl AI Platform organization
+                userId:
+                    type: string
+                    description: User ID for a given Remodl AI Platform Application user
                 question:
                     type: string
                     description: The question being asked

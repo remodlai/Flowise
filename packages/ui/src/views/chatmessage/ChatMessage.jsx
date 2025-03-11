@@ -98,6 +98,7 @@ const messageImageStyle = {
 const getFileUrl = (fileData, fileName, chatflowId, chatId, baseUrl) => {
     // If fileData is a UUID, use the new endpoint
     if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(fileData)) {
+        // REMODL TODO: This should also be at the normal api/v1 endpoint
         return `${baseUrl}/api/storage/file/${fileData}/download`
     } else {
         // Fall back to the legacy endpoint for backward compatibility
@@ -719,7 +720,7 @@ export const ChatMessage = ({ open, chatflowid, isAgentCanvas, isDialog, preview
             setFollowUpPrompts(followUpPrompts)
         }
     }
-
+    
     const handleFileUploads = async (uploads) => {
         if (!uploadedFiles.length) return uploads
 
