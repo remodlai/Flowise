@@ -329,7 +329,7 @@ export const getAvailableURLs = async (url: string, limit: number) => {
 
         return availableUrls
     } catch (err) {
-        throw new Error(`getAvailableURLs: ${err?.message}`)
+        throw new Error(`getAvailableURLs: ${err instanceof Error ? err.message : String(err)}`)
     }
 }
 
@@ -676,8 +676,8 @@ export const decryptCredentialData = async (
                 }
             } catch (error: any) {
                 logger.error(`Error making API call to ${url}: ${error}`)
-                logger.debug(`Error type: ${error.constructor.name}`)
-                logger.debug(`Error message: ${error.message}`)
+                logger.debug(`Error type: ${error.constructor?.name || 'Unknown'}`)
+                logger.debug(`Error message: ${error instanceof Error ? error.message : String(error)}`)
                 
                 if (error.response) {
                     logger.error(`Response status: ${error.response.status}`)
@@ -686,19 +686,23 @@ export const decryptCredentialData = async (
                 } else if (error.request) {
                     logger.error(`No response received. Request: ${JSON.stringify(error.request, null, 2)}`)
                 } else {
-                    logger.error(`Error setting up request: ${error.message}`)
+                    logger.error(`Error setting up request: ${error instanceof Error ? error.message : String(error)}`)
                 }
                 
-                logger.error(`Error stack: ${error.stack}`)
+                logger.error(`Error stack: ${error instanceof Error ? error.stack : 'No stack trace available'}`)
                 throw error
             }
         } catch (error) {
             logger.error(`Error retrieving secret: ${error}`)
-            logger.debug(`Error type: ${error.constructor.name}`)
-            logger.debug(`Error message: ${error.message}`)
+            logger.debug(`Error type: ${error instanceof Error ? error.constructor.name : 'Unknown'}`)
+            logger.debug(`Error message: ${error instanceof Error ? error.message : String(error)}`)
             logger.debug(`Full error: ${JSON.stringify(error, null, 2)}`)
-            logger.debug(`Error response: ${error.response ? JSON.stringify(error.response.data, null, 2) : 'no response'}`)
-            logger.debug(`Stack trace: ${error.stack}`)
+            
+            // Type guard for error.response
+            const errorWithResponse = error as { response?: { data: any } };
+            logger.debug(`Error response: ${errorWithResponse.response ? JSON.stringify(errorWithResponse.response.data, null, 2) : 'no response'}`)
+            
+            logger.debug(`Stack trace: ${error instanceof Error ? error.stack : 'No stack trace available'}`)
             throw new Error('Credentials could not be decrypted.')
         }
         
@@ -736,10 +740,9 @@ export const decryptCredentialData = async (
         }
     } catch (error) {
         logger.error(`Error in decryptCredentialData: ${error}`)
-        logger.debug(`Error type: ${error.constructor.name}`)
-        logger.debug(`Error message: ${error.message}`)
+        logger.debug(`Error type: ${error instanceof Error ? error.constructor.name : 'Unknown'}`)
+        logger.debug(`Error message: ${error instanceof Error ? error.message : String(error)}`)
         logger.debug(`Full error: ${JSON.stringify(error, null, 2)}`)
-        logger.debug(`Stack trace: ${error.stack}`)
         logger.debug('========= End of decryptCredentialData (components) with error =========')
         return {}
     }
@@ -794,8 +797,8 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
         } catch (error) {
             logger.error(`Error decrypting credential data: ${error}`)
             logger.debug(`Full error: ${JSON.stringify(error, null, 2)}`)
-            logger.debug(`Error message: ${error.message}`)
-            logger.debug(`Stack trace: ${error.stack}`)
+            logger.debug(`Error message: ${error instanceof Error ? error.message : String(error)}`)
+            logger.debug(`Stack trace: ${error instanceof Error ? error.stack : 'No stack trace available'}`)
             return {}
         }
     } catch (e) {

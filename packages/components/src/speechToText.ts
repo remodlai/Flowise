@@ -105,7 +105,8 @@ export const convertSpeechToText = async (upload: IFileUpload, speechToTextConfi
                     }
                     return ''
                 } catch (error) {
-                    throw error.response?.data || error
+                    const axiosError = error as { response?: { data: any } };
+                    throw axiosError.response?.data || error;
                 }
             }
             case SpeechToTextType.GROQ_WHISPER: {
