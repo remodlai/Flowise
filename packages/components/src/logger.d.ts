@@ -1,2 +1,2 @@
-declare const logger: import("node_modules/winston").Logger;
+declare const logger: import("winston").Logger;
 export default logger;
