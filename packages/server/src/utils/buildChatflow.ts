@@ -253,6 +253,14 @@ export const executeFlow = async ({
     console.log('executeFlow appId: ', appId)
     console.log('executeFlow orgId: ', orgId)
     console.log('executeFlow userId: ', userId)
+    
+    logger.info('========= executeFlow detailed logging =========')
+    logger.info(`appId from incomingInput: ${appId || 'not provided'}`)
+    logger.info(`orgId from incomingInput: ${orgId || 'not provided'}`)
+    logger.info(`userId from incomingInput: ${userId || 'not provided'}`)
+    logger.info(`incomingInput keys: ${Object.keys(incomingInput).join(', ')}`)
+    logger.info(`incomingInput: ${JSON.stringify(incomingInput, null, 2)}`)
+    logger.info('========= End of executeFlow detailed logging =========')
     /* Process file uploads from the chat
      * - Images
      * - Files
@@ -471,9 +479,9 @@ export const executeFlow = async ({
         isUpsert: false,
         uploads,
         baseURL,
-        appId: incomingInput.appId || '',
-        orgId: incomingInput.orgId || '',
-        userId: incomingInput.userId || ''
+        appId: appId || '',
+        orgId: orgId || '',
+        userId: userId || ''
     })
     logger.info('========= start of executeFlow reactFlowNodes =========')
     logger.info('current appId', appId || 'no appId')
@@ -945,6 +953,10 @@ export const utilBuildChatflow = async (req: Request, isInternal: boolean = fals
             //REMODL: We get the componentNodes from the appServer. THIS MAY BE THE PROBLEM.  Refer to @NodesPool.ts
             componentNodes: appServer.nodesPool.componentNodes
         }
+        
+        logger.info(`executeData.incomingInput.appId: ${executeData.incomingInput.appId || 'not present'}`)
+        logger.info(`executeData.incomingInput.orgId: ${executeData.incomingInput.orgId || 'not present'}`)
+        logger.info(`executeData.incomingInput.userId: ${executeData.incomingInput.userId || 'not present'}`)
 
         //We log our executeData object, but avoid circular references
         logger.info(`'========= LINE 947: executeData - logging safe properties =========`)

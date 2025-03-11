@@ -114,36 +114,75 @@ class ChatAnthropic_ChatModels implements INode {
         const topK = nodeData.inputs?.topK as string
         const streaming = nodeData.inputs?.streaming as boolean
         const cache = nodeData.inputs?.cache as BaseCache
+        
         logger.info('========= Start of init for ChatAnthropic =========')
-        logger.info('nodeData', JSON.stringify(nodeData))
-        logger.info('options', JSON.stringify(options))
-        logger.info('========= End of init for ChatAnthropic =========')
-        const credentialData = await getCredentialData(nodeData.credential ?? '', options)
-        const anthropicApiKey = getCredentialParam('anthropicApiKey', credentialData, nodeData)
-
-        const allowImageUploads = nodeData.inputs?.allowImageUploads as boolean
-
-        const obj: Partial<AnthropicInput> & BaseLLMParams & { anthropicApiKey?: string } = {
-            temperature: parseFloat(temperature),
-            modelName,
-            anthropicApiKey,
-            streaming: streaming ?? true
+        logger.info(`nodeData.credential: ${nodeData.credential ?? 'none'}`)
+        logger.info(`options keys: ${Object.keys(options).join(', ')}`)
+        logger.info(`options.appId: ${options.appId ?? 'not present'}`)
+        logger.info(`options.orgId: ${options.orgId ?? 'not present'}`)
+        logger.info(`options.userId: ${options.userId ?? 'not present'}`)
+        
+        // Log flowConfig details
+        if (options.flowConfig) {
+            logger.info(`options.flowConfig keys: ${Object.keys(options.flowConfig).join(', ')}`)
+            logger.info(`options.flowConfig.appId: ${options.flowConfig.appId ?? 'not present'}`)
+            logger.info(`options.flowConfig.orgId: ${options.flowConfig.orgId ?? 'not present'}`)
+            logger.info(`options.flowConfig.userId: ${options.flowConfig.userId ?? 'not present'}`)
+        } else {
+            logger.info('options.flowConfig is not present')
         }
+        
+        // Log all options for debugging
+        logger.info(`Full options object: ${JSON.stringify(options, null, 2)}`)
+        
+        try {
+            logger.info(`Calling getCredentialData with credential ID: ${nodeData.credential ?? 'none'}`)
+            const credentialData = await getCredentialData(nodeData.credential ?? '', options)
+            logger.info(`Credential data received: ${JSON.stringify(credentialData, null, 2)}`)
+            
+            logger.info(`Calling getCredentialParam for anthropicApiKey`)
+            const anthropicApiKey = getCredentialParam('anthropicApiKey', credentialData, nodeData)
+            logger.info(`anthropicApiKey received: ${anthropicApiKey ? 'API key found (redacted)' : 'API key not found'}`)
+            
+            const allowImageUploads = nodeData.inputs?.allowImageUploads as boolean
 
-        if (maxTokens) obj.maxTokens = parseInt(maxTokens, 10)
-        if (topP) obj.topP = parseFloat(topP)
-        if (topK) obj.topK = parseFloat(topK)
-        if (cache) obj.cache = cache
-
-        const multiModalOption: IMultiModalOption = {
-            image: {
-                allowImageUploads: allowImageUploads ?? false
+            const obj: Partial<AnthropicInput> & BaseLLMParams & { anthropicApiKey?: string } = {
+                temperature: parseFloat(temperature),
+                modelName,
+                anthropicApiKey,
+                streaming: streaming ?? true
             }
-        }
+            
+            logger.info(`Model configuration: ${JSON.stringify({
+                temperature: parseFloat(temperature),
+                modelName,
+                hasApiKey: !!anthropicApiKey,
+                streaming: streaming ?? true
+            }, null, 2)}`)
+            
+            if (!anthropicApiKey) {
+                logger.error('Anthropic API key is missing or empty')
+                throw new Error('Anthropic API key not found')
+            }
 
-        const model = new ChatAnthropic(nodeData.id, obj)
-        model.setMultiModalOption(multiModalOption)
-        return model
+            if (maxTokens) obj.maxTokens = parseInt(maxTokens, 10)
+            if (topP) obj.topP = parseFloat(topP)
+            if (topK) obj.topK = parseFloat(topK)
+            if (cache) obj.cache = cache
+
+            const multiModalOption: IMultiModalOption = {
+                image: {
+                    allowImageUploads: allowImageUploads ?? false
+                }
+            }
+
+            const model = new ChatAnthropic(nodeData.id, obj)
+            model.setMultiModalOption(multiModalOption)
+            return model
+        } catch (error) {
+            logger.error('Error initializing ChatAnthropic:', error)
+            throw error
+        }
     }
 }
 

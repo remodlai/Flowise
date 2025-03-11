@@ -577,17 +577,20 @@ export const redactCredentialWithPasswordType = (
  * @param {string} encryptedData
  * @param {string} componentCredentialName
  * @param {IComponentCredentials} componentCredentials
+ * @param {string} applicationId
  * @returns {Promise<ICommonObject>}
  */
 export const decryptCredentialData = async (
     encryptedData: string,
     componentCredentialName?: string,
-    componentCredentials?: IComponentCredentials
+    componentCredentials?: IComponentCredentials,
+    applicationId?: string
 ): Promise<ICommonObject> => {
     logger.debug('========= Start of decryptCredentialData (components) =========')
     logger.debug(`encryptedData: ${encryptedData}`)
     logger.debug(`componentCredentialName: ${componentCredentialName || 'none'}`)
     logger.debug(`componentCredentials: ${componentCredentials ? 'provided' : 'none'}`)
+    logger.debug(`applicationId from parameter: ${applicationId || 'none'}`)
     
     try {
         if (!encryptedData) {
@@ -601,37 +604,62 @@ export const decryptCredentialData = async (
         let decryptedDataStr: string
         
         try {
-            // Get application ID from localStorage if available
-            let applicationId = ''
-            try {
-                // Check if we're in a browser environment
-                if (typeof localStorage !== 'undefined') {
-                    applicationId = localStorage.getItem('selectedApplicationId') || ''
-                    if (applicationId) {
-                        logger.debug(`Adding applicationId query parameter: ${applicationId}`)
-                        // Add applicationId as a query parameter
-                        url = `${url}?applicationId=${applicationId}`
+            // Use application ID from parameter if available
+            if (applicationId) {
+                logger.debug(`Using applicationId from parameter: ${applicationId}`)
+                url = `${url}?applicationId=${applicationId}`
+                logger.debug(`Final URL with applicationId: ${url}`)
+            } else {
+                // Fallback to localStorage if in browser environment
+                try {
+                    // Check if we're in a browser environment
+                    if (typeof localStorage !== 'undefined') {
+                        const localStorageAppId = localStorage.getItem('selectedApplicationId') || ''
+                        if (localStorageAppId) {
+                            logger.debug(`Using applicationId from localStorage: ${localStorageAppId}`)
+                            url = `${url}?applicationId=${localStorageAppId}`
+                            logger.debug(`Final URL with localStorage applicationId: ${url}`)
+                        } else {
+                            logger.debug('No applicationId found in localStorage')
+                        }
+                    } else {
+                        logger.debug('Not in browser environment, localStorage is undefined')
                     }
+                } catch (e) {
+                    logger.debug(`Error getting application ID from localStorage: ${e}`)
+                    // Continue without application ID if there's an error
                 }
-            } catch (e) {
-                logger.debug(`Error getting application ID from localStorage: ${e}`)
-                // Continue without application ID if there's an error
             }
             
             logger.debug(`Making API call to ${url}`)
             // Call the API to get the secret from Supabase
-            const response = await axios.get(url)
-            logger.debug(`API response status: ${response.status}`)
-            logger.debug(`API response headers: ${JSON.stringify(response.headers)}`)
-            
-            if (response.data && response.data.data) {
-                logger.debug('Got data from API response')
-                logger.debug(`Response data: ${JSON.stringify(response.data)}`)
-                // Convert the data object to a string
-                decryptedDataStr = JSON.stringify(response.data.data)
-            } else {
-                logger.debug(`No data in API response: ${JSON.stringify(response.data)}`)
-                throw new Error('Failed to retrieve secret value.')
+            try {
+                logger.debug(`Starting axios.get request to ${url}`)
+                const response = await axios.get(url)
+                logger.debug(`API response status: ${response.status}`)
+                logger.debug(`API response headers: ${JSON.stringify(response.headers)}`)
+                logger.debug(`API response data structure: ${JSON.stringify(Object.keys(response.data))}`)
+                
+                if (response.data && response.data.data) {
+                    logger.debug('Got data from API response')
+                    logger.debug(`Response data.data exists: ${!!response.data.data}`)
+                    // Convert the data object to a string
+                    decryptedDataStr = JSON.stringify(response.data.data)
+                    logger.debug(`Decrypted data string length: ${decryptedDataStr.length}`)
+                } else {
+                    logger.debug(`No data in API response: ${JSON.stringify(response.data)}`)
+                    throw new Error('Failed to retrieve secret value.')
+                }
+            } catch (error) {
+                logger.error(`Error making API call to ${url}: ${error}`)
+                if (error.response) {
+                    logger.error(`Response status: ${error.response.status}`)
+                    logger.error(`Response data: ${JSON.stringify(error.response.data)}`)
+                } else {
+                    logger.error(`No response object in error: ${error.message}`)
+                    logger.error(`Error stack: ${error.stack}`)
+                }
+                throw error
             }
         } catch (error) {
             logger.error(`Error retrieving secret: ${error}`)
@@ -686,7 +714,7 @@ export const decryptCredentialData = async (
 export const getCredentialData = async (selectedCredentialId: string, options: ICommonObject): Promise<ICommonObject> => {
     logger.debug('========= Start of getCredentialData =========')
     logger.debug(`selectedCredentialId: ${selectedCredentialId}`)
-    logger.debug(`options: ${options ? JSON.stringify(options) : 'none'}`)
+    logger.debug(`options keys: ${Object.keys(options).join(', ')}`)
     
     try {
         if (!selectedCredentialId) {
@@ -694,14 +722,30 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
             return {}
         }
 
+        // Extract application ID from options if available
+        logger.debug(`Checking for appId in options directly: ${options?.appId || 'not present'}`)
+        logger.debug(`Checking if flowConfig exists: ${options?.flowConfig ? 'yes' : 'no'}`)
+        
+        if (options?.flowConfig) {
+            logger.debug(`flowConfig keys: ${Object.keys(options.flowConfig).join(', ')}`)
+            logger.debug(`Checking for appId in flowConfig: ${options?.flowConfig?.appId || 'not present'}`)
+        }
+        
+        const applicationId = options?.appId || options?.flowConfig?.appId || ''
+        logger.debug(`Final application ID extracted: ${applicationId || 'none'}`)
+        
+        if (!applicationId) {
+            logger.debug('WARNING: No application ID found in options. This may cause credential retrieval to fail.')
+            logger.debug(`Full options object: ${JSON.stringify(options, null, 2)}`)
+        }
+
         // In our Supabase implementation, the selectedCredentialId is the secret ID
         // So we can directly decrypt it without needing to query the database
         try {
-            logger.debug(`Calling decryptCredentialData with ID: ${selectedCredentialId}`)
-            // We don't pass componentCredentialName and componentCredentials here
-            // because that's handled by the caller (usually a node's init method)
-            const decryptedCredentialData = await decryptCredentialData(selectedCredentialId)
-            logger.debug(`Decrypted credential data: ${decryptedCredentialData ? JSON.stringify(decryptedCredentialData) : 'empty'}`)
+            logger.debug(`Calling decryptCredentialData with ID: ${selectedCredentialId} and applicationId: ${applicationId}`)
+            // But we do pass the application ID
+            const decryptedCredentialData = await decryptCredentialData(selectedCredentialId, undefined, undefined, applicationId)
+            logger.debug(`Decrypted credential data: ${decryptedCredentialData ? JSON.stringify(decryptedCredentialData, null, 2) : 'empty'}`)
             return decryptedCredentialData
         } catch (error) {
             logger.error(`Error decrypting credential data: ${error}`)

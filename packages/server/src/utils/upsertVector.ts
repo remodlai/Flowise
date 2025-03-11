@@ -191,9 +191,9 @@ export const executeUpsert = async ({
         cachePool,
         isUpsert,
         stopNodeId,
-        //appId,
-        //orgId,
-        //userId
+        appId,
+        orgId,
+        userId
     })
 
     // Save to DB

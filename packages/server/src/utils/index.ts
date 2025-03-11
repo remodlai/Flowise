@@ -489,27 +489,19 @@ export const buildFlow = async ({
     stopNodeId,
     uploads,
     baseURL,
-    // appId,
-    // orgId,
-    // userId
+    appId,
+    orgId,
+    userId
 }: BuildFlowParams) => {
     
     logger.debug('========= Start of buildFlow (file: packages/server/src/utils/index.ts LINE: 497) =========')
-    // if (appId) {
-    //     logger.debug(`'appId', ${appId}`)
-    // }
-    // if (orgId) {
-    //     logger.debug(`'orgId', ${orgId}`)
-    // }
-    // if (userId) {
-    //     logger.debug(`'userId', ${userId}`)
-    // }
-    logger.debug(`'startingNodeIds', ${JSON.stringify(startingNodeIds)} `)
-    logger.debug(`'reactFlowNodes', ${JSON.stringify(reactFlowNodes)}`)
-    logger.debug(`'reactFlowEdges', ${JSON.stringify(reactFlowEdges)}`)
-    logger.debug(`'graph', ${JSON.stringify(graph)}`)
-    logger.debug(`'depthQueue', ${JSON.stringify(depthQueue)}`)
-    logger.debug('========= End of buildFlow =========')
+    logger.debug(`appId: ${appId || 'not provided'}`)
+    logger.debug(`orgId: ${orgId || 'not provided'}`)
+    logger.debug(`userId: ${userId || 'not provided'}`)
+    logger.debug(`startingNodeIds: ${JSON.stringify(startingNodeIds)}`)
+    logger.debug(`reactFlowNodes count: ${reactFlowNodes.length}`)
+    logger.debug(`reactFlowEdges count: ${reactFlowEdges.length}`)
+    logger.debug('========= End of buildFlow parameter logging =========')
     
     const flowNodes = cloneDeep(reactFlowNodes)
 
@@ -542,9 +534,9 @@ export const buildFlow = async ({
         chatId,
         sessionId,
         chatHistory,
-        //appId,
-        //orgId,
-        //userId,
+        appId,
+        orgId,
+        userId,
         ...overrideConfig
     }
     logger.debug(`========= Start of flowData =========`)
@@ -610,9 +602,9 @@ export const buildFlow = async ({
                     dynamicVariables,
                     uploads,
                     baseURL,
-                    //appId,
-                    //orgId,
-                    //userId
+                    appId,
+                    orgId,
+                    userId
                 })
                 if (indexResult) upsertHistory['result'] = indexResult
                 logger.debug(`[server]: Finished upserting ${reactFlowNode.data.label} (${reactFlowNode.data.id})`)
@@ -625,6 +617,11 @@ export const buildFlow = async ({
                 initializedNodes.add(nodeId)
             } else {
                 const finalQuestion = uploadedFilesContent ? `${uploadedFilesContent}\n\n${question}` : question
+                
+                logger.debug(`Initializing node: ${reactFlowNode.data.label} (${reactFlowNode.data.id})`)
+                logger.debug(`Node credential ID: ${reactFlowNode.data.credential ?? 'none'}`)
+                logger.debug(`Passing appId: ${appId || 'none'} to init method`)
+                
                 let outputResult = await newNodeInstance.init(reactFlowNodeData, finalQuestion, {
                     chatId,
                     sessionId,
@@ -639,9 +636,10 @@ export const buildFlow = async ({
                     uploads,
                     baseURL,
                     componentNodes: componentNodes as ICommonObject,
-                    //appId,
-                    //orgId,
-                    //userId
+                    appId,
+                    orgId,
+                    userId,
+                    flowConfig: flowData // Add flowConfig to options
                 })
 
                 // Save dynamic variables
