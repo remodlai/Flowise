@@ -69,7 +69,8 @@ export abstract class BaseCommand extends Command {
         REDIS_TLS: Flags.string(),
         REDIS_CERT: Flags.string(),
         REDIS_KEY: Flags.string(),
-        REDIS_CA: Flags.string()
+        REDIS_CA: Flags.string(),
+        REMODL_API_BASE_URL: Flags.string()
     }
 
     protected async stopProcess() {
@@ -196,6 +197,7 @@ export abstract class BaseCommand extends Command {
         if (flags.REDIS_CA) process.env.REDIS_CA = flags.REDIS_CA
         if (flags.WORKER_CONCURRENCY) process.env.WORKER_CONCURRENCY = flags.WORKER_CONCURRENCY
         if (flags.QUEUE_NAME) process.env.QUEUE_NAME = flags.QUEUE_NAME
-        if (flags.QUEUE_REDIS_EVENT_STREAM_MAX_LEN) process.env.QUEUE_REDIS_EVENT_STREAM_MAX_LEN = flags.QUEUE_REDIS_EVENT_STREAM
+        if (flags.QUEUE_REDIS_EVENT_STREAM_MAX_LEN) process.env.QUEUE_REDIS_EVENT_STREAM_MAX_LEN = flags.QUEUE_REDIS_EVENT_STREAM_MAX_LEN
+        if (flags.REMODL_API_BASE_URL) process.env.REMODL_API_BASE_URL = flags.REMODL_API_BASE_URL
     }
 }

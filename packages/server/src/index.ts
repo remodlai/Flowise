@@ -323,6 +323,7 @@ let serverApp: App | undefined
 export async function start(): Promise<void> {
     serverApp = new App()
     await serverApp.initDatabase()
+    await serverApp.initSupabase()
     await serverApp.config()
 
     // Initialize Supabase Storage buckets if Supabase credentials are available

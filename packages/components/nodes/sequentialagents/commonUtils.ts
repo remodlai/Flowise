@@ -238,7 +238,7 @@ export const convertStructuredSchemaToZod = (schema: string | object): ICommonOb
         }
         return zodObj
     } catch (e) {
-        throw new Error(e)
+        throw new Error(e instanceof Error ? e.message : String(e))
     }
 }
 
@@ -432,7 +432,7 @@ export const checkMessageHistory = async (
             }
             prompt = ChatPromptTemplate.fromMessages(promptArrays)
         } catch (e) {
-            throw new Error(e)
+            throw new Error(e instanceof Error ? e.message : String(e))
         }
     }
 

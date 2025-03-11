@@ -425,7 +425,7 @@ export const additionalCallbacks = async (nodeData: INodeData, options: ICommonO
         }
         return callbacks
     } catch (e) {
-        throw new Error(e)
+        throw new Error(e instanceof Error ? e.message : String(e))
     }
 }
 
@@ -502,7 +502,7 @@ export class AnalyticHandler {
                 }
             }
         } catch (e) {
-            throw new Error(e)
+            throw new Error(e instanceof Error ? e.message : String(e))
         }
     }
 

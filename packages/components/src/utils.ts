@@ -348,7 +348,7 @@ function getURLsFromHTML(htmlBody: string, baseURL: string): string[] {
             const urlObj = new URL(linkElement.href, baseURL)
             urls.push(urlObj.href)
         } catch (err) {
-            if (process.env.DEBUG === 'true') console.error(`error with scraped URL: ${err.message}`)
+            if (process.env.DEBUG === 'true') console.error(`error with scraped URL: ${err instanceof Error ? err.message : String(err)}`)
             continue
         }
     }
@@ -414,7 +414,7 @@ async function crawl(baseURL: string, currentURL: string, pages: string[], limit
             pages = await crawl(baseURL, nextURL, pages, limit)
         }
     } catch (err) {
-        if (process.env.DEBUG === 'true') console.error(`error in fetch url: ${err.message}, on page: ${currentURL}`)
+        if (process.env.DEBUG === 'true') console.error(`error in fetch url: ${err instanceof Error ? err.message : String(err)}, on page: ${currentURL}`)
     }
     return pages
 }
@@ -465,7 +465,7 @@ export async function xmlScrape(currentURL: string, limit: number): Promise<stri
         const xmlBody = await resp.text()
         urls = getURLsFromXML(xmlBody, limit)
     } catch (err) {
-        if (process.env.DEBUG === 'true') console.error(`error in fetch url: ${err.message}, on page: ${currentURL}`)
+        if (process.env.DEBUG === 'true') console.error(`error in fetch url: ${err instanceof Error ? err.message : String(err)}, on page: ${currentURL}`)
     }
     return urls
 }
@@ -632,8 +632,8 @@ export const decryptCredentialData = async (
                     }
                 } catch (e) {
                     logger.debug(`Error getting application ID from localStorage: ${e}`)
-                    logger.debug(`Error message: ${e.message}`)
-                    logger.debug(`Stack trace: ${e.stack}`)
+                    logger.debug(`Error message: ${e instanceof Error ? e.message : String(e)}`)
+                    logger.debug(`Stack trace: ${e instanceof Error ? e.stack : 'No stack trace available'}`)
                     // Continue without application ID if there's an error
                 }
             }
@@ -732,11 +732,11 @@ export const decryptCredentialData = async (
             return plainDataObj
         } catch (e) {
             logger.error(`Error parsing decrypted data: ${e}`)
-            logger.debug(`Error type: ${e.constructor.name}`)
-            logger.debug(`Error message: ${e.message}`)
+            logger.debug(`Error type: ${e instanceof Error ? e.constructor.name : 'Unknown'}`)
+            logger.debug(`Error message: ${e instanceof Error ? e.message : String(e)}`)
             logger.debug(`Full error: ${JSON.stringify(e, null, 2)}`)
-            logger.debug(`Stack trace: ${e.stack}`)
-            throw new Error('Credentials could not be decrypted.')
+            logger.debug(`Stack trace: ${e instanceof Error ? e.stack : 'No stack trace available'}`)
+            throw new Error(e instanceof Error ? e.message : String(e))
         }
     } catch (error) {
         logger.error(`Error in decryptCredentialData: ${error}`)
@@ -804,8 +804,8 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
     } catch (e) {
         logger.error(`Error in getCredentialData: ${e}`)
         logger.debug(`Full error: ${JSON.stringify(e, null, 2)}`)
-        logger.debug(`Error message: ${e.message}`)
-        logger.debug(`Stack trace: ${e.stack}`)
+        logger.debug(`Error message: ${e instanceof Error ? e.message : String(e)}`)
+        logger.debug(`Stack trace: ${e instanceof Error ? e.stack : 'No stack trace available'}`)
         // Return empty object instead of throwing to avoid breaking flows
         return {}
     } finally {
@@ -1053,7 +1053,7 @@ export const convertSchemaToZod = (schema: string | object): ICommonObject => {
         }
         return zodObj
     } catch (e) {
-        throw new Error(e)
+        throw new Error(e instanceof Error ? e.message : String(e))
     }
 }
 
