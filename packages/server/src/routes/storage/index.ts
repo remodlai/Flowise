@@ -90,7 +90,7 @@ router.post('/upload', authorize('file.create'), upload.single('file'), async (r
             isPublic,
             accessLevel,
             metadata,
-            virtualPath,
+            pathTokens,
             name,
             contentType
         } = req.body;
@@ -109,7 +109,7 @@ router.post('/upload', authorize('file.create'), upload.single('file'), async (r
                 isPublic: isPublic === 'true' || isPublic === true,
                 accessLevel,
                 metadata: metadata ? JSON.parse(metadata) : undefined,
-                virtualPath
+                pathTokens
             },
             authContext
         );
@@ -166,7 +166,7 @@ router.post('/upload/chat', authorize('file.create'), upload.single('file'), asy
                     nodeId: nodeId || '',
                     size: file.size
                 },
-                virtualPath: 'uploads'
+                pathTokens: ['uploads']
             },
             authContext
         );
@@ -209,7 +209,7 @@ router.post('/user/:userId/upload', authorize('file.create'), upload.single('fil
             isPublic,
             accessLevel,
             metadata,
-            virtualPath,
+            pathTokens,
             name,
             contentType
         } = req.body;
@@ -226,7 +226,7 @@ router.post('/user/:userId/upload', authorize('file.create'), upload.single('fil
                 isPublic: isPublic === 'true' || isPublic === true,
                 accessLevel,
                 metadata: metadata ? JSON.parse(metadata) : undefined,
-                virtualPath
+                pathTokens
             },
             authContext
         );
@@ -264,7 +264,7 @@ router.post('/organization/:orgId/upload', authorize('file.create'), upload.sing
             isPublic,
             accessLevel,
             metadata,
-            virtualPath,
+            pathTokens,
             name,
             contentType
         } = req.body;
@@ -281,7 +281,7 @@ router.post('/organization/:orgId/upload', authorize('file.create'), upload.sing
                 isPublic: isPublic === 'true' || isPublic === true,
                 accessLevel,
                 metadata: metadata ? JSON.parse(metadata) : undefined,
-                virtualPath
+                pathTokens
             },
             authContext
         );
@@ -319,7 +319,7 @@ router.post('/application/:appId/upload', authorize('file.create'), upload.singl
             isPublic,
             accessLevel,
             metadata,
-            virtualPath,
+            pathTokens,
             name,
             contentType
         } = req.body;
@@ -336,7 +336,7 @@ router.post('/application/:appId/upload', authorize('file.create'), upload.singl
                 isPublic: isPublic === 'true' || isPublic === true,
                 accessLevel,
                 metadata: metadata ? JSON.parse(metadata) : undefined,
-                virtualPath
+                pathTokens
             },
             authContext
         );
@@ -444,7 +444,7 @@ router.get('/files', authorize('file.read'), async (req, res) => {
             resourceType,
             resourceId,
             isPublic,
-            virtualPath
+            pathTokens
         } = req.query;
 
         // Build filters
@@ -454,7 +454,7 @@ router.get('/files', authorize('file.read'), async (req, res) => {
         if (resourceType) filters.resource_type = resourceType;
         if (resourceId) filters.resource_id = resourceId;
         if (isPublic !== undefined) filters.is_public = isPublic === 'true';
-        if (virtualPath) filters.virtual_path = virtualPath;
+        if (pathTokens) filters.path_tokens = pathTokens;
 
         // Build sort options
         const sort = sortBy 
@@ -501,7 +501,7 @@ router.patch('/file/:fileId', authorize('file.update'), async (req, res) => {
             isPublic,
             accessLevel,
             metadata,
-            virtualPath
+            pathTokens
         } = req.body;
 
         // Update file
@@ -513,7 +513,7 @@ router.patch('/file/:fileId', authorize('file.update'), async (req, res) => {
                 isPublic: isPublic === 'true' || isPublic === true,
                 accessLevel,
                 metadata: metadata ? JSON.parse(metadata) : undefined,
-                virtualPath
+                pathTokens
             },
             authContext
         );

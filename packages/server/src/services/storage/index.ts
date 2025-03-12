@@ -85,7 +85,7 @@ export interface UploadFileOptions {
   /** Custom metadata for the file (optional) */
   metadata?: Record<string, any>
   /** Virtual path for organizing files in the UI (optional) */
-  virtualPath?: string
+  pathTokens?: string[]
   /** Whether to upsert the file if it already exists (optional) */
   upsert?: boolean
   /** Custom cache control header (optional) */
@@ -130,7 +130,7 @@ export interface UpdateFileOptions {
   /** Custom metadata to merge with existing metadata (optional) */
   metadata?: Record<string, any>
   /** New virtual path for organizing files in the UI (optional) */
-  virtualPath?: string
+  pathTokens?: string[]
 }
 
 /**
@@ -223,7 +223,7 @@ export const uploadFile = async (
         is_public: options.isPublic !== undefined ? options.isPublic : false,
         access_level: options.accessLevel || FILE_ACCESS_LEVELS.PRIVATE,
         metadata: options.metadata,
-        virtual_path: options.virtualPath
+        path_tokens: options.pathTokens
       },
       authContext
     )
@@ -420,7 +420,7 @@ export const updateFile = async (
         is_public: options.isPublic,
         access_level: options.accessLevel,
         metadata: options.metadata,
-        virtual_path: options.virtualPath
+        path_tokens: options.pathTokens
       },
       authContext
     )
