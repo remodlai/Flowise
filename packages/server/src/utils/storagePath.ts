@@ -10,7 +10,7 @@ import path from 'path'
 import { 
   FILE_CONTEXT_TYPES, 
   FILE_RESOURCE_TYPES,
-  VIRTUAL_PATH_SEPARATOR
+  PATH_TOKEN_SEPARATOR
 } from '../constants/storage'
 import { StorageError, createInvalidFileError } from '../errors'
 
@@ -321,7 +321,7 @@ export const generateVirtualPath = (...parts: string[]): string => {
   const validParts = parts.filter(part => part && part.trim() !== '')
   
   // Join parts with the virtual path separator
-  return validParts.join(VIRTUAL_PATH_SEPARATOR)
+  return validParts.join(PATH_TOKEN_SEPARATOR)
 }
 
 /**

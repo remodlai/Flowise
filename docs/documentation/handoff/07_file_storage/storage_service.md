@@ -227,19 +227,19 @@ console.log(`Found ${total} files matching 'report'`);
 
 ### Move File Virtual Path
 
-The `moveFileVirtualPath` function moves a file to a new virtual path:
+The `moveFilePathTokens` function moves a file to a new path by updating its path tokens:
 
 ```typescript
-import { moveFileVirtualPath } from '../services/storage';
+import { moveFilePathTokens } from '../services/storage';
 
-const updatedFile = await moveFileVirtualPath(
-  'file-123',
-  'Documents/Important/2025',
+const updatedFile = await moveFilePathTokens(
+  fileId,
+  ['new', 'path', 'to', 'file'],
   authContext
 );
-
-console.log(`File moved to: ${updatedFile.path_tokens.join('/')}`);
 ```
+
+This function updates the file's path tokens in the database without moving the actual file in storage.
 
 ### Copy File
 
@@ -453,7 +453,7 @@ The storage service includes permission checks for operations that modify files:
 
 - `deleteFile`: Checks if the user is the file owner or has access through the application or organization
 - `updateFile`: Checks if the user is the file owner or has access through the application or organization
-- `moveFileVirtualPath`: Checks if the user is the file owner or has access through the application or organization
+- `moveFilePathTokens`: Checks if the user is the file owner or has access through the application or organization
 
 ## Integration with Express Routes
 

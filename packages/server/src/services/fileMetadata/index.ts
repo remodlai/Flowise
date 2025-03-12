@@ -66,8 +66,11 @@ export interface CreateFileMetadataOptions {
   access_level?: string
   metadata?: Record<string, any>
 
-  /** Array of path segments for hierarchical organization */
+  /** Array of path segments for hierarchical organization (snake_case for database) */
   path_tokens?: string[]
+  
+  /** Array of path segments for hierarchical organization (camelCase for API) */
+  pathTokens?: string[]
 }
 
 /**
@@ -81,8 +84,11 @@ export interface UpdateFileMetadataOptions {
   access_level?: string
   metadata?: Record<string, any>
 
-  /** Array of path segments for hierarchical organization */
+  /** Array of path segments for hierarchical organization (snake_case for database) */
   path_tokens?: string[]
+  
+  /** Array of path segments for hierarchical organization (camelCase for API) */
+  pathTokens?: string[]
 }
 
 /**
@@ -104,8 +110,12 @@ export interface ListFileMetadataOptions {
     access_level?: string
     created_by?: string
  
-    /** Array of path segments for hierarchical organization */
-    path_tokens?: string[]
+    /** Array of path segments for hierarchical organization (snake_case for database) */
+    path_tokens?: string[] | string
+    
+    /** Array of path segments for hierarchical organization (camelCase for API) */
+    pathTokens?: string[] | string
+    
     name?: string
     content_type?: string
   }
@@ -162,7 +172,8 @@ export const createFileMetadata = async (
         created_by: authContext.userId || 'anonymous',
         metadata: options.metadata || {},
         
-        path_tokens: options.path_tokens
+        // Use pathTokens (camelCase) if provided, otherwise fall back to path_tokens (snake_case)
+        path_tokens: options.pathTokens || options.path_tokens
       })
       .select()
       .single()
@@ -217,15 +228,11 @@ export const updateFileMetadata = async (
     if (options.is_public !== undefined) updateData.is_public = options.is_public
     if (options.access_level !== undefined) updateData.access_level = options.access_level
     
-    // Support both for backward compatibility
-    if (options.path_tokens !== undefined) {
+    // Handle both pathTokens (camelCase) and path_tokens (snake_case) for backward compatibility
+    if (options.pathTokens !== undefined) {
+      updateData.path_tokens = options.pathTokens
+    } else if (options.path_tokens !== undefined) {
       updateData.path_tokens = options.path_tokens
-    }
-    
-    if (options.path_tokens !== undefined) {
-      updateData.path_tokens = options.path_tokens
-     
-      
     }
     
     // Handle metadata updates (merge with existing metadata)
@@ -403,15 +410,13 @@ export const listFileMetadata = async (
     if (filters.access_level) query = query.eq('access_level', filters.access_level)
     if (filters.created_by) query = query.eq('created_by', filters.created_by)
     
-    // Support both for backward compatibility
-  
-    if (filters.path_tokens) {
-      // If path_tokens is an array, use the contains operator
-      if (Array.isArray(filters.path_tokens)) {
-        query = query.contains('path_tokens', filters.path_tokens)
+    // Handle both pathTokens (camelCase) and path_tokens (snake_case) for backward compatibility
+    if (filters.pathTokens || filters.path_tokens) {
+      const tokens = filters.pathTokens || filters.path_tokens
+      if (Array.isArray(tokens)) {
+        query = query.contains('path_tokens', tokens)
       } else {
-        // If it's a string, convert it to an array and use contains
-        query = query.contains('path_tokens', PATH_TOKEN_FUNCTIONS.pathToTokens(filters.path_tokens as string))
+        query = query.contains('path_tokens', PATH_TOKEN_FUNCTIONS.pathToTokens(tokens as string))
       }
     }
     
@@ -462,7 +467,17 @@ export const searchFileMetadata = async (
       if (filters.is_public !== undefined) query = query.eq('is_public', filters.is_public)
       if (filters.access_level) query = query.eq('access_level', filters.access_level)
       if (filters.created_by) query = query.eq('created_by', filters.created_by)
-      if (filters.path_tokens) query = query.contains('path_tokens', filters.path_tokens)
+      
+      // Handle both pathTokens (camelCase) and path_tokens (snake_case) for backward compatibility
+      if (filters.pathTokens || filters.path_tokens) {
+        const tokens = filters.pathTokens || filters.path_tokens
+        if (Array.isArray(tokens)) {
+          query = query.contains('path_tokens', tokens)
+        } else {
+          query = query.contains('path_tokens', PATH_TOKEN_FUNCTIONS.pathToTokens(tokens as string))
+        }
+      }
+      
       if (filters.content_type) query = query.eq('content_type', filters.content_type)
     }
     
@@ -510,12 +525,10 @@ export const updateFilePathTokens = async (
 ): Promise<FileMetadata> => {
   return updateFileMetadata(
     fileId,
-    { path_tokens: pathTokens },
+    { pathTokens },
     authContext
   )
 }
-
-
 
 /**
  * Gets files by context (e.g., all files for a specific user, organization, or application)
@@ -581,7 +594,7 @@ export const getFilesByPathTokens = async (
     ...options,
     filters: {
       ...options.filters,
-      path_tokens: pathTokens
+      pathTokens
     }
   })
 }

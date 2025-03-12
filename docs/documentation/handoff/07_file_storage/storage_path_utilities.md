@@ -87,21 +87,21 @@ const updatedFile = await moveFilePathTokens(
 
 **Returns:** The updated file metadata
 
-#### 2. Move File Virtual Path (Deprecated)
+#### 2. Move File Path Tokens (Replaces Virtual Path)
 
-Moves a file to a new location by updating its virtual path in the database.
+Moves a file to a new location by updating its path tokens in the database.
 
 ```typescript
-const updatedFile = await moveFileVirtualPath(
+const updatedFile = await moveFilePathTokens(
   fileId,
-  'logos/company/new_folder',
+  ['logos', 'company', 'new_folder'],
   authContext
 );
 ```
 
 **Parameters:**
 - `fileId`: The ID of the file to move
-- `pathTokens`: The new virtual path string
+- `pathTokens`: The new path tokens array
 - `authContext`: Authentication context
 
 **Returns:** The updated file metadata
@@ -534,3 +534,21 @@ All file operations require appropriate permissions:
 - Copy operations require the `file.create` permission
 
 The authorization is handled by the `authorize` middleware, which checks if the user has the required permission based on their JWT token or API key. 
+
+### Moving a File's Path Tokens
+
+To move a file by updating its path tokens without physically moving the file in storage:
+
+```typescript
+import { moveFilePathTokens } from '../services/storage';
+
+const updatedFile = await moveFilePathTokens(
+  'file-123',
+  ['new', 'path', 'to', 'file'],
+  authContext
+);
+
+console.log(`File moved to: ${updatedFile.path_tokens.join('/')}`);
+```
+
+This function updates the file's path tokens in the database without moving the actual file in storage. 

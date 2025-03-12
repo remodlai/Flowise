@@ -156,3 +156,18 @@ Next steps:
   - Maintaining consistent navigation throughout the platform admin section
   - Allowing users to easily navigate between different platform settings
   - Preserving the visual hierarchy and context of the platform admin interface
+
+## 2025-03-12: Path Tokens Refactoring
+
+- Identified and fixed inconsistencies in path tokens handling:
+  - Standardized the use of camelCase `pathTokens` in API interfaces and TypeScript interfaces
+  - Ensured consistent conversion to snake_case `path_tokens` when interacting with the database
+  - Fixed duplicate code in `updateFileMetadata` function that was handling path tokens twice
+  - Reviewed all controllers to ensure they properly handle the conversion between camelCase and snake_case
+  - Updated documentation to clarify the correct approach for path tokens handling
+- This refactoring improves code consistency and maintainability by:
+  - Following JavaScript/TypeScript conventions (camelCase) for API interfaces
+  - Following SQL conventions (snake_case) for database operations
+  - Establishing clear boundaries where the conversion between formats happens
+  - Reducing potential bugs from inconsistent handling of path tokens
+  - Making the codebase more maintainable for future developers

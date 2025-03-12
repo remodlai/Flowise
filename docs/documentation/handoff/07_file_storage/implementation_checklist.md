@@ -73,10 +73,10 @@ This document outlines the implementation plan for integrating Supabase Storage 
   - [x] deleteFileMetadata
   - [x] listFileMetadata
   - [x] searchFileMetadata
-  - [x] updateFileVirtualPath
+  - [x] updateFilePathTokens
   - [x] getFilesByContext
   - [x] getFilesByResource
-  - [x] getFilesByVirtualPath
+  - [x] getFilesByPathTokens
 
 ### Changelog
 
@@ -92,7 +92,7 @@ This document outlines the implementation plan for integrating Supabase Storage 
   - [x] listFiles
   - [x] updateFile
   - [x] searchFiles
-  - [x] moveFileVirtualPath
+  - [x] moveFilePathTokens
   - [x] copyFile
   - [x] uploadUserFile
   - [x] uploadOrganizationFile

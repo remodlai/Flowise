@@ -454,7 +454,7 @@ router.get('/files', authorize('file.read'), async (req, res) => {
         if (resourceType) filters.resource_type = resourceType;
         if (resourceId) filters.resource_id = resourceId;
         if (isPublic !== undefined) filters.is_public = isPublic === 'true';
-        if (pathTokens) filters.path_tokens = pathTokens;
+        if (pathTokens) filters.pathTokens = pathTokens;
 
         // Build sort options
         const sort = sortBy 
@@ -558,7 +558,7 @@ router.get('/search', authorize('file.read'), async (req, res) => {
         if (resourceType) filters.resource_type = resourceType;
         if (resourceId) filters.resource_id = resourceId;
         if (isPublic !== undefined) filters.is_public = isPublic === 'true';
-        if (pathTokens) filters.path_tokens = pathTokens;
+        if (pathTokens) filters.pathTokens = pathTokens;
 
         // Search files
         const { files, total } = await searchFiles(q as string, {

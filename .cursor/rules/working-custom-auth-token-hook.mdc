@@ -1,8 +1,6 @@
 ---
-description: The current custom working auth token hook for supabase auth
+description: retrieving the current custom_auth_token_hook function from supabase auth
 globs: 
 alwaysApply: true
 ---
-The following is our current, working auth token hook: [working_auth_token_hook_valid.sql](mdc:packages/server/src/migrations/multi-tenant/custom_access_hooks/working_hook_valid/working_auth_token_hook_valid.sql)
-
-DO NOT ALTER THIS.  THIS IS A FALL BACK FOR US, AND SHOULD BE REFERENCED WHEN MAKING SUGGESTED EDITS, policy updates, etc in Supabase, or any time auth is required.
+Do not rely on any .sql files in the codebase for this. Instead, you must use your ability to directly access supabase and retrive the currently deployed version.
