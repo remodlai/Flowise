@@ -258,6 +258,8 @@ export interface IFileUpload {
     type: string
     name: string
     mime: string
+    size?: number
+    pathTokens?: string[]
 }
 
 export interface IMultiModalOption {

@@ -44,7 +44,7 @@ export const addImagesToMessages = async (
             
             // Create authentication context from available information
             const authContext = {
-                userId: options.userId || 'anonymous',
+                userId: options.userId || `anonymous_${Math.random().toString(36).substring(2, 12)}`,
                 orgId: options.orgId,
                 appId: options.chatflowid
             }
@@ -78,7 +78,7 @@ export const addImagesToMessages = async (
                                             width: 1000,
                                             quality: 80
                                         },
-                                        virtualPath: 'uploads'
+                                        pathTokens: ['uploads'] 
                                     },
                                     authContext
                                 )

@@ -21,7 +21,7 @@ export interface IFileUploadOptions {
     resourceId?: string;
     isPublic?: boolean;
     metadata?: Record<string, any>;
-    virtualPath?: string;
+    pathTokens?: string[];
 }
 
 /**
@@ -63,7 +63,7 @@ export async function uploadApplicationFile(
         
         return {
             url,
-            path: `${options.virtualPath}/${options.name}`,
+            path: `${options.pathTokens?.join('/')}/${options.name}`,
             metadata: options.metadata
         };
     } catch (error) {
