@@ -55,6 +55,7 @@ import adminRouter from './admin'
 import customRolesRouter from './custom-roles'
 import permissionsRouter from './permissions'
 import usersCustomRolesRouter from './users'
+import assetsRouter from './assetsRoutes'
 
 const router = express.Router()
 
@@ -113,5 +114,6 @@ router.use('/admin', adminRouter)
 router.use('/custom-roles', customRolesRouter)
 router.use('/permissions', permissionsRouter)
 router.use('/users', usersCustomRolesRouter)
+router.use('/platform/assets', assetsRouter)
 
 export default router
