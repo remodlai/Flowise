@@ -4,6 +4,7 @@ import { lazy } from 'react'
 import MainLayout from '@/layout/MainLayout'
 import Loadable from '@/ui-component/loading/Loadable'
 import ProtectedRoute from './ProtectedRoute'
+import LogoManager from '../views/admin/platform/settings/logo'
 
 // chatflows routing
 const Chatflows = Loadable(lazy(() => import('@/views/chatflows')))
@@ -207,6 +208,14 @@ const MainRoutes = {
                             element: <SystemSettings />
                         }
                     ]
+                },
+                {
+                    path: 'platform-logo',
+                    element: (
+                        <ProtectedRoute>
+                            <LogoManager />
+                        </ProtectedRoute>
+                    )
                 },
                 {
                     path: 'billing',

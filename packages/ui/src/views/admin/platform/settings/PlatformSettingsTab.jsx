@@ -23,6 +23,7 @@ import {
 } from '@mui/material'
 import { IconEdit, IconTrash, IconPlus } from '@tabler/icons-react'
 import { useSnackbar } from 'notistack'
+import { useNavigate } from 'react-router-dom'
 
 // Import the platform API
 import { getPlatformSettings, createPlatformSetting, updatePlatformSetting, deletePlatformSetting } from '@/api/platform'
@@ -40,6 +41,7 @@ const PlatformSettingsTab = () => {
         is_encrypted: false
     })
     const { enqueueSnackbar } = useSnackbar()
+    const navigate = useNavigate()
 
     useEffect(() => {
         fetchSettings()
@@ -153,13 +155,22 @@ const PlatformSettingsTab = () => {
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h5">Platform Settings</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<IconPlus size={18} />}
-                    onClick={() => handleOpenDialog()}
-                >
-                    Add Setting
-                </Button>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<IconEdit size={18} />}
+                        onClick={() => navigate('/admin/platform-logo')}
+                    >
+                        Manage Platform Logo
+                    </Button>
+                    <Button
+                        variant="contained"
+                        startIcon={<IconPlus size={18} />}
+                        onClick={() => handleOpenDialog()}
+                    >
+                        Add Setting
+                    </Button>
+                </Box>
             </Box>
 
             {loading ? (

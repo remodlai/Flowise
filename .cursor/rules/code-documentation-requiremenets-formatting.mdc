@@ -1,0 +1,140 @@
+---
+description: How to strucutre and document our code
+globs: 
+alwaysApply: true
+---
+
+## Documentation Requirements
+
+### Code Documentation
+
+All API-related code must include:
+
+1. **File-Level Block Comments**:
+   - Overview of the file's purpose
+   - Current implementation details
+   - Future enhancement plans
+   - References to relevant documentation
+
+2. **Function-Level Comments**:
+   - Route information (HTTP method, path)
+   - Parameter descriptions
+   - Response format
+   - Notes about future extensions
+
+3. **Inline Comments**:
+   - Explanations for complex logic
+   - References to business rules
+   - Temporary workarounds or limitations
+
+### Example Block Comment
+
+```typescript
+/**
+ * Platform Assets Controller
+ * 
+ * This controller handles basic operations for platform assets (images, files, media).
+ * 
+ * CURRENT IMPLEMENTATION:
+ * - Simple endpoints for CRUD operations
+ * - No URL path navigation that mirrors storage paths
+ * - Basic permission checking via authorize function
+ * - Soft delete functionality (is_deleted flag)
+ * 
+ * FUTURE ENHANCEMENTS:
+ * - Update URL paths to reflect storage paths for better browser navigation
+ * - Implement breadcrumb-style navigation in the UI
+ * - Add support for folder operations (create, move, etc.)
+ * - Advanced filtering options for deleted assets
+ * 
+ * @see /docs/documentation/handoff/07_file_storage/basic_test_implementation/basic_upload_test_handoff.md
+ */
+```
+
+### Example Function Comment
+
+```typescript
+/**
+ * Upload a platform image
+ * 
+ * @route POST /api/v1/platform/assets/images/upload
+ * @param {Request} req - Express request object with file in req.file
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Express next function
+ * @returns {Promise<Response>} JSON response with upload result
+ * 
+ * NOTE: In the future, this could be extended to support path-based uploads:
+ * @route POST /api/v1/platform/assets/images/:path/upload
+ * where :path would map to the virtual_path in the database
+ */
+```
+
+### Example Soft Delete Function Comment
+
+```typescript
+/**
+ * Soft delete an image
+ * 
+ * @route DELETE /api/v1/platform/assets/images/:id
+ * @param {Request} req - Express request object with image ID in req.params.id
+ * @param {Response} res - Express response object
+ * @param {NextFunction} next - Express next function
+ * @returns {Promise<Response>} JSON response with delete result
+ * 
+ * NOTE: This operation marks the image as deleted (is_deleted = true)
+ * rather than permanently removing it from the database.
+ * Only users with appropriate permissions can perform this operation.
+ */
+```
+
+## Stubbing Future Paths
+
+To ensure we account for future extensions, we should:
+
+1. **Include Commented Route Definitions**:
+   ```typescript
+   // Current implementation
+   router.post('/upload', upload.single('file'), assetsController.uploadImage)
+   
+   // Future implementation (commented out)
+   // router.post('/:path/upload', upload.single('file'), assetsController.uploadImageToPath)
+   ```
+
+2. **Create Stub Functions**:
+   ```typescript
+   /**
+   * Upload an image to a specific path (FUTURE IMPLEMENTATION)
+   * 
+   * @route POST /api/v1/platform/assets/images/:path/upload
+   */
+   // const uploadImageToPath = async (req: Request, res: Response, next: NextFunction) => {
+   //   // Implementation will be added in the future
+   //   throw new Error('Not implemented')
+   // }
+   ```
+
+3. **Document Integration Points**:
+   - Identify where future functionality will integrate with existing code
+   - Add comments explaining how the integration will work
+   - Include references to relevant documentation or design decisions
+
+## Implementation Priorities
+
+1. **Basic Functionality First**:
+   - Implement core CRUD operations without path navigation
+   - Ensure proper authentication and permission checking
+   - Verify Supabase Storage integration works correctly
+   - Implement soft delete functionality
+
+2. **Path Navigation Later**:
+   - Once basic functionality is verified, implement path-based navigation
+   - Update UI to support breadcrumb navigation
+   - Add folder operations (create, move, etc.)
+
+3. **Integration with Specialized Systems**:
+   - Document stores
+   - Vector stores
+   - RAG systems
+   - Metadata generation
+
+By following these principles, we ensure that our API design is consistent, well-documented, and prepared for future extensions. 

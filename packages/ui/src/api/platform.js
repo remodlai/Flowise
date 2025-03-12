@@ -130,6 +130,88 @@ export const testPlatformEndpoint = () => {
     return client.get('/platform/test')
 }
 
+// Platform Assets API
+
+/**
+ * List all platform images
+ * @param {Object} options - Optional query parameters
+ * @param {boolean} options.includeDeleted - Whether to include deleted images (admin only)
+ * @param {string} options.contextType - Filter by context type
+ * @param {string} options.contextId - Filter by context ID
+ * @returns {Promise} - List of images
+ */
+export const listPlatformImages = (options = {}) => {
+    return client.get('/platform/assets/images', { params: options })
+}
+
+/**
+ * Get a platform image by ID
+ * @param {string} id - The image ID
+ * @returns {Promise} - Image details
+ */
+export const getPlatformImage = (id) => {
+    return client.get(`/platform/assets/images/${id}`)
+}
+
+/**
+ * Upload a platform image
+ * @param {FormData} formData - Form data with the image file and metadata
+ * @returns {Promise} - Upload result
+ */
+export const uploadPlatformImage = (formData) => {
+    return client.post('/platform/assets/images/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    })
+}
+
+/**
+ * Update a platform image
+ * @param {string} id - The image ID
+ * @param {Object} data - The updated image data
+ * @returns {Promise} - Update result
+ */
+export const updatePlatformImage = (id, data) => {
+    return client.put(`/platform/assets/images/${id}`, data)
+}
+
+/**
+ * Soft delete a platform image
+ * @param {string} id - The image ID
+ * @returns {Promise} - Delete result
+ */
+export const deletePlatformImage = (id) => {
+    return client.delete(`/platform/assets/images/${id}`)
+}
+
+/**
+ * Restore a soft-deleted platform image
+ * @param {string} id - The image ID
+ * @returns {Promise} - Restore result
+ */
+export const restorePlatformImage = (id) => {
+    return client.post(`/platform/assets/images/${id}/restore`)
+}
+
+/**
+ * Get the public URL for a platform image
+ * @param {string} id - The image ID
+ * @returns {Promise} - URL result
+ */
+export const getPlatformImageUrl = (id) => {
+    return client.get(`/platform/assets/images/${id}/url`)
+}
+
+/**
+ * Get the direct content URL for a platform image
+ * @param {string} id - The image ID
+ * @returns {string} - Direct content URL
+ */
+export const getPlatformImageContentUrl = (id) => {
+    return `${client.defaults.baseURL}/platform/assets/images/${id}/content`
+}
+
 export default {
     getPlatformSettings,
     getPlatformSettingByKey,
@@ -141,5 +223,14 @@ export default {
     createSecret,
     updateSecret,
     deleteSecret,
-    testPlatformEndpoint
+    testPlatformEndpoint,
+    // Platform Assets
+    listPlatformImages,
+    getPlatformImage,
+    uploadPlatformImage,
+    updatePlatformImage,
+    deletePlatformImage,
+    restorePlatformImage,
+    getPlatformImageUrl,
+    getPlatformImageContentUrl
 } 

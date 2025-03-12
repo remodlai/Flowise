@@ -78,16 +78,7 @@ const PlatformAdmin = () => {
                         Select a platform section from the menu to get started.
                     </Typography>
                 ) : (
-                    <>
-                        {currentPath.includes('/nodes') && <PlatformNodesView />}
-                        {currentPath.includes('/tools') && <PlatformToolsView />}
-                        {currentPath.includes('/settings') && <SystemSettings />}
-                        {currentPath.includes('/files') && (
-                            <Typography variant="body1">
-                                Platform Files management will be implemented soon.
-                            </Typography>
-                        )}
-                    </>
+                    <Outlet />
                 )}
             </Box>
         </Box>
