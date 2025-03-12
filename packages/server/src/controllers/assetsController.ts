@@ -313,7 +313,7 @@ export const updateImage = async (req: Request, res: Response, next: NextFunctio
     }
     
     // Get updatable fields from request body
-    const { name, description, isPublic, isShareable, virtual_path } = req.body;
+    const { name, description, isPublic, isShareable, pathTokens } = req.body;
     
     // Build update object with only provided fields
     const updateData: any = {};
@@ -324,7 +324,7 @@ export const updateImage = async (req: Request, res: Response, next: NextFunctio
       updateData.access_level = updateData.is_public ? 'public' : 'private';
     }
     if (isShareable !== undefined) updateData.is_shareable = isShareable === true || isShareable === 'true';
-    if (virtual_path !== undefined) updateData.virtual_path = virtual_path;
+    if (pathTokens !== undefined) updateData.path_tokens = pathTokens;
     
     // Add updated_at timestamp
     updateData.updated_at = new Date().toISOString();

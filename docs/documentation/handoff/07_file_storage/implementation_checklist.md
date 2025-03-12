@@ -14,7 +14,7 @@ This document outlines the implementation plan for integrating Supabase Storage 
   - [ ] Add columns for is_public, access_level
   - [ ] Add columns for created_by, updated_at
   - [ ] Add column for metadata (JSONB)
-  - [ ] Add column for virtual_path
+  - [ ] Add column for path_tokens
   - [ ] Create appropriate indexes
   - [ ] Enable row-level security
 

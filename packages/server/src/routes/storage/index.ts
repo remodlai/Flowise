@@ -544,7 +544,7 @@ router.get('/search', authorize('file.read'), async (req, res) => {
             resourceType,
             resourceId,
             isPublic,
-            virtualPath
+            pathTokens
         } = req.query;
 
         if (!q) {
@@ -558,7 +558,7 @@ router.get('/search', authorize('file.read'), async (req, res) => {
         if (resourceType) filters.resource_type = resourceType;
         if (resourceId) filters.resource_id = resourceId;
         if (isPublic !== undefined) filters.is_public = isPublic === 'true';
-        if (virtualPath) filters.virtual_path = virtualPath;
+        if (pathTokens) filters.path_tokens = pathTokens;
 
         // Search files
         const { files, total } = await searchFiles(q as string, {
@@ -784,10 +784,9 @@ router.post('/copy-across-buckets', authorize('file.create'), async (req, res) =
         const { 
             fileId, 
             destinationBucket,
-            destinationPath,
+            targetPath,
             name,
             pathTokens,
-            virtualPath,
             isPublic,
             accessLevel,
             metadata,
@@ -807,18 +806,18 @@ router.post('/copy-across-buckets', authorize('file.create'), async (req, res) =
             return res.status(400).json({ error: 'Destination bucket is required' });
         }
 
-        if (!destinationPath) {
-            return res.status(400).json({ error: 'Destination path is required' });
+        if (!targetPath) {
+            return res.status(400).json({ error: 'Target path is required' });
         }
 
         // Copy file to a different bucket
         const result = await copyFileAcrossBuckets(
             fileId,
             destinationBucket,
-            destinationPath,
+            targetPath,
             {
                 name,
-                pathTokens: pathTokens || (virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined),
+                pathTokens: pathTokens || (targetPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(targetPath) : undefined),
                 
                 isPublic: isPublic === 'true' || isPublic === true,
                 accessLevel,

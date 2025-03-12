@@ -182,7 +182,7 @@ As part of our ongoing improvements to the storage architecture, we've made the 
 ### Change Details
 
 1. **Column Rename**:
-   - Renamed the `virtual_path` column to `path_tokens` in the `files` table
+   - Renamed the `` column to `path_tokens` in the `files` table
    - Changed the data type from `text` to `text[]` (array of strings)
 
 2. **Motivation**:

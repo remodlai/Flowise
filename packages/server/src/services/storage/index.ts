@@ -28,10 +28,10 @@ import {
   deleteFileMetadata,
   listFileMetadata,
   searchFileMetadata,
-  updateFileVirtualPath,
+  updateFilePathTokens,
   getFilesByContext,
   getFilesByResource,
-  getFilesByVirtualPath,
+
   FileMetadata,
   ListFileMetadataOptions
 } from '../fileMetadata'

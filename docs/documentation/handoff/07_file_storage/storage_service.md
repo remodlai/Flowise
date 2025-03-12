@@ -238,7 +238,7 @@ const updatedFile = await moveFileVirtualPath(
   authContext
 );
 
-console.log(`File moved to: ${updatedFile.virtual_path}`);
+console.log(`File moved to: ${updatedFile.path_tokens.join('/')}`);
 ```
 
 ### Copy File

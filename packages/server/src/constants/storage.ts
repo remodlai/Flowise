@@ -183,9 +183,9 @@ export const FILE_MIME_TYPES = {
 
 /**
  * Virtual path separators for file organization
- * @deprecated Use path_tokens array instead of virtual_path string with separators
+ * @desc when presented with a path string, this is the separator used to split the path into tokens
  */
-export const VIRTUAL_PATH_SEPARATOR = '/'
+export const PATH_TOKEN_SEPARATOR = '/'
 
 /**
  * Path token utility functions for working with path_tokens arrays
@@ -194,27 +194,27 @@ export const PATH_TOKEN_FUNCTIONS = {
   /**
    * Convert a path string to path tokens array
    * @param path Path string
-   * @returns Array of path tokens
+   * @returns Array of path tokens e.g. ['new', 'path', 'to', 'file.jpg']
    */
   pathToTokens: (path: string): string[] => {
     if (!path) return []
-    return path.split(VIRTUAL_PATH_SEPARATOR).filter(Boolean)
+    return path.split(PATH_TOKEN_SEPARATOR).filter(Boolean)
   },
 
   /**
    * Convert path tokens array to path string
-   * @param tokens Array of path tokens
-   * @returns Path string
+   * @param tokens Array of path tokens e.g. ['new', 'path', 'to', 'file.jpg']
+   * @returns Path string e.g. 'new/path/to/file.jpg'
    */
   tokensToPath: (tokens: string[]): string => {
     if (!tokens || !tokens.length) return ''
-    return tokens.join(VIRTUAL_PATH_SEPARATOR)
+    return tokens.join(PATH_TOKEN_SEPARATOR)
   },
 
   /**
    * Get parent path tokens (remove the last token)
-   * @param tokens Array of path tokens
-   * @returns Parent path tokens
+   * @param tokens Array of path tokens e.g. ['new', 'path', 'to', 'file.jpg']
+   * @returns Parent path tokens e.g. ['new', 'path', 'to']
    */
   getParentTokens: (tokens: string[]): string[] => {
     if (!tokens || tokens.length <= 1) return []
@@ -226,12 +226,12 @@ export const PATH_TOKEN_FUNCTIONS = {
  * Default expiration times for signed URLs (in seconds)
  */
 export const SIGNED_URL_EXPIRATION = {
-  /** Short-lived URL (5 minutes) */
-  SHORT: 300,
+  /** Short-lived URL (1 week) */
+  SHORT: 604800,
   
-  /** Medium-lived URL (1 hour) */
-  MEDIUM: 3600,
+  /** Medium-lived URL (1 month) */
+  MEDIUM: 2592000, // 1 month
   
-  /** Long-lived URL (24 hours) */
-  LONG: 86400
+  /** Long-lived URL (1 year) */
+  LONG: 31536000 // 1 year
 } 

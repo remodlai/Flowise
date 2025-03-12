@@ -402,7 +402,7 @@ PATCH /api/storage/file/:fileId/move
   "file": {
     "id": "123",
     "name": "file.jpg",
-    "virtual_path": "new/path/to/file.jpg",
+    "path_tokens": "new/path/to/file.jpg",
     // Other file metadata
   }
 }

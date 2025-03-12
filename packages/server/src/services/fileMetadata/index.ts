@@ -44,8 +44,7 @@ export interface FileMetadata {
   created_by: string
   updated_at?: string
   metadata?: Record<string, any>
-  /** @deprecated Use path_tokens instead */
-  virtual_path?: string
+  
   /** Array of path segments for hierarchical organization */
   path_tokens?: string[]
 }
@@ -66,8 +65,7 @@ export interface CreateFileMetadataOptions {
   is_public?: boolean
   access_level?: string
   metadata?: Record<string, any>
-  /** @deprecated Use path_tokens instead */
-  virtual_path?: string
+
   /** Array of path segments for hierarchical organization */
   path_tokens?: string[]
 }
@@ -82,8 +80,7 @@ export interface UpdateFileMetadataOptions {
   is_public?: boolean
   access_level?: string
   metadata?: Record<string, any>
-  /** @deprecated Use path_tokens instead */
-  virtual_path?: string
+
   /** Array of path segments for hierarchical organization */
   path_tokens?: string[]
 }
@@ -106,8 +103,7 @@ export interface ListFileMetadataOptions {
     is_public?: boolean
     access_level?: string
     created_by?: string
-    /** @deprecated Use path_tokens instead */
-    virtual_path?: string
+ 
     /** Array of path segments for hierarchical organization */
     path_tokens?: string[]
     name?: string
@@ -165,9 +161,8 @@ export const createFileMetadata = async (
         access_level: accessLevel,
         created_by: authContext.userId || 'anonymous',
         metadata: options.metadata || {},
-        // Support both for backward compatibility
-        virtual_path: options.virtual_path,
-        path_tokens: options.path_tokens || (options.virtual_path ? PATH_TOKEN_FUNCTIONS.pathToTokens(options.virtual_path) : undefined)
+        
+        path_tokens: options.path_tokens
       })
       .select()
       .single()
@@ -223,16 +218,14 @@ export const updateFileMetadata = async (
     if (options.access_level !== undefined) updateData.access_level = options.access_level
     
     // Support both for backward compatibility
-    if (options.virtual_path !== undefined) {
-      updateData.virtual_path = options.virtual_path
-      // Also update path_tokens if virtual_path is provided
-      updateData.path_tokens = PATH_TOKEN_FUNCTIONS.pathToTokens(options.virtual_path)
+    if (options.path_tokens !== undefined) {
+      updateData.path_tokens = options.path_tokens
     }
     
     if (options.path_tokens !== undefined) {
       updateData.path_tokens = options.path_tokens
-      // Also update virtual_path for backward compatibility
-      updateData.virtual_path = PATH_TOKEN_FUNCTIONS.tokensToPath(options.path_tokens)
+     
+      
     }
     
     // Handle metadata updates (merge with existing metadata)
@@ -411,7 +404,7 @@ export const listFileMetadata = async (
     if (filters.created_by) query = query.eq('created_by', filters.created_by)
     
     // Support both for backward compatibility
-    if (filters.virtual_path) query = query.eq('virtual_path', filters.virtual_path)
+  
     if (filters.path_tokens) {
       // If path_tokens is an array, use the contains operator
       if (Array.isArray(filters.path_tokens)) {
@@ -469,7 +462,7 @@ export const searchFileMetadata = async (
       if (filters.is_public !== undefined) query = query.eq('is_public', filters.is_public)
       if (filters.access_level) query = query.eq('access_level', filters.access_level)
       if (filters.created_by) query = query.eq('created_by', filters.created_by)
-      if (filters.virtual_path) query = query.eq('virtual_path', filters.virtual_path)
+      if (filters.path_tokens) query = query.contains('path_tokens', filters.path_tokens)
       if (filters.content_type) query = query.eq('content_type', filters.content_type)
     }
     
@@ -522,27 +515,7 @@ export const updateFilePathTokens = async (
   )
 }
 
-/**
- * Updates a file's virtual path
- * 
- * @deprecated Use updateFilePathTokens instead
- * @param fileId - The ID of the file to update
- * @param virtualPath - The new virtual path
- * @param authContext - Authentication context
- * @returns The updated file metadata
- * @throws StorageError if update fails
- */
-export const updateFileVirtualPath = async (
-  fileId: string,
-  virtualPath: string,
-  authContext: StorageAuthContext
-): Promise<FileMetadata> => {
-  return updateFileMetadata(
-    fileId,
-    { virtual_path: virtualPath },
-    authContext
-  )
-}
+
 
 /**
  * Gets files by context (e.g., all files for a specific user, organization, or application)
@@ -613,24 +586,3 @@ export const getFilesByPathTokens = async (
   })
 }
 
-/**
- * Gets files by virtual path
- * 
- * @deprecated Use getFilesByPathTokens instead
- * @param virtualPath - The virtual path to get files for
- * @param options - Additional options for listing
- * @returns Array of file metadata records for the virtual path
- * @throws StorageError if retrieval fails
- */
-export const getFilesByVirtualPath = async (
-  virtualPath: string,
-  options: ListFileMetadataOptions = {}
-): Promise<FileMetadata[]> => {
-  return listFileMetadata({
-    ...options,
-    filters: {
-      ...options.filters,
-      virtual_path: virtualPath
-    }
-  })
-} 
