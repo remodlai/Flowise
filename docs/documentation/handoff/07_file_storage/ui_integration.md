@@ -176,7 +176,7 @@ export const addImagesToMessages = async (
                     width: 1000,
                     quality: 80
                 },
-                virtualPath: 'uploads'
+                pathTokens: 'uploads'
             },
             authContext
         )

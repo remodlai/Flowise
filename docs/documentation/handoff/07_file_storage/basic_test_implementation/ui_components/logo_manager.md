@@ -85,7 +85,7 @@ getPlatformImageContentUrl(id)
    - `description`: User-provided description or default
    - `isPublic`: 'true'
    - `isShareable`: 'true'
-   - `virtualPath`: 'logos'
+   - `pathTokens`: 'logos'
 4. The file is uploaded to the server via `uploadPlatformImage`
 5. The server:
    - Validates the file and user permissions

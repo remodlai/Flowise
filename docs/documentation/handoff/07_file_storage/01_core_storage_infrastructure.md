@@ -405,7 +405,7 @@ export async function deleteFile(options: {
 export async function copyFile(options: {
   sourcePath: string;
   sourceBucket?: string;
-  destinationPath: string;
+  targetPath: string;
   destinationBucket?: string;
 }): Promise<{
   path: string;
@@ -414,7 +414,7 @@ export async function copyFile(options: {
   const { 
     sourcePath, 
     sourceBucket = 'private', 
-    destinationPath, 
+    targetPath, 
     destinationBucket = sourceBucket 
   } = options;
   
@@ -436,7 +436,7 @@ export async function copyFile(options: {
     const { error: uploadError } = await supabase
       .storage
       .from(destinationBucket)
-      .upload(destinationPath, fileData, {
+      .upload(targetPath, fileData, {
         upsert: true
       });
     
@@ -448,10 +448,10 @@ export async function copyFile(options: {
     const { data: urlData } = supabase
       .storage
       .from(destinationBucket)
-      .getPublicUrl(destinationPath);
+      .getPublicUrl(targetPath);
     
     return {
-      path: destinationPath,
+      path: targetPath,
       url: urlData.publicUrl
     };
   } catch (error) {

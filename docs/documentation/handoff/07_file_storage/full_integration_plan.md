@@ -187,7 +187,7 @@ router.post('/upload/chat', authorize('file.create'), upload.single('file'), asy
                     nodeId: nodeId || '',
                     size: file.size
                 },
-                virtualPath: 'uploads'
+                pathTokens: 'uploads'
             },
             authContext
         );

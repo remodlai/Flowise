@@ -62,7 +62,7 @@ export const addImagesToMessages = async (
                     width: 1000,
                     quality: 80
                 },
-                virtualPath: 'uploads'
+                pathTokens: 'uploads'
             },
             authContext
         )
@@ -196,7 +196,7 @@ router.post('/upload/chat', authorize('file.create'), upload.single('file'), asy
                     nodeId: nodeId || '',
                     size: file.size
                 },
-                virtualPath: 'uploads'
+                pathTokens: 'uploads'
             },
             authContext
         );

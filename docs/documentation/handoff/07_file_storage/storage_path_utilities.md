@@ -101,7 +101,7 @@ const updatedFile = await moveFileVirtualPath(
 
 **Parameters:**
 - `fileId`: The ID of the file to move
-- `virtualPath`: The new virtual path string
+- `pathTokens`: The new virtual path string
 - `authContext`: Authentication context
 
 **Returns:** The updated file metadata
@@ -121,7 +121,7 @@ const updatedFile = await moveFileStorage(
 
 **Parameters:**
 - `fileId`: The ID of the file to move
-- `destinationPath`: The new path within the bucket
+- `targetPath`: The new path within the bucket
 - `authContext`: Authentication context
 - `destinationBucket`: Optional destination bucket (defaults to same bucket)
 
@@ -151,10 +151,10 @@ const copyResult = await copyFileWithinBucket(
 
 **Parameters:**
 - `fileId`: The ID of the file to copy
-- `destinationPath`: The destination path within the bucket
+- `targetPath`: The destination path within the bucket
 - `options`: Additional options for the copy
   - `name`: The name of the new file
-  - `virtualPath`: The virtual path for the new file
+  - `pathTokens`: The virtual path for the new file
   - `pathTokens`: The path tokens for the new file
   - `isPublic`: Whether the new file is publicly accessible
   - `accessLevel`: The access level of the new file
@@ -187,10 +187,10 @@ const copyResult = await copyFileAcrossBuckets(
 **Parameters:**
 - `fileId`: The ID of the file to copy
 - `destinationBucket`: The destination bucket
-- `destinationPath`: The destination path within the bucket
+- `targetPath`: The destination path within the bucket
 - `options`: Additional options for the copy
   - `name`: The name of the new file
-  - `virtualPath`: The virtual path for the new file
+  - `pathTokens`: The virtual path for the new file
   - `pathTokens`: The path tokens for the new file
   - `isPublic`: Whether the new file is publicly accessible
   - `accessLevel`: The access level of the new file
@@ -331,7 +331,7 @@ POST /api/storage/move
 ```json
 {
   "fileId": "123",
-  "destinationPath": "new/path/to/file.jpg",
+  "targetPath": "new/path/to/file.jpg",
   "destinationBucket": "destination-bucket", // Optional
   "updatePathTokens": true // Optional, defaults to true
 }
@@ -391,7 +391,7 @@ PATCH /api/storage/file/:fileId/move
 **Request Body:**
 ```json
 {
-  "virtualPath": "new/path/to/file.jpg"
+  "pathTokens": "new/path/to/file.jpg"
 }
 ```
 
@@ -422,10 +422,10 @@ POST /api/storage/copy-within-bucket
 ```json
 {
   "fileId": "123",
-  "destinationPath": "new/path/to/file-copy.jpg",
+  "targetPath": "new/path/to/file-copy.jpg",
   "name": "file-copy.jpg", // Optional
   "pathTokens": ["new", "path", "to", "file-copy.jpg"], // Optional
-  "virtualPath": "new/path/to/file-copy.jpg", // Optional
+  "pathTokens": "new/path/to/file-copy.jpg", // Optional
   "isPublic": true, // Optional
   "accessLevel": "public", // Optional
   "metadata": { "description": "This is a copy" } // Optional
@@ -459,10 +459,10 @@ POST /api/storage/copy-across-buckets
 {
   "fileId": "123",
   "destinationBucket": "destination-bucket",
-  "destinationPath": "path/to/file-copy.jpg",
+  "targetPath": "path/to/file-copy.jpg",
   "name": "file-copy.jpg", // Optional
   "pathTokens": ["path", "to", "file-copy.jpg"], // Optional
-  "virtualPath": "path/to/file-copy.jpg", // Optional
+  "pathTokens": "path/to/file-copy.jpg", // Optional
   "isPublic": true, // Optional
   "accessLevel": "public", // Optional
   "metadata": { "description": "This is a copy" }, // Optional
@@ -508,8 +508,8 @@ POST /api/storage/file/:fileId/copy
   "isPublic": true, // Optional
   "accessLevel": "public", // Optional
   "metadata": { "description": "This is a copy" }, // Optional
-  "virtualPath": "path/to/file-copy.jpg", // Optional
-  "destinationPath": "path/to/file-copy.jpg" // Optional
+  "pathTokens": "path/to/file-copy.jpg", // Optional
+  "targetPath": "path/to/file-copy.jpg" // Optional
 }
 ```
 

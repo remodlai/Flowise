@@ -29,7 +29,7 @@ const result = await uploadFile(
       description: 'Important document',
       tags: ['important', 'document']
     },
-    virtualPath: 'Documents/Important'
+    pathTokens: 'Documents/Important'
   },
   authContext
 );
@@ -53,7 +53,7 @@ The `UploadFileOptions` interface defines the options for uploading a file:
 | `isPublic` | boolean | (Optional) Whether the file is publicly accessible |
 | `accessLevel` | string | (Optional) The access level of the file |
 | `metadata` | object | (Optional) Custom metadata for the file |
-| `virtualPath` | string | (Optional) Virtual path for organizing files in the UI |
+| `pathTokens` | string | (Optional) Virtual path for organizing files in the UI |
 | `upsert` | boolean | (Optional) Whether to upsert the file if it already exists |
 | `cacheControl` | string | (Optional) Custom cache control header |
 | `includeUuid` | boolean | (Optional) Whether to include a UUID in the filename |
@@ -186,7 +186,7 @@ const updatedFile = await updateFile(
     metadata: {
       description: 'Updated description'
     },
-    virtualPath: 'Documents/Public'
+    pathTokens: 'Documents/Public'
   },
   authContext
 );
@@ -205,7 +205,7 @@ The `UpdateFileOptions` interface defines the options for updating a file:
 | `isPublic` | boolean | (Optional) Whether the file is publicly accessible |
 | `accessLevel` | string | (Optional) The new access level of the file |
 | `metadata` | object | (Optional) Custom metadata to merge with existing metadata |
-| `virtualPath` | string | (Optional) New virtual path for organizing files in the UI |
+| `pathTokens` | string | (Optional) New virtual path for organizing files in the UI |
 
 ### Search Files
 
@@ -257,7 +257,7 @@ const result = await copyFile(
     contextId: 'org-456',
     resourceType: FILE_RESOURCE_TYPES.DOCUMENT,
     isPublic: true,
-    virtualPath: 'Documents/Shared'
+    pathTokens: 'Documents/Shared'
   },
   authContext
 );
@@ -283,7 +283,7 @@ const result = await uploadUserFile(
     contentType: 'application/pdf',
     resourceType: FILE_RESOURCE_TYPES.DOCUMENT,
     isPublic: false,
-    virtualPath: 'Documents/Important'
+    pathTokens: 'Documents/Important'
   },
   authContext
 );
@@ -306,7 +306,7 @@ const result = await uploadOrganizationFile(
     contentType: 'application/pdf',
     resourceType: FILE_RESOURCE_TYPES.DOCUMENT,
     isPublic: false,
-    virtualPath: 'Documents/Important'
+    pathTokens: 'Documents/Important'
   },
   authContext
 );
@@ -329,7 +329,7 @@ const result = await uploadApplicationFile(
     contentType: 'application/pdf',
     resourceType: FILE_RESOURCE_TYPES.DOCUMENT,
     isPublic: false,
-    virtualPath: 'Documents/Important'
+    pathTokens: 'Documents/Important'
   },
   authContext
 );
@@ -495,7 +495,7 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
           description: req.body.description,
           tags: req.body.tags ? req.body.tags.split(',') : []
         },
-        virtualPath: req.body.virtualPath
+        pathTokens: req.body.pathTokens
       },
       authContext
     );

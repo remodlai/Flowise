@@ -83,7 +83,7 @@ The platform currently uses a mix of storage approaches:
                contextType: FILE_CONTEXT_TYPES.APPLICATION,
                contextId: authContext.appId,
                resourceType: FILE_RESOURCE_TYPES.DOCUMENT,
-               virtualPath: paths.join('/')
+               pathTokens: paths.join('/')
            },
            authContext
        )
