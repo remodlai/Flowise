@@ -10,6 +10,7 @@ We use supabase auth with RBAC and custom claims.
 To access our supabase postgres database you can use: 
 PGPASSWORD=Bagsisgod321! psql -h db.voksjtjrshonjadwjozt.supabase.co -p 5432 -d postgres -U postgres     
 
+**CRITICAL: You must end commands using the database with | cat to ensure return you can see.
 
 You must always check existing schema, definitions, policies, functions, etc prior to suggesting edits, or generating .sql
 
