@@ -16,7 +16,8 @@ import {
   deleteFiles as deleteStorageFiles,
   copyFile as copyStorageFile,
   moveFile as moveStorageFile,
-  StorageAuthContext
+  StorageAuthContext,
+  getAuthContextFromRequest
 } from '../../utils/storageOperations'
 
 import {
@@ -503,44 +504,6 @@ export const moveFilePathTokens = async (
   }
 }
 
-/**
- * Moves a file to a new virtual path
- * 
- * @deprecated Use moveFilePathTokens instead
- * @param fileId - The ID of the file to move
- * @param virtualPath - The new virtual path
- * @param authContext - Authentication context
- * @returns The updated file metadata
- * @throws StorageError if move fails
- */
-export const moveFileVirtualPath = async (
-  fileId: string,
-  virtualPath: string,
-  authContext: StorageAuthContext
-): Promise<FileMetadata> => {
-  try {
-    // Get file metadata
-    const fileMetadata = await getFileMetadataById(fileId)
-    if (!fileMetadata) {
-      throw createFileNotFoundError(fileId)
-    }
-
-    // Check if user has permission to move the file
-    if (fileMetadata.created_by !== authContext.userId && 
-        fileMetadata.context_id !== authContext.appId && 
-        fileMetadata.context_id !== authContext.orgId) {
-      throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
-    }
-
-    // Update file virtual path
-    return await updateFileVirtualPath(fileId, virtualPath, authContext)
-  } catch (error) {
-    if (error instanceof StorageError) {
-      throw error
-    }
-    throw convertToStorageError(error, `Failed to move file ${fileId} to ${virtualPath}`)
-  }
-}
 
 /**
  * Physically moves a file to a new location in Supabase Storage
@@ -555,7 +518,8 @@ export const moveFileVirtualPath = async (
  */
 export const moveFileStorage = async (
   fileId: string,
-  destinationPath: string,
+  sourcePath: string,
+  targetPath: string,
   authContext: StorageAuthContext,
   destinationBucket?: string
 ): Promise<FileMetadata> => {
@@ -580,21 +544,21 @@ export const moveFileStorage = async (
       fileMetadata.bucket,
       fileMetadata.path,
       targetBucket,
-      destinationPath
+      targetPath
     )
 
     // Update file metadata with new path and bucket
     const updateData: Record<string, any> = {
-      path: destinationPath,
+      path: targetPath,
       updated_at: new Date().toISOString()
     }
     
     // Update bucket if it changed
     if (destinationBucket && destinationBucket !== fileMetadata.bucket) {
       updateData.bucket = destinationBucket
-      updateData.url = `${destinationBucket}/${destinationPath}`
+      updateData.url = `${destinationBucket}/${targetPath}`
     } else {
-      updateData.url = `${fileMetadata.bucket}/${destinationPath}`
+      updateData.url = `${fileMetadata.bucket}/${targetPath}`
     }
 
     // Update file metadata
@@ -614,7 +578,7 @@ export const moveFileStorage = async (
     if (error instanceof StorageError) {
       throw error
     }
-    throw convertToStorageError(error, `Failed to move file ${fileId} to ${destinationPath}`)
+    throw convertToStorageError(error, `Failed to move file ${fileId} to ${targetPath}`)
   }
 }
 
@@ -630,10 +594,10 @@ export const moveFileStorage = async (
  */
 export const copyFileWithinBucket = async (
   fileId: string,
-  destinationPath: string,
+  sourcePath: string,
+  targetPath: string,
   options: {
     name?: string,
-    virtualPath?: string,
     pathTokens?: string[],
     isPublic?: boolean,
     accessLevel?: string,
@@ -660,7 +624,7 @@ export const copyFileWithinBucket = async (
       fileMetadata.bucket,
       fileMetadata.path,
       fileMetadata.bucket,
-      destinationPath
+      targetPath
     )
 
     // Create new file metadata for the copy
@@ -670,7 +634,7 @@ export const copyFileWithinBucket = async (
         content_type: fileMetadata.content_type,
         size: fileMetadata.size,
         bucket: fileMetadata.bucket,
-        path: destinationPath,
+        path: targetPath,
         context_type: fileMetadata.context_type,
         context_id: fileMetadata.context_id,
         resource_type: fileMetadata.resource_type,
@@ -682,7 +646,7 @@ export const copyFileWithinBucket = async (
           ...options.metadata,
           copiedFrom: fileId
         },
-        virtual_path: options.virtualPath,
+        
         path_tokens: options.pathTokens
       },
       authContext
@@ -701,7 +665,7 @@ export const copyFileWithinBucket = async (
     if (error instanceof StorageError) {
       throw error
     }
-    throw convertToStorageError(error, `Failed to copy file ${fileId} to ${destinationPath}`)
+    throw convertToStorageError(error, `Failed to copy file ${fileId} to ${targetPath}`)
   }
 }
 
@@ -719,10 +683,9 @@ export const copyFileWithinBucket = async (
 export const copyFileAcrossBuckets = async (
   fileId: string,
   destinationBucket: string,
-  destinationPath: string,
+  targetPath: string,
   options: {
     name?: string,
-    virtualPath?: string,
     pathTokens?: string[],
     isPublic?: boolean,
     accessLevel?: string,
@@ -753,7 +716,7 @@ export const copyFileAcrossBuckets = async (
       fileMetadata.bucket,
       fileMetadata.path,
       destinationBucket,
-      destinationPath
+      targetPath
     )
 
     // Create new file metadata for the copy
@@ -763,7 +726,7 @@ export const copyFileAcrossBuckets = async (
         content_type: fileMetadata.content_type,
         size: fileMetadata.size,
         bucket: destinationBucket,
-        path: destinationPath,
+        path: targetPath,
         context_type: options.contextType || fileMetadata.context_type,
         context_id: options.contextId || fileMetadata.context_id,
         resource_type: options.resourceType || fileMetadata.resource_type,
@@ -776,7 +739,6 @@ export const copyFileAcrossBuckets = async (
           copiedFrom: fileId,
           originalBucket: fileMetadata.bucket
         },
-        virtual_path: options.virtualPath,
         path_tokens: options.pathTokens
       },
       authContext
@@ -795,7 +757,7 @@ export const copyFileAcrossBuckets = async (
     if (error instanceof StorageError) {
       throw error
     }
-    throw convertToStorageError(error, `Failed to copy file ${fileId} to ${destinationBucket}/${destinationPath}`)
+    throw convertToStorageError(error, `Failed to copy file ${fileId} to ${destinationBucket}/${targetPath}`)
   }
 }
 

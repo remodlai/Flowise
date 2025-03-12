@@ -8,7 +8,7 @@ import {
     listFiles, 
     updateFile, 
     searchFiles, 
-    moveFileVirtualPath, 
+
     moveFilePathTokens,
     moveFileStorage,
     copyFileWithinBucket,
@@ -18,11 +18,12 @@ import {
     uploadApplicationFile,
     STORAGE_BUCKETS,
     FILE_CONTEXT_TYPES,
-    FILE_RESOURCE_TYPES
+    FILE_RESOURCE_TYPES,
+    
 } from '../../services/storage';
 import { StorageError, StorageErrorCode } from '../../errors';
 import { PATH_TOKEN_FUNCTIONS } from '../../constants/storage';
-
+import { getAuthContextFromRequest, StorageAuthContext } from '../../utils/storageOperations';
 // Create router
 const router = express.Router();
 
@@ -34,14 +35,7 @@ const upload = multer({
     }
 });
 
-// Helper function to get auth context from request
-const getAuthContextFromRequest = (req: any) => {
-    return {
-        userId: req.user?.id,
-        orgId: req.headers['x-organization-id'] || req.query.orgId,
-        appId: req.headers['x-application-id'] || req.query.appId
-    };
-};
+
 
 // Error handler middleware
 const handleStorageError = (error: any, res: express.Response) => {
@@ -594,20 +588,43 @@ router.get('/search', authorize('file.read'), async (req, res) => {
 router.patch('/file/:fileId/move', authorize('file.update'), async (req, res) => {
     try {
         const { fileId } = req.params;
-        const { virtualPath } = req.body;
-        const authContext = getAuthContextFromRequest(req);
+        let bucket = req.body.bucket;
+        let sourcePath = req.body.sourcePath;
+        let targetPath = req.body.targetPath;
+        
+        const authContext:StorageAuthContext = getAuthContextFromRequest(req);
 
-        if (!virtualPath) {
-            return res.status(400).json({ error: 'Virtual path is required' });
+        if (!bucket) {
+            return res.status(400).json({ error: 'Bucket is required' });
         }
 
+        if (!fileId) {
+            return res.status(400).json({ error: 'File ID is required' });
+        }
+
+        if (!sourcePath) {
+            return res.status(400).json({ error: 'Source path is required' });
+        }
+
+        if (!targetPath) {
+            return res.status(400).json({ error: 'Target path is required' });
+        }
+
+        let pathTokens:string[] = PATH_TOKEN_FUNCTIONS.pathToTokens(targetPath);
+        
+
         // Move file
-        const updatedFile = await moveFileVirtualPath(fileId, virtualPath, authContext);
+        const movedFile = await moveFileStorage(
+            bucket,
+            sourcePath,
+            targetPath,
+            authContext
+        );
 
         // Return result
         return res.json({
             success: true,
-            file: updatedFile
+            file: movedFile
         });
     } catch (error) {
         return handleStorageError(error, res);
@@ -621,7 +638,7 @@ router.patch('/file/:fileId/move', authorize('file.update'), async (req, res) =>
  */
 router.post('/file/:fileId/copy', authorize('file.create'), async (req, res) => {
     try {
-        const { fileId } = req.params;
+        const { fileId, sourceBucket, targetBucket } = req.params;
         const authContext = getAuthContextFromRequest(req);
         
         const {
@@ -638,41 +655,25 @@ router.post('/file/:fileId/copy', authorize('file.create'), async (req, res) => 
             destinationPath
         } = req.body;
 
+
+        let isCopyAcrossBuckets = false;
+        if (sourceBucket === targetBucket) {
+            isCopyAcrossBuckets = false;
+        } else {
+            isCopyAcrossBuckets = true;
+        }
         // Determine if we need to copy across buckets
         let result;
-        if (contextType && contextId && 
-            (contextType !== FILE_CONTEXT_TYPES.USER && 
-             contextType !== FILE_CONTEXT_TYPES.ORGANIZATION && 
-             contextType !== FILE_CONTEXT_TYPES.APPLICATION)) {
-            
-            // Get appropriate bucket based on context type
-            let destinationBucket;
-            switch (contextType) {
-                case FILE_CONTEXT_TYPES.USER:
-                    destinationBucket = STORAGE_BUCKETS.USER_FILES;
-                    break;
-                case FILE_CONTEXT_TYPES.ORGANIZATION:
-                    destinationBucket = STORAGE_BUCKETS.ORGANIZATIONS;
-                    break;
-                case FILE_CONTEXT_TYPES.APPLICATION:
-                    destinationBucket = STORAGE_BUCKETS.APPS;
-                    break;
-                case FILE_CONTEXT_TYPES.PLATFORM:
-                    destinationBucket = STORAGE_BUCKETS.PLATFORM;
-                    break;
-                default:
-                    destinationBucket = STORAGE_BUCKETS.PUBLIC;
-            }
-            
-            // Copy file across buckets
+
+        if (isCopyAcrossBuckets) {
             result = await copyFileAcrossBuckets(
                 fileId,
-                destinationBucket,
+                sourceBucket,
                 destinationPath || `${contextType}/${contextId}/${resourceType || 'document'}/${name || 'file'}`,
                 {
                     name,
                     pathTokens: virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined,
-                    virtualPath,
+                   
                     isPublic: isPublic === 'true' || isPublic === true,
                     accessLevel,
                     metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined,
@@ -720,32 +721,42 @@ router.post('/move', authorize('file.update'), async (req, res) => {
     try {
         const { 
             fileId, 
-            destinationPath, 
-            destinationBucket,
+           bucket,
+           sourcePath,
+           targetPath,
             updatePathTokens = true
         } = req.body;
         
         const authContext = getAuthContextFromRequest(req);
 
-        if (!fileId) {
-            return res.status(400).json({ error: 'File ID is required' });
+        if (!bucket) {
+            return res.status(400).json({ error: 'Bucket is required' });
         }
 
-        if (!destinationPath) {
-            return res.status(400).json({ error: 'Destination path is required' });
+        if (!sourcePath) {
+            return res.status(400).json({ error: 'Source path is required' });
+        }
+
+        if (!targetPath) {
+            return res.status(400).json({ error: 'Target path is required' });
+        }
+
+        let pathTokens = []
+        if (updatePathTokens) {
+            pathTokens = PATH_TOKEN_FUNCTIONS.pathToTokens(targetPath);
         }
 
         // Move file in storage
         const updatedFile = await moveFileStorage(
-            fileId,
-            destinationPath,
-            authContext,
-            destinationBucket
+            bucket,
+            sourcePath,
+            targetPath,
+            authContext
         );
 
         // Optionally update path tokens based on the new path
         if (updatePathTokens) {
-            const pathTokens = PATH_TOKEN_FUNCTIONS.pathToTokens(destinationPath);
+            const pathTokens = PATH_TOKEN_FUNCTIONS.pathToTokens(targetPath);
             await moveFilePathTokens(fileId, pathTokens, authContext);
         }
 
@@ -798,15 +809,13 @@ router.post('/move-path-tokens', authorize('file.update'), async (req, res) => {
 router.post('/copy-within-bucket', authorize('file.create'), async (req, res) => {
     try {
         const { 
-            fileId, 
-            destinationPath,
-            name,
-            pathTokens,
-            virtualPath,
-            isPublic,
-            accessLevel,
-            metadata
-        } = req.body;
+            //There are four inputs that are required: destination path, destination bucket, source path, and source bucket. ⁠
+            fileId,
+            targetPath,
+            sourcePath,
+            sourceBucket,
+            updatePathTokens = true,
+        } = req.body;   
         
         const authContext = getAuthContextFromRequest(req);
 
@@ -814,22 +823,23 @@ router.post('/copy-within-bucket', authorize('file.create'), async (req, res) =>
             return res.status(400).json({ error: 'File ID is required' });
         }
 
-        if (!destinationPath) {
+        if (!targetPath) {
             return res.status(400).json({ error: 'Destination path is required' });
         }
 
+        if (!sourcePath) {
+            return res.status(400).json({ error: 'Source path is required' });
+        }
+
+        if (!sourceBucket) {
+            return res.status(400).json({ error: 'Source bucket is required' });
+        }
         // Copy file within the same bucket
         const result = await copyFileWithinBucket(
             fileId,
-            destinationPath,
-            {
-                name,
-                pathTokens: pathTokens || (virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined),
-                virtualPath,
-                isPublic: isPublic === 'true' || isPublic === true,
-                accessLevel,
-                metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined
-            },
+            targetPath,
+            sourcePath,
+            sourceBucket,    
             authContext
         );
 
@@ -889,7 +899,7 @@ router.post('/copy-across-buckets', authorize('file.create'), async (req, res) =
             {
                 name,
                 pathTokens: pathTokens || (virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined),
-                virtualPath,
+                
                 isPublic: isPublic === 'true' || isPublic === true,
                 accessLevel,
                 metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined,

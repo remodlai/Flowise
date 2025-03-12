@@ -473,6 +473,53 @@ export const copyFile = async (
  * Moves a file within Supabase Storage using the native Supabase Storage move method
  * 
  * @param sourceBucket - The source bucket
+ * @param sourceFilePaths - The source file path
+ * @param destinationBucket - The destination bucket
+ * @returns Object containing the destination path
+ * @throws StorageError if move fails
+ * @description Moves an array of files between buckets, using the native Supabase Storage move between buckets method
+ */
+export const moveFilesBetweenBuckets = async (
+  sourceBucket: string,
+  sourceFilePaths: string[],
+  destinationBucket: string,
+): Promise<{ destinationBucket: string, newFilePaths: string[] }> => {
+  try {
+    // Validate buckets
+    if (!Object.values(STORAGE_BUCKETS).includes(sourceBucket)) {
+      throw createBucketNotFoundError(sourceBucket)
+    }
+    if (!Object.values(STORAGE_BUCKETS).includes(destinationBucket)) {
+      throw createBucketNotFoundError(destinationBucket)
+    }
+
+    // Use the native Supabase Storage move method
+    const { data, error } = await supabase.storage
+        .from(sourceBucket)
+        .move(sourceFilePaths, {destinationBucket}); 
+    
+    let filePathResult = data? data : [];
+
+    
+    return filePathResult;
+
+    
+  } catch (error) {
+    if (error instanceof StorageError) {
+      throw error;
+    }
+    throw convertToStorageError(error, `Failed to move files between buckets`);
+  }
+} 
+
+
+
+
+
+/**
+ * Moves a file within Supabase Storage using the native Supabase Storage move method
+ * 
+ * @param sourceBucket - The source bucket
  * @param sourceFilePath - The source file path
  * @param destinationBucket - The destination bucket
  * @param destinationFilePath - The destination file path
@@ -484,7 +531,7 @@ export const moveFile = async (
   sourceFilePath: string,
   destinationBucket: string,
   destinationFilePath: string
-): Promise<{ path: string }> => {
+): Promise<{ paths: string[] }> => {
   try {
     // Validate buckets
     if (!Object.values(STORAGE_BUCKETS).includes(sourceBucket)) {
@@ -515,7 +562,7 @@ export const moveFile = async (
       )
     }
     
-    return { path: destinationFilePath }
+    return { paths: [destinationFilePath] }
   } catch (error) {
     if (error instanceof StorageError) {
       throw error
