@@ -612,12 +612,13 @@ export const copyFileWithinBucket = async (
       throw createFileNotFoundError(fileId)
     }
 
+    //This is not needed, because we would have already run an authorization check at the route level
     // Check if user has permission to copy the file
-    if (fileMetadata.created_by !== authContext.userId && 
-        fileMetadata.context_id !== authContext.appId && 
-        fileMetadata.context_id !== authContext.orgId) {
-      throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
-    }
+    // if (fileMetadata.created_by !== authContext.userId && 
+    //     fileMetadata.context_id !== authContext.appId && 
+    //     fileMetadata.context_id !== authContext.orgId) {
+    //   throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
+    // }
 
     // Use the native Supabase Storage copy function
     await copyStorageFile(

@@ -688,11 +688,13 @@ router.post('/file/:fileId/copy', authorize('file.create'), async (req, res) => 
             // Copy file within the same bucket
             result = await copyFileWithinBucket(
                 fileId,
-                destinationPath || `${resourceType || 'document'}/${name || 'file'}`,
+                sourceBucket,
+                targetBucket,
+
                 {
                     name,
                     pathTokens: virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined,
-                    virtualPath,
+                    
                     isPublic: isPublic === 'true' || isPublic === true,
                     accessLevel,
                     metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined
