@@ -30,7 +30,7 @@ interface FileMetadata {
   created_by: string
   updated_at?: string
   metadata?: Record<string, any>
-  virtual_path?: string
+  path_tokens?: string[]
 }
 ```
 
@@ -59,7 +59,7 @@ const fileMetadata = await createFileMetadata(
       description: 'Important document',
       tags: ['important', 'document']
     },
-    virtual_path: 'Documents/Important'
+    path_tokens: ['user', '123', 'documents', 'document.pdf']
   },
   authContext
 );
@@ -85,7 +85,7 @@ The `CreateFileMetadataOptions` interface defines the options for creating file 
 | `is_public` | boolean | (Optional) Whether the file is publicly accessible |
 | `access_level` | string | (Optional) The access level of the file |
 | `metadata` | object | (Optional) Custom metadata for the file |
-| `virtual_path` | string | (Optional) Virtual path for organizing files in the UI |
+| `path_tokens` | string[] | (Optional) Array of path segments for hierarchical organization |
 
 ### Update File Metadata
 
@@ -102,7 +102,7 @@ const updatedFileMetadata = await updateFileMetadata(
     metadata: {
       description: 'Updated description'
     },
-    virtual_path: 'Documents/Public'
+    path_tokens: ['documents', 'public', 'updated-document.pdf']
   },
   authContext
 );
@@ -122,7 +122,7 @@ The `UpdateFileMetadataOptions` interface defines the options for updating file 
 | `is_public` | boolean | (Optional) Whether the file is publicly accessible |
 | `access_level` | string | (Optional) The new access level of the file |
 | `metadata` | object | (Optional) Custom metadata to merge with existing metadata |
-| `virtual_path` | string | (Optional) New virtual path for organizing files in the UI |
+| `path_tokens` | string[] | (Optional) New path tokens array for hierarchical organization |
 
 ### Get File Metadata by ID
 
@@ -223,7 +223,7 @@ The `filters` object supports the following properties:
 | `is_public` | boolean | Filter by public status |
 | `access_level` | string | Filter by access level |
 | `created_by` | string | Filter by creator |
-| `virtual_path` | string | Filter by virtual path |
+| `path_tokens` | string[] | Filter by path tokens array |
 | `name` | string | Filter by name (partial match) |
 | `content_type` | string | Filter by content type |
 
@@ -245,20 +245,20 @@ const files = await searchFileMetadata('report', {
 console.log(`Found ${files.length} files matching 'report'`);
 ```
 
-### Update File Virtual Path
+### Update File Path Tokens
 
-The `updateFileVirtualPath` function updates the virtual path of a file:
+The `updateFilePathTokens` function updates the path tokens of a file:
 
 ```typescript
-import { updateFileVirtualPath } from '../services/fileMetadata';
+import { updateFilePathTokens } from '../services/fileMetadata';
 
-const updatedFileMetadata = await updateFileVirtualPath(
+const updatedFileMetadata = await updateFilePathTokens(
   'file-123',
-  'Documents/Important/2025',
+  ['documents', 'important', '2025', 'report.pdf'],
   authContext
 );
 
-console.log(`File virtual path updated: ${updatedFileMetadata.virtual_path}`);
+console.log(`File path tokens updated: ${updatedFileMetadata.path_tokens.join('/')}`);
 ```
 
 ### Get Files by Context
@@ -305,15 +305,15 @@ const files = await getFilesByResource(
 console.log(`Found ${files.length} files for document-123`);
 ```
 
-### Get Files by Virtual Path
+### Get Files by Path Tokens
 
-The `getFilesByVirtualPath` function gets files for a specific virtual path:
+The `getFilesByPathTokens` function gets files for a specific path tokens array:
 
 ```typescript
-import { getFilesByVirtualPath } from '../services/fileMetadata';
+import { getFilesByPathTokens } from '../services/fileMetadata';
 
-const files = await getFilesByVirtualPath(
-  'Documents/Important',
+const files = await getFilesByPathTokens(
+  ['documents', 'important'],
   {
     limit: 10,
     sortBy: {
@@ -323,7 +323,7 @@ const files = await getFilesByVirtualPath(
   }
 );
 
-console.log(`Found ${files.length} files in Documents/Important`);
+console.log(`Found ${files.length} files in documents/important`);
 ```
 
 ## Integration with Storage Operations
@@ -371,7 +371,7 @@ const fileMetadata = await createFileMetadata(
       description: 'Important document',
       tags: ['important', 'document']
     },
-    virtual_path: 'Documents/Important'
+    path_tokens: ['user', '123', 'documents', 'document.pdf']
   },
   authContext
 );
@@ -407,7 +407,7 @@ try {
 
 3. **Include meaningful metadata**: Use the metadata field to store additional information about files, such as descriptions, tags, and other attributes.
 
-4. **Use virtual paths for organization**: Use virtual paths to organize files in a hierarchical structure for better user experience.
+4. **Use path tokens for organization**: Use path tokens to organize files in a hierarchical structure for better user experience and more efficient querying.
 
 5. **Handle errors properly**: Catch and handle `StorageError` instances appropriately, providing meaningful error messages to users.
 
@@ -419,4 +419,34 @@ try {
 
 9. **Update metadata when updating files**: When updating files in storage, also update the corresponding metadata records.
 
-10. **Use transactions for related operations**: When performing related operations (e.g., uploading a file and creating metadata), use transactions to ensure consistency. 
+10. **Use transactions for related operations**: When performing related operations (e.g., uploading a file and creating metadata), use transactions to ensure consistency.
+
+## Path Tokens vs. Traditional Paths
+
+The `path_tokens` array offers several advantages over traditional string paths:
+
+1. **Efficient Querying**: 
+   - Filter by specific path segments: `WHERE path_tokens[1] = 'documents'`
+   - Find files in nested folders: `WHERE path_tokens @> ARRAY['documents', 'important']`
+   - Count depth: `WHERE array_length(path_tokens, 1) = 3`
+
+2. **Hierarchical Navigation**:
+   - Easily build breadcrumb UI components
+   - Navigate up the folder hierarchy by removing elements from the end
+   - Create folder trees without string parsing
+
+3. **UI Presentation**:
+   - Omit technical identifiers (like org IDs) from the UI
+   - Replace technical names with user-friendly ones
+   - Maintain the technical structure in the database while presenting a clean UI
+
+4. **Performance**:
+   - Faster than LIKE queries on string paths
+   - Avoids string parsing and manipulation
+   - Leverages PostgreSQL's array operators
+
+When implementing UI components that use path tokens, consider:
+- Skipping the first token if it contains technical identifiers
+- Converting tokens to user-friendly names where appropriate
+- Using breadcrumb components to visualize the hierarchy
+- Implementing folder navigation based on path token arrays 

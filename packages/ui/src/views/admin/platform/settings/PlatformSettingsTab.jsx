@@ -159,7 +159,7 @@ const PlatformSettingsTab = () => {
                     <Button
                         variant="outlined"
                         startIcon={<IconEdit size={18} />}
-                        onClick={() => navigate('/admin/platform-logo')}
+                        onClick={() => navigate('/admin/platform/settings/logo')}
                     >
                         Manage Platform Logo
                     </Button>

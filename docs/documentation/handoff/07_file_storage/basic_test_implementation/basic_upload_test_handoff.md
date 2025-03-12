@@ -21,7 +21,7 @@ We are in the process of migrating from legacy storage systems (local filesystem
      - `access_level`: Access level (private, shared, public)
      - `created_by`: User who created the file
      - `metadata`: Additional metadata as JSONB
-     - `virtual_path`: Virtual path for UI organization
+     - `path_tokens`: Text array that mirrors Supabase Storage path_tokens for hierarchical organization
      - `description`: Text description of the file (NEW)
      - `is_shareable`: Whether the file can be shared (NEW)
      - `is_deleted`: Soft delete flag (NEW)
@@ -55,6 +55,68 @@ We are in the process of migrating from legacy storage systems (local filesystem
      - Documentation requirements
      - Stubbing future paths
      - Implementation priorities
+
+### Object Schema and Path Tokens
+
+The `path_tokens` field is a critical part of our file storage architecture that deserves special attention:
+
+#### Path Tokens Explained
+
+1. **What are Path Tokens?**
+   - `path_tokens` is a text array column that directly mirrors Supabase Storage's internal `path_tokens` field
+   - It represents the hierarchical structure of a file's path as an array of segments
+   - Example: For a file at `logos/company/main_logo.svg`, the path_tokens would be `["logos", "company", "main_logo.svg"]`
+
+2. **Relationship with Supabase Storage**
+   - Supabase Storage internally uses path_tokens for efficient path-based operations
+   - Our database schema aligns with this structure for consistency and performance
+   - This field replaces the previous `virtual_path` string field, which was less efficient for hierarchical queries
+
+3. **Benefits of Using Path Tokens**
+   - More efficient filtering and querying (e.g., `WHERE path_tokens[1] = 'logos'`)
+   - Better support for hierarchical navigation
+   - Easier implementation of breadcrumb UI components
+   - Improved folder-based access control
+
+#### UI Considerations for Path Tokens
+
+When displaying path_tokens in the UI, we follow these guidelines:
+
+1. **Omitting Technical Identifiers**
+   - The first token often contains technical identifiers (like org IDs or user IDs)
+   - In the UI, we typically omit these technical identifiers for a cleaner presentation
+   - Example: For path_tokens `["org_123", "documents", "reports"]`, we might display just "Documents > Reports"
+
+2. **Breadcrumb Navigation**
+   - Path tokens naturally map to breadcrumb components
+   - Each token (except perhaps the first) becomes a clickable segment in the breadcrumb
+   - This allows users to navigate up the folder hierarchy
+
+3. **User-Friendly Names**
+   - Technical identifiers can be replaced with user-friendly names
+   - Example: Replace "org_123" with the actual organization name "Acme Corp"
+   - This improves usability while maintaining the technical structure in the database
+
+4. **Implementation Example**
+   ```jsx
+   // Example of rendering path_tokens as breadcrumbs
+   const renderBreadcrumbs = (pathTokens) => {
+     // Skip the first token if it's a technical ID
+     const displayTokens = pathTokens[0].startsWith('org_') || 
+                           pathTokens[0].startsWith('user_') ? 
+                           pathTokens.slice(1) : pathTokens;
+     
+     return displayTokens.map((token, index) => (
+       <Breadcrumb.Item 
+         key={index}
+         onClick={() => navigateToFolder(pathTokens.slice(0, index + 1))}>
+         {token}
+       </Breadcrumb.Item>
+     ));
+   }
+   ```
+
+By following these principles, we maintain a clean separation between the technical storage structure and the user-friendly presentation in the UI, while still benefiting from the efficiency of the path_tokens array for database operations.
 
 ## Test Implementation Goal
 

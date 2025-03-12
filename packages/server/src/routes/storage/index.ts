@@ -9,7 +9,10 @@ import {
     updateFile, 
     searchFiles, 
     moveFileVirtualPath, 
-    copyFile,
+    moveFilePathTokens,
+    moveFileStorage,
+    copyFileWithinBucket,
+    copyFileAcrossBuckets,
     uploadUserFile,
     uploadOrganizationFile,
     uploadApplicationFile,
@@ -18,6 +21,7 @@ import {
     FILE_RESOURCE_TYPES
 } from '../../services/storage';
 import { StorageError, StorageErrorCode } from '../../errors';
+import { PATH_TOKEN_FUNCTIONS } from '../../constants/storage';
 
 // Create router
 const router = express.Router();
@@ -584,7 +588,7 @@ router.get('/search', authorize('file.read'), async (req, res) => {
 
 /**
  * @route PATCH /api/storage/file/:fileId/move
- * @desc Move a file to a new virtual path
+ * @desc Move a file by updating its virtual path (DEPRECATED)
  * @access Private
  */
 router.patch('/file/:fileId/move', authorize('file.update'), async (req, res) => {
@@ -612,7 +616,7 @@ router.patch('/file/:fileId/move', authorize('file.update'), async (req, res) =>
 
 /**
  * @route POST /api/storage/file/:fileId/copy
- * @desc Copy a file
+ * @desc Copy a file (DEPRECATED)
  * @access Private
  */
 router.post('/file/:fileId/copy', authorize('file.create'), async (req, res) => {
@@ -630,23 +634,269 @@ router.post('/file/:fileId/copy', authorize('file.create'), async (req, res) => 
             isPublic,
             accessLevel,
             metadata,
-            virtualPath
+            virtualPath,
+            destinationPath
         } = req.body;
 
-        // Copy file
-        const result = await copyFile(
+        // Determine if we need to copy across buckets
+        let result;
+        if (contextType && contextId && 
+            (contextType !== FILE_CONTEXT_TYPES.USER && 
+             contextType !== FILE_CONTEXT_TYPES.ORGANIZATION && 
+             contextType !== FILE_CONTEXT_TYPES.APPLICATION)) {
+            
+            // Get appropriate bucket based on context type
+            let destinationBucket;
+            switch (contextType) {
+                case FILE_CONTEXT_TYPES.USER:
+                    destinationBucket = STORAGE_BUCKETS.USER_FILES;
+                    break;
+                case FILE_CONTEXT_TYPES.ORGANIZATION:
+                    destinationBucket = STORAGE_BUCKETS.ORGANIZATIONS;
+                    break;
+                case FILE_CONTEXT_TYPES.APPLICATION:
+                    destinationBucket = STORAGE_BUCKETS.APPS;
+                    break;
+                case FILE_CONTEXT_TYPES.PLATFORM:
+                    destinationBucket = STORAGE_BUCKETS.PLATFORM;
+                    break;
+                default:
+                    destinationBucket = STORAGE_BUCKETS.PUBLIC;
+            }
+            
+            // Copy file across buckets
+            result = await copyFileAcrossBuckets(
+                fileId,
+                destinationBucket,
+                destinationPath || `${contextType}/${contextId}/${resourceType || 'document'}/${name || 'file'}`,
+                {
+                    name,
+                    pathTokens: virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined,
+                    virtualPath,
+                    isPublic: isPublic === 'true' || isPublic === true,
+                    accessLevel,
+                    metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined,
+                    contextType,
+                    contextId,
+                    resourceType,
+                    resourceId
+                },
+                authContext
+            );
+        } else {
+            // Copy file within the same bucket
+            result = await copyFileWithinBucket(
+                fileId,
+                destinationPath || `${resourceType || 'document'}/${name || 'file'}`,
+                {
+                    name,
+                    pathTokens: virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined,
+                    virtualPath,
+                    isPublic: isPublic === 'true' || isPublic === true,
+                    accessLevel,
+                    metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined
+                },
+                authContext
+            );
+        }
+
+        // Return result
+        return res.status(201).json({
+            success: true,
+            file: result.file,
+            url: result.url
+        });
+    } catch (error) {
+        return handleStorageError(error, res);
+    }
+});
+
+/**
+ * @route POST /api/storage/move
+ * @desc Move a file to a new location (physically moves the file in storage)
+ * @access Private
+ */
+router.post('/move', authorize('file.update'), async (req, res) => {
+    try {
+        const { 
+            fileId, 
+            destinationPath, 
+            destinationBucket,
+            updatePathTokens = true
+        } = req.body;
+        
+        const authContext = getAuthContextFromRequest(req);
+
+        if (!fileId) {
+            return res.status(400).json({ error: 'File ID is required' });
+        }
+
+        if (!destinationPath) {
+            return res.status(400).json({ error: 'Destination path is required' });
+        }
+
+        // Move file in storage
+        const updatedFile = await moveFileStorage(
             fileId,
+            destinationPath,
+            authContext,
+            destinationBucket
+        );
+
+        // Optionally update path tokens based on the new path
+        if (updatePathTokens) {
+            const pathTokens = PATH_TOKEN_FUNCTIONS.pathToTokens(destinationPath);
+            await moveFilePathTokens(fileId, pathTokens, authContext);
+        }
+
+        // Return result
+        return res.json({
+            success: true,
+            file: updatedFile
+        });
+    } catch (error) {
+        return handleStorageError(error, res);
+    }
+});
+
+/**
+ * @route POST /api/storage/move-path-tokens
+ * @desc Move a file by updating its path tokens (metadata only, doesn't move the actual file)
+ * @access Private
+ */
+router.post('/move-path-tokens', authorize('file.update'), async (req, res) => {
+    try {
+        const { fileId, pathTokens } = req.body;
+        const authContext = getAuthContextFromRequest(req);
+
+        if (!fileId) {
+            return res.status(400).json({ error: 'File ID is required' });
+        }
+
+        if (!pathTokens || !Array.isArray(pathTokens)) {
+            return res.status(400).json({ error: 'Path tokens array is required' });
+        }
+
+        // Move file by updating path tokens
+        const updatedFile = await moveFilePathTokens(fileId, pathTokens, authContext);
+
+        // Return result
+        return res.json({
+            success: true,
+            file: updatedFile
+        });
+    } catch (error) {
+        return handleStorageError(error, res);
+    }
+});
+
+/**
+ * @route POST /api/storage/copy-within-bucket
+ * @desc Copy a file within the same bucket
+ * @access Private
+ */
+router.post('/copy-within-bucket', authorize('file.create'), async (req, res) => {
+    try {
+        const { 
+            fileId, 
+            destinationPath,
+            name,
+            pathTokens,
+            virtualPath,
+            isPublic,
+            accessLevel,
+            metadata
+        } = req.body;
+        
+        const authContext = getAuthContextFromRequest(req);
+
+        if (!fileId) {
+            return res.status(400).json({ error: 'File ID is required' });
+        }
+
+        if (!destinationPath) {
+            return res.status(400).json({ error: 'Destination path is required' });
+        }
+
+        // Copy file within the same bucket
+        const result = await copyFileWithinBucket(
+            fileId,
+            destinationPath,
             {
                 name,
-                contentType,
+                pathTokens: pathTokens || (virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined),
+                virtualPath,
+                isPublic: isPublic === 'true' || isPublic === true,
+                accessLevel,
+                metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined
+            },
+            authContext
+        );
+
+        // Return result
+        return res.status(201).json({
+            success: true,
+            file: result.file,
+            url: result.url
+        });
+    } catch (error) {
+        return handleStorageError(error, res);
+    }
+});
+
+/**
+ * @route POST /api/storage/copy-across-buckets
+ * @desc Copy a file to a different bucket
+ * @access Private
+ */
+router.post('/copy-across-buckets', authorize('file.create'), async (req, res) => {
+    try {
+        const { 
+            fileId, 
+            destinationBucket,
+            destinationPath,
+            name,
+            pathTokens,
+            virtualPath,
+            isPublic,
+            accessLevel,
+            metadata,
+            contextType,
+            contextId,
+            resourceType,
+            resourceId
+        } = req.body;
+        
+        const authContext = getAuthContextFromRequest(req);
+
+        if (!fileId) {
+            return res.status(400).json({ error: 'File ID is required' });
+        }
+
+        if (!destinationBucket) {
+            return res.status(400).json({ error: 'Destination bucket is required' });
+        }
+
+        if (!destinationPath) {
+            return res.status(400).json({ error: 'Destination path is required' });
+        }
+
+        // Copy file to a different bucket
+        const result = await copyFileAcrossBuckets(
+            fileId,
+            destinationBucket,
+            destinationPath,
+            {
+                name,
+                pathTokens: pathTokens || (virtualPath ? PATH_TOKEN_FUNCTIONS.pathToTokens(virtualPath) : undefined),
+                virtualPath,
+                isPublic: isPublic === 'true' || isPublic === true,
+                accessLevel,
+                metadata: metadata ? (typeof metadata === 'string' ? JSON.parse(metadata) : metadata) : undefined,
                 contextType,
                 contextId,
                 resourceType,
-                resourceId,
-                isPublic: isPublic === 'true' || isPublic === true,
-                accessLevel,
-                metadata: metadata ? JSON.parse(metadata) : undefined,
-                virtualPath
+                resourceId
             },
             authContext
         );

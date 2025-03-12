@@ -109,10 +109,10 @@ The component implements soft delete functionality:
 The Logo Manager is accessible through the following route:
 
 ```
-/admin/platform-logo
+/admin/platform/settings/logo
 ```
 
-It can be accessed from the Platform Settings page via the "Manage Platform Logo" button. The component includes a back button that navigates back to the Platform Settings page.
+It can be accessed from the Platform Settings page via the "Manage Platform Logo" button. The component includes a back button that navigates back to the Platform Settings page. The Logo Manager is implemented as a nested route within the Platform Admin component, ensuring that the platform navigation sidebar remains visible.
 
 ## Permission Handling
 

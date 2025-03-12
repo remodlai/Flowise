@@ -42,7 +42,7 @@ Upload a file to Supabase Storage.
   - `isPublic`: Whether the file is publicly accessible (optional, defaults to `false`)
   - `accessLevel`: The access level of the file (optional)
   - `metadata`: Custom metadata for the file (optional, JSON string)
-  - `virtualPath`: Virtual path for organizing files in the UI (optional)
+  - `path_tokens`: Virtual path for organizing files in the UI (optional, array of strings)
   - `name`: Custom name for the file (optional, defaults to the original filename)
   - `contentType`: Custom content type for the file (optional, defaults to the file's MIME type)
 
@@ -70,7 +70,7 @@ Upload a file to Supabase Storage.
       "metadata": {
         "description": "Important document"
       },
-      "virtual_path": "Documents/Important"
+      "path_tokens": ["documents", "important"]
     },
     "url": "https://example.com/storage/v1/object/public/user-files/path/to/document.pdf"
   }
@@ -109,7 +109,7 @@ Upload a file for a specific user.
   - `isPublic`: Whether the file is publicly accessible (optional, defaults to `false`)
   - `accessLevel`: The access level of the file (optional)
   - `metadata`: Custom metadata for the file (optional, JSON string)
-  - `virtualPath`: Virtual path for organizing files in the UI (optional)
+  - `path_tokens`: Virtual path for organizing files in the UI (optional, array of strings)
   - `name`: Custom name for the file (optional, defaults to the original filename)
   - `contentType`: Custom content type for the file (optional, defaults to the file's MIME type)
 
@@ -143,7 +143,7 @@ Upload a file for a specific organization.
   - `isPublic`: Whether the file is publicly accessible (optional, defaults to `false`)
   - `accessLevel`: The access level of the file (optional)
   - `metadata`: Custom metadata for the file (optional, JSON string)
-  - `virtualPath`: Virtual path for organizing files in the UI (optional)
+  - `path_tokens`: Virtual path for organizing files in the UI (optional, array of strings)
   - `name`: Custom name for the file (optional, defaults to the original filename)
   - `contentType`: Custom content type for the file (optional, defaults to the file's MIME type)
 
@@ -177,7 +177,7 @@ Upload a file for a specific application.
   - `isPublic`: Whether the file is publicly accessible (optional, defaults to `false`)
   - `accessLevel`: The access level of the file (optional)
   - `metadata`: Custom metadata for the file (optional, JSON string)
-  - `virtualPath`: Virtual path for organizing files in the UI (optional)
+  - `path_tokens`: Virtual path for organizing files in the UI (optional, array of strings)
   - `name`: Custom name for the file (optional, defaults to the original filename)
   - `contentType`: Custom content type for the file (optional, defaults to the file's MIME type)
 
@@ -319,7 +319,7 @@ List files based on various criteria.
   - `resourceType`: Filter by resource type (optional)
   - `resourceId`: Filter by resource ID (optional)
   - `isPublic`: Filter by public status (optional)
-  - `virtualPath`: Filter by virtual path (optional)
+  - `path_tokens`: Filter by path tokens (optional, array of strings)
 
 #### Response
 
@@ -346,7 +346,7 @@ List files based on various criteria.
         "metadata": {
           "description": "Important document"
         },
-        "virtual_path": "Documents/Important"
+        "path_tokens": ["documents", "important"]
       }
     ],
     "total": 1,
@@ -384,7 +384,7 @@ Update a file's metadata.
     "metadata": {
       "description": "Updated description"
     },
-    "virtualPath": "Documents/Public"
+    "path_tokens": ["documents", "public"]
   }
   ```
 
@@ -412,7 +412,7 @@ Update a file's metadata.
       "metadata": {
         "description": "Updated description"
       },
-      "virtual_path": "Documents/Public"
+      "path_tokens": ["documents", "public"]
     }
   }
   ```
@@ -448,7 +448,7 @@ Search for files based on a search term.
   - `resourceType`: Filter by resource type (optional)
   - `resourceId`: Filter by resource ID (optional)
   - `isPublic`: Filter by public status (optional)
-  - `virtualPath`: Filter by virtual path (optional)
+  - `path_tokens`: Filter by path tokens (optional, array of strings)
 
 #### Response
 
@@ -475,7 +475,7 @@ Search for files based on a search term.
         "metadata": {
           "description": "Important document"
         },
-        "virtual_path": "Documents/Important"
+        "path_tokens": ["documents", "important"]
       }
     ],
     "total": 1,
@@ -513,7 +513,7 @@ Move a file to a new virtual path.
 - **Body**
   ```json
   {
-    "virtualPath": "Documents/Important/2025"
+    "path_tokens": ["documents", "important", "2025"]
   }
   ```
 
@@ -541,7 +541,7 @@ Move a file to a new virtual path.
       "metadata": {
         "description": "Important document"
       },
-      "virtual_path": "Documents/Important/2025"
+      "path_tokens": ["documents", "important", "2025"]
     }
   }
   ```
@@ -549,7 +549,7 @@ Move a file to a new virtual path.
 - **Error (400 Bad Request)**
   ```json
   {
-    "error": "Virtual path is required"
+    "error": "Path tokens are required"
   }
   ```
 
@@ -586,7 +586,7 @@ Copy a file to a new location.
     "metadata": {
       "description": "Copy of important document"
     },
-    "virtualPath": "Documents/Shared"
+    "path_tokens": ["documents", "shared"]
   }
   ```
 
@@ -614,47 +614,11 @@ Copy a file to a new location.
       "metadata": {
         "description": "Copy of important document"
       },
-      "virtual_path": "Documents/Shared"
+      "path_tokens": ["documents", "shared"]
     },
     "url": "https://example.com/storage/v1/object/public/organization-files/path/to/copy-document.pdf"
   }
   ```
 
 - **Error (404 Not Found)**
-  ```json
-  {
-    "error": "File not found"
-  }
   ```
-
-## Error Codes
-
-The storage API routes use the following error codes:
-
-- `FILE_NOT_FOUND`: The file was not found (404)
-- `PERMISSION_DENIED`: The user does not have permission to access the file (403)
-- `INVALID_FILE`: The file is invalid (400)
-- `INVALID_OPERATION`: The operation is invalid (400)
-- `FILE_ALREADY_EXISTS`: The file already exists (409)
-- `UPLOAD_FAILED`: The file upload failed (500)
-- `DOWNLOAD_FAILED`: The file download failed (500)
-- `DELETE_FAILED`: The file deletion failed (500)
-- `STORAGE_ERROR`: A generic storage error occurred (500)
-
-## Integration with Express
-
-The storage API routes are integrated with Express in the main server file:
-
-```typescript
-import express from 'express';
-import storageRoutes from './routes/storage';
-
-const app = express();
-
-// ... other middleware and routes
-
-// Mount storage routes
-app.use('/api/storage', storageRoutes);
-
-// ... error handling and server start
-``` 

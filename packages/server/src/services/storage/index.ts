@@ -6,6 +6,7 @@
  * a unified interface for file management.
  */
 
+import { supabase } from '../../utils/supabase'
 import { 
   uploadFile as uploadStorageFile,
   getPublicUrl,
@@ -459,8 +460,53 @@ export const searchFiles = async (
 }
 
 /**
+ * Moves a file to a new path within the same bucket
+ * 
+ * @param fileId - The ID of the file to move
+ * @param pathTokens - The new path tokens
+ * @param authContext - Authentication context
+ * @returns The updated file metadata
+ * @throws StorageError if move fails
+ */
+export const moveFilePathTokens = async (
+  fileId: string,
+  pathTokens: string[],
+  authContext: StorageAuthContext
+): Promise<FileMetadata> => {
+  try {
+    // Get file metadata
+    const fileMetadata = await getFileMetadataById(fileId)
+    if (!fileMetadata) {
+      throw createFileNotFoundError(fileId)
+    }
+
+    // Check if user has permission to move the file
+    if (fileMetadata.created_by !== authContext.userId && 
+        fileMetadata.context_id !== authContext.appId && 
+        fileMetadata.context_id !== authContext.orgId) {
+      throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
+    }
+
+    // Update file path tokens in database
+    const updatedMetadata = await updateFileMetadata(
+      fileId,
+      { path_tokens: pathTokens },
+      authContext
+    )
+    
+    return updatedMetadata
+  } catch (error) {
+    if (error instanceof StorageError) {
+      throw error
+    }
+    throw convertToStorageError(error, `Failed to move file ${fileId} to new path tokens`)
+  }
+}
+
+/**
  * Moves a file to a new virtual path
  * 
+ * @deprecated Use moveFilePathTokens instead
  * @param fileId - The ID of the file to move
  * @param virtualPath - The new virtual path
  * @param authContext - Authentication context
@@ -497,17 +543,102 @@ export const moveFileVirtualPath = async (
 }
 
 /**
- * Copies a file to a new location
+ * Physically moves a file to a new location in Supabase Storage
+ * and updates the file metadata accordingly
+ * 
+ * @param fileId - The ID of the file to move
+ * @param destinationPath - The new path within the bucket
+ * @param authContext - Authentication context
+ * @param destinationBucket - Optional destination bucket (defaults to same bucket)
+ * @returns The updated file metadata
+ * @throws StorageError if move fails
+ */
+export const moveFileStorage = async (
+  fileId: string,
+  destinationPath: string,
+  authContext: StorageAuthContext,
+  destinationBucket?: string
+): Promise<FileMetadata> => {
+  try {
+    // Get file metadata
+    const fileMetadata = await getFileMetadataById(fileId)
+    if (!fileMetadata) {
+      throw createFileNotFoundError(fileId)
+    }
+
+    // Check if user has permission to move the file
+    if (fileMetadata.created_by !== authContext.userId && 
+        fileMetadata.context_id !== authContext.appId && 
+        fileMetadata.context_id !== authContext.orgId) {
+      throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
+    }
+
+    // Use the native Supabase Storage move function
+    const targetBucket = destinationBucket || fileMetadata.bucket
+    
+    await moveStorageFile(
+      fileMetadata.bucket,
+      fileMetadata.path,
+      targetBucket,
+      destinationPath
+    )
+
+    // Update file metadata with new path and bucket
+    const updateData: Record<string, any> = {
+      path: destinationPath,
+      updated_at: new Date().toISOString()
+    }
+    
+    // Update bucket if it changed
+    if (destinationBucket && destinationBucket !== fileMetadata.bucket) {
+      updateData.bucket = destinationBucket
+      updateData.url = `${destinationBucket}/${destinationPath}`
+    } else {
+      updateData.url = `${fileMetadata.bucket}/${destinationPath}`
+    }
+
+    // Update file metadata
+    const { data, error } = await supabase
+      .from('files')
+      .update(updateData)
+      .eq('id', fileId)
+      .select()
+      .single()
+    
+    if (error) {
+      throw convertToStorageError(error, `Failed to update file metadata for ${fileId} after move`)
+    }
+    
+    return data as FileMetadata
+  } catch (error) {
+    if (error instanceof StorageError) {
+      throw error
+    }
+    throw convertToStorageError(error, `Failed to move file ${fileId} to ${destinationPath}`)
+  }
+}
+
+/**
+ * Copies a file within the same bucket and creates new file metadata
  * 
  * @param fileId - The ID of the file to copy
- * @param destinationOptions - Options for the destination file
+ * @param destinationPath - The destination path within the bucket
+ * @param options - Additional options for the copy
  * @param authContext - Authentication context
  * @returns The new file metadata and URL
  * @throws StorageError if copy fails
  */
-export const copyFile = async (
+export const copyFileWithinBucket = async (
   fileId: string,
-  destinationOptions: UploadFileOptions,
+  destinationPath: string,
+  options: {
+    name?: string,
+    virtualPath?: string,
+    pathTokens?: string[],
+    isPublic?: boolean,
+    accessLevel?: string,
+    metadata?: Record<string, any>
+  },
   authContext: StorageAuthContext
 ): Promise<UploadFileResult> => {
   try {
@@ -517,31 +648,154 @@ export const copyFile = async (
       throw createFileNotFoundError(fileId)
     }
 
-    // Download file
-    const { data } = await downloadFile(fileId)
+    // Check if user has permission to copy the file
+    if (fileMetadata.created_by !== authContext.userId && 
+        fileMetadata.context_id !== authContext.appId && 
+        fileMetadata.context_id !== authContext.orgId) {
+      throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
+    }
 
-    // Upload to new location
-    return await uploadFile(
-      destinationOptions.resourceType === FILE_RESOURCE_TYPES.PROFILE_PICTURE ? 
-        STORAGE_BUCKETS.PROFILES : 
-        fileMetadata.bucket,
-      data,
+    // Use the native Supabase Storage copy function
+    await copyStorageFile(
+      fileMetadata.bucket,
+      fileMetadata.path,
+      fileMetadata.bucket,
+      destinationPath
+    )
+
+    // Create new file metadata for the copy
+    const newFileMetadata = await createFileMetadata(
       {
-        ...destinationOptions,
-        contentType: destinationOptions.contentType || fileMetadata.content_type,
+        name: options.name || fileMetadata.name,
+        content_type: fileMetadata.content_type,
+        size: fileMetadata.size,
+        bucket: fileMetadata.bucket,
+        path: destinationPath,
+        context_type: fileMetadata.context_type,
+        context_id: fileMetadata.context_id,
+        resource_type: fileMetadata.resource_type,
+        resource_id: fileMetadata.resource_id,
+        is_public: options.isPublic !== undefined ? options.isPublic : fileMetadata.is_public,
+        access_level: options.accessLevel || fileMetadata.access_level,
         metadata: {
           ...fileMetadata.metadata,
-          ...destinationOptions.metadata,
-          originalFileId: fileId
-        }
+          ...options.metadata,
+          copiedFrom: fileId
+        },
+        virtual_path: options.virtualPath,
+        path_tokens: options.pathTokens
       },
       authContext
     )
+
+    // Get file URL
+    const url = newFileMetadata.is_public ? 
+      getPublicUrl(newFileMetadata.bucket, newFileMetadata.path) : 
+      await createSignedUrl(newFileMetadata.bucket, newFileMetadata.path, { expiresIn: SIGNED_URL_EXPIRATION.MEDIUM })
+
+    return {
+      file: newFileMetadata,
+      url
+    }
   } catch (error) {
     if (error instanceof StorageError) {
       throw error
     }
-    throw convertToStorageError(error, `Failed to copy file ${fileId}`)
+    throw convertToStorageError(error, `Failed to copy file ${fileId} to ${destinationPath}`)
+  }
+}
+
+/**
+ * Copies a file to a different bucket and creates new file metadata
+ * 
+ * @param fileId - The ID of the file to copy
+ * @param destinationBucket - The destination bucket
+ * @param destinationPath - The destination path within the bucket
+ * @param options - Additional options for the copy
+ * @param authContext - Authentication context
+ * @returns The new file metadata and URL
+ * @throws StorageError if copy fails
+ */
+export const copyFileAcrossBuckets = async (
+  fileId: string,
+  destinationBucket: string,
+  destinationPath: string,
+  options: {
+    name?: string,
+    virtualPath?: string,
+    pathTokens?: string[],
+    isPublic?: boolean,
+    accessLevel?: string,
+    metadata?: Record<string, any>,
+    contextType?: string,
+    contextId?: string,
+    resourceType?: string,
+    resourceId?: string
+  },
+  authContext: StorageAuthContext
+): Promise<UploadFileResult> => {
+  try {
+    // Get file metadata
+    const fileMetadata = await getFileMetadataById(fileId)
+    if (!fileMetadata) {
+      throw createFileNotFoundError(fileId)
+    }
+
+    // Check if user has permission to copy the file
+    if (fileMetadata.created_by !== authContext.userId && 
+        fileMetadata.context_id !== authContext.appId && 
+        fileMetadata.context_id !== authContext.orgId) {
+      throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
+    }
+
+    // Use the native Supabase Storage copy function
+    await copyStorageFile(
+      fileMetadata.bucket,
+      fileMetadata.path,
+      destinationBucket,
+      destinationPath
+    )
+
+    // Create new file metadata for the copy
+    const newFileMetadata = await createFileMetadata(
+      {
+        name: options.name || fileMetadata.name,
+        content_type: fileMetadata.content_type,
+        size: fileMetadata.size,
+        bucket: destinationBucket,
+        path: destinationPath,
+        context_type: options.contextType || fileMetadata.context_type,
+        context_id: options.contextId || fileMetadata.context_id,
+        resource_type: options.resourceType || fileMetadata.resource_type,
+        resource_id: options.resourceId || fileMetadata.resource_id,
+        is_public: options.isPublic !== undefined ? options.isPublic : fileMetadata.is_public,
+        access_level: options.accessLevel || fileMetadata.access_level,
+        metadata: {
+          ...fileMetadata.metadata,
+          ...options.metadata,
+          copiedFrom: fileId,
+          originalBucket: fileMetadata.bucket
+        },
+        virtual_path: options.virtualPath,
+        path_tokens: options.pathTokens
+      },
+      authContext
+    )
+
+    // Get file URL
+    const url = newFileMetadata.is_public ? 
+      getPublicUrl(newFileMetadata.bucket, newFileMetadata.path) : 
+      await createSignedUrl(newFileMetadata.bucket, newFileMetadata.path, { expiresIn: SIGNED_URL_EXPIRATION.MEDIUM })
+
+    return {
+      file: newFileMetadata,
+      url
+    }
+  } catch (error) {
+    if (error instanceof StorageError) {
+      throw error
+    }
+    throw convertToStorageError(error, `Failed to copy file ${fileId} to ${destinationBucket}/${destinationPath}`)
   }
 }
 

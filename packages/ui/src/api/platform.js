@@ -159,11 +159,7 @@ export const getPlatformImage = (id) => {
  * @returns {Promise} - Upload result
  */
 export const uploadPlatformImage = (formData) => {
-    return client.post('/platform/assets/images/upload', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    })
+    return client.post('/platform/assets/images/upload', formData)
 }
 
 /**
@@ -209,7 +205,9 @@ export const getPlatformImageUrl = (id) => {
  * @returns {string} - Direct content URL
  */
 export const getPlatformImageContentUrl = (id) => {
-    return `${client.defaults.baseURL}/platform/assets/images/${id}/content`
+    // Get the base URL without the /api/v1 part
+    const baseUrl = client.defaults.baseURL.replace('/api/v1', '');
+    return `${baseUrl}/api/v1/platform/assets/images/${id}/content`;
 }
 
 export default {

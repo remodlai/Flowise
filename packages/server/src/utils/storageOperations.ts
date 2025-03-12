@@ -412,7 +412,7 @@ export const deleteFiles = async (
 }
 
 /**
- * Copies a file within Supabase Storage
+ * Copies a file within Supabase Storage using the native Supabase Storage copy method
  * 
  * @param sourceBucket - The source bucket
  * @param sourceFilePath - The source file path
@@ -436,13 +436,28 @@ export const copyFile = async (
       throw createBucketNotFoundError(destinationBucket)
     }
 
-    // Download source file
-    const sourceFile = await downloadFile(sourceBucket, sourceFilePath)
+    // Use the native Supabase Storage copy method
+    const { data, error } = await supabase.storage
+      .from(sourceBucket)
+      .copy(sourceFilePath, destinationFilePath, {
+        ...(sourceBucket !== destinationBucket ? { destinationBucket } : {})
+      });
+
+    if (error) {
+      throw convertToStorageError(
+        error, 
+        `Failed to copy file from ${sourceBucket}/${sourceFilePath} to ${destinationBucket}/${destinationFilePath}`
+      )
+    }
+
+    if (!data) {
+      throw convertToStorageError(
+        new Error('Copy operation returned no data'), 
+        `Failed to copy file from ${sourceBucket}/${sourceFilePath} to ${destinationBucket}/${destinationFilePath}`
+      )
+    }
     
-    // Upload to destination
-    const result = await uploadFile(destinationBucket, destinationFilePath, sourceFile)
-    
-    return { path: result.path }
+    return { path: destinationFilePath }
   } catch (error) {
     if (error instanceof StorageError) {
       throw error
@@ -455,7 +470,7 @@ export const copyFile = async (
 }
 
 /**
- * Moves a file within Supabase Storage (copy and delete)
+ * Moves a file within Supabase Storage using the native Supabase Storage move method
  * 
  * @param sourceBucket - The source bucket
  * @param sourceFilePath - The source file path
@@ -471,18 +486,36 @@ export const moveFile = async (
   destinationFilePath: string
 ): Promise<{ path: string }> => {
   try {
-    // Copy the file
-    const copyResult = await copyFile(
-      sourceBucket,
-      sourceFilePath,
-      destinationBucket,
-      destinationFilePath
-    )
+    // Validate buckets
+    if (!Object.values(STORAGE_BUCKETS).includes(sourceBucket)) {
+      throw createBucketNotFoundError(sourceBucket)
+    }
+    if (!Object.values(STORAGE_BUCKETS).includes(destinationBucket)) {
+      throw createBucketNotFoundError(destinationBucket)
+    }
+
+    // Use the native Supabase Storage move method
+    const { data, error } = await supabase.storage
+      .from(sourceBucket)
+      .move(sourceFilePath, destinationFilePath, {
+        ...(sourceBucket !== destinationBucket ? { destinationBucket } : {})
+      });
+
+    if (error) {
+      throw convertToStorageError(
+        error, 
+        `Failed to move file from ${sourceBucket}/${sourceFilePath} to ${destinationBucket}/${destinationFilePath}`
+      )
+    }
+
+    if (!data) {
+      throw convertToStorageError(
+        new Error('Move operation returned no data'), 
+        `Failed to move file from ${sourceBucket}/${sourceFilePath} to ${destinationBucket}/${destinationFilePath}`
+      )
+    }
     
-    // Delete the source file
-    await deleteFiles(sourceBucket, [sourceFilePath])
-    
-    return { path: copyResult.path }
+    return { path: destinationFilePath }
   } catch (error) {
     if (error instanceof StorageError) {
       throw error

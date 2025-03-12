@@ -17,7 +17,8 @@ import {
 import { 
   FILE_ACCESS_LEVELS,
   FILE_CONTEXT_TYPES,
-  FILE_RESOURCE_TYPES
+  FILE_RESOURCE_TYPES,
+  PATH_TOKEN_FUNCTIONS
 } from '../../constants/storage'
 import { StorageAuthContext } from '../../utils/storageOperations'
 
@@ -43,7 +44,10 @@ export interface FileMetadata {
   created_by: string
   updated_at?: string
   metadata?: Record<string, any>
+  /** @deprecated Use path_tokens instead */
   virtual_path?: string
+  /** Array of path segments for hierarchical organization */
+  path_tokens?: string[]
 }
 
 /**
@@ -62,7 +66,10 @@ export interface CreateFileMetadataOptions {
   is_public?: boolean
   access_level?: string
   metadata?: Record<string, any>
+  /** @deprecated Use path_tokens instead */
   virtual_path?: string
+  /** Array of path segments for hierarchical organization */
+  path_tokens?: string[]
 }
 
 /**
@@ -75,7 +82,10 @@ export interface UpdateFileMetadataOptions {
   is_public?: boolean
   access_level?: string
   metadata?: Record<string, any>
+  /** @deprecated Use path_tokens instead */
   virtual_path?: string
+  /** Array of path segments for hierarchical organization */
+  path_tokens?: string[]
 }
 
 /**
@@ -96,7 +106,10 @@ export interface ListFileMetadataOptions {
     is_public?: boolean
     access_level?: string
     created_by?: string
+    /** @deprecated Use path_tokens instead */
     virtual_path?: string
+    /** Array of path segments for hierarchical organization */
+    path_tokens?: string[]
     name?: string
     content_type?: string
   }
@@ -152,7 +165,9 @@ export const createFileMetadata = async (
         access_level: accessLevel,
         created_by: authContext.userId || 'anonymous',
         metadata: options.metadata || {},
-        virtual_path: options.virtual_path
+        // Support both for backward compatibility
+        virtual_path: options.virtual_path,
+        path_tokens: options.path_tokens || (options.virtual_path ? PATH_TOKEN_FUNCTIONS.pathToTokens(options.virtual_path) : undefined)
       })
       .select()
       .single()
@@ -206,7 +221,19 @@ export const updateFileMetadata = async (
     if (options.size !== undefined) updateData.size = options.size
     if (options.is_public !== undefined) updateData.is_public = options.is_public
     if (options.access_level !== undefined) updateData.access_level = options.access_level
-    if (options.virtual_path !== undefined) updateData.virtual_path = options.virtual_path
+    
+    // Support both for backward compatibility
+    if (options.virtual_path !== undefined) {
+      updateData.virtual_path = options.virtual_path
+      // Also update path_tokens if virtual_path is provided
+      updateData.path_tokens = PATH_TOKEN_FUNCTIONS.pathToTokens(options.virtual_path)
+    }
+    
+    if (options.path_tokens !== undefined) {
+      updateData.path_tokens = options.path_tokens
+      // Also update virtual_path for backward compatibility
+      updateData.virtual_path = PATH_TOKEN_FUNCTIONS.tokensToPath(options.path_tokens)
+    }
     
     // Handle metadata updates (merge with existing metadata)
     if (options.metadata !== undefined) {
@@ -352,48 +379,53 @@ export const deleteFileMetadata = async (
 /**
  * Lists file metadata records based on various criteria
  * 
- * @param options - Options for listing file metadata
+ * @param options - Options for listing
  * @returns Array of file metadata records
- * @throws StorageError if listing fails
+ * @throws StorageError if retrieval fails
  */
 export const listFileMetadata = async (
   options: ListFileMetadataOptions = {}
 ): Promise<FileMetadata[]> => {
   try {
-    // Start building the query
+    const {
+      limit = 10,
+      offset = 0,
+      sortBy = { column: 'created_at', order: 'desc' },
+      filters = {}
+    } = options
+    
     let query = supabase
       .from('files')
       .select('*')
+      .order(sortBy.column, { ascending: sortBy.order === 'asc' })
+      .limit(limit)
+      .offset(offset)
     
     // Apply filters
-    if (options.filters) {
-      const { filters } = options
-      if (filters.context_type) query = query.eq('context_type', filters.context_type)
-      if (filters.context_id) query = query.eq('context_id', filters.context_id)
-      if (filters.resource_type) query = query.eq('resource_type', filters.resource_type)
-      if (filters.resource_id) query = query.eq('resource_id', filters.resource_id)
-      if (filters.is_public !== undefined) query = query.eq('is_public', filters.is_public)
-      if (filters.access_level) query = query.eq('access_level', filters.access_level)
-      if (filters.created_by) query = query.eq('created_by', filters.created_by)
-      if (filters.virtual_path) query = query.eq('virtual_path', filters.virtual_path)
-      if (filters.name) query = query.ilike('name', `%${filters.name}%`)
-      if (filters.content_type) query = query.eq('content_type', filters.content_type)
+    if (filters.context_type) query = query.eq('context_type', filters.context_type)
+    if (filters.context_id) query = query.eq('context_id', filters.context_id)
+    if (filters.resource_type) query = query.eq('resource_type', filters.resource_type)
+    if (filters.resource_id) query = query.eq('resource_id', filters.resource_id)
+    if (filters.is_public !== undefined) query = query.eq('is_public', filters.is_public)
+    if (filters.access_level) query = query.eq('access_level', filters.access_level)
+    if (filters.created_by) query = query.eq('created_by', filters.created_by)
+    
+    // Support both for backward compatibility
+    if (filters.virtual_path) query = query.eq('virtual_path', filters.virtual_path)
+    if (filters.path_tokens) {
+      // If path_tokens is an array, use the contains operator
+      if (Array.isArray(filters.path_tokens)) {
+        query = query.contains('path_tokens', filters.path_tokens)
+      } else {
+        // If it's a string, convert it to an array and use contains
+        query = query.contains('path_tokens', PATH_TOKEN_FUNCTIONS.pathToTokens(filters.path_tokens as string))
+      }
     }
     
-    // Apply sorting
-    if (options.sortBy) {
-      query = query.order(options.sortBy.column, { ascending: options.sortBy.order === 'asc' })
-    } else {
-      // Default sort by created_at desc
-      query = query.order('created_at', { ascending: false })
-    }
+    if (filters.name) query = query.ilike('name', `%${filters.name}%`)
+    if (filters.content_type) query = query.eq('content_type', filters.content_type)
     
-    // Apply pagination
-    const paginatedQuery = options.limit ? query.limit(options.limit) : query
-    const finalQuery = options.offset ? paginatedQuery.range(options.offset, options.offset + (options.limit || 10) - 1) : paginatedQuery
-    
-    // Execute query
-    const { data, error } = await finalQuery
+    const { data, error } = await query
     
     if (error) {
       throw convertToStorageError(error, 'Failed to list file metadata')
@@ -470,8 +502,30 @@ export const searchFileMetadata = async (
 }
 
 /**
- * Updates the virtual path of a file
+ * Updates a file's path tokens
  * 
+ * @param fileId - The ID of the file to update
+ * @param pathTokens - The new path tokens
+ * @param authContext - Authentication context
+ * @returns The updated file metadata
+ * @throws StorageError if update fails
+ */
+export const updateFilePathTokens = async (
+  fileId: string,
+  pathTokens: string[],
+  authContext: StorageAuthContext
+): Promise<FileMetadata> => {
+  return updateFileMetadata(
+    fileId,
+    { path_tokens: pathTokens },
+    authContext
+  )
+}
+
+/**
+ * Updates a file's virtual path
+ * 
+ * @deprecated Use updateFilePathTokens instead
  * @param fileId - The ID of the file to update
  * @param virtualPath - The new virtual path
  * @param authContext - Authentication context
@@ -539,8 +593,30 @@ export const getFilesByResource = async (
 }
 
 /**
+ * Gets files by path tokens
+ * 
+ * @param pathTokens - The path tokens to get files for
+ * @param options - Additional options for listing
+ * @returns Array of file metadata records for the path tokens
+ * @throws StorageError if retrieval fails
+ */
+export const getFilesByPathTokens = async (
+  pathTokens: string[],
+  options: ListFileMetadataOptions = {}
+): Promise<FileMetadata[]> => {
+  return listFileMetadata({
+    ...options,
+    filters: {
+      ...options.filters,
+      path_tokens: pathTokens
+    }
+  })
+}
+
+/**
  * Gets files by virtual path
  * 
+ * @deprecated Use getFilesByPathTokens instead
  * @param virtualPath - The virtual path to get files for
  * @param options - Additional options for listing
  * @returns Array of file metadata records for the virtual path

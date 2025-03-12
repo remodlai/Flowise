@@ -68,11 +68,15 @@ const LogoManager = () => {
                 includeDeleted: true // Show deleted logos for admins
             })
             
-            // Filter to only show logos (path starts with 'logos/')
+            console.log('All platform images:', response.data?.data)
+            
+            // Filter to only show logos (path starts with 'logos/' or path_tokens array includes 'logos')
             const logoImages = response.data?.data?.filter(img => 
                 img.path.startsWith('logos/') || 
-                img.virtual_path?.startsWith('logos/')
+                (Array.isArray(img.path_tokens) && img.path_tokens.includes('logos'))
             ) || []
+            
+            console.log('Filtered logo images:', logoImages)
             
             setLogos(logoImages)
         } catch (error) {
@@ -116,8 +120,10 @@ const LogoManager = () => {
             formData.append('description', description || `Platform logo: ${file.name}`)
             formData.append('isPublic', 'true')
             formData.append('isShareable', 'true')
-            formData.append('virtualPath', 'logos')
-
+            
+            // Use path_tokens instead of virtualPath
+            formData.append('pathTokens', JSON.stringify(['logos'])) // Format as JSON string of array
+            
             const response = await uploadPlatformImage(formData)
             
             if (response.data?.success) {

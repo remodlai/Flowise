@@ -155,15 +155,24 @@ import { FILE_MIME_TYPES } from '../constants/storage';
 const mimeType = FILE_MIME_TYPES['.jpg']; // 'image/jpeg'
 ```
 
-## Virtual Path Separator
+## Path Tokens Utilities
 
-The `VIRTUAL_PATH_SEPARATOR` constant defines the separator used for virtual paths:
+The storage constants include utilities for working with path tokens:
 
 ```typescript
-import { VIRTUAL_PATH_SEPARATOR } from '../constants/storage';
+import { PATH_TOKEN_FUNCTIONS } from '../constants/storage';
 
-// Create a virtual path
-const virtualPath = `${organizationId}${VIRTUAL_PATH_SEPARATOR}${folderName}`;
+// Convert a path string to path tokens
+const pathTokens = PATH_TOKEN_FUNCTIONS.pathToTokens('user/123/documents/report.pdf');
+// Result: ['user', '123', 'documents', 'report.pdf']
+
+// Convert path tokens to a path string
+const path = PATH_TOKEN_FUNCTIONS.tokensToPath(['user', '123', 'documents', 'report.pdf']);
+// Result: 'user/123/documents/report.pdf'
+
+// Get the parent path tokens (remove the last token)
+const parentTokens = PATH_TOKEN_FUNCTIONS.getParentTokens(['user', '123', 'documents', 'report.pdf']);
+// Result: ['user', '123', 'documents']
 ```
 
 ## Signed URL Expiration

@@ -206,16 +206,12 @@ const MainRoutes = {
                         {
                             path: 'settings',
                             element: <SystemSettings />
+                        },
+                        {
+                            path: 'settings/logo',
+                            element: <LogoManager />
                         }
                     ]
-                },
-                {
-                    path: 'platform-logo',
-                    element: (
-                        <ProtectedRoute>
-                            <LogoManager />
-                        </ProtectedRoute>
-                    )
                 },
                 {
                     path: 'billing',

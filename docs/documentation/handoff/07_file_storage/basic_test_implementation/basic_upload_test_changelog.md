@@ -143,3 +143,16 @@ Next steps:
   - File upload and retrieval
   - Metadata management
   - UI integration with the storage service
+
+## 2023-07-19: Fixed Logo Manager Navigation Issue
+
+- Fixed an issue with the Logo Manager navigation:
+  - Changed the route from a standalone route (`/admin/platform-logo`) to a nested route (`/admin/platform/settings/logo`)
+  - Updated the navigation in the PlatformSettingsTab component
+  - Ensured the Logo Manager is rendered within the Platform Admin layout
+  - This fix maintains the platform navigation sidebar when viewing the Logo Manager
+  - Updated documentation to reflect the correct routing approach
+- This change improves the user experience by:
+  - Maintaining consistent navigation throughout the platform admin section
+  - Allowing users to easily navigate between different platform settings
+  - Preserving the visual hierarchy and context of the platform admin interface

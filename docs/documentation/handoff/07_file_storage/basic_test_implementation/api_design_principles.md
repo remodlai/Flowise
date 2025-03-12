@@ -67,7 +67,7 @@ While not implemented in the initial version, we plan to support path-based navi
 /api/v1/platform/assets/images/:path/upload
 ```
 
-Where `:path` corresponds to the `virtual_path` stored in the database.
+Where `:path` corresponds to the `path_tokens` stored in the database as a text array.
 
 ## Documentation Requirements
 
@@ -130,7 +130,7 @@ All API-related code must include:
  * 
  * NOTE: In the future, this could be extended to support path-based uploads:
  * @route POST /api/v1/platform/assets/images/:path/upload
- * where :path would map to the virtual_path in the database
+ * where :path would map to the path_tokens array in the database
  */
 ```
 

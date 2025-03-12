@@ -101,6 +101,21 @@ apiClient.interceptors.request.use(function (config) {
         console.log('No application context available')
     }
 
+    // For FormData, let the browser set the Content-Type header with the correct boundary
+    if (config.data instanceof FormData) {
+        console.log('FormData detected, letting browser set Content-Type header')
+        delete config.headers['Content-Type']
+    }
+
+    // Log detailed request information for debugging
+    console.log(`Request details for ${config.url}:`, {
+        method: config.method,
+        url: config.url,
+        headers: config.headers,
+        isFormData: config.data instanceof FormData,
+        contentType: config.headers['Content-Type']
+    })
+
     return config
 })
 

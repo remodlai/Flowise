@@ -1,276 +1,536 @@
-# Storage Path Utilities
-
-This document provides information about the path generation and validation utilities for the Supabase Storage integration in the Remodl AI platform.
+# Storage Path Utilities and File Operations
 
 ## Overview
 
-The storage path utilities are defined in `/packages/server/src/utils/storagePath.ts` and provide functions for generating consistent, secure, and organized storage paths for different contexts and resource types. These utilities ensure that files are stored in a structured manner and can be easily retrieved.
+This document describes the utilities and functions available for managing file paths and performing file operations in the Supabase Storage integration. It covers path tokens, virtual paths, and operations like moving and copying files.
 
-## Path Structure
+## Path Tokens
 
-Storage paths follow a consistent structure:
+Path tokens are arrays of string segments that represent the hierarchical structure of a file's path. They are used for efficient path-based operations and align with Supabase Storage's internal structure.
 
-```
-{contextType}/{contextId}/{resourceType}/{resourceId?}/{folderName?}/{filename}
-```
+### Benefits of Path Tokens
 
-Where:
-- `contextType`: The type of context (user, organization, application, etc.)
-- `contextId`: The ID of the context (user ID, organization ID, etc.)
-- `resourceType`: The type of resource (profile_picture, document, image, etc.)
-- `resourceId`: (Optional) The ID of the resource (if applicable)
-- `folderName`: (Optional) A custom folder name
-- `filename`: The name of the file, optionally with a UUID for uniqueness
+1. **Efficient Querying**: Path tokens allow for more efficient filtering and querying operations
+   ```sql
+   -- Find all files in the "logos" folder
+   SELECT * FROM files WHERE path_tokens[1] = 'logos';
+   
+   -- Find files in a nested folder structure
+   SELECT * FROM files WHERE path_tokens @> ARRAY['documents', 'reports'];
+   ```
 
-## Core Functions
+2. **Hierarchical Navigation**: Path tokens make it easier to implement breadcrumb-style navigation
+   ```typescript
+   // Generate breadcrumb components from path tokens
+   const breadcrumbs = pathTokens.map((token, index) => ({
+     label: token,
+     path: pathTokens.slice(0, index + 1)
+   }));
+   ```
 
-### `generateStoragePath`
+3. **Path Manipulation**: Path tokens simplify operations like getting parent folders
+   ```typescript
+   // Get parent folder tokens (remove the last token)
+   const parentTokens = pathTokens.slice(0, -1);
+   ```
 
-The main function for generating storage paths based on provided options.
+### Path Token Utility Functions
 
-```typescript
-import { generateStoragePath } from '../utils/storagePath';
-
-const path = generateStoragePath({
-  contextType: 'user',
-  contextId: 'user-123',
-  resourceType: 'image',
-  includeUuid: true,
-  originalFilename: 'photo.jpg'
-});
-// Result: 'user/user-123/image/photo_abc123.jpg'
-```
-
-#### Options
-
-The `StoragePathOptions` interface defines the options for generating a storage path:
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `contextType` | string | The type of context (required) |
-| `contextId` | string | The ID of the context (required) |
-| `resourceType` | string | The type of resource (optional, defaults to 'other') |
-| `resourceId` | string | The ID of the resource (optional) |
-| `includeUuid` | boolean | Whether to include a UUID in the filename (optional, defaults to true) |
-| `folderName` | string | A custom folder name to include in the path (optional) |
-| `originalFilename` | string | The original filename to preserve (optional) |
-
-### Path Validation
-
-#### `isValidStoragePath`
-
-Validates a storage path to ensure it meets requirements.
+The following utility functions are available for working with path tokens:
 
 ```typescript
-import { isValidStoragePath } from '../utils/storagePath';
+// Convert a path string to path tokens array
+const pathToTokens = (path: string): string[] => {
+  if (!path) return [];
+  return path.split('/').filter(Boolean);
+};
 
-const isValid = isValidStoragePath('user/user-123/image/photo.jpg');
-// Result: true
+// Convert path tokens array to path string
+const tokensToPath = (tokens: string[]): string => {
+  if (!tokens || !tokens.length) return '';
+  return tokens.join('/');
+};
+
+// Get parent path tokens (remove the last token)
+const getParentTokens = (tokens: string[]): string[] => {
+  if (!tokens || tokens.length <= 1) return [];
+  return tokens.slice(0, -1);
+};
 ```
 
-A valid path must:
-- Not be empty
-- Not contain invalid characters (`<>:"|?*` and control characters)
-- Not start or end with a slash
-- Not contain consecutive slashes
-- Not be too long (max 1024 characters)
+## Virtual Paths (Deprecated)
 
-### Filename Utilities
+Virtual paths are string representations of file paths using a separator (typically '/'). They have been deprecated in favor of path tokens but are still supported for backward compatibility.
 
-#### `sanitizeFilename`
+## File Operations
 
-Sanitizes a filename to ensure it's safe for storage.
+### Moving Files
+
+The storage service provides several functions for moving files:
+
+#### 1. Move File Path Tokens
+
+Moves a file to a new location by updating its path tokens in the database.
 
 ```typescript
-import { sanitizeFilename } from '../utils/storagePath';
-
-const sanitized = sanitizeFilename('My Photo (1).jpg');
-// Result: 'My_Photo_1.jpg'
+const updatedFile = await moveFilePathTokens(
+  fileId,
+  ['logos', 'company', 'new_folder'],
+  authContext
+);
 ```
 
-#### `generateUniqueFilename`
+**Parameters:**
+- `fileId`: The ID of the file to move
+- `pathTokens`: The new path tokens array
+- `authContext`: Authentication context
 
-Generates a unique filename with a UUID.
+**Returns:** The updated file metadata
+
+#### 2. Move File Virtual Path (Deprecated)
+
+Moves a file to a new location by updating its virtual path in the database.
 
 ```typescript
-import { generateUniqueFilename } from '../utils/storagePath';
-
-const unique = generateUniqueFilename('photo.jpg');
-// Result: 'photo_abc123-def456-ghi789.jpg'
+const updatedFile = await moveFileVirtualPath(
+  fileId,
+  'logos/company/new_folder',
+  authContext
+);
 ```
 
-#### `getFileExtension`
+**Parameters:**
+- `fileId`: The ID of the file to move
+- `virtualPath`: The new virtual path string
+- `authContext`: Authentication context
 
-Gets the file extension from a filename.
+**Returns:** The updated file metadata
+
+#### 3. Move File Storage
+
+Physically moves a file in Supabase Storage and updates the file metadata accordingly.
 
 ```typescript
-import { getFileExtension } from '../utils/storagePath';
-
-const extension = getFileExtension('photo.jpg');
-// Result: '.jpg'
+const updatedFile = await moveFileStorage(
+  fileId,
+  'new/path/to/file.jpg',
+  authContext,
+  'destination-bucket' // Optional, defaults to same bucket
+);
 ```
 
-### Path Extraction
+**Parameters:**
+- `fileId`: The ID of the file to move
+- `destinationPath`: The new path within the bucket
+- `authContext`: Authentication context
+- `destinationBucket`: Optional destination bucket (defaults to same bucket)
 
-#### `getFilenameFromPath`
+**Returns:** The updated file metadata
 
-Extracts the filename from a storage path.
+### Copying Files
+
+The storage service provides functions for copying files within the same bucket or across different buckets:
+
+#### 1. Copy File Within Bucket
+
+Copies a file within the same bucket and creates new file metadata.
 
 ```typescript
-import { getFilenameFromPath } from '../utils/storagePath';
-
-const filename = getFilenameFromPath('user/user-123/image/photo.jpg');
-// Result: 'photo.jpg'
+const copyResult = await copyFileWithinBucket(
+  fileId,
+  'new/path/to/file-copy.jpg',
+  {
+    name: 'file-copy.jpg',
+    pathTokens: ['new', 'path', 'to', 'file-copy.jpg'],
+    isPublic: true,
+    metadata: { description: 'This is a copy' }
+  },
+  authContext
+);
 ```
 
-#### `getDirPathFromPath`
+**Parameters:**
+- `fileId`: The ID of the file to copy
+- `destinationPath`: The destination path within the bucket
+- `options`: Additional options for the copy
+  - `name`: The name of the new file
+  - `virtualPath`: The virtual path for the new file
+  - `pathTokens`: The path tokens for the new file
+  - `isPublic`: Whether the new file is publicly accessible
+  - `accessLevel`: The access level of the new file
+  - `metadata`: Custom metadata for the new file
+- `authContext`: Authentication context
 
-Extracts the directory path from a storage path.
+**Returns:** The new file metadata and URL
+
+#### 2. Copy File Across Buckets
+
+Copies a file to a different bucket and creates new file metadata.
 
 ```typescript
-import { getDirPathFromPath } from '../utils/storagePath';
-
-const dirPath = getDirPathFromPath('user/user-123/image/photo.jpg');
-// Result: 'user/user-123/image'
+const copyResult = await copyFileAcrossBuckets(
+  fileId,
+  'destination-bucket',
+  'path/to/file-copy.jpg',
+  {
+    name: 'file-copy.jpg',
+    pathTokens: ['path', 'to', 'file-copy.jpg'],
+    isPublic: true,
+    contextType: 'organization',
+    contextId: 'org-123',
+    metadata: { description: 'This is a copy in another bucket' }
+  },
+  authContext
+);
 ```
 
-## Context-Specific Path Generators
+**Parameters:**
+- `fileId`: The ID of the file to copy
+- `destinationBucket`: The destination bucket
+- `destinationPath`: The destination path within the bucket
+- `options`: Additional options for the copy
+  - `name`: The name of the new file
+  - `virtualPath`: The virtual path for the new file
+  - `pathTokens`: The path tokens for the new file
+  - `isPublic`: Whether the new file is publicly accessible
+  - `accessLevel`: The access level of the new file
+  - `metadata`: Custom metadata for the new file
+  - `contextType`: The context type for the new file
+  - `contextId`: The context ID for the new file
+  - `resourceType`: The resource type for the new file
+  - `resourceId`: The resource ID for the new file
+- `authContext`: Authentication context
 
-The following functions generate storage paths for specific contexts:
+**Returns:** The new file metadata and URL
 
-### `generateUserStoragePath`
+## Implementation Details
 
-Generates a storage path for a user context.
+### File Metadata Updates
+
+When files are moved or copied, the file metadata is updated to reflect the changes:
+
+1. **Moving Files**:
+   - The `path` field is updated to the new path
+   - The `bucket` field is updated if the destination bucket is different
+   - The `url` field is updated to reflect the new location
+   - The `updated_at` field is set to the current timestamp
+
+2. **Copying Files**:
+   - A new file metadata record is created with a new ID
+   - The `metadata` field includes a reference to the original file ID
+   - For cross-bucket copies, the original bucket is also recorded
+
+### Permissions
+
+All file operations check if the user has permission to perform the operation:
 
 ```typescript
-import { generateUserStoragePath } from '../utils/storagePath';
-
-const path = generateUserStoragePath('user-123', 'image', {
-  originalFilename: 'photo.jpg'
-});
-// Result: 'user/user-123/image/photo_abc123.jpg'
+// Check if user has permission to move/copy the file
+if (fileMetadata.created_by !== authContext.userId && 
+    fileMetadata.context_id !== authContext.appId && 
+    fileMetadata.context_id !== authContext.orgId) {
+  throw createPermissionDeniedError(fileId, authContext.userId || 'anonymous')
+}
 ```
 
-### `generateOrganizationStoragePath`
+### Error Handling
 
-Generates a storage path for an organization context.
+All file operations include proper error handling:
 
-```typescript
-import { generateOrganizationStoragePath } from '../utils/storagePath';
-
-const path = generateOrganizationStoragePath('org-123', 'document', {
-  originalFilename: 'report.pdf'
-});
-// Result: 'organization/org-123/document/report_abc123.pdf'
-```
-
-### `generateApplicationStoragePath`
-
-Generates a storage path for an application context.
-
-```typescript
-import { generateApplicationStoragePath } from '../utils/storagePath';
-
-const path = generateApplicationStoragePath('app-123', 'image', {
-  originalFilename: 'logo.png'
-});
-// Result: 'application/app-123/image/logo_abc123.png'
-```
-
-### `generateChatflowStoragePath`
-
-Generates a storage path for a chatflow context.
-
-```typescript
-import { generateChatflowStoragePath } from '../utils/storagePath';
-
-const path = generateChatflowStoragePath('flow-123', 'document', {
-  originalFilename: 'transcript.txt'
-});
-// Result: 'chatflow/flow-123/document/transcript_abc123.txt'
-```
-
-### `generateDocumentStoragePath`
-
-Generates a storage path for a document context.
-
-```typescript
-import { generateDocumentStoragePath } from '../utils/storagePath';
-
-const path = generateDocumentStoragePath('doc-123', 'document', {
-  originalFilename: 'attachment.pdf'
-});
-// Result: 'document/doc-123/document/attachment_abc123.pdf'
-```
-
-### `generatePlatformStoragePath`
-
-Generates a storage path for a platform context.
-
-```typescript
-import { generatePlatformStoragePath } from '../utils/storagePath';
-
-const path = generatePlatformStoragePath('image', {
-  originalFilename: 'logo.png'
-});
-// Result: 'platform/global/image/logo_abc123.png'
-```
-
-## Virtual Paths
-
-Virtual paths are used for organizing files in the UI and are separate from the actual storage paths.
-
-### `generateVirtualPath`
-
-Generates a virtual path for organizing files in the UI.
-
-```typescript
-import { generateVirtualPath } from '../utils/storagePath';
-
-const virtualPath = generateVirtualPath('Marketing', 'Campaigns', '2025');
-// Result: 'Marketing/Campaigns/2025'
-```
+1. **StorageError**: If a specific storage error occurs, it is thrown directly
+2. **Other Errors**: Other errors are converted to StorageError with a descriptive message
 
 ## Best Practices
 
-1. **Use context-specific generators**: Use the context-specific path generators whenever possible to ensure consistent path structures.
+1. **Use Path Tokens**: Prefer using path tokens over virtual paths for better performance and compatibility with Supabase Storage
 
-2. **Include UUIDs for uniqueness**: Always include UUIDs in filenames to prevent collisions, especially for user-uploaded files.
+2. **Update Metadata**: Always update the file metadata after moving or copying files to maintain consistency
 
-3. **Sanitize user input**: Always sanitize any user-provided input (filenames, folder names) before using them in paths.
+3. **Check Permissions**: Always check if the user has permission to perform the operation
 
-4. **Validate paths**: Validate generated paths to ensure they meet the requirements for Supabase Storage.
+4. **Handle Errors**: Implement proper error handling to provide meaningful feedback to users
 
-5. **Keep paths organized**: Follow the context/resource type structure to keep files organized and easily retrievable.
+5. **Use Native Functions**: Use the native Supabase Storage functions for moving and copying files when possible
 
-## Example: Complete Path Generation
+## Examples
+
+### Example 1: Moving a Logo to a New Folder
 
 ```typescript
-import { 
-  generateUserStoragePath,
-  generateVirtualPath,
-  FILE_RESOURCE_TYPES
-} from '../utils/storagePath';
+// Move a logo to a new folder
+try {
+  const updatedFile = await moveFilePathTokens(
+    logoFileId,
+    ['logos', 'brand', 'primary'],
+    authContext
+  );
+  console.log(`Logo moved successfully to ${updatedFile.path}`);
+} catch (error) {
+  console.error('Failed to move logo:', error.message);
+}
+```
 
-// Generate a storage path for a user's profile picture
-const storagePath = generateUserStoragePath(
-  'user-123',
-  FILE_RESOURCE_TYPES.PROFILE_PICTURE,
-  {
-    originalFilename: 'profile.jpg',
-    includeUuid: true
+### Example 2: Creating a Copy of a Template
+
+```typescript
+// Create a copy of a template in the same bucket
+try {
+  const { file, url } = await copyFileWithinBucket(
+    templateFileId,
+    'templates/custom/template-copy.docx',
+    {
+      name: 'My Custom Template',
+      pathTokens: ['templates', 'custom', 'template-copy.docx'],
+      metadata: { 
+        description: 'Custom version of the standard template',
+        version: '1.0',
+        customized: true
+      }
+    },
+    authContext
+  );
+  console.log(`Template copied successfully to ${file.path}`);
+  console.log(`Access URL: ${url}`);
+} catch (error) {
+  console.error('Failed to copy template:', error.message);
+}
+```
+
+### Example 3: Moving a File to Another Bucket
+
+```typescript
+// Move a file from a temporary bucket to a permanent bucket
+try {
+  const updatedFile = await moveFileStorage(
+    tempFileId,
+    'documents/final/report.pdf',
+    authContext,
+    'permanent-storage'
+  );
+  console.log(`File moved successfully to ${updatedFile.bucket}/${updatedFile.path}`);
+} catch (error) {
+  console.error('Failed to move file to permanent storage:', error.message);
+}
+```
+
+## API Routes for File Operations
+
+The following API routes are available for moving and copying files:
+
+### Move Operations
+
+#### 1. Move File in Storage
+
+Physically moves a file in Supabase Storage and updates the file metadata.
+
+```
+POST /api/storage/move
+```
+
+**Request Body:**
+```json
+{
+  "fileId": "123",
+  "destinationPath": "new/path/to/file.jpg",
+  "destinationBucket": "destination-bucket", // Optional
+  "updatePathTokens": true // Optional, defaults to true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "file": {
+    "id": "123",
+    "name": "file.jpg",
+    "path": "new/path/to/file.jpg",
+    "bucket": "destination-bucket",
+    // Other file metadata
   }
-);
-// Result: 'user/user-123/profile_picture/profile_abc123.jpg'
+}
+```
 
-// Generate a virtual path for UI organization
-const virtualPath = generateVirtualPath('Profile', 'Pictures');
-// Result: 'Profile/Pictures'
+#### 2. Move File Path Tokens
 
-// Store both paths in the database
-await createFileMetadata({
-  // ...other properties
-  path: storagePath,
-  virtual_path: virtualPath
-});
-``` 
+Updates a file's path tokens in the database without moving the actual file.
+
+```
+POST /api/storage/move-path-tokens
+```
+
+**Request Body:**
+```json
+{
+  "fileId": "123",
+  "pathTokens": ["new", "path", "to", "file.jpg"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "file": {
+    "id": "123",
+    "name": "file.jpg",
+    "path_tokens": ["new", "path", "to", "file.jpg"],
+    // Other file metadata
+  }
+}
+```
+
+#### 3. Move File Virtual Path (Deprecated)
+
+Updates a file's virtual path in the database.
+
+```
+PATCH /api/storage/file/:fileId/move
+```
+
+**Request Body:**
+```json
+{
+  "virtualPath": "new/path/to/file.jpg"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "file": {
+    "id": "123",
+    "name": "file.jpg",
+    "virtual_path": "new/path/to/file.jpg",
+    // Other file metadata
+  }
+}
+```
+
+### Copy Operations
+
+#### 1. Copy File Within Bucket
+
+Copies a file within the same bucket.
+
+```
+POST /api/storage/copy-within-bucket
+```
+
+**Request Body:**
+```json
+{
+  "fileId": "123",
+  "destinationPath": "new/path/to/file-copy.jpg",
+  "name": "file-copy.jpg", // Optional
+  "pathTokens": ["new", "path", "to", "file-copy.jpg"], // Optional
+  "virtualPath": "new/path/to/file-copy.jpg", // Optional
+  "isPublic": true, // Optional
+  "accessLevel": "public", // Optional
+  "metadata": { "description": "This is a copy" } // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "file": {
+    "id": "456",
+    "name": "file-copy.jpg",
+    "path": "new/path/to/file-copy.jpg",
+    // Other file metadata
+  },
+  "url": "https://example.com/storage/bucket/new/path/to/file-copy.jpg"
+}
+```
+
+#### 2. Copy File Across Buckets
+
+Copies a file to a different bucket.
+
+```
+POST /api/storage/copy-across-buckets
+```
+
+**Request Body:**
+```json
+{
+  "fileId": "123",
+  "destinationBucket": "destination-bucket",
+  "destinationPath": "path/to/file-copy.jpg",
+  "name": "file-copy.jpg", // Optional
+  "pathTokens": ["path", "to", "file-copy.jpg"], // Optional
+  "virtualPath": "path/to/file-copy.jpg", // Optional
+  "isPublic": true, // Optional
+  "accessLevel": "public", // Optional
+  "metadata": { "description": "This is a copy" }, // Optional
+  "contextType": "organization", // Optional
+  "contextId": "org-123", // Optional
+  "resourceType": "image", // Optional
+  "resourceId": "img-123" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "file": {
+    "id": "789",
+    "name": "file-copy.jpg",
+    "path": "path/to/file-copy.jpg",
+    "bucket": "destination-bucket",
+    // Other file metadata
+  },
+  "url": "https://example.com/storage/destination-bucket/path/to/file-copy.jpg"
+}
+```
+
+#### 3. Copy File (Deprecated)
+
+Copies a file using the legacy API.
+
+```
+POST /api/storage/file/:fileId/copy
+```
+
+**Request Body:**
+```json
+{
+  "name": "file-copy.jpg", // Optional
+  "contentType": "image/jpeg", // Optional
+  "contextType": "organization", // Optional
+  "contextId": "org-123", // Optional
+  "resourceType": "image", // Optional
+  "resourceId": "img-123", // Optional
+  "isPublic": true, // Optional
+  "accessLevel": "public", // Optional
+  "metadata": { "description": "This is a copy" }, // Optional
+  "virtualPath": "path/to/file-copy.jpg", // Optional
+  "destinationPath": "path/to/file-copy.jpg" // Optional
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "file": {
+    "id": "456",
+    "name": "file-copy.jpg",
+    // Other file metadata
+  },
+  "url": "https://example.com/storage/bucket/path/to/file-copy.jpg"
+}
+```
+
+### Authorization
+
+All file operations require appropriate permissions:
+
+- Move operations require the `file.update` permission
+- Copy operations require the `file.create` permission
+
+The authorization is handled by the `authorize` middleware, which checks if the user has the required permission based on their JWT token or API key. 

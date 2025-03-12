@@ -183,8 +183,44 @@ export const FILE_MIME_TYPES = {
 
 /**
  * Virtual path separators for file organization
+ * @deprecated Use path_tokens array instead of virtual_path string with separators
  */
 export const VIRTUAL_PATH_SEPARATOR = '/'
+
+/**
+ * Path token utility functions for working with path_tokens arrays
+ */
+export const PATH_TOKEN_FUNCTIONS = {
+  /**
+   * Convert a path string to path tokens array
+   * @param path Path string
+   * @returns Array of path tokens
+   */
+  pathToTokens: (path: string): string[] => {
+    if (!path) return []
+    return path.split(VIRTUAL_PATH_SEPARATOR).filter(Boolean)
+  },
+
+  /**
+   * Convert path tokens array to path string
+   * @param tokens Array of path tokens
+   * @returns Path string
+   */
+  tokensToPath: (tokens: string[]): string => {
+    if (!tokens || !tokens.length) return ''
+    return tokens.join(VIRTUAL_PATH_SEPARATOR)
+  },
+
+  /**
+   * Get parent path tokens (remove the last token)
+   * @param tokens Array of path tokens
+   * @returns Parent path tokens
+   */
+  getParentTokens: (tokens: string[]): string[] => {
+    if (!tokens || tokens.length <= 1) return []
+    return tokens.slice(0, -1)
+  }
+}
 
 /**
  * Default expiration times for signed URLs (in seconds)
