@@ -24,18 +24,50 @@ router.use('/platform', platformRoutes)
 // Platform admin routes (settings, secrets, etc.)
 router.use('/platform', platformAdminRoutes)
 
+// Get all service Users
+router.get('/platform/users/service-users', UserController.getAllServiceUsers)
+// Get a service user by ID
+router.get('/platform/users/service-users/:userId', UserController.getUserById)
+// Update a service user
+router.put('/platform/users/service-users/:userId', UserController.updateUser)
+// Delete a service user
+router.delete('/platform/users/service-users/:userId', UserController.deleteUser)
+// Get all service users by application ID
+router.get('/applications/:appId/users/service-users', UserController.getAllUsers)
+// Get a service user by ID
+router.get('/applications/:appId/users/service-users/:userId', UserController.getUserById)
+// Update a service user for a specific application
+router.put('/applications/:appId/users/service-users/:userId', UserController.updateUser)
+// Delete a service user for a specific application 
+router.delete('/applications/:appId/users/service-users/:userId', UserController.deleteUser)
+// Create a service user for a specific application 
+router.post('/applications/:appId/users/service-users/create', UserController.createUser)
+// Update a service user for a specific application
+router.put('/applications/:appId/users/service-users/:userId', UserController.updateUser)
+// Delete a service user for a specific application
+router.delete('/applications/:appId/users/service-users/:userId', UserController.deleteUser)
+
+
+
+
+
+
+
+
 // User routes - temporarily removed platform admin requirement for testing
-router.get('/users', UserController.getAllUsers)
+router.get('/global/users', UserController.getAllUsers)
 // Create a new user
-router.post('/users/create', UserController.createUser)
+router.post('/global/users/create', UserController.createUser)
 // Get a user by ID
-router.get('/users/:userId', UserController.getUserById)
+router.get('/global/users/:userId', UserController.getUserById)
 // Update a user
-router.put('/users/:userId', UserController.updateUser)
+router.put('/global/users/:userId', UserController.updateUser)
 // Delete a user
-router.delete('/users/:userId', UserController.deleteUser)
+router.delete('/global/users/:userId', UserController.deleteUser)
 // Get all organizations for a user
 router.get('/users/:userId/organizations', UserController.getUserOrganizations)
+
+
 /*
 The following routes have been updated to be more consistent and easier to understand.
 @author: @brian@remodl.ai
@@ -56,6 +88,9 @@ router.delete('/applications/delete/:appId', ApplicationController.deleteApplica
 // Get all applications for a user
 //We've added the userId to the route to make it more specific and easier to understand.
 router.get('/user/:userId/applications/all', ApplicationController.getUserApplications)
+
+// Get all users for an application
+router.get('/applications/:appId/users', UserController.getAllUsers)
 
 router.post('/applications/:appId/assets/logo/upload', ApplicationController.uploadApplicationLogo)
 
@@ -119,15 +154,33 @@ router.get('/debug/user-applications', async (req, res) => {
 // Organization routes
 router.get('/organizations', OrganizationController.getAllOrganizations)
 router.post('/organizations/create', OrganizationController.createOrganization)
-router.get('/organizations/:organizationId', OrganizationController.getOrganizationById)
-router.put('/organizations/:organizationId', OrganizationController.updateOrganization)
-router.delete('/organizations/:organizationId', OrganizationController.deleteOrganization)
+router.get('/organizations/:orgId', OrganizationController.getOrganizationById)
+router.put('/organizations/:orgId', OrganizationController.updateOrganization)
+router.delete('/organizations/:orgId', OrganizationController.deleteOrganization)
+
+// Organization service users routes
+// Get all service users by organization ID
+router.get('/organizations/:orgId/users/service-users', UserController.getAllUsers)
+// Get a service user for a specific organization by ID
+router.get('/organizations/:orgId/users/service-users/:userId', UserController.getUserById)
+// Update a service user for a specific organization
+router.put('/organizations/:orgId/users/service-users/:userId', UserController.updateUser)
+// Delete a service user for a specific organization
+router.delete('/organizations/:orgId/users/service-users/:userId', UserController.deleteUser)
+// Create a service user for a specific organization
+router.post('/organizations/:orgId/users/service-users/create', UserController.createUser)
 
 // Organization members routes
-router.get('/organizations/:organizationId/members', OrganizationController.getOrganizationMembers)
-router.post('/organizations/:organizationId/members', OrganizationController.addOrganizationMember)
-router.put('/organizations/:organizationId/members/:userId', OrganizationController.updateOrganizationMember)
-router.delete('/organizations/:organizationId/members/:userId', OrganizationController.removeOrganizationMember)
+router.get('/organizations/:orgId/members', OrganizationController.getOrganizationMembers)
+router.post('/organizations/:orgId/members', OrganizationController.addOrganizationMember)
+router.put('/organizations/:orgId/members/:userId', OrganizationController.updateOrganizationMember)
+router.delete('/organizations/:orgId/members/:userId', OrganizationController.removeOrganizationMember)
+
+// Organization admin routes
+router.get('/organizations/:orgId/admin', OrganizationController.updateOrganizationMemberRole)
+router.post('/organizations/:orgId/admin', OrganizationController.updateOrganizationMemberRole)
+router.put('/organizations/:orgId/admin/:userId', OrganizationController.updateOrganizationMemberRole)
+router.delete('/organizations/:orgId/admin/:userId', OrganizationController.removeOrganizationMember)
 
 // Custom Roles routes
 router.get('/custom-roles', CustomRoleController.getAllRoles)

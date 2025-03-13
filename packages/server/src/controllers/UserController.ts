@@ -3,16 +3,22 @@ import { supabase } from '../utils/supabase'
 import { handleError } from '../utils/errorHandler'
 import { ISupabaseUser, ISupabaseOrganization, ISupabaseOrganizationUser, ISupabaseUserRole } from '../Interface.Supabase'
 import { IUser } from '../Interface'
+import { checkPermission } from '../utils/authorizationUtils'
 
 /**
  * User Controller
  * Handles API endpoints for managing users
  */
+let consoleLogger = true
 export class UserController {
     /**
      * Get all users
      * @param req Request
      * @param res Response
+     * @param appId - The application ID to filter users by
+     * @param orgId - The organization ID to filter users by
+     * @param isServiceUser - Whether to filter users by service user
+   
      */
     static async getAllUsers(req: Request, res: Response) {
         try {
@@ -20,154 +26,91 @@ export class UserController {
            // console.log('Request headers:', req.headers)
             //console.log('Request user:', req.user)
             //console.log('Request applicationId:', req.applicationId)
-            
-            // Get users from Supabase Auth
-            const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
-            
-            if (authError) {
-                console.error('Supabase Auth Error:', authError)
-                throw authError
+
+            let appId = req.params.appId || null
+            let orgId = req.params.orgId || null
+            let userContextLevel = ''
+            switch (true) {
+                case appId !== null:
+                    userContextLevel = 'application'
+                case orgId !== null:
+                    userContextLevel = 'organization'
+                default:
+                    userContextLevel = 'global'
+            }   
+
+            if (consoleLogger) {
+                console.log(`User context level: ${userContextLevel}`)
             }
+           
+           
+              
+
+            // Check if user has permission to read users
+
+            const hasPlatformReadUsersPermission = await checkPermission(req.user, 'platform.read_users');
+            const hasOrgReadUsersPermission = await checkPermission(req.user, 'org.read_users');
+            const hasAppReadUsersPermission = await checkPermission(req.user, 'app.read_users');
+            // we check if the user has the required permissions to read users for the given context level
+            if (!hasPlatformReadUsersPermission && !hasOrgReadUsersPermission && !hasAppReadUsersPermission) {
+                return res.status(403).json({
+                    success: false,
+                    message: `Forbidden - Missing required permissions to read users for ${userContextLevel} context`
+                });
+            }
+            // we set the scope level based on the request parameters
+            let scopeLevel = ''
+            if (userContextLevel === 'application' && appId !== null && hasAppReadUsersPermission) {
+                scopeLevel = 'application'
+            } else if (userContextLevel === 'organization' && orgId !== null && hasOrgReadUsersPermission) {
+                scopeLevel = 'organization'
+            } else if (userContextLevel === 'global' && !hasPlatformReadUsersPermission) {
+                scopeLevel = 'global'
+            } else {
+                return res.status(403).json({
+                    success: false,
+                    message: `Forbidden - Missing required permissions to read users for ${userContextLevel} context`
+                });
+            }
+            if (consoleLogger && scopeLevel !== '') {
+                console.log(`Scope level: ${scopeLevel}`)
+            }
+
+                 
+            const getAuthUsers = async (scopeLevel: string, appId: string | null, orgId: string | null) => {
+                if (scopeLevel === 'global') {
+                    let { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
+                    return authUsers
+                }
+                if (scopeLevel === 'application' && appId !== null) {
+                    let { data: authUsers, error: authError } = await supabase.from('auth.users').select('*').eq('user_metadata.application_id', appId)
+                    return authUsers
+                }
+                if (scopeLevel === 'organization' && orgId !== null) {
+                    let { data: authUsers, error: authError } = await supabase.from('auth.users').select('*').eq('user_metadata.organization_id', orgId)
+                    return authUsers    
+                }
+            }
+            const authUsers = await getAuthUsers(scopeLevel, appId, orgId)
+
+
             
-            console.log('Users retrieved from Supabase Auth:', authUsers.users.length)
             
-            // Get application ID from request context
-            const applicationId = req.applicationId
+            const isServiceUser = req.params.isServiceUser
             const isPlatformAdmin = (req.user as IUser)?.is_platform_admin === true
             
-            console.log(`Application context: ${applicationId}, isPlatformAdmin: ${isPlatformAdmin}`)
+            console.log(`Application context: ${appId}, isPlatformAdmin: ${isPlatformAdmin}`)
             
-            // Filter users by application if an applicationId is specified and not 'global'
-            let filteredUsers = authUsers.users
-            let userOrganizationsMap = new Map<string, Array<{organization_id: string, role: string}>>()
             
-            // Get all organization users
-            const { data: allOrgUsers, error: allOrgUsersError } = await supabase
-                .from('organization_users')
-                .select('user_id, organization_id, role')
-            
-            if (allOrgUsersError) {
-                console.error('Error fetching all organization users:', allOrgUsersError)
-            } else {
-                console.log(`Found ${allOrgUsers?.length || 0} total organization user records`)
-                
-                // Create a map of user ID to their organizations
-                allOrgUsers.forEach((ou: ISupabaseOrganizationUser) => {
-                    if (!userOrganizationsMap.has(ou.user_id)) {
-                        userOrganizationsMap.set(ou.user_id, [])
-                    }
-                    userOrganizationsMap.get(ou.user_id)!.push({
-                        organization_id: ou.organization_id,
-                        role: ou.role
-                    })
-                })
-            }
-            
-            // Get all organizations
-            const { data: organizations, error: orgsError } = await supabase
-                .from('organizations')
-                .select('*')
-            
-            if (orgsError) {
-                console.error('Error fetching organizations:', orgsError)
-            }
-            
-            // Create a map of organization ID to organization data
-            const organizationsMap = new Map<string, ISupabaseOrganization>()
-            organizations?.forEach((org: ISupabaseOrganization) => {
-                organizationsMap.set(org.id, org)
-            })
-            
-            // If we have an application ID and the user is not a platform admin,
-            // filter users to only those in the same organization as the application
-            if (applicationId && applicationId !== 'global' && !isPlatformAdmin) {
-                console.log('Filtering users by application organization')
-                
-                // Get the application's organization
-                const { data: application, error: appError } = await supabase
-                    .from('applications')
-                    .select('organization_id')
-                    .eq('id', applicationId)
-                    .single()
-                
-                if (appError) {
-                    console.error('Error fetching application:', appError)
-                    throw appError
-                }
-                
-                const appOrgId = application.organization_id
-                console.log(`Application organization ID: ${appOrgId}`)
-                
-                // Filter users to only those in the application's organization
-                filteredUsers = authUsers.users.filter((user: ISupabaseUser) => {
-                    const userOrgs = userOrganizationsMap.get(user.id) || []
-                    return userOrgs.some(org => org.organization_id === appOrgId)
-                })
-                
-                console.log(`Filtered to ${filteredUsers.length} users in the application's organization`)
-            } else if (!isPlatformAdmin) {
-                // Non-platform admins can only see users they have access to
-                // For now, return an empty list if not in an application context
-                console.log('Non-platform admin with no application context, returning empty list')
-                filteredUsers = []
-            } else {
-                // Platform admin in global view - show all users
-                console.log('Platform admin in global view, showing all users')
-            }
-            
-            // Get user profiles
-            const { data: userProfiles, error: profilesError } = await supabase
-                .from('user_profiles')
-                .select('*')
-            
-            if (profilesError) {
-                console.error('Error fetching user profiles:', profilesError)
-            }
-            
-            // Create a map of user ID to profile
-            const profilesMap = new Map<string, ISupabaseUser>()
-            if (userProfiles) {
-                userProfiles.forEach((profile: ISupabaseUser) => {
-                    profilesMap.set(profile.user_id, profile)
-                })
-            }
-            
-            // Format user data
-            const formattedUsers = filteredUsers.map((user: ISupabaseUser) => {
-                const profile = profilesMap.get(user.id)
-                const meta = profile?.meta || {}
-                const userOrgs = userOrganizationsMap.get(user.id) || []
-                
-                // Find primary organization (first one or null)
-                let primaryOrg = null
-                if (userOrgs.length > 0) {
-                    const orgDetails = organizationsMap.get(userOrgs[0].organization_id)
-                    if (orgDetails) {
-                        primaryOrg = {
-                            id: orgDetails.id,
-                            name: orgDetails.name,
-                            role: userOrgs[0].role
-                        }
-                    }
-                }
-                
-                // Get all organizations with details
-                const organizations = userOrgs.map((uo: { organization_id: string; role: string }) => {
-                    const org = organizationsMap.get(uo.organization_id)
-                    return org ? {
-                        id: org.id,
-                        name: org.name,
-                        application_id: org.application_id,
-                        role: uo.role
-                    } : null
-                }).filter(Boolean)
+            const formattedUsers = authUsers.map((user: ISupabaseUser) => {
+                const meta = user.user_metadata || {}
+                const primaryOrg = user.user_metadata?.organizations?.[0]
+                const organizations = user.user_metadata?.organizations || []
                 
                 return {
                     id: user.id,
                     email: user.email,
-                    name: meta.first_name && meta.last_name 
-                        ? `${meta.first_name} ${meta.last_name}` 
-                        : user.user_metadata?.name || '',
+                    name: meta.first_name? meta.first_name + ' ' + meta.last_name : user.user_metadata?.name || '',
                     firstName: meta.first_name || user.user_metadata?.first_name || '',
                     lastName: meta.last_name || user.user_metadata?.last_name || '',
                     role: user.user_metadata?.role || 'user',
@@ -177,13 +120,53 @@ export class UserController {
                     organization: primaryOrg?.name || null,
                     organizationId: primaryOrg?.id || null,
                     organizationRole: primaryOrg?.role || null,
-                    organizations: organizations
+                    organizations: organizations,
+                    isServiceUser: user.user_metadata?.is_service_user || false
                 }
             })
+
+            if (consoleLogger) {
+                console.log(`Returning ${formattedUsers.length} users`)
+            }
+            let users = []
+            if (isServiceUser) {
+
+                let serviceUsers = formattedUsers.filter((user: IUser) => user.isServiceUser === true)
+                users = serviceUsers
+            } else {
+                users = formattedUsers
+            }
             
-            return res.json({ users: formattedUsers })
+            return res.json({ users: users })
         } catch (error) {
             return handleError(res, error, 'Error fetching users')
+        }
+    }
+    
+
+
+    /**
+     * Get all service users
+     * @param req Request
+     * @param res Response
+     */
+    static async getAllServiceUsers(req: Request, res: Response) {
+        try {
+
+            
+
+            const { data: serviceUsers, error: serviceUsersError } = await supabase
+                .from('auth.users')
+                .select('*')
+                .eq('user_metadata->is_service_user', true)
+    
+            if (serviceUsersError) {
+                console.error('Error fetching service users:', serviceUsersError)
+            }
+            
+            return res.json({ users: serviceUsers })
+        } catch (error) {
+            return handleError(res, error, 'Error fetching service users')
         }
     }
 
@@ -297,13 +280,21 @@ export class UserController {
      */
     static async createUser(req: Request, res: Response) {
         try {
-            const { email, password, firstName, lastName, organization, role } = req.body
+            const { email, password, firstName, lastName, organization, role, applicationId, isPlatformAdmin, isServiceUser } = req.body
             
             if (!email || !password) {
                 return res.status(400).json({ error: 'Email and password are required' })
             }
-            
+            if (isServiceUser && !applicationId) {
+                return res.status(400).json({ error: 'Application ID is required for service users' })
+            }
             // Create the user in Supabase Auth
+
+            let name = `${firstName} ${lastName}`.trim()
+            if (isServiceUser) {
+                name = `${firstName}`.trim()
+            }
+            
             const { data, error } = await supabase.auth.admin.createUser({
                 email,
                 password,
@@ -311,9 +302,12 @@ export class UserController {
                 user_metadata: { 
                     first_name: firstName,
                     last_name: lastName,
-                    name: `${firstName} ${lastName}`.trim(),
+                    name: name,
                     organization,
-                    role
+                    role,
+                    is_platform_admin: isPlatformAdmin,
+                    is_service_user: isServiceUser,
+                    application_id: applicationId? applicationId : null
                 }
             })
             
@@ -328,27 +322,53 @@ export class UserController {
                         first_name: firstName,
                         last_name: lastName,
                         organization,
-                        role
+                        role,
+                        is_platform_admin: isPlatformAdmin,
+                        is_service_user: isServiceUser,
+                        application_id: applicationId? applicationId : null
                     }
                 })
             
             if (profileError) {
                 console.error('Error creating user profile:', profileError)
             }
-            
-            return res.json({
-                user: {
-                    id: data.user.id,
-                    email: data.user.email,
-                    firstName,
-                    lastName,
-                    name: `${firstName} ${lastName}`.trim(),
-                    organization,
-                    role,
-                    status: 'Active',
-                    createdAt: data.user.created_at
-                }
-            })
+            if (isServiceUser) {
+                return res.json({
+                    user: {
+                        id: data.user.id,
+                        email: data.user.email,
+                        firstName,
+                        lastName,
+                        name: name,
+                        organization,
+                        role,
+                        status: 'Active',
+                        createdAt: data.user.created_at,
+                        is_platform_admin: isPlatformAdmin,
+                        is_service_user: isServiceUser,
+                        application_id: applicationId? applicationId : null
+                    },
+                    application_id: applicationId? applicationId : null
+                })
+            } else {
+                return res.json({
+                    user: {
+                        id: data.user.id,
+                        email: data.user.email,
+                        firstName,
+                        lastName,
+                        name: name,
+                        organization,
+                        role,
+                        status: 'Active',
+                        createdAt: data.user.created_at,
+                        is_platform_admin: isPlatformAdmin,
+                        is_service_user: isServiceUser,
+                        application_id: applicationId? applicationId : null
+                    },
+                    application_id: applicationId? applicationId : null
+                })
+            }
         } catch (error) {
             return handleError(res, error, 'Error creating user')
         }

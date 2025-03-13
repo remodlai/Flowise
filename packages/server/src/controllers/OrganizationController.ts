@@ -380,6 +380,37 @@ export class OrganizationController {
             return handleError(res, error, 'Error updating organization member')
         }
     }
+
+    /**
+     * Update a member's role in an organization
+     * @param req Request
+     * @param res Response
+     */
+    static async updateOrganizationMemberRole(req: Request, res: Response) {
+        try {
+            const { organizationId, userId } = req.params
+            const { role } = req.body
+            
+            if (!role) {
+                return res.status(400).json({ error: 'Role is required' })
+            }
+            
+            // Update user's role
+            const { data, error } = await supabase
+                .from('organization_users')
+                .update({ role })
+                .eq('organization_id', organizationId)
+                .eq('user_id', userId)
+                .select()
+                .single()
+            
+            if (error) throw error
+            
+            return res.json({ member: data })
+        } catch (error) {
+            return handleError(res, error, 'Error updating organization member')
+        }
+    }
     
     /**
      * Remove a member from an organization

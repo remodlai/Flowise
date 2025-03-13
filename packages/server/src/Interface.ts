@@ -64,6 +64,7 @@ export interface IUser {
     profile_role?: string
     // Organization ID from JWT claims
     organizationId?: string
+    isServiceUser?: boolean
 }
 export interface IApplication {
     id: string
