@@ -197,17 +197,18 @@ This document outlines the implementation plan for integrating Supabase Storage 
 
 ### Changelog
 
-- **2023-07-18**: Implemented basic logo management component for the platform. This component allows platform admins to upload, view, manage, and delete platform logos. It serves as a proof of concept for Supabase Storage integration, demonstrating proper permission checking, soft delete functionality, file upload and retrieval, metadata management, and UI integration with the storage service.
+
+- **2025-03-12**: Implemented basic logo management component for the platform. This component allows platform admins to upload, view, manage, and delete platform logos. It serves as a proof of concept for Supabase Storage integration, demonstrating proper permission checking, soft delete functionality, file upload and retrieval, metadata management, and UI integration with the storage service.
 
 ## Phase 9: Testing and Documentation
 
-- [ ] Write unit tests
+- [ ] Test endpoints via curl
   - [ ] Test storage operations
   - [ ] Test file metadata manager
   - [ ] Test high-level storage service
   - [ ] Test API routes
 
-- [ ] Write integration tests
+
   - [ ] Test end-to-end file operations
   - [ ] Test permissions and access control
   - [ ] Test error handling

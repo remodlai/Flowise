@@ -130,6 +130,22 @@ export const getImage = async (req: Request, res: Response, next: NextFunction) 
         message: 'Image not found'
       });
     }
+    if (data && data.path_tokens) {
+      try {
+        const path = data.path_tokens.join('/') + '/' + data.name;
+        const { data: urlData } = app.Supabase
+          .storage
+          .from(data.bucket)
+          .getPublicUrl(path);
+        data.url = urlData?.publicUrl;
+        return res.status(200).json({
+          success: true,
+          data
+        });
+      } catch (error: any) {
+        logger.error('Error getting image URL:', error);
+      }
+    }
     
     return res.status(200).json({
       success: true,
@@ -190,6 +206,17 @@ export const uploadImage = async (req: Request, res: Response, next: NextFunctio
     const description = req.body.description || '';
     const isPublic = req.body.isPublic === 'true';
     const isShareable = req.body.isShareable === 'true';
+    const pathTokens = req.body.pathTokens || [];
+    /*
+    pathTokens is an array of strings that are the path tokens for the file. 
+    example: ['ui', 'images', 'logos']
+    This will be used to generate the path for the file in the storage bucket.
+    The path will be ui/images/logos/1715549200_logo.png
+    The pathTokens will be ['ui', 'images', 'logos']
+
+
+    */
+    
     
     // Validate file type
     if (!mimetype.startsWith('image/')) {
@@ -200,8 +227,9 @@ export const uploadImage = async (req: Request, res: Response, next: NextFunctio
     }
     
     // Generate a unique path for the file
-    const path = `${contextType}/${contextId || 'global'}/${Date.now()}_${originalname.replace(/\s+/g, '_')}`;
-    const bucket = STORAGE_BUCKETS.PLATFORM;
+    let normalizedName = originalname.replace(/\s+/g, '_');
+    const path =  pathTokens.join('/') + '/' + `${normalizedName}`;
+    const bucket = req.body.bucket || STORAGE_BUCKETS.PLATFORM;
     
     // Upload file to Supabase Storage
     const { data: uploadData, error: uploadError } = await app.Supabase
@@ -222,23 +250,26 @@ export const uploadImage = async (req: Request, res: Response, next: NextFunctio
     }
     
     // Get the public URL
+    //REMODL TODO: We need to check this.  It may not be correct.  referto 
     const { data: urlData } = app.Supabase
       .storage
       .from(bucket)
       .getPublicUrl(path);
     
-    const url = urlData?.publicUrl || '';
+    const url = urlData?.publicUrl;
+    logger.info(`[server][uploadImage] url: ${url}`);
+    console.log(`[server][uploadImage] url: ${url}`);
     
     // Save file metadata to database
     const { data: fileData, error: fileError } = await app.Supabase
       .from('files')
       .insert({
-        name: originalname,
+        name: normalizedName,
         content_type: mimetype,
         size,
         url,
         bucket,
-        path,
+        path_tokens: pathTokens,
         context_type: contextType,
         context_id: contextId,
         resource_type: 'image',
@@ -268,6 +299,7 @@ export const uploadImage = async (req: Request, res: Response, next: NextFunctio
     return res.status(201).json({
       success: true,
       message: 'File uploaded successfully',
+      url: url,
       data: fileData
     });
   } catch (error: any) {
@@ -629,10 +661,11 @@ export const getImageUrl = async (req: Request, res: Response, next: NextFunctio
     const { data: urlData } = app.Supabase
       .storage
       .from(data.bucket)
-      .getPublicUrl(data.path);
+      .getPublicUrl(data.path_tokens.join('/') + '/' + data.name);
     
-    const url = urlData?.publicUrl || data.url;
-    
+    const url = urlData?.publicUrl;
+    logger.info(`[server][getImageUrl] url: ${url}`);
+    console.log(`[server][getImageUrl] url: ${url}`);
     return res.status(200).json({
       success: true,
       url,
@@ -714,13 +747,22 @@ export const getImageContent = async (req: Request, res: Response, next: NextFun
     }
     
     try {
+      let sbFileData = null
+      let downloadError = null;
       // Download the file content from Supabase Storage
-      const { data: fileData, error: downloadError } = await app.Supabase
+      if (data.bucket && data.path_tokens && data.name) {
+      try {
+        const { data: fileData } = app.Supabase
         .storage
         .from(data.bucket)
-        .download(data.path);
+        .getPublicUrl(data.path_tokens.join('/') + '/' + data.name);
+        sbFileData = fileData;
+      } catch (error: any) {
+        downloadError = error;
+      }
+    }
       
-      if (downloadError || !fileData) {
+      if (downloadError || !sbFileData) {
         logger.error('Error downloading file from storage:', downloadError);
         return res.status(400).json({
           success: false,
@@ -730,7 +772,7 @@ export const getImageContent = async (req: Request, res: Response, next: NextFun
       }
       
       // Convert Blob to Buffer if needed
-      const buffer = await fileData.arrayBuffer().then(arrayBuffer => Buffer.from(arrayBuffer));
+      const buffer = await fetch(sbFileData.publicUrl).then(response => response.arrayBuffer()).then(arrayBuffer => Buffer.from(arrayBuffer));
       
       // Set appropriate headers
       res.setHeader('Content-Type', data.content_type);

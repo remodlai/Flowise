@@ -1,4 +1,4 @@
-# Storage Endpoints Testing Checklist
+I adjusted the code for that method. What was happening is that we were directly trying to return the path, and that’s not actually correct. The process is, we query the files table, we get back the information from the files table, then we use the path tokens, join those, append the file name to the end of it, and then use the getPublicURL helper function for SuperBase storage to generate the public URL. ⁠# Storage Endpoints Testing Checklist
 
 This document provides a comprehensive checklist for testing all storage endpoints in the Remodl AI platform. Each endpoint will be tested with various scenarios to ensure proper functionality.
 
