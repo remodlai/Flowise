@@ -15,10 +15,47 @@ export interface ISupabaseUser {
     user_metadata?: {
         first_name?: string
         last_name?: string
+        name?: string
+        role?: string
+        is_service_user?: boolean
+        status?: string
+        organization_id?: string
+        organization_name?: string
+        application_id?: string
+        application_name?: string
+        organizations?: Array<{
+            id: string
+            name: string
+            role?: string
+        }>
         [key: string]: any
     }
+    // Enhanced metadata fields from custom access token hook
+    is_service_user?: boolean
+    user_status?: string
+    first_name?: string
+    last_name?: string
+    profile_role?: string
+    is_platform_admin?: boolean
+    organization?: {
+        id: string
+        name: string
+    }
+    application?: {
+        id: string
+        name: string
+    }
+    organizationId?: string
+    organization_name?: string
+    user_roles?: Array<{
+        role: string
+        resource_type?: string
+        resource_id?: string
+    }>
     created_at: string
     updated_at: string
+    email_confirmed_at?: string
+    last_sign_in_at?: string
     [key: string]: any
 }
 

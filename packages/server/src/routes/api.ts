@@ -41,7 +41,7 @@ router.put('/applications/:appId/users/service-users/:userId', UserController.up
 // Delete a service user for a specific application 
 router.delete('/applications/:appId/users/service-users/:userId', UserController.deleteUser)
 // Create a service user for a specific application 
-router.post('/applications/:appId/users/service-users/create', UserController.createUser)
+router.post('/applications/:appId/users/service-users', UserController.createUser)
 // Update a service user for a specific application
 router.put('/applications/:appId/users/service-users/:userId', UserController.updateUser)
 // Delete a service user for a specific application
@@ -55,15 +55,15 @@ router.delete('/applications/:appId/users/service-users/:userId', UserController
 
 
 // User routes - temporarily removed platform admin requirement for testing
-router.get('/global/users', UserController.getAllUsers)
+router.get('/platform/users', UserController.getAllUsers)
 // Create a new user
-router.post('/global/users/create', UserController.createUser)
+router.post('/platform/users/create', UserController.createUser)
 // Get a user by ID
-router.get('/global/users/:userId', UserController.getUserById)
+router.get('/platform/users/:userId', UserController.getUserById)
 // Update a user
-router.put('/global/users/:userId', UserController.updateUser)
+router.put('/platform/users/:userId', UserController.updateUser)
 // Delete a user
-router.delete('/global/users/:userId', UserController.deleteUser)
+router.delete('/platform/users/:userId', UserController.deleteUser)
 // Get all organizations for a user
 router.get('/users/:userId/organizations', UserController.getUserOrganizations)
 
@@ -78,16 +78,15 @@ The following routes have been updated to be more consistent and easier to under
 // Application routes
 router.get('/applications', ApplicationController.getAllApplications)
 // Create a new application
-router.post('/applications/create', ApplicationController.createApplication)
+router.post('/applications', ApplicationController.createApplication)
 // Get an application by ID
 router.get('/applications/:appId', ApplicationController.getApplicationById)
 // Update an application
-router.put('/applications/update/:appId', ApplicationController.updateApplication)
+router.put('/applications/:appId', ApplicationController.updateApplication)
 // Delete an application
-router.delete('/applications/delete/:appId', ApplicationController.deleteApplication)
+router.delete('/applications/:appId', ApplicationController.deleteApplication)
 // Get all applications for a user
-//We've added the userId to the route to make it more specific and easier to understand.
-router.get('/user/:userId/applications/all', ApplicationController.getUserApplications)
+router.get('/users/:userId/applications', ApplicationController.getUserApplications)
 
 // Get all users for an application
 router.get('/applications/:appId/users', UserController.getAllUsers)
@@ -153,7 +152,7 @@ router.get('/debug/user-applications', async (req, res) => {
 
 // Organization routes
 router.get('/organizations', OrganizationController.getAllOrganizations)
-router.post('/organizations/create', OrganizationController.createOrganization)
+router.post('/organizations', OrganizationController.createOrganization)
 router.get('/organizations/:orgId', OrganizationController.getOrganizationById)
 router.put('/organizations/:orgId', OrganizationController.updateOrganization)
 router.delete('/organizations/:orgId', OrganizationController.deleteOrganization)
@@ -168,7 +167,7 @@ router.put('/organizations/:orgId/users/service-users/:userId', UserController.u
 // Delete a service user for a specific organization
 router.delete('/organizations/:orgId/users/service-users/:userId', UserController.deleteUser)
 // Create a service user for a specific organization
-router.post('/organizations/:orgId/users/service-users/create', UserController.createUser)
+router.post('/organizations/:orgId/users/service-users', UserController.createUser)
 
 // Organization members routes
 router.get('/organizations/:orgId/members', OrganizationController.getOrganizationMembers)
@@ -177,31 +176,31 @@ router.put('/organizations/:orgId/members/:userId', OrganizationController.updat
 router.delete('/organizations/:orgId/members/:userId', OrganizationController.removeOrganizationMember)
 
 // Organization admin routes
-router.get('/organizations/:orgId/admin', OrganizationController.updateOrganizationMemberRole)
-router.post('/organizations/:orgId/admin', OrganizationController.updateOrganizationMemberRole)
-router.put('/organizations/:orgId/admin/:userId', OrganizationController.updateOrganizationMemberRole)
+router.get('/organizations/:orgId/admin', OrganizationController.updateOrganizationMember)
+router.post('/organizations/:orgId/admin', OrganizationController.updateOrganizationMember)
+router.put('/organizations/:orgId/admin/:userId', OrganizationController.updateOrganizationMember)
 router.delete('/organizations/:orgId/admin/:userId', OrganizationController.removeOrganizationMember)
 
 // Custom Roles routes
-router.get('/custom-roles', CustomRoleController.getAllRoles)
-router.post('/custom-roles', CustomRoleController.createRole)
-router.get('/custom-roles/:roleId', CustomRoleController.getRoleById)
-router.put('/custom-roles/:roleId', CustomRoleController.updateRole)
-router.delete('/custom-roles/:roleId', CustomRoleController.deleteRole)
+router.get('/roles', CustomRoleController.getAllRoles)
+router.post('/roles', CustomRoleController.createRole)
+router.get('/roles/:roleId', CustomRoleController.getRoleById)
+router.put('/roles/:roleId', CustomRoleController.updateRole)
+router.delete('/roles/:roleId', CustomRoleController.deleteRole)
 
 // Role permissions routes
-router.get('/custom-roles/:roleId/permissions', CustomRoleController.getRolePermissions)
-router.post('/custom-roles/:roleId/permissions', CustomRoleController.addRolePermissions)
-router.delete('/custom-roles/:roleId/permissions/:permission', CustomRoleController.removeRolePermission)
+router.get('/roles/:roleId/permissions', CustomRoleController.getRolePermissions)
+router.post('/roles/:roleId/permissions', CustomRoleController.addRolePermissions)
+router.delete('/roles/:roleId/permissions/:permission', CustomRoleController.removeRolePermission)
 
 // Direct SQL route for permissions
-router.get('/custom-roles/:roleId/permissions-direct', CustomRoleController.getRolePermissionsDirectSQL)
+router.get('/roles/:roleId/permissions-direct', CustomRoleController.getRolePermissionsDirectSQL)
 
 // Role users routes
-router.get('/custom-roles/:roleId/users', CustomRoleController.getRoleUsers)
+router.get('/roles/:roleId/users', CustomRoleController.getRoleUsers)
 
 // User roles routes
-router.get('/users/:userId/custom-roles', CustomRoleController.getUserRoles)
+router.get('/users/:userId/roles', CustomRoleController.getUserRoles)
 
 // Permissions routes
 router.get('/permissions', CustomRoleController.getAllPermissions)
@@ -343,4 +342,4 @@ router.get('/public/debug/roles', async (req, res) => {
     }
 })
 
-export default router 
+export default router

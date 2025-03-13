@@ -64,7 +64,7 @@ export class UserController {
                 scopeLevel = 'application'
             } else if (userContextLevel === 'organization' && orgId !== null && hasOrgReadUsersPermission) {
                 scopeLevel = 'organization'
-            } else if (userContextLevel === 'global' && !hasPlatformReadUsersPermission) {
+            } else if (userContextLevel === 'global' && hasPlatformReadUsersPermission) {
                 scopeLevel = 'global'
             } else {
                 return res.status(403).json({
@@ -78,17 +78,39 @@ export class UserController {
 
                  
             const getAuthUsers = async (scopeLevel: string, appId: string | null, orgId: string | null) => {
-                if (scopeLevel === 'global') {
-                    let { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
-                    return authUsers
-                }
-                if (scopeLevel === 'application' && appId !== null) {
-                    let { data: authUsers, error: authError } = await supabase.from('auth.users').select('*').eq('user_metadata.application_id', appId)
-                    return authUsers
-                }
-                if (scopeLevel === 'organization' && orgId !== null) {
-                    let { data: authUsers, error: authError } = await supabase.from('auth.users').select('*').eq('user_metadata.organization_id', orgId)
-                    return authUsers    
+                try {
+                    if (scopeLevel === 'global') {
+                        const { data, error } = await supabase.auth.admin.listUsers()
+                        if (error) throw error
+                        return data.users || []
+                    }
+                    
+                    // For application and organization scopes, we need to filter the users
+                    const { data, error } = await supabase.auth.admin.listUsers()
+                    if (error) throw error
+                    
+                    const users = data.users || []
+                    
+                    if (scopeLevel === 'application' && appId !== null) {
+                        return users.filter((user: ISupabaseUser) => 
+                            user.user_metadata?.application_id === appId || 
+                            user.user_metadata?.application?.id === appId
+                        )
+                    }
+                    
+                    if (scopeLevel === 'organization' && orgId !== null) {
+                        return users.filter((user: ISupabaseUser) => 
+                            user.user_metadata?.organization_id === orgId || 
+                            user.user_metadata?.organization?.id === orgId ||
+                            (user.user_metadata?.organizations && 
+                             user.user_metadata.organizations.some((org: any) => org.id === orgId))
+                        )
+                    }
+                    
+                    return []
+                } catch (error) {
+                    console.error('Error fetching users:', error)
+                    throw error
                 }
             }
             const authUsers = await getAuthUsers(scopeLevel, appId, orgId)
@@ -100,28 +122,97 @@ export class UserController {
             const isPlatformAdmin = (req.user as IUser)?.is_platform_admin === true
             
             console.log(`Application context: ${appId}, isPlatformAdmin: ${isPlatformAdmin}`)
+            console.log('Current user platform admin debug:', {
+                userId: (req.user as any)?.userId,
+                is_platform_admin: (req.user as any)?.is_platform_admin,
+                raw_user: req.user
+            });
             
             
             const formattedUsers = authUsers.map((user: ISupabaseUser) => {
+                // Access metadata from user_metadata or directly from JWT claims
                 const meta = user.user_metadata || {}
                 const primaryOrg = user.user_metadata?.organizations?.[0]
-                const organizations = user.user_metadata?.organizations || []
+                let organizations = user.user_metadata?.organizations || []
+                
+                // Enhanced metadata can be in user_metadata or directly in the user object
+                const isServiceUser = user.is_service_user || meta.is_service_user || false
+                const userStatus = user.user_status || meta.status || (user.email_confirmed_at ? 'active' : 'pending')
+                
+                // Get the user's role
+                const userRole = user.profile_role || meta.role || 'user'
+                
+                // Check if user is platform admin from all possible sources, including role
+                const isPlatformAdmin = user.is_platform_admin || 
+                                       meta.is_platform_admin || 
+                                       user.app_metadata?.is_platform_admin || 
+                                       userRole === 'platform_admin' || 
+                                       false
+                
+                // Debug logging for platform admin status
+                console.log('Platform admin debug:', {
+                    userId: user.id,
+                    email: user.email,
+                    user_is_platform_admin: user.is_platform_admin,
+                    meta_is_platform_admin: meta.is_platform_admin,
+                    app_metadata_is_platform_admin: user.app_metadata?.is_platform_admin,
+                    raw_user: user
+                });
+                
+                // Organization info can be in different formats
+                const orgInfo = user.organization || {
+                    id: meta.organization_id || primaryOrg?.id || null,
+                    name: meta.organization_name || primaryOrg?.name || null
+                }
+                
+                // Application info
+                const appInfo = user.application || {
+                    id: meta.application_id || null,
+                    name: meta.application_name || null
+                }
+                
+                // If organizations array is empty but we have organization info, add it to the array
+                if (organizations.length === 0 && orgInfo.id) {
+                    organizations = [{
+                        id: orgInfo.id,
+                        name: orgInfo.name || '',
+                        role: meta.role || user.profile_role || 'member'
+                    }];
+                }
+                
+                // Log the user object for debugging
+                if (consoleLogger) {
+                    console.log('User object structure:', {
+                        id: user.id,
+                        hasUserMetadata: !!user.user_metadata,
+                        hasIsServiceUser: !!user.is_service_user,
+                        hasUserStatus: !!user.user_status,
+                        hasOrganization: !!user.organization,
+                        hasApplication: !!user.application,
+                        organizationsCount: organizations.length,
+                        isPlatformAdmin: isPlatformAdmin
+                    })
+                }
                 
                 return {
                     id: user.id,
                     email: user.email,
-                    name: meta.first_name? meta.first_name + ' ' + meta.last_name : user.user_metadata?.name || '',
-                    firstName: meta.first_name || user.user_metadata?.first_name || '',
-                    lastName: meta.last_name || user.user_metadata?.last_name || '',
-                    role: user.user_metadata?.role || 'user',
-                    status: user.email_confirmed_at ? 'Active' : 'Pending',
+                    name: `${user.first_name || meta.first_name || ''} ${user.last_name || meta.last_name || ''}`.trim() || meta.name || '',
+                    firstName: user.first_name || meta.first_name || '',
+                    lastName: user.last_name || meta.last_name || '',
+                    role: userRole,
+                    status: userStatus === 'active' ? 'Active' : 'Pending',
                     lastLogin: user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never',
                     createdAt: user.created_at,
-                    organization: primaryOrg?.name || null,
-                    organizationId: primaryOrg?.id || null,
-                    organizationRole: primaryOrg?.role || null,
+                    organization: orgInfo.name || null,
+                    organizationId: orgInfo.id || user.organizationId || null,
+                    organizationRole: primaryOrg?.role || meta.role || 'member',
                     organizations: organizations,
-                    isServiceUser: user.user_metadata?.is_service_user || false
+                    isServiceUser: isServiceUser,
+                    application: appInfo.name || null,
+                    applicationId: appInfo.id || null,
+                    isPlatformAdmin: isPlatformAdmin,
+                    userStatus: userStatus
                 }
             })
 
@@ -152,19 +243,84 @@ export class UserController {
      */
     static async getAllServiceUsers(req: Request, res: Response) {
         try {
-
+            // Use the Auth Admin API to get all users
+            const { data, error } = await supabase.auth.admin.listUsers()
             
-
-            const { data: serviceUsers, error: serviceUsersError } = await supabase
-                .from('auth.users')
-                .select('*')
-                .eq('user_metadata->is_service_user', true)
-    
-            if (serviceUsersError) {
-                console.error('Error fetching service users:', serviceUsersError)
+            if (error) {
+                console.error('Error fetching users:', error)
+                throw error
             }
             
-            return res.json({ users: serviceUsers })
+            // Filter for service users - check both direct property and metadata
+            const serviceUsers = (data.users || []).filter((user: ISupabaseUser) => 
+                user.is_service_user === true || user.user_metadata?.is_service_user === true
+            )
+            
+            // Format the service users using the same approach as getAllUsers
+            const formattedServiceUsers = serviceUsers.map((user: ISupabaseUser) => {
+                const meta = user.user_metadata || {}
+                
+                // Enhanced metadata can be in user_metadata or directly in the user object
+                const userStatus = user.user_status || meta.status || (user.email_confirmed_at ? 'active' : 'pending')
+                
+                // Get the user's role
+                const userRole = user.profile_role || meta.role || 'user'
+                
+                // Check if user is platform admin from all possible sources, including role
+                const isPlatformAdmin = user.is_platform_admin || 
+                                       meta.is_platform_admin || 
+                                       user.app_metadata?.is_platform_admin || 
+                                       userRole === 'platform_admin' || 
+                                       false
+                
+                // Organization info can be in different formats
+                const orgInfo = user.organization || {
+                    id: meta.organization_id || null,
+                    name: meta.organization_name || null
+                }
+                
+                // Application info
+                const appInfo = user.application || {
+                    id: meta.application_id || null,
+                    name: meta.application_name || null
+                }
+                
+                // Get organizations array or initialize empty
+                const primaryOrg = user.user_metadata?.organizations?.[0]
+                let organizations = user.user_metadata?.organizations || []
+                
+                // If organizations array is empty but we have organization info, add it to the array
+                if (organizations.length === 0 && orgInfo.id) {
+                    organizations = [{
+                        id: orgInfo.id,
+                        name: orgInfo.name || '',
+                        role: meta.role || user.profile_role || 'member'
+                    }];
+                }
+                
+                return {
+                    id: user.id,
+                    email: user.email,
+                    name: `${user.first_name || meta.first_name || ''} ${user.last_name || meta.last_name || ''}`.trim() || meta.name || '',
+                    firstName: user.first_name || meta.first_name || '',
+                    lastName: user.last_name || meta.last_name || '',
+                    role: userRole,
+                    status: userStatus === 'active' ? 'Active' : 'Pending',
+                    lastLogin: user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never',
+                    createdAt: user.created_at,
+                    organization: orgInfo.name || null,
+                    organizationId: orgInfo.id || user.organizationId || null,
+                    organizationRole: primaryOrg?.role || meta.role || 'member',
+                    organizations: organizations,
+                    application: appInfo.name || null,
+                    applicationId: appInfo.id || null,
+                    isServiceUser: true,
+                    isPlatformAdmin: isPlatformAdmin,
+                    userStatus: userStatus
+                }
+            })
+            
+            return res.json({ users: formattedServiceUsers })
         } catch (error) {
             return handleError(res, error, 'Error fetching service users')
         }
@@ -196,7 +352,48 @@ export class UserController {
                 console.error('Error fetching user profile:', profileError)
             }
             
+            const user = authUser.user
             const meta = profile?.meta || {}
+            const userMetadata = user.user_metadata || {}
+            
+            // Enhanced metadata can be in user_metadata or directly in the user object
+            const isServiceUser = user.is_service_user || userMetadata.is_service_user || false
+            const userStatus = user.user_status || userMetadata.status || (user.email_confirmed_at ? 'active' : 'pending')
+            
+            // Get the user's role
+            const userRole = user.profile_role || userMetadata.role || 'user'
+            
+            // Check if user is platform admin from all possible sources, including role
+            const isPlatformAdmin = user.is_platform_admin || 
+                                   userMetadata.is_platform_admin || 
+                                   user.app_metadata?.is_platform_admin || 
+                                   userRole === 'platform_admin' || 
+                                   false
+            
+            // Organization info can be in different formats
+            const orgInfo = user.organization || {
+                id: userMetadata.organization_id || meta.organization_id || null,
+                name: userMetadata.organization_name || meta.organization_name || null
+            }
+            
+            // Application info
+            const appInfo = user.application || {
+                id: userMetadata.application_id || meta.application_id || null,
+                name: userMetadata.application_name || meta.application_name || null
+            }
+            
+            // Get organizations array or initialize empty
+            const primaryOrg = userMetadata.organizations?.[0]
+            let organizations = userMetadata.organizations || []
+            
+            // If organizations array is empty but we have organization info, add it to the array
+            if (organizations.length === 0 && orgInfo.id) {
+                organizations = [{
+                    id: orgInfo.id,
+                    name: orgInfo.name || '',
+                    role: userMetadata.role || user.profile_role || 'member'
+                }];
+            }
             
             // Check if we have user roles in the JWT claims
             const userRoles = req.user?.user_roles || [];
@@ -255,16 +452,25 @@ export class UserController {
             
             // Format the response
             const formattedUser = {
-                id: authUser.user.id,
-                email: authUser.user.email,
-                firstName: meta.first_name || '',
-                lastName: meta.last_name || '',
-                organization: meta.organization || '',
-                status: authUser.user.email_confirmed_at ? 'Active' : 'Pending',
-                createdAt: authUser.user.created_at,
+                id: user.id,
+                email: user.email,
+                firstName: user.first_name || userMetadata.first_name || meta.first_name || '',
+                lastName: user.last_name || userMetadata.last_name || meta.last_name || '',
+                name: `${user.first_name || userMetadata.first_name || meta.first_name || ''} ${user.last_name || userMetadata.last_name || meta.last_name || ''}`.trim(),
+                organization: orgInfo.name || meta.organization || '',
+                organizationId: orgInfo.id || user.organizationId || null,
+                organizationRole: primaryOrg?.role || userMetadata.role || 'member',
+                organizations: organizations,
+                application: appInfo.name || '',
+                applicationId: appInfo.id || null,
+                status: userStatus === 'active' ? 'Active' : 'Pending',
+                createdAt: user.created_at,
+                role: userRole,
                 roles: roles,
                 permissions: userPermissions,
-                is_platform_admin: req.user?.is_platform_admin || false
+                isPlatformAdmin: isPlatformAdmin,
+                isServiceUser: isServiceUser,
+                userStatus: userStatus
             }
             
             return res.json({ user: formattedUser })

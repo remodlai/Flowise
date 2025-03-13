@@ -52,6 +52,13 @@ This documentation provides a comprehensive overview of the Remodl AI platform's
    - Application logo upload functionality
    - Permission model for application management
 
+9. [User Routes and Controller](user_routes.md)
+   - Context-based user management (global, organization, application)
+   - Service user implementation and management
+   - Organization member and admin role management
+   - Permission model for user operations
+   - Code examples for common user management tasks
+
 ## Current Challenges
 
 The platform is currently facing several challenges:
@@ -80,6 +87,8 @@ The team is actively working on:
 
 6. **Application Management**: Enhancing application management capabilities, including logo upload functionality.
 
+7. **Context-Based User Management**: Implementing a comprehensive user management system with context-based access control (global, organization, application) and service user support.
+
 ## Getting Started
 
 If you're new to the project, we recommend:
@@ -98,6 +107,8 @@ If you're new to the project, we recommend:
 
 7. Review the [Application Routes and Controller](application_routes.md) to understand how applications are managed in the platform.
 
+8. Review the [User Routes and Controller](user_routes.md) to understand how user management is handled in the platform.
+
 ## Key Files
 
 - `packages/server/src/utils/supabaseAuth.ts`: Supabase authentication middleware
@@ -110,6 +121,8 @@ If you're new to the project, we recommend:
 - `packages/server/src/utils/multiModalUtils.ts`: Multi-modal message handling
 - `packages/server/src/utils/setupSupabaseStorage.ts`: Storage initialization
 - `packages/server/src/controllers/ApplicationController.ts`: Application management controller
+- `packages/server/src/controllers/UserController.ts`: User management controller
+- `packages/server/src/controllers/OrganizationController.ts`: Organization management controller
 
 ## Environment Setup
 

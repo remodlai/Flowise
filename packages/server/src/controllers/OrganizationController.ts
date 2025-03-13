@@ -354,15 +354,20 @@ export class OrganizationController {
      * Update a member's role in an organization
      * @param req Request
      * @param res Response
+     * @param isAdminRole Boolean indicating if this is an admin role update (optional)
      */
     static async updateOrganizationMember(req: Request, res: Response) {
         try {
             const { organizationId, userId } = req.params
             const { role } = req.body
+            const isAdminRole = req.path.includes('/admin/') || req.query.isAdmin === 'true'
             
             if (!role) {
                 return res.status(400).json({ error: 'Role is required' })
             }
+            
+            // Log the operation type for debugging
+            console.log(`Updating organization member ${userId} in organization ${organizationId} with role ${role}. Admin role update: ${isAdminRole}`)
             
             // Update user's role
             const { data, error } = await supabase
@@ -375,38 +380,10 @@ export class OrganizationController {
             
             if (error) throw error
             
-            return res.json({ member: data })
-        } catch (error) {
-            return handleError(res, error, 'Error updating organization member')
-        }
-    }
-
-    /**
-     * Update a member's role in an organization
-     * @param req Request
-     * @param res Response
-     */
-    static async updateOrganizationMemberRole(req: Request, res: Response) {
-        try {
-            const { organizationId, userId } = req.params
-            const { role } = req.body
-            
-            if (!role) {
-                return res.status(400).json({ error: 'Role is required' })
-            }
-            
-            // Update user's role
-            const { data, error } = await supabase
-                .from('organization_users')
-                .update({ role })
-                .eq('organization_id', organizationId)
-                .eq('user_id', userId)
-                .select()
-                .single()
-            
-            if (error) throw error
-            
-            return res.json({ member: data })
+            return res.json({ 
+                member: data,
+                isAdminUpdate: isAdminRole
+            })
         } catch (error) {
             return handleError(res, error, 'Error updating organization member')
         }
