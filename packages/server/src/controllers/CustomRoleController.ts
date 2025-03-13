@@ -44,13 +44,13 @@ export class CustomRoleController {
      */
     static async getRoleById(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { roleId } = req.params
 
             // Get role from database
             const { data: role, error } = await supabase
                 .from('roles')
                 .select('*')
-                .eq('id', id)
+                .eq('id', roleId)
                 .single()
 
             if (error) throw error
@@ -60,7 +60,7 @@ export class CustomRoleController {
             const { data: rolePermissions, error: permissionsError } = await supabase
                 .from('role_permissions')
                 .select('permission_id')
-                .eq('role_id', id)
+                .eq('role_id', roleId)
 
             if (permissionsError) throw permissionsError
 
@@ -215,13 +215,13 @@ export class CustomRoleController {
      */
     static async getRolePermissions(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { roleId } = req.params
 
             // Get permissions for this role
             const { data: rolePermissions, error: permissionsError } = await supabase
                 .from('role_permissions')
                 .select('permission_id')
-                .eq('role_id', id)
+                .eq('role_id', roleId)
 
             if (permissionsError) throw permissionsError
 
