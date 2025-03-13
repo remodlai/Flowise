@@ -71,6 +71,14 @@ The platform currently uses a mix of storage approaches:
 - Update `api.ts` to include new file and image routes
 - Ensure proper middleware application for authentication and tenant isolation
 
+#### 2.4 Application Logo Upload
+- Implement logo upload functionality in `ApplicationController.ts`:
+  - `POST /applications/:appId/assets/logo/upload`: Upload a logo for an application
+- Store logos in the `applications` bucket under the path `{appId}/assets/logos/{filename}`
+- Add validation for image types (PNG and SVG only)
+- Implement proper error handling and security checks
+- See [Application Routes and Controller](../application_routes.md) for detailed documentation
+
 ### Phase 3: Migration from Legacy Storage (Week 3)
 
 #### 3.1 Deprecate Legacy StorageUtils
@@ -126,6 +134,11 @@ The platform currently uses a mix of storage approaches:
 - Implement storage for application-specific resources
 - Add proper access control based on application roles
 - Create management interface for application owners
+- **Application Logos**: Implement logo upload functionality for applications
+  - Store logos in the `applications` bucket
+  - Restrict file types to PNG and SVG for transparency support
+  - Implement proper validation and error handling
+  - See [Application Routes and Controller](../application_routes.md) for details
 
 ### 5. Platform-Level Files
 - Set up dedicated storage for platform-wide resources
@@ -206,7 +219,12 @@ The platform currently uses a mix of storage approaches:
 - `packages/server/src/utils/setupSupabaseStorage.ts`: Storage initialization
 - `packages/server/src/controllers/FileController.ts`: File API endpoints
 - `packages/server/src/controllers/ImageController.ts`: Image API endpoints
+- `packages/server/src/controllers/ApplicationController.ts`: Application management with logo upload
 - `packages/ui/src/components/FileChooser`: UI components for file selection
+
+## Related Documentation
+
+- [Application Routes and Controller](../application_routes.md): Documentation for application management API, including logo upload functionality
 
 ## Conclusion
 

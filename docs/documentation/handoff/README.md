@@ -46,6 +46,12 @@ This documentation provides a comprehensive overview of the Remodl AI platform's
      - [Flowise Compatibility](07_file_storage/03_flowise_compatibility.md)
      - [File Chooser Component](07_file_storage/04_file_chooser_component.md)
 
+8. [Application Routes and Controller](application_routes.md)
+   - API endpoints for managing applications
+   - Controller methods for application operations
+   - Application logo upload functionality
+   - Permission model for application management
+
 ## Current Challenges
 
 The platform is currently facing several challenges:
@@ -72,6 +78,8 @@ The team is actively working on:
 
 5. **Supabase Storage Integration**: Implementing a comprehensive file storage solution using Supabase Storage.
 
+6. **Application Management**: Enhancing application management capabilities, including logo upload functionality.
+
 ## Getting Started
 
 If you're new to the project, we recommend:
@@ -88,6 +96,8 @@ If you're new to the project, we recommend:
 
 6. Explore the [File Storage Integration](07_file_storage/README.md) to understand the comprehensive plan for file storage.
 
+7. Review the [Application Routes and Controller](application_routes.md) to understand how applications are managed in the platform.
+
 ## Key Files
 
 - `packages/server/src/utils/supabaseAuth.ts`: Supabase authentication middleware
@@ -99,6 +109,7 @@ If you're new to the project, we recommend:
 - `packages/server/src/utils/supabaseStorage.ts`: Supabase Storage utilities
 - `packages/server/src/utils/multiModalUtils.ts`: Multi-modal message handling
 - `packages/server/src/utils/setupSupabaseStorage.ts`: Storage initialization
+- `packages/server/src/controllers/ApplicationController.ts`: Application management controller
 
 ## Environment Setup
 

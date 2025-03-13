@@ -48,14 +48,16 @@ router.get('/applications', ApplicationController.getAllApplications)
 // Create a new application
 router.post('/applications/create', ApplicationController.createApplication)
 // Get an application by ID
-router.get('/applications/:applicationId', ApplicationController.getApplicationById)
+router.get('/applications/:appId', ApplicationController.getApplicationById)
 // Update an application
-router.put('/applications/update/:applicationId', ApplicationController.updateApplication)
+router.put('/applications/update/:appId', ApplicationController.updateApplication)
 // Delete an application
-router.delete('/applications/delete/:applicationId', ApplicationController.deleteApplication)
+router.delete('/applications/delete/:appId', ApplicationController.deleteApplication)
 // Get all applications for a user
 //We've added the userId to the route to make it more specific and easier to understand.
 router.get('/user/:userId/applications/all', ApplicationController.getUserApplications)
+
+router.post('/applications/:appId/assets/logo/upload', ApplicationController.uploadApplicationLogo)
 
 // Add a debug endpoint for applications
 router.get('/debug/user-applications', async (req, res) => {
@@ -116,7 +118,7 @@ router.get('/debug/user-applications', async (req, res) => {
 
 // Organization routes
 router.get('/organizations', OrganizationController.getAllOrganizations)
-router.post('/organizations', OrganizationController.createOrganization)
+router.post('/organizations/create', OrganizationController.createOrganization)
 router.get('/organizations/:organizationId', OrganizationController.getOrganizationById)
 router.put('/organizations/:organizationId', OrganizationController.updateOrganization)
 router.delete('/organizations/:organizationId', OrganizationController.deleteOrganization)
@@ -176,10 +178,10 @@ router.get('/debug/organizations', async (req, res) => {
         console.log('Debug - User:', req.user)
         
         // Get application ID from request context
-        const applicationId = req.headers['x-application-id'] as string || req.query.applicationId as string 
+        const appId = req.headers['x-application-id'] as string || req.query.appId as string 
         const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
         
-        console.log(`Debug - Getting organizations with application context: ${applicationId}, isPlatformAdmin: ${isPlatformAdmin}`)
+        console.log(`Debug - Getting organizations with application context: ${appId}, isPlatformAdmin: ${isPlatformAdmin}`)
         
         // Direct database query to get all organizations
         const { data: allOrgs, error: allOrgsError } = await supabase
@@ -196,9 +198,9 @@ router.get('/debug/organizations', async (req, res) => {
         // Build filtered query based on application context
         let filteredOrgs = allOrgs
         
-        if (applicationId && applicationId !== 'global') {
-            console.log(`Debug - Filtering organizations by application_id: ${applicationId}`)
-            filteredOrgs = allOrgs.filter((org: ISupabaseOrganization) => org.application_id === applicationId)
+        if (appId && appId !== 'global') {
+            console.log(`Debug - Filtering organizations by application_id: ${appId}`)
+            filteredOrgs = allOrgs.filter((org: ISupabaseOrganization) => org.application_id === appId)
         } else if (!isPlatformAdmin) {
             console.log(`Debug - User is not a platform admin and no application context, returning empty array`)
             filteredOrgs = []
@@ -213,7 +215,7 @@ router.get('/debug/organizations', async (req, res) => {
                 email: (req.user as any)?.email,
                 roles: (req.user as any)?.user_roles || []
             },
-            applicationId,
+            appId,
             allOrganizations: allOrgs,
             filteredOrganizations: filteredOrgs
         })
