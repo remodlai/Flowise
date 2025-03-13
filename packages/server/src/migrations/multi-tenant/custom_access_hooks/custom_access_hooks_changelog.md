@@ -274,3 +274,26 @@ This fixes bugs where secrets and credentials were not being found when switchin
 ### Impact
 - The system can now access application credentials during flow execution
 - This fixes the issue where credential retrieval was failing when the token expired
+
+## v9_enhanced_user_metadata_updated.sql - 2024-07-XX
+
+### Changes
+- Enhanced the custom access token hook to include additional user metadata in the JWT claims
+- Added support for identifying service users via the `is_service_user` flag in user metadata
+- Added user status field (active, pending, suspended) to the JWT claims
+- Added creator information (ID, first name, last name) to the JWT claims
+- Added application information (ID, name) to the JWT claims
+- Added organization information (ID, name) to the JWT claims
+- Maintained all existing functionality including organization ID lookup, user roles, and platform admin detection
+- Updated the test claim to 'v9_enhanced_metadata' to track the version
+
+### Impact
+- JWT tokens will now include additional metadata that can be used for authorization and UI customization
+- Service users can be identified by the `is_service_user` flag
+- User status can be used to restrict access for suspended users
+- Creator, application, and organization information can be used for audit trails and UI customization
+
+### Implementation
+- The hook reads metadata from both the `auth.users.raw_user_meta_data` column and the `public.user_profiles` table
+- The hook adds the metadata to the JWT claims, which can be accessed in the application code
+- The hook maintains backward compatibility with existing claims

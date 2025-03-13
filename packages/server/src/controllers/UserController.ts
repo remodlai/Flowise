@@ -194,10 +194,10 @@ export class UserController {
      */
     static async getUserById(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { userId } = req.params
             
             // Get user from Supabase Auth
-            const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(id)
+            const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId)
             
             if (authError) throw authError
             if (!authUser.user) return res.status(404).json({ error: 'User not found' })
@@ -206,7 +206,7 @@ export class UserController {
             const { data: profile, error: profileError } = await supabase
                 .from('user_profiles')
                 .select('*')
-                .eq('user_id', id)
+                .eq('user_id', userId)
                 .single()
             
             if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
@@ -225,7 +225,7 @@ export class UserController {
                 resource_type: string;
                 resource_id: string | null;
             }> = [];
-            if (!userRoles.length && id === req.user?.id) {
+            if (!userRoles.length && userId === req.user?.id) {
                 console.log('No roles found in JWT claims, falling back to database query');
                 
                 // Get user's roles from the user_roles table
@@ -238,7 +238,7 @@ export class UserController {
                         role_id,
                         roles:role_id(id, name, base_role, context_type)
                     `)
-                    .eq('user_id', id)
+                    .eq('user_id', userId)
                 
                 if (rolesError) throw rolesError
                 
@@ -361,11 +361,11 @@ export class UserController {
      */
     static async updateUser(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { userId } = req.params
             const { email, password, firstName, lastName, organization, role } = req.body
             
             // Update the user in Supabase Auth
-            const { data, error } = await supabase.auth.admin.updateUserById(id, {
+            const { data, error } = await supabase.auth.admin.updateUserById(userId, {
                 email,
                 password,
                 user_metadata: { 
@@ -383,7 +383,7 @@ export class UserController {
             const { data: existingProfile, error: checkError } = await supabase
                 .from('user_profiles')
                 .select('id')
-                .eq('user_id', id)
+                .eq('user_id', userId)
                 .single()
             
             if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
@@ -392,7 +392,7 @@ export class UserController {
             
             // Update or create user profile
             const profileData = {
-                user_id: id,
+                user_id: userId,
                 meta: {
                     first_name: firstName,
                     last_name: lastName,
@@ -408,7 +408,7 @@ export class UserController {
                 const { error: updateError } = await supabase
                     .from('user_profiles')
                     .update(profileData)
-                    .eq('user_id', id)
+                    .eq('user_id', userId)
                 
                 profileError = updateError
             } else {
@@ -450,10 +450,10 @@ export class UserController {
      */
     static async deleteUser(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { userId } = req.params
             
             // Delete the user from Supabase Auth
-            const { error } = await supabase.auth.admin.deleteUser(id)
+            const { error } = await supabase.auth.admin.deleteUser(userId)
             
             if (error) throw error
             
@@ -472,22 +472,22 @@ export class UserController {
      */
     static async getUserOrganizations(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { userId } = req.params
             
-            console.log(`Getting organizations for user ${id}`)
+            console.log(`Getting organizations for user ${userId}`)
             
             // Get organizations this user belongs to
             const { data: orgUsers, error: orgUsersError } = await supabase
                 .from('organization_users')
                 .select('organization_id, role')
-                .eq('user_id', id)
+                .eq('user_id', userId)
             
             if (orgUsersError) {
                 console.error('Error fetching user organizations:', orgUsersError)
                 throw orgUsersError
             }
             
-            console.log(`Found ${orgUsers?.length || 0} organization memberships for user ${id}`)
+            console.log(`Found ${orgUsers?.length || 0} organization memberships for user ${userId}`)
             
             if (!orgUsers || orgUsers.length === 0) {
                 return res.json({ organizations: [] })
@@ -517,7 +517,7 @@ export class UserController {
                 role: roleMap.get(org.id) || 'member'
             }))
             
-            console.log(`Returning ${orgsWithRoles.length} organizations for user ${id}`)
+            console.log(`Returning ${orgsWithRoles.length} organizations for user ${userId}`)
             
             return res.json({ organizations: orgsWithRoles })
         } catch (error) {

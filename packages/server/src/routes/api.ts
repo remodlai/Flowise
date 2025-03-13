@@ -26,19 +26,36 @@ router.use('/platform', platformAdminRoutes)
 
 // User routes - temporarily removed platform admin requirement for testing
 router.get('/users', UserController.getAllUsers)
-router.post('/users', UserController.createUser)
-router.get('/users/:id', UserController.getUserById)
-router.put('/users/:id', UserController.updateUser)
-router.delete('/users/:id', UserController.deleteUser)
-router.get('/users/:id/organizations', UserController.getUserOrganizations)
+// Create a new user
+router.post('/users/create', UserController.createUser)
+// Get a user by ID
+router.get('/users/:userId', UserController.getUserById)
+// Update a user
+router.put('/users/:userId', UserController.updateUser)
+// Delete a user
+router.delete('/users/:userId', UserController.deleteUser)
+// Get all organizations for a user
+router.get('/users/:userId/organizations', UserController.getUserOrganizations)
+/*
+The following routes have been updated to be more consistent and easier to understand.
+@author: @brian@remodl.ai
+@date: 2025-03-13
 
+
+*/
 // Application routes
 router.get('/applications', ApplicationController.getAllApplications)
-router.post('/applications', ApplicationController.createApplication)
-router.get('/applications/:id', ApplicationController.getApplicationById)
-router.put('/applications/:id', ApplicationController.updateApplication)
-router.delete('/applications/:id', ApplicationController.deleteApplication)
-router.get('/user/applications', ApplicationController.getUserApplications)
+// Create a new application
+router.post('/applications/create', ApplicationController.createApplication)
+// Get an application by ID
+router.get('/applications/:applicationId', ApplicationController.getApplicationById)
+// Update an application
+router.put('/applications/update/:applicationId', ApplicationController.updateApplication)
+// Delete an application
+router.delete('/applications/delete/:applicationId', ApplicationController.deleteApplication)
+// Get all applications for a user
+//We've added the userId to the route to make it more specific and easier to understand.
+router.get('/user/:userId/applications/all', ApplicationController.getUserApplications)
 
 // Add a debug endpoint for applications
 router.get('/debug/user-applications', async (req, res) => {
@@ -100,36 +117,36 @@ router.get('/debug/user-applications', async (req, res) => {
 // Organization routes
 router.get('/organizations', OrganizationController.getAllOrganizations)
 router.post('/organizations', OrganizationController.createOrganization)
-router.get('/organizations/:id', OrganizationController.getOrganizationById)
-router.put('/organizations/:id', OrganizationController.updateOrganization)
-router.delete('/organizations/:id', OrganizationController.deleteOrganization)
+router.get('/organizations/:organizationId', OrganizationController.getOrganizationById)
+router.put('/organizations/:organizationId', OrganizationController.updateOrganization)
+router.delete('/organizations/:organizationId', OrganizationController.deleteOrganization)
 
 // Organization members routes
-router.get('/organizations/:id/members', OrganizationController.getOrganizationMembers)
-router.post('/organizations/:id/members', OrganizationController.addOrganizationMember)
-router.put('/organizations/:id/members/:userId', OrganizationController.updateOrganizationMember)
-router.delete('/organizations/:id/members/:userId', OrganizationController.removeOrganizationMember)
+router.get('/organizations/:organizationId/members', OrganizationController.getOrganizationMembers)
+router.post('/organizations/:organizationId/members', OrganizationController.addOrganizationMember)
+router.put('/organizations/:organizationId/members/:userId', OrganizationController.updateOrganizationMember)
+router.delete('/organizations/:organizationId/members/:userId', OrganizationController.removeOrganizationMember)
 
 // Custom Roles routes
 router.get('/custom-roles', CustomRoleController.getAllRoles)
 router.post('/custom-roles', CustomRoleController.createRole)
-router.get('/custom-roles/:id', CustomRoleController.getRoleById)
-router.put('/custom-roles/:id', CustomRoleController.updateRole)
-router.delete('/custom-roles/:id', CustomRoleController.deleteRole)
+router.get('/custom-roles/:roleId', CustomRoleController.getRoleById)
+router.put('/custom-roles/:roleId', CustomRoleController.updateRole)
+router.delete('/custom-roles/:roleId', CustomRoleController.deleteRole)
 
 // Role permissions routes
-router.get('/custom-roles/:id/permissions', CustomRoleController.getRolePermissions)
-router.post('/custom-roles/:id/permissions', CustomRoleController.addRolePermissions)
-router.delete('/custom-roles/:id/permissions/:permission', CustomRoleController.removeRolePermission)
+router.get('/custom-roles/:roleId/permissions', CustomRoleController.getRolePermissions)
+router.post('/custom-roles/:roleId/permissions', CustomRoleController.addRolePermissions)
+router.delete('/custom-roles/:roleId/permissions/:permission', CustomRoleController.removeRolePermission)
 
 // Direct SQL route for permissions
-router.get('/custom-roles/:id/permissions-direct', CustomRoleController.getRolePermissionsDirectSQL)
+router.get('/custom-roles/:roleId/permissions-direct', CustomRoleController.getRolePermissionsDirectSQL)
 
 // Role users routes
-router.get('/custom-roles/:id/users', CustomRoleController.getRoleUsers)
+router.get('/custom-roles/:roleId/users', CustomRoleController.getRoleUsers)
 
 // User roles routes
-router.get('/users/:id/custom-roles', CustomRoleController.getUserRoles)
+router.get('/users/:userId/custom-roles', CustomRoleController.getUserRoles)
 
 // Permissions routes
 router.get('/permissions', CustomRoleController.getAllPermissions)
@@ -159,7 +176,7 @@ router.get('/debug/organizations', async (req, res) => {
         console.log('Debug - User:', req.user)
         
         // Get application ID from request context
-        const applicationId = req.headers['x-application-id'] as string || req.query.applicationId as string
+        const applicationId = req.headers['x-application-id'] as string || req.query.applicationId as string 
         const isPlatformAdmin = (req.user as any)?.is_platform_admin === true
         
         console.log(`Debug - Getting organizations with application context: ${applicationId}, isPlatformAdmin: ${isPlatformAdmin}`)
