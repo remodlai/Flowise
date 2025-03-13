@@ -171,3 +171,72 @@ Next steps:
   - Establishing clear boundaries where the conversion between formats happens
   - Reducing potential bugs from inconsistent handling of path tokens
   - Making the codebase more maintainable for future developers
+
+## 2025-03-12: Comprehensive Testing of Assets Controller Endpoints
+
+- Successfully tested all image-related routes in the assetsController:
+  - GET `/api/v1/platform/assets/images` - Verified listing of all images works correctly
+  - POST `/api/v1/platform/assets/images/upload` - Confirmed image upload with proper path tokens
+  - GET `/api/v1/platform/assets/images/:id` - Verified retrieval of specific image metadata
+  - PUT `/api/v1/platform/assets/images/:id` - Confirmed updating image metadata (description, isShareable)
+  - DELETE `/api/v1/platform/assets/images/:id` - Verified soft delete functionality
+  - POST `/api/v1/platform/assets/images/:id/restore` - Confirmed restoration of soft-deleted images
+  - GET `/api/v1/platform/assets/images/:id/url` - Verified URL generation from path tokens
+  - GET `/api/v1/platform/assets/images/:id/content` - Confirmed direct image content retrieval
+- Fixed several issues during testing:
+  - Resolved path token handling in URL generation
+  - Fixed file path construction for content retrieval
+  - Ensured proper authentication and permission checking
+  - Verified soft delete and restore functionality with database checks
+- Confirmed the integration between Supabase Storage and our database:
+  - Files are properly stored in Supabase Storage
+  - Metadata is correctly saved in the files table
+  - Path tokens are properly used for hierarchical organization
+  - Soft delete only affects database records, not storage objects
+- This testing validates our approach to file management using:
+  - Supabase Storage for the actual file storage
+  - PostgreSQL for metadata and access control
+  - Path tokens for hierarchical organization
+  - Soft delete for data protection
+
+## 2025-03-12: Enhanced URL Generation with Path Tokens
+
+- Updated the file service to always include properly constructed URLs with paths:
+  - Modified `getFiles` function to automatically generate URLs using path_tokens
+  - Set `withPaths` parameter to default to true for all requests
+  - Ensured URLs are constructed by joining path_tokens and appending the filename
+  - Tested with the list images endpoint to verify correct URL generation
+- This enhancement provides several benefits:
+  - Eliminates the need for clients to manually construct file URLs
+  - Ensures consistent URL patterns across the application
+  - Properly handles path hierarchy reflected in path_tokens
+  - Simplifies client-side code by providing ready-to-use URLs
+  - Maintains backward compatibility through the optional withPaths parameter
+- The implementation joins path_tokens with forward slashes and appends the filename to create the complete path
+- URLs are generated using Supabase Storage's getPublicUrl helper function with the constructed path
+
+## 2025-03-12: Added Non-Image File Handling to Assets Controller
+
+- Extended the assets controller with parallel functions for handling non-image files:
+  - `listFiles`: List all non-image files with filtering options
+  - `uploadFile`: Upload a new non-image file
+  - `getFile`: Get a specific non-image file by ID
+  - `updateFile`: Update non-image file metadata
+  - `softDeleteFile`: Soft delete a non-image file
+  - `restoreFile`: Restore a soft-deleted non-image file
+  - `getFileUrl`: Get the public URL for a non-image file
+  - `getFileContent`: Get the direct content of a non-image file
+- Added corresponding routes in the assets router:
+  - GET `/api/v1/platform/assets/files`
+  - POST `/api/v1/platform/assets/files/upload`
+  - GET `/api/v1/platform/assets/files/:id`
+  - PUT `/api/v1/platform/assets/files/:id`
+  - DELETE `/api/v1/platform/assets/files/:id`
+  - POST `/api/v1/platform/assets/files/:id/restore`
+  - GET `/api/v1/platform/assets/files/:id/url`
+  - GET `/api/v1/platform/assets/files/:id/content`
+- Added validation to ensure image files are handled by image endpoints and non-image files by file endpoints
+- Implemented resource type handling to categorize different types of files (document, audio, video, etc.)
+- Ensured all file operations work with path tokens for hierarchical organization
+- Maintained consistent permission checking across all endpoints
+- This implementation completes the file handling capabilities of the assets controller, providing a comprehensive API for managing both image and non-image files in the platform

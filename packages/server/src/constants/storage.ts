@@ -81,6 +81,12 @@ export const FILE_RESOURCE_TYPES = {
   
   /** Document attachments */
   DOCUMENT: 'document',
+
+  /** RAG files */
+  RAG: 'rag',
+
+  /** Full file upload */
+  FULL_FILE: 'full_file',
   
   /** Image files */
   IMAGE: 'image',

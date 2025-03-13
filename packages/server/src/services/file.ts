@@ -13,6 +13,7 @@ interface GetFilesOptions {
   contextType?: string;
   contextId?: string;
   includeDeleted?: boolean;
+  withPaths?: boolean;
 }
 
 /**
@@ -28,8 +29,8 @@ export const fileService = {
    */
   async getFiles(options: GetFilesOptions, user: any): Promise<any[]> {
     try {
-      const { resourceType, contextType, contextId, includeDeleted } = options;
-      
+      const { resourceType, contextType, contextId, includeDeleted, withPaths } = options;
+      options.withPaths = true;
       // Get the Supabase client from the App instance
       const app = getInstance();
       if (!app || !app.Supabase) {
@@ -67,8 +68,31 @@ export const fileService = {
         logger.error('Error getting files:', error);
         throw new Error(`Failed to get files: ${error.message}`);
       }
-      
-      return data || [];
+      let filesWithPaths: any[] = [];
+      if (withPaths){
+       
+        data.forEach(async (file: any) => {
+          if (file.path_tokens) {
+            try {
+              if (app && app.Supabase) {
+                const { data: urlData } = app.Supabase.storage.from(file.bucket).getPublicUrl(file.path_tokens.join('/') + '/' + file.name);
+                file.url = urlData?.publicUrl;
+              }
+              filesWithPaths.push(file);
+            } catch (error: any) {
+              logger.error('Error getting file URL:', error);
+            }
+          }
+          return filesWithPaths;
+
+        });
+      }
+      if (withPaths){
+        return filesWithPaths;
+      } else {
+        return data;
+      }
+
     } catch (error: any) {
       logger.error('Unexpected error in getFiles:', error);
       throw new Error(`Failed to get files: ${error.message}`);

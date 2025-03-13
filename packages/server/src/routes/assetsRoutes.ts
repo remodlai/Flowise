@@ -32,4 +32,14 @@ router.get('/images/deleted', assetsController.listDeletedImages);
 router.get('/images/:id/url', assetsController.getImageUrl);
 router.get('/images/:id/content', assetsController.getImageContent);
 
+// File routes (all-files)
+router.get('/files', assetsController.listFiles);
+router.post('/files/upload', upload.single('file'), assetsController.uploadFile);
+router.get('/files/:id', assetsController.getFile);
+router.put('/files/:id', assetsController.updateFile);
+router.delete('/files/:id', assetsController.softDeleteFile);
+router.post('/files/:id/restore', assetsController.restoreFile);
+router.get('/files/:id/url', assetsController.getFileUrl);
+router.get('/files/:id/content', assetsController.getFileContent);
+
 export default router; 
