@@ -32,13 +32,13 @@ export class ApplicationController {
      */
     static async getApplicationById(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { applicationId } = req.params
             
             // Get application from Supabase
             const { data, error } = await supabase
                 .from('applications')
                 .select('*')
-                .eq('id', id)
+                .eq('id', applicationId)
                 .single()
             
             if (error) throw error
@@ -161,14 +161,14 @@ export class ApplicationController {
      */
     static async updateApplication(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { applicationId } = req.params
             const { name, description } = req.body
             
             // Update the application in Supabase
             const { data, error } = await supabase
                 .from('applications')
                 .update({ name, description })
-                .eq('id', id)
+                .eq('id', applicationId)
                 .select()
                 .single()
             
@@ -187,13 +187,13 @@ export class ApplicationController {
      */
     static async deleteApplication(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { applicationId } = req.params
             
             // Delete the application from Supabase
             const { error } = await supabase
                 .from('applications')
                 .delete()
-                .eq('id', id)
+                .eq('id', applicationId)
             
             if (error) throw error
             

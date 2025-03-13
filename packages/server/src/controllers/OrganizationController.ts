@@ -88,13 +88,13 @@ export class OrganizationController {
      */
     static async getOrganizationById(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { organizationId } = req.params
             
             // Get organization from Supabase
             const { data, error } = await supabase
                 .from('organizations')
                 .select('*')
-                .eq('id', id)
+                .eq('id', organizationId)
                 .single()
             
             if (error) throw error
@@ -171,14 +171,14 @@ export class OrganizationController {
      */
     static async updateOrganization(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { organizationId } = req.params
             const { name, description, application_id } = req.body
             
             // Update the organization in Supabase
             const { data, error } = await supabase
                 .from('organizations')
                 .update({ name, description, application_id })
-                .eq('id', id)
+                .eq('id', organizationId)
                 .select()
                 .single()
             
@@ -197,13 +197,13 @@ export class OrganizationController {
      */
     static async deleteOrganization(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { organizationId } = req.params
             
             // Delete the organization from Supabase
             const { error } = await supabase
                 .from('organizations')
                 .delete()
-                .eq('id', id)
+                .eq('id', organizationId)
             
             if (error) throw error
             
@@ -220,13 +220,13 @@ export class OrganizationController {
      */
     static async getOrganizationMembers(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { organizationId } = req.params
             
             // Get organization members from Supabase
             const { data: orgUsers, error: orgUsersError } = await supabase
                 .from('organization_users')
                 .select('*')
-                .eq('organization_id', id)
+                .eq('organization_id', organizationId)
             
             if (orgUsersError) throw orgUsersError
             
@@ -296,7 +296,7 @@ export class OrganizationController {
      */
     static async addOrganizationMember(req: Request, res: Response) {
         try {
-            const { id } = req.params
+            const { organizationId } = req.params
             const { user_id, role } = req.body
 
             if (!user_id) {
@@ -314,7 +314,7 @@ export class OrganizationController {
             const { data: existingMember, error: memberError } = await supabase
                 .from('organization_users')
                 .select('*')
-                .eq('organization_id', id)
+                .eq('organization_id', organizationId)
                 .eq('user_id', user_id)
                 .maybeSingle()
 
@@ -328,7 +328,7 @@ export class OrganizationController {
             const { data: newMember, error: addError } = await supabase
                 .from('organization_users')
                 .insert({
-                    organization_id: id,
+                    organization_id: organizationId,
                     user_id,
                     role: role || 'member'
                 })
@@ -357,7 +357,7 @@ export class OrganizationController {
      */
     static async updateOrganizationMember(req: Request, res: Response) {
         try {
-            const { id, userId } = req.params
+            const { organizationId, userId } = req.params
             const { role } = req.body
             
             if (!role) {
@@ -368,7 +368,7 @@ export class OrganizationController {
             const { data, error } = await supabase
                 .from('organization_users')
                 .update({ role })
-                .eq('organization_id', id)
+                .eq('organization_id', organizationId)
                 .eq('user_id', userId)
                 .select()
                 .single()
@@ -388,13 +388,13 @@ export class OrganizationController {
      */
     static async removeOrganizationMember(req: Request, res: Response) {
         try {
-            const { id, userId } = req.params
+            const { organizationId, userId } = req.params
             
             // Remove user from organization
             const { error } = await supabase
                 .from('organization_users')
                 .delete()
-                .eq('organization_id', id)
+                .eq('organization_id', organizationId)
                 .eq('user_id', userId)
             
             if (error) throw error
