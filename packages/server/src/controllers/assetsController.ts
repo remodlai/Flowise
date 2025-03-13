@@ -22,6 +22,8 @@ import { checkPermission } from '../utils/authorizationUtils';
 import { fileService } from '../services/file';
 import { STORAGE_BUCKETS } from '../utils/supabaseStorage';
 
+let consoleLogger = true
+
 /**
  * List all images, excluding deleted ones for regular users
  * Platform admins can see all images including deleted ones with a filter parameter
@@ -207,17 +209,29 @@ export const uploadImage = async (req: Request, res: Response, next: NextFunctio
     const description = req.body.description || '';
     const isPublic = req.body.isPublic === 'true';
     const isShareable = req.body.isShareable === 'true';
-    const pathTokens = req.body.pathTokens || [];
+    
+    // Parse pathTokens from string to array if it's a string
+    let pathTokens = [];
+    try {
+      if (req.body.pathTokens) {
+        if (typeof req.body.pathTokens === 'string') {
+          pathTokens = JSON.parse(req.body.pathTokens);
+        } else {
+          pathTokens = req.body.pathTokens;
+        }
+      }
+    } catch (error) {
+      logger.error('Error parsing pathTokens:', error);
+      pathTokens = [];
+    }
+    
     /*
     pathTokens is an array of strings that are the path tokens for the file. 
     example: ['ui', 'images', 'logos']
     This will be used to generate the path for the file in the storage bucket.
     The path will be ui/images/logos/1715549200_logo.png
     The pathTokens will be ['ui', 'images', 'logos']
-
-
     */
-    
     
     // Validate file type
     if (!mimetype.startsWith('image/')) {
@@ -413,9 +427,11 @@ export const updateImage = async (req: Request, res: Response, next: NextFunctio
 export const softDeleteImage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    if (consoleLogger) console.log(`[server][softDeleteImage] id: ${id}`);
     
     // Check if user has permission to delete images
     const hasPermission = await checkPermission(req.user, 'image.delete');
+    console.log(`[server][softDeleteImage] hasPermission: ${hasPermission}`);
     if (!hasPermission) {
       return res.status(403).json({
         success: false,
@@ -425,6 +441,7 @@ export const softDeleteImage = async (req: Request, res: Response, next: NextFun
     
     // Get the Supabase client from the App instance
     const app = getInstance();
+    if (consoleLogger && app) console.log(`[server][softDeleteImage] app: ${app}`);
     if (!app || !app.Supabase) {
       logger.error('Supabase client not initialized');
       return res.status(500).json({ 
@@ -433,11 +450,11 @@ export const softDeleteImage = async (req: Request, res: Response, next: NextFun
       });
     }
     
-    // Call the soft_delete_file function in Supabase
+    // Call the soft_delete_file function in Supabase - using UUID directly
     const { data, error } = await app.Supabase.rpc('soft_delete_file', {
-      file_id: parseInt(id)
+      file_id: id // Confirmed: The ID being used here at line 454 is properly identified from the ID deconstructed in line 429
     });
-    
+    if (consoleLogger && !error) console.log(`[server][softDeleteImage] data: ${JSON.stringify(data)}`);
     if (error) {
       logger.error('Error soft deleting file:', error);
       return res.status(400).json({
@@ -500,9 +517,9 @@ export const restoreImage = async (req: Request, res: Response, next: NextFuncti
       });
     }
     
-    // Call the restore_deleted_file function in Supabase
+    // Call the restore_deleted_file function in Supabase - using UUID directly
     const { data, error } = await app.Supabase.rpc('restore_deleted_file', {
-      file_id: parseInt(id)
+      file_id: id // No need to parse as int
     });
     
     if (error) {
@@ -688,7 +705,7 @@ export const getImageUrl = async (req: Request, res: Response, next: NextFunctio
  */
 export const getImageContent = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id;
     
     // Check if user has permission to read images
     const hasPermission = await checkPermission(req.user, 'image.read');
@@ -829,9 +846,24 @@ export const uploadFile = async (req: Request, res: Response, next: NextFunction
     const contextType = req.body.contextType || 'platform';
     const contextId = req.body.contextId;
     const description = req.body.description || '';
-    const isPublic = req.body.isPublic === 'true';
-    const isShareable = req.body.isShareable === 'true';
-    const pathTokens = req.body.pathTokens || [];
+    const isPublic = req.body.isPublic;
+    const isShareable = req.body.isShareable;
+    
+    // Parse pathTokens from string to array if it's a string
+    let pathTokens = [];
+    try {
+      if (req.body.pathTokens) {
+        if (typeof req.body.pathTokens === 'string') {
+          pathTokens = JSON.parse(req.body.pathTokens);
+        } else {
+          pathTokens = req.body.pathTokens;
+        }
+      }
+    } catch (error) {
+      logger.error('Error parsing pathTokens:', error);
+      pathTokens = [];
+    }
+    
     const resourceType = req.body.resourceType || 'document'; // Default to document if not specified
     
     // Generate a unique path for the file
@@ -1215,11 +1247,10 @@ export const softDeleteFile = async (req: Request, res: Response, next: NextFunc
         message: 'File not found'
       });
     }
-    
-
-    
-    // Soft delete the file
-    const success = await fileService.softDeleteFile(parseInt(id), req.user);
+    if (consoleLogger) console.log(`[server][softDeleteFile] fileData: ${JSON.stringify(fileData)}`);
+    if (consoleLogger) console.log(`[server][softDeleteFile] id: ${id}`);
+    // Soft delete the file - using UUID directly, no need to parse as int
+    const success = await fileService.softDeleteFile(id, req.user);
     
     if (!success) {
       return res.status(400).json({
@@ -1274,8 +1305,8 @@ export const restoreFile = async (req: Request, res: Response, next: NextFunctio
       });
     }
     
-    // Restore the file
-    const success = await fileService.restoreFile(parseInt(id), req.user);
+    // Restore the file - using UUID directly, no need to parse as int
+    const success = await fileService.restoreFile(id, req.user);
     
     if (!success) {
       return res.status(400).json({

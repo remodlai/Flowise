@@ -15,7 +15,7 @@ interface GetFilesOptions {
   includeDeleted?: boolean;
   withPaths?: boolean;
 }
-
+let consoleLogger = true
 /**
  * File service for handling file operations
  */
@@ -102,11 +102,11 @@ export const fileService = {
   /**
    * Soft delete a file
    * 
-   * @param {number} fileId - ID of the file to delete
+   * @param {string} fileId - ID of the file to delete (UUID)
    * @param {any} user - User object with permissions
    * @returns {Promise<boolean>} True if successful
    */
-  async softDeleteFile(fileId: number, user: any): Promise<boolean> {
+  async softDeleteFile(fileId: string, user: any): Promise<boolean> {
     try {
       // Check if user has permission to delete files
       const hasPermission = await checkPermission(user, 'file.delete');
@@ -122,12 +122,14 @@ export const fileService = {
       }
       
       // Call the soft_delete_file function in Supabase
+      if (consoleLogger) console.log(`[server][softDeleteFile] fileId: ${fileId}`);
       const { data, error } = await app.Supabase.rpc('soft_delete_file', {
         file_id: fileId
       });
       
       if (error) {
         logger.error('Error soft deleting file:', error);
+        if (consoleLogger) console.log(`[server][softDeleteFile] error: ${error}`);
         throw new Error(`Failed to delete file: ${error.message}`);
       }
       
@@ -141,11 +143,11 @@ export const fileService = {
   /**
    * Restore a soft-deleted file
    * 
-   * @param {number} fileId - ID of the file to restore
+   * @param {string} fileId - ID of the file to restore (UUID)
    * @param {any} user - User object with permissions
    * @returns {Promise<boolean>} True if successful
    */
-  async restoreFile(fileId: number, user: any): Promise<boolean> {
+  async restoreFile(fileId: string, user: any): Promise<boolean> {
     try {
       // Check if user has permission to update files
       const hasPermission = await checkPermission(user, 'file.update');
