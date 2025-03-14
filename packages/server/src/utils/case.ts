@@ -10,7 +10,7 @@ import { getCaseConverter } from 'uncase'
 // @ts-ignore
 import { isCamelCase, isSnakeCase, constantCase, dotCase, sentenceCase } from 'uncase/is'
 
-export class Case {
+export class CaseMaker {
 
 
     isCamelCase(str: string) {
@@ -58,4 +58,4 @@ export class Case {
 
 }
 
-export default new Case()
+export default new CaseMaker()
