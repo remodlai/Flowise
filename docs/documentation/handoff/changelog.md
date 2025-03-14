@@ -2,6 +2,41 @@
 
 ## March 2025
 
+### User Roles Array Fix
+
+**Date**: March 14, 2025  
+**Author**: Brian Bagdasarian  
+**PR**: #126  
+
+#### Changes
+
+1. **Fixed Empty Roles Array Issue**
+   - Updated the `formatUserResponse` method to ensure the user's primary role is included in the roles array
+   - Added logic to check if the role already exists in the array before adding it
+   - Ensured consistent role information across all user endpoints
+
+2. **Improved Role Representation**
+   - Standardized the format of role objects in the roles array
+   - Added resource_type and resource_id information for each role
+   - Maintained backward compatibility with existing role handling
+
+#### Motivation
+
+These changes were implemented to:
+- Fix an issue where the roles array was empty even when a user had a defined role
+- Ensure consistent role information across all user endpoints
+- Provide more detailed role information for authorization checks
+- Maintain a standardized response format for all user-related endpoints
+
+#### Affected Files
+
+- `packages/server/src/controllers/UserController.ts`
+
+#### Documentation
+
+Updated documentation can be found in:
+- [User Routes and Controller Documentation](./user_routes.md)
+
 ### Platform Admin Role Detection Fix
 
 **Date**: March 13, 2025  

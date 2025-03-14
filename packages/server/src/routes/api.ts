@@ -33,7 +33,7 @@ router.put('/platform/users/service-users/:userId', UserController.updateUser)
 // Delete a service user
 router.delete('/platform/users/service-users/:userId', UserController.deleteUser)
 // Get all service users by application ID
-router.get('/applications/:appId/users/service-users', UserController.getAllUsers)
+router.get('/applications/:appId/users/service-users', UserController.getAllServiceUsers)
 // Get a service user by ID
 router.get('/applications/:appId/users/service-users/:userId', UserController.getUserById)
 // Update a service user for a specific application
@@ -159,7 +159,7 @@ router.delete('/organizations/:orgId', OrganizationController.deleteOrganization
 
 // Organization service users routes
 // Get all service users by organization ID
-router.get('/organizations/:orgId/users/service-users', UserController.getAllUsers)
+router.get('/organizations/:orgId/users/service-users', UserController.getAllServiceUsers)
 // Get a service user for a specific organization by ID
 router.get('/organizations/:orgId/users/service-users/:userId', UserController.getUserById)
 // Update a service user for a specific organization

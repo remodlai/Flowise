@@ -12,33 +12,40 @@ The system also supports service users, which are special user accounts used for
 
 ## Recent Changes (March 2025)
 
-### 1. Platform Admin Role Detection Fix
+### 1. User Roles Array Fix
+
+- Updated the `formatUserResponse` method to ensure the user's primary role is included in the roles array
+- Added logic to check if the role already exists in the array before adding it
+- Standardized the format of role objects in the roles array with `role`, `resource_type`, and `resource_id` properties
+- Ensured consistent role information across all user endpoints
+
+### 2. Platform Admin Role Detection Fix
 
 - Updated the logic to correctly identify platform admin users based on their role
 - Added check for `role === 'platform_admin'` when determining platform admin status
 - Standardized the approach across all user retrieval methods
 - Improved naming consistency by using camelCase for all response fields
 
-### 2. Enhanced Organization Mapping
+### 3. Enhanced Organization Mapping
 
 - Added logic to populate the organizations array when it's empty but organization info exists
 - Ensures consistent organization data format across all user endpoints
 - Applied to all user retrieval methods (getAllUsers, getAllServiceUsers, getUserById)
 
-### 3. Consolidated Organization Member Methods
+### 4. Consolidated Organization Member Methods
 
 - Combined `updateOrganizationMember` and `updateOrganizationMemberRole` into a single method
 - Added detection of admin role updates based on request path or query parameters
 - Improved response format to include information about the operation type
 
-### 4. Enhanced User Retrieval with Auth Admin API
+### 5. Enhanced User Retrieval with Auth Admin API
 
 - Replaced direct queries to `auth.users` table with Supabase Auth Admin API
 - Implemented in-memory filtering for application and organization scopes
 - Added support for multiple metadata formats for application and organization IDs
 - Improved error handling with proper try/catch blocks
 
-### 5. Standardized API Routes
+### 6. Standardized API Routes
 
 - Changed user routes from `/global/users` to `/platform/users` for consistency
 - Removed `/create` suffixes from POST endpoints
@@ -163,6 +170,27 @@ To ensure consistency across all API endpoints, the user response format has bee
    - Application metadata
    - Organization information
 
+4. **Roles Array**: The `roles` array contains detailed information about all roles assigned to the user:
+   - The user's primary role is always included in the array
+   - Each role object includes `role`, `resource_type`, and `resource_id` properties
+   - Example format:
+     ```json
+     "roles": [
+       {
+         "role": "platform_admin",
+         "resource_type": "global",
+         "resource_id": null
+       },
+       {
+         "role": "admin",
+         "resource_type": "organization",
+         "resource_id": "org-uuid"
+       }
+     ]
+     ```
+   - The `role` property at the user object root level contains the user's primary role
+   - The `roles` array contains all roles, including the primary role and any additional roles
+
 This standardization ensures that client applications can rely on consistent field names and data structures across all user-related API endpoints.
 
 ## Controller Methods
@@ -200,7 +228,26 @@ Retrieves users based on the context level (global, application, or organization
       "organization": "Example Org",
       "organizationId": "org-uuid",
       "organizationRole": "member",
-      "organizations": [...],
+      "organizations": [
+        {
+          "id": "org-uuid",
+          "name": "Example Org",
+          "role": "member"
+        }
+      ],
+      "roles": [
+        {
+          "role": "user",
+          "resource_type": "global",
+          "resource_id": null
+        },
+        {
+          "role": "member",
+          "resource_type": "organization",
+          "resource_id": "org-uuid"
+        }
+      ],
+      "permissions": [],
       "isPlatformAdmin": false,
       "isServiceUser": false,
       "userStatus": "active"

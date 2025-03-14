@@ -4,7 +4,7 @@ import { handleError } from '../utils/errorHandler'
 import { ISupabaseUser, ISupabaseOrganization, ISupabaseOrganizationUser, ISupabaseUserRole } from '../Interface.Supabase'
 import { IUser } from '../Interface'
 import { checkPermission } from '../utils/authorizationUtils'
-
+import caseMaker from '../utils/case'
 /**
  * User Controller
  * Handles API endpoints for managing users
@@ -130,90 +130,7 @@ export class UserController {
             
             
             const formattedUsers = authUsers.map((user: ISupabaseUser) => {
-                // Access metadata from user_metadata or directly from JWT claims
-                const meta = user.user_metadata || {}
-                const primaryOrg = user.user_metadata?.organizations?.[0]
-                let organizations = user.user_metadata?.organizations || []
-                
-                // Enhanced metadata can be in user_metadata or directly in the user object
-                const isServiceUser = user.is_service_user || meta.is_service_user || false
-                const userStatus = user.user_status || meta.status || (user.email_confirmed_at ? 'active' : 'pending')
-                
-                // Get the user's role
-                const userRole = user.profile_role || meta.role || 'user'
-                
-                // Check if user is platform admin from all possible sources, including role
-                const isPlatformAdmin = user.is_platform_admin || 
-                                       meta.is_platform_admin || 
-                                       user.app_metadata?.is_platform_admin || 
-                                       userRole === 'platform_admin' || 
-                                       false
-                
-                // Debug logging for platform admin status
-                console.log('Platform admin debug:', {
-                    userId: user.id,
-                    email: user.email,
-                    user_is_platform_admin: user.is_platform_admin,
-                    meta_is_platform_admin: meta.is_platform_admin,
-                    app_metadata_is_platform_admin: user.app_metadata?.is_platform_admin,
-                    raw_user: user
-                });
-                
-                // Organization info can be in different formats
-                const orgInfo = user.organization || {
-                    id: meta.organization_id || primaryOrg?.id || null,
-                    name: meta.organization_name || primaryOrg?.name || null
-                }
-                
-                // Application info
-                const appInfo = user.application || {
-                    id: meta.application_id || null,
-                    name: meta.application_name || null
-                }
-                
-                // If organizations array is empty but we have organization info, add it to the array
-                if (organizations.length === 0 && orgInfo.id) {
-                    organizations = [{
-                        id: orgInfo.id,
-                        name: orgInfo.name || '',
-                        role: meta.role || user.profile_role || 'member'
-                    }];
-                }
-                
-                // Log the user object for debugging
-                if (consoleLogger) {
-                    console.log('User object structure:', {
-                        id: user.id,
-                        hasUserMetadata: !!user.user_metadata,
-                        hasIsServiceUser: !!user.is_service_user,
-                        hasUserStatus: !!user.user_status,
-                        hasOrganization: !!user.organization,
-                        hasApplication: !!user.application,
-                        organizationsCount: organizations.length,
-                        isPlatformAdmin: isPlatformAdmin
-                    })
-                }
-                
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: `${user.first_name || meta.first_name || ''} ${user.last_name || meta.last_name || ''}`.trim() || meta.name || '',
-                    firstName: user.first_name || meta.first_name || '',
-                    lastName: user.last_name || meta.last_name || '',
-                    role: userRole,
-                    status: userStatus === 'active' ? 'Active' : 'Pending',
-                    lastLogin: user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never',
-                    createdAt: user.created_at,
-                    organization: orgInfo.name || null,
-                    organizationId: orgInfo.id || user.organizationId || null,
-                    organizationRole: primaryOrg?.role || meta.role || 'member',
-                    organizations: organizations,
-                    isServiceUser: isServiceUser,
-                    application: appInfo.name || null,
-                    applicationId: appInfo.id || null,
-                    isPlatformAdmin: isPlatformAdmin,
-                    userStatus: userStatus
-                }
+                return UserController.formatUserResponse(user);
             })
 
             if (consoleLogger) {
@@ -256,68 +173,9 @@ export class UserController {
                 user.is_service_user === true || user.user_metadata?.is_service_user === true
             )
             
-            // Format the service users using the same approach as getAllUsers
+            // Format the service users using the helper method
             const formattedServiceUsers = serviceUsers.map((user: ISupabaseUser) => {
-                const meta = user.user_metadata || {}
-                
-                // Enhanced metadata can be in user_metadata or directly in the user object
-                const userStatus = user.user_status || meta.status || (user.email_confirmed_at ? 'active' : 'pending')
-                
-                // Get the user's role
-                const userRole = user.profile_role || meta.role || 'user'
-                
-                // Check if user is platform admin from all possible sources, including role
-                const isPlatformAdmin = user.is_platform_admin || 
-                                       meta.is_platform_admin || 
-                                       user.app_metadata?.is_platform_admin || 
-                                       userRole === 'platform_admin' || 
-                                       false
-                
-                // Organization info can be in different formats
-                const orgInfo = user.organization || {
-                    id: meta.organization_id || null,
-                    name: meta.organization_name || null
-                }
-                
-                // Application info
-                const appInfo = user.application || {
-                    id: meta.application_id || null,
-                    name: meta.application_name || null
-                }
-                
-                // Get organizations array or initialize empty
-                const primaryOrg = user.user_metadata?.organizations?.[0]
-                let organizations = user.user_metadata?.organizations || []
-                
-                // If organizations array is empty but we have organization info, add it to the array
-                if (organizations.length === 0 && orgInfo.id) {
-                    organizations = [{
-                        id: orgInfo.id,
-                        name: orgInfo.name || '',
-                        role: meta.role || user.profile_role || 'member'
-                    }];
-                }
-                
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: `${user.first_name || meta.first_name || ''} ${user.last_name || meta.last_name || ''}`.trim() || meta.name || '',
-                    firstName: user.first_name || meta.first_name || '',
-                    lastName: user.last_name || meta.last_name || '',
-                    role: userRole,
-                    status: userStatus === 'active' ? 'Active' : 'Pending',
-                    lastLogin: user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never',
-                    createdAt: user.created_at,
-                    organization: orgInfo.name || null,
-                    organizationId: orgInfo.id || user.organizationId || null,
-                    organizationRole: primaryOrg?.role || meta.role || 'member',
-                    organizations: organizations,
-                    application: appInfo.name || null,
-                    applicationId: appInfo.id || null,
-                    isServiceUser: true,
-                    isPlatformAdmin: isPlatformAdmin,
-                    userStatus: userStatus
-                }
+                return UserController.formatUserResponse(user, { isServiceUser: true });
             })
             
             return res.json({ users: formattedServiceUsers })
@@ -391,7 +249,7 @@ export class UserController {
                 organizations = [{
                     id: orgInfo.id,
                     name: orgInfo.name || '',
-                    role: userMetadata.role || user.profile_role || 'member'
+                    role: meta.role || user.profile_role || 'member'
                 }];
             }
             
@@ -450,30 +308,13 @@ export class UserController {
             // Use JWT roles if available, otherwise use database roles
             const roles = userRoles.length ? userRoles : dbUserRoles;
             
-            // Format the response
-            const formattedUser = {
-                id: user.id,
-                email: user.email,
-                firstName: user.first_name || userMetadata.first_name || meta.first_name || '',
-                lastName: user.last_name || userMetadata.last_name || meta.last_name || '',
-                name: `${user.first_name || userMetadata.first_name || meta.first_name || ''} ${user.last_name || userMetadata.last_name || meta.last_name || ''}`.trim(),
-                organization: orgInfo.name || meta.organization || '',
-                organizationId: orgInfo.id || user.organizationId || null,
-                organizationRole: primaryOrg?.role || userMetadata.role || 'member',
-                organizations: organizations,
-                application: appInfo.name || '',
-                applicationId: appInfo.id || null,
-                status: userStatus === 'active' ? 'Active' : 'Pending',
-                createdAt: user.created_at,
-                role: userRole,
+            // Format the response with camelCase keys using the helper method
+            const userResponse = UserController.formatUserResponse(user, {
                 roles: roles,
-                permissions: userPermissions,
-                isPlatformAdmin: isPlatformAdmin,
-                isServiceUser: isServiceUser,
-                userStatus: userStatus
-            }
+                permissions: userPermissions
+            });
             
-            return res.json({ user: formattedUser })
+            return res.json({ user: userResponse })
         } catch (error) {
             return handleError(res, error, 'Error fetching user')
         }
@@ -501,80 +342,72 @@ export class UserController {
                 name = `${firstName}`.trim()
             }
             
+            // Prepare user metadata with snake_case keys for database
+            const userMetadata = UserController.prepareForDatabase({ 
+                firstName,
+                lastName,
+                name,
+                organization,
+                role,
+                isPlatformAdmin,
+                isServiceUser,
+                applicationId: applicationId || null
+            });
+            
             const { data, error } = await supabase.auth.admin.createUser({
                 email,
                 password,
                 email_confirm: true,
-                user_metadata: { 
-                    first_name: firstName,
-                    last_name: lastName,
-                    name: name,
-                    organization,
-                    role,
-                    is_platform_admin: isPlatformAdmin,
-                    is_service_user: isServiceUser,
-                    application_id: applicationId? applicationId : null
-                }
+                user_metadata: userMetadata
             })
             
             if (error) throw error
             
-            // Create user profile
+            // Create user profile with snake_case keys for database
+            const profileData = UserController.prepareForDatabase({
+                userId: data.user.id,
+                meta: {
+                    firstName,
+                    lastName,
+                    organization,
+                    role,
+                    isPlatformAdmin,
+                    isServiceUser,
+                    applicationId: applicationId || null
+                }
+            });
+            
             const { error: profileError } = await supabase
                 .from('user_profiles')
                 .insert({
-                    user_id: data.user.id,
-                    meta: {
-                        first_name: firstName,
-                        last_name: lastName,
-                        organization,
-                        role,
-                        is_platform_admin: isPlatformAdmin,
-                        is_service_user: isServiceUser,
-                        application_id: applicationId? applicationId : null
-                    }
+                    user_id: profileData.user_id,
+                    meta: profileData.meta
                 })
             
             if (profileError) {
                 console.error('Error creating user profile:', profileError)
             }
-            if (isServiceUser) {
-                return res.json({
-                    user: {
-                        id: data.user.id,
-                        email: data.user.email,
-                        firstName,
-                        lastName,
-                        name: name,
-                        organization,
-                        role,
-                        status: 'Active',
-                        createdAt: data.user.created_at,
-                        is_platform_admin: isPlatformAdmin,
-                        is_service_user: isServiceUser,
-                        application_id: applicationId? applicationId : null
-                    },
-                    application_id: applicationId? applicationId : null
-                })
-            } else {
-                return res.json({
-                    user: {
-                        id: data.user.id,
-                        email: data.user.email,
-                        firstName,
-                        lastName,
-                        name: name,
-                        organization,
-                        role,
-                        status: 'Active',
-                        createdAt: data.user.created_at,
-                        is_platform_admin: isPlatformAdmin,
-                        is_service_user: isServiceUser,
-                        application_id: applicationId? applicationId : null
-                    },
-                    application_id: applicationId? applicationId : null
-                })
+            
+            // Create response object with camelCase keys
+            const userResponse = {
+                id: data.user.id,
+                email: data.user.email,
+                firstName,
+                lastName,
+                name: name,
+                organization,
+                role,
+                status: 'Active',
+                createdAt: data.user.created_at,
+                isPlatformAdmin: isPlatformAdmin,
+                isServiceUser: isServiceUser,
+                applicationId: applicationId || null
             }
+            
+            return res.json({
+                user: userResponse,
+                applicationId: applicationId || null
+            })
         } catch (error) {
             return handleError(res, error, 'Error creating user')
         }
@@ -590,17 +423,20 @@ export class UserController {
             const { userId } = req.params
             const { email, password, firstName, lastName, organization, role } = req.body
             
+            // Prepare user metadata with snake_case keys for database
+            const userMetadata = UserController.prepareForDatabase({ 
+                firstName,
+                lastName,
+                name: `${firstName} ${lastName}`.trim(),
+                organization,
+                role
+            });
+            
             // Update the user in Supabase Auth
             const { data, error } = await supabase.auth.admin.updateUserById(userId, {
                 email,
                 password,
-                user_metadata: { 
-                    first_name: firstName,
-                    last_name: lastName,
-                    name: `${firstName} ${lastName}`.trim(),
-                    organization,
-                    role
-                }
+                user_metadata: userMetadata
             })
             
             if (error) throw error
@@ -616,16 +452,16 @@ export class UserController {
                 console.error('Error checking user profile:', checkError)
             }
             
-            // Update or create user profile
-            const profileData = {
-                user_id: userId,
+            // Prepare profile data with snake_case keys for database
+            const profileData = UserController.prepareForDatabase({
+                userId: userId,
                 meta: {
-                    first_name: firstName,
-                    last_name: lastName,
+                    firstName,
+                    lastName,
                     organization,
                     role
                 }
-            }
+            });
             
             let profileError
             
@@ -633,7 +469,10 @@ export class UserController {
                 // Update existing profile
                 const { error: updateError } = await supabase
                     .from('user_profiles')
-                    .update(profileData)
+                    .update({
+                        user_id: profileData.user_id,
+                        meta: profileData.meta
+                    })
                     .eq('user_id', userId)
                 
                 profileError = updateError
@@ -641,7 +480,10 @@ export class UserController {
                 // Create new profile
                 const { error: insertError } = await supabase
                     .from('user_profiles')
-                    .insert(profileData)
+                    .insert({
+                        user_id: profileData.user_id,
+                        meta: profileData.meta
+                    })
                 
                 profileError = insertError
             }
@@ -650,20 +492,21 @@ export class UserController {
                 console.error('Error updating user profile:', profileError)
             }
             
-            return res.json({
-                user: {
-                    id: data.user.id,
-                    email: data.user.email,
-                    firstName,
-                    lastName,
-                    name: `${firstName} ${lastName}`.trim(),
-                    organization,
-                    role,
-                    status: data.user.email_confirmed_at ? 'Active' : 'Pending',
-                    lastLogin: data.user.last_sign_in_at || 'Never',
-                    createdAt: data.user.created_at
-                }
-            })
+            // Create response object with camelCase keys
+            const userResponse = {
+                id: data.user.id,
+                email: data.user.email,
+                firstName,
+                lastName,
+                name: `${firstName} ${lastName}`.trim(),
+                organization,
+                role,
+                status: data.user.email_confirmed_at ? 'Active' : 'Pending',
+                lastLogin: data.user.last_sign_in_at || 'Never',
+                createdAt: data.user.created_at
+            }
+            
+            return res.json({ user: userResponse })
         } catch (error) {
             return handleError(res, error, 'Error updating user')
         }
@@ -685,6 +528,7 @@ export class UserController {
             
             // The user_profile will be automatically deleted due to the ON DELETE CASCADE constraint
             
+            // Return success response with camelCase keys
             return res.json({ success: true })
         } catch (error) {
             return handleError(res, error, 'Error deleting user')
@@ -738,10 +582,13 @@ export class UserController {
             })
             
             // Add role to each organization
-            const orgsWithRoles = organizations.map((org: ISupabaseOrganization) => ({
-                ...org,
-                role: roleMap.get(org.id) || 'member'
-            }))
+            const orgsWithRoles = organizations.map((org: ISupabaseOrganization) => {
+                // Create organization object with camelCase keys
+                return caseMaker.objectToCamelCase({
+                    ...org,
+                    role: roleMap.get(org.id) || 'member'
+                });
+            })
             
             console.log(`Returning ${orgsWithRoles.length} organizations for user ${userId}`)
             
@@ -749,5 +596,116 @@ export class UserController {
         } catch (error) {
             return handleError(res, error, 'Error fetching user organizations')
         }
+    }
+
+    /**
+     * Helper method to format a Supabase user object into a standardized API response format
+     * @param user The Supabase user object
+     * @param additionalData Additional data to include in the response (roles, permissions, etc.)
+     * @returns A formatted user object with camelCase keys
+     */
+    static formatUserResponse(user: ISupabaseUser, additionalData: any = {}) {
+        // Access metadata from user_metadata or directly from JWT claims
+        const meta = user.user_metadata || {}
+        const userMetadata = user.user_metadata || {}
+        const primaryOrg = userMetadata.organizations?.[0]
+        let organizations = userMetadata.organizations || []
+        
+        // Enhanced metadata can be in user_metadata or directly in the user object
+        const isServiceUser = user.is_service_user || meta.is_service_user || additionalData.isServiceUser || false
+        const userStatus = user.user_status || meta.status || (user.email_confirmed_at ? 'active' : 'pending')
+        
+        // Get the user's role
+        const userRole = user.profile_role || meta.role || 'user'
+        
+        // Check if user is platform admin from all possible sources, including role
+        const isPlatformAdmin = user.is_platform_admin || 
+                               meta.is_platform_admin || 
+                               user.app_metadata?.is_platform_admin || 
+                               userRole === 'platform_admin' || 
+                               false
+        
+        // Organization info can be in different formats
+        const orgInfo = user.organization || {
+            id: meta.organization_id || primaryOrg?.id || null,
+            name: meta.organization_name || primaryOrg?.name || meta.organization || null
+        }
+        
+        // Application info
+        const appInfo = user.application || {
+            id: meta.application_id || null,
+            name: meta.application_name || null
+        }
+        
+        // If organizations array is empty but we have organization info, add it to the array
+        if (organizations.length === 0 && orgInfo.id) {
+            organizations = [{
+                id: orgInfo.id,
+                name: orgInfo.name || '',
+                role: meta.role || user.profile_role || 'member'
+            }];
+        }
+        
+        // Ensure we have a roles array that includes the user's primary role
+        let roles = additionalData.roles || [];
+        
+        // Check if the user's primary role is already in the roles array
+        const primaryRoleExists = roles.some((r: any) => 
+            r.role === userRole || 
+            (typeof r === 'string' && r === userRole)
+        );
+        
+        // If the primary role isn't in the array, add it
+        if (!primaryRoleExists && userRole) {
+            roles.push({
+                role: userRole,
+                resource_type: 'global',
+                resource_id: null
+            });
+        }
+        
+        // Create user object with camelCase keys
+        const userResponse = {
+            id: user.id,
+            email: user.email,
+            name: `${user.first_name || meta.first_name || ''} ${user.last_name || meta.last_name || ''}`.trim() || meta.name || '',
+            firstName: user.first_name || meta.first_name || '',
+            lastName: user.last_name || meta.last_name || '',
+            role: userRole,
+            status: userStatus === 'active' ? 'Active' : 'Pending',
+            lastLogin: user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never',
+            createdAt: user.created_at,
+            organization: orgInfo.name || null,
+            organizationId: orgInfo.id || user.organizationId || null,
+            organizationRole: primaryOrg?.role || meta.role || 'member',
+            organizations: organizations,
+            isServiceUser: isServiceUser,
+            application: appInfo.name || null,
+            applicationId: appInfo.id || null,
+            isPlatformAdmin: isPlatformAdmin,
+            userStatus: userStatus,
+            roles: roles,
+            permissions: additionalData.permissions || [],
+            ...additionalData
+        }
+        
+        // Remove any properties that were explicitly set to undefined in additionalData
+        Object.keys(additionalData).forEach(key => {
+            if (additionalData[key] === undefined) {
+                delete userResponse[key];
+            }
+        });
+        
+        return userResponse;
+    }
+
+    /**
+     * Helper method to convert request body from camelCase to snake_case for database operations
+     * @param requestBody The request body with camelCase keys
+     * @returns An object with snake_case keys for database operations
+     */
+    static prepareForDatabase(requestBody: any) {
+        // Convert camelCase keys to snake_case for database operations
+        return caseMaker.objectToSnakeCase(requestBody);
     }
 } 
