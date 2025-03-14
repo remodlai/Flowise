@@ -9,6 +9,15 @@ import platformAdminRoutes from './platform/index'
 import { supabase } from '../utils/supabase'
 import { getUserContextFromJWT } from './auth/user-context'
 import { ISupabaseOrganization } from '../Interface.Supabase'
+import multer from 'multer'
+import assetsRoutes from './assetsRoutes'
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  }
+});
 // Create a router for v1 API routes
 const router = express.Router()
 
@@ -91,7 +100,10 @@ router.get('/users/:userId/applications', ApplicationController.getUserApplicati
 // Get all users for an application
 router.get('/applications/:appId/users', UserController.getAllUsers)
 
-router.post('/applications/:appId/assets/logo/upload', ApplicationController.uploadApplicationLogo)
+router.post('/applications/:appId/assets/logo/upload',upload.single('file'), ApplicationController.uploadApplicationLogo)
+router.get('/applications/:appId/assets/logo/url', ApplicationController.getApplicationLogoUrl)
+//router.delete('/applications/:appId/assets/logo/delete', ApplicationController.deleteApplicationLogo)
+//router.put('/applications/:appId/assets/logo/update', ApplicationController.updateApplicationLogo)
 
 // Add a debug endpoint for applications
 router.get('/debug/user-applications', async (req, res) => {
@@ -168,6 +180,10 @@ router.put('/organizations/:orgId/users/service-users/:userId', UserController.u
 router.delete('/organizations/:orgId/users/service-users/:userId', UserController.deleteUser)
 // Create a service user for a specific organization
 router.post('/organizations/:orgId/users/service-users', UserController.createUser)
+// router.post('/organizations/:orgId/logo/upload', OrganizationController.uploadOrganizationLogo)
+// router.get('/organizations/:orgId/logo/download', OrganizationController.downloadOrganizationLogo)
+// router.delete('/organizations/:orgId/logo/delete', OrganizationController.deleteOrganizationLogo)
+// router.put('/organizations/:orgId/logo/update', OrganizationController.updateOrganizationLogo)
 
 // Organization members routes
 router.get('/organizations/:orgId/members', OrganizationController.getOrganizationMembers)

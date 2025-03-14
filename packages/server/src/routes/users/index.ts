@@ -11,6 +11,10 @@ router.get('/:id', UserController.getUserById)
 router.put('/:id', UserController.updateUser)
 router.delete('/:id', UserController.deleteUser)
 
+
+
+
+
 // Mount the custom-roles router
 router.use('/:id/custom-roles', customRolesRouter)
 

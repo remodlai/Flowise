@@ -534,7 +534,7 @@ export class UserController {
             return handleError(res, error, 'Error deleting user')
         }
     }
-
+    
     /**
      * Get a user's organizations
      * @param req Request

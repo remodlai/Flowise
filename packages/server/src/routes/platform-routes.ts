@@ -17,4 +17,10 @@ router.get('/tools', checkAuthorization(['platform.admin']), platformController.
 // Toggle tool enabled status
 router.post('/tools/toggle', checkAuthorization(['platform.admin']), platformController.toggleToolEnabled.bind(platformController))
 
+
+
+
+
+
+
 export default router 
