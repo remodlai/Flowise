@@ -4,11 +4,25 @@ import { authenticateUser } from '../../utils/supabaseAuth'
 import { requirePlatformAdmin } from '../../utils/supabase'
 import { IUser } from '../../Interface'
 
+import { UserController } from '../../controllers/UserController'
 const router = express.Router()
 
 // Protect this route with authentication and admin check
 router.use(authenticateUser)
 router.use(requirePlatformAdmin)
+
+// router.post('/users/signup/email', UserController.signUpEmail)
+// router.post('/platform/users/create', UserController.createUser)
+// router.put('/platform/users/update', UserController.updateUser)
+// router.delete('/platform/users/delete', UserController.deleteUser)
+
+
+//service users
+router.get('/platform/service-users', UserController.getAllServiceUsers)
+// router.post('/platform/service-users/create', UserController.createServiceUser)
+// router.put('/platform/service-users/update', UserController.updateServiceUser)
+// router.delete('/platform/service-users/delete', UserController.deleteServiceUser)
+
 
 router.post('/', async (req, res) => {
   try {

@@ -196,6 +196,47 @@ Currently, API keys are associated with a single platform admin user with an ID 
    - Confirm that JWT claims processing works with service users
    - No major changes should be needed as we're working with the user claims
 
+### High-Performance Caching Implementation
+
+To support high-volume API usage, we'll implement a Redis-based caching layer for API key authentication:
+
+1. Set up Redis infrastructure:
+   - Use Upstash Redis for serverless, high-performance caching
+   - Configure appropriate connection settings and security
+
+2. Design Redis schema:
+   - **Key Format**: `apikey:{api_key_hash}`
+   - **Value Structure**:
+     ```json
+     {
+       "jwt": "raw_jwt_token",
+       "decoded_jwt": {
+         "sub": "user_id",
+         "user_roles": [...],
+         "is_platform_admin": boolean,
+         "exp": timestamp
+       },
+       "expires": timestamp,
+       "user_id": "user_id",
+       "is_service_account": boolean
+     }
+     ```
+   - **TTL**: Automatically set to match JWT expiration
+
+3. Implement Redis caching service:
+   - Create `RedisService.ts` for managing Redis operations
+   - Implement functions for getting, setting, and invalidating cache entries
+
+4. Update authentication middleware:
+   - Check Redis cache before database lookup
+   - If API key found in cache and not expired, use cached JWT and claims
+   - If not found or expired, perform database lookup and cache results
+   - Implement refresh token flow for expired tokens
+
+5. Implement background synchronization:
+   - Create a mechanism to invalidate cache entries when API keys are revoked
+   - Set up periodic synchronization to ensure cache consistency with database
+
 ### Frontend Implementation
 
 1. Create a modal component for API key creation:
@@ -229,6 +270,13 @@ Currently, API keys are associated with a single platform admin user with an ID 
   - [ ] Create service user and API key services
   - [ ] Review existing auth code for compatibility
 
+- [ ] High-performance caching implementation
+  - [ ] Set up Redis infrastructure
+  - [ ] Implement Redis service
+  - [ ] Update authentication middleware for Redis caching
+  - [ ] Implement cache invalidation mechanisms
+  - [ ] Add monitoring for Redis performance
+
 - [ ] Frontend implementation
   - [ ] Create API key creation modal with Personal/Service options
   - [ ] Update application settings page
@@ -237,6 +285,7 @@ Currently, API keys are associated with a single platform admin user with an ID 
 - [ ] Testing
   - [ ] Unit tests for new controllers and services
   - [ ] Integration tests for API key creation and authentication
+  - [ ] Performance tests for Redis caching
   - [ ] UI tests for API key management
   - [ ] Test both personal and service keys
 
@@ -244,6 +293,7 @@ Currently, API keys are associated with a single platform admin user with an ID 
   - [ ] Update API documentation
   - [ ] Create user guide for API key management
   - [ ] Update developer documentation
+  - [ ] Document Redis caching architecture
 
 ## Security Considerations
 
@@ -253,10 +303,21 @@ Currently, API keys are associated with a single platform admin user with an ID 
 - Service users should follow the principle of least privilege
 - All API key operations should be logged for audit purposes
 - Personal keys inherit the user's permissions and are tied to the user's account
+- Redis cache should use encryption at rest and in transit
+- Redis TTL should match or be shorter than the JWT expiration
+
+## Performance Considerations
+
+- Redis caching significantly reduces database load for API key validation
+- Asynchronous usage tracking prevents blocking API requests
+- Refresh token flow maintains session validity without requiring re-authentication
+- Graceful fallback to database if Redis is unavailable
+- Monitoring should be implemented to track Redis performance and hit rates
 
 ## Future Enhancements
 
 - Support for API key rotation
 - Support for API key usage tracking
 - Support for API key rate limiting
-- Support for API key scopes (limiting access to specific endpoints) 
+- Support for API key scopes (limiting access to specific endpoints)
+- Advanced Redis caching strategies (e.g., sharding for extremely high volume) 

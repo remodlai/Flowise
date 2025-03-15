@@ -38,6 +38,7 @@ import { jwtDebugMiddleware } from './middleware/jwtDebug'
 import { authenticateApiKey } from './middleware/authenticateApiKey'
 import storageRoutes from './routes/storage'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { Database } from './supabase-types/datase.types'
 
 // Extend Express Request type
 declare global {
@@ -154,11 +155,11 @@ export class App {
                 logger.warn('[server]: Supabase URL or service key not provided, Supabase integration will not be available')
                 return
             }
-            
-            this.Supabase = createClient(supabaseUrl, supabaseServiceKey, {
+            //We are now using the supabase-types/datase.types.ts file to type the supabase client, per https://supabase.com/docs/reference/javascript/typescript-support
+            this.Supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
                 auth: {
-                    persistSession: false,
-                    autoRefreshToken: false
+                    persistSession: true,
+                    autoRefreshToken: true
                 }
             })
             

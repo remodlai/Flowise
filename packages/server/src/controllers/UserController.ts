@@ -5,6 +5,8 @@ import { ISupabaseUser, ISupabaseOrganization, ISupabaseOrganizationUser, ISupab
 import { IUser } from '../Interface'
 import { checkPermission } from '../utils/authorizationUtils'
 import caseMaker from '../utils/case'
+import {getInstance} from '../index'
+import logger from '../utils/logger'
 /**
  * User Controller
  * Handles API endpoints for managing users
@@ -20,6 +22,9 @@ export class UserController {
      * @param isServiceUser - Whether to filter users by service user
    
      */
+ 
+            
+
     static async getAllUsers(req: Request, res: Response) {
         try {
             console.log('Getting all users...')

@@ -50,6 +50,61 @@ Once the user context is set up, the request is processed as if it came from the
 
 After processing the request, the system updates the `last_used_at` timestamp for the API key.
 
+## High-Performance Implementation with Redis
+
+To support high-volume API usage, the platform implements a Redis-based caching layer for API key authentication:
+
+### Redis Caching Architecture
+
+- **Key Format**: `apikey:{api_key_hash}`
+- **Value Structure**:
+  ```json
+  {
+    "jwt": "raw_jwt_token",
+    "decoded_jwt": {
+      "sub": "user_id",
+      "user_roles": [...],
+      "is_platform_admin": boolean,
+      "exp": timestamp
+    },
+    "expires": timestamp,
+    "user_id": "user_id",
+    "is_service_account": boolean
+  }
+  ```
+- **TTL**: Automatically set to match JWT expiration
+
+### Optimized Authentication Flow
+
+1. Extract API key from request (Authorization header or query parameter)
+2. Look up API key in Redis cache
+   - If found and not expired:
+     - Use stored JWT for authentication
+     - Use decoded JWT data for authorization checks
+     - Skip database lookup entirely
+   - If not found or expired:
+     - Look up API key in Supabase
+     - If valid, generate new JWT
+     - Decode JWT and store both raw and decoded JWT in Redis
+     - Set TTL to match JWT expiration
+3. Use JWT for authentication and decoded data for authorization checks
+4. Update usage tracking asynchronously to avoid blocking the request
+
+### Performance Benefits
+
+- Minimizes database queries for frequently used API keys
+- Reduces latency for API key validation
+- Scales to support thousands of concurrent API requests
+- Maintains security by respecting token expiration
+- Synchronizes with Supabase for consistency
+
+### Refresh Token Handling
+
+When a token is expired:
+1. The system uses the refresh token to obtain a new session
+2. The new JWT and decoded data are stored in Redis
+3. The TTL is updated to match the new expiration time
+
 ## Implementation Details
 
 ### Authentication Middleware
@@ -69,10 +124,40 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const apiKey = extractApiKey(req);
     
     if (apiKey) {
-      // Verify API key
+      // Check Redis cache first
+      const cachedData = await getFromRedisCache(apiKey);
+      
+      if (cachedData) {
+        // Set up user context from cached data
+        req.user = {
+          userId: cachedData.decoded_jwt.sub,
+          isPersonalKey: !cachedData.is_service_account,
+          permissions: cachedData.decoded_jwt.user_roles,
+          isPlatformAdmin: cachedData.decoded_jwt.is_platform_admin
+        };
+        
+        // Update usage tracking asynchronously
+        updateApiKeyUsage(apiKey).catch(console.error);
+        
+        return next();
+      }
+      
+      // If not in cache, verify API key from database
       const apiKeyInfo = await verifyApiKey(apiKey);
       
       if (apiKeyInfo) {
+        // Generate JWT and cache in Redis
+        const jwt = await generateJwtForApiKey(apiKeyInfo);
+        const decodedJwt = decodeJwt(jwt);
+        
+        await cacheInRedis(apiKey, {
+          jwt,
+          decoded_jwt: decodedJwt,
+          expires: decodedJwt.exp * 1000, // Convert to milliseconds
+          user_id: apiKeyInfo.user_id,
+          is_service_account: !apiKeyInfo.is_personal_key
+        });
+        
         // Set up user context
         req.user = {
           userId: apiKeyInfo.user_id,
@@ -96,6 +181,43 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       message: 'Unauthorized'
     });
   }
+};
+```
+
+### Redis Cache Functions
+
+```typescript
+// Example Redis cache functions
+export const getFromRedisCache = async (apiKey: string) => {
+  const apiKeyHash = hashApiKey(apiKey);
+  const key = `apikey:${apiKeyHash}`;
+  
+  const data = await redis.get(key);
+  if (!data) return null;
+  
+  const parsedData = JSON.parse(data);
+  
+  // Check if token is expired
+  if (parsedData.expires < Date.now()) {
+    // Token is expired, remove from cache
+    await redis.del(key);
+    return null;
+  }
+  
+  return parsedData;
+};
+
+export const cacheInRedis = async (apiKey: string, data: any) => {
+  const apiKeyHash = hashApiKey(apiKey);
+  const key = `apikey:${apiKeyHash}`;
+  
+  // Calculate TTL in seconds
+  const now = Date.now();
+  const ttl = Math.floor((data.expires - now) / 1000);
+  
+  if (ttl <= 0) return; // Don't cache expired tokens
+  
+  await redis.set(key, JSON.stringify(data), 'EX', ttl);
 };
 ```
 
@@ -149,6 +271,8 @@ export const updateApiKeyUsage = async (apiKey: string) => {
 - API keys should be revocable
 - Failed API key authentication attempts should be logged
 - Rate limiting should be applied to prevent brute force attacks
+- Redis cache should use encryption at rest and in transit
+- Redis TTL should match or be shorter than the JWT expiration
 
 ## Best Practices for API Key Management
 

@@ -19,9 +19,11 @@ router.post('/', async (req, res) => {
     console.log('Attempting to refresh token with Supabase');
     
     // Exchange refresh token for a new session
-    const { data, error } = await supabase.auth.refreshSession({
-      refresh_token
-    });
+    /*
+    * Removed passing the refresh_token as a parameter, because it's not needed., and ws potentially causing issues.  
+    * 
+    */
+    const { data, error } = await supabase.auth.refreshSession();
     
     if (error) {
       console.error('Token refresh error from Supabase:', error);
