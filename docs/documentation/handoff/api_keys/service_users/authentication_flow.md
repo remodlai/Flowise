@@ -1,8 +1,22 @@
-# API Key Authentication Flow
+# API Key Authentication Flow with Zuplo API Gateway
 
 ## Overview
 
-This document outlines the authentication flow for API keys in the Remodl AI platform. It covers both personal API keys (tied directly to a user) and service API keys (tied to a service user with specific permissions).
+This document outlines the authentication flow for API keys in the Remodl AI platform using Zuplo API Gateway. It covers both personal API keys (tied directly to a user) and service API keys (tied to a service user with specific permissions).
+
+## Architecture
+
+The Remodl AI platform uses a multi-layered authentication approach:
+
+1. **Zuplo API Gateway** (api.remodl.ai): The entry point for all API traffic
+2. **Supabase Auth**: Handles user authentication and JWT generation
+3. **Backend Services**: Process requests after authentication
+
+This architecture provides several benefits:
+- Centralized authentication and authorization
+- Consistent policy enforcement
+- Protection of backend services
+- Simplified client integration
 
 ## Authentication Flow
 
@@ -11,255 +25,202 @@ This document outlines the authentication flow for API keys in the Remodl AI pla
 The client includes the API key in the request using one of the following methods:
 
 - **HTTP Header**: `Authorization: Bearer {api_key}`
-- **Query Parameter**: `?api_key={api_key}`
+- **Query Parameter**: `?api_key={api_key}` (if configured)
 
-### 2. API Key Verification
+### 2. Zuplo API Gateway Processing
 
-When a request with an API key is received, the following steps are performed:
+When a request with an API key is received by Zuplo:
 
-1. The API key is extracted from the request
-2. The system checks if the API key exists in the database
-3. The system verifies that the API key is active and not expired
-4. The system determines if it's a personal key or a service key
+1. Zuplo extracts the API key from the request
+2. Zuplo validates the API key against its configuration
+3. Zuplo checks if the API key has the necessary permissions for the requested endpoint
+4. If valid, Zuplo adds a secure shared secret to the request before forwarding to backend services
+5. If invalid, Zuplo returns an appropriate error response without forwarding the request
 
-### 3. User Context Setup
+### 3. Backend Service Verification
 
-Based on the type of API key, the system sets up the user context:
+When the backend service receives the request:
+
+1. The service verifies that the request includes the secure shared secret from Zuplo
+2. The service extracts the user context from the request headers added by Zuplo
+3. The service processes the request based on the authenticated user's permissions
+
+### 4. User Context Setup
+
+Based on the type of API key, Zuplo sets up the user context:
 
 #### For Personal Keys:
 
 1. The user ID is set to the `created_by` value of the API key
-2. The user's permissions are retrieved from the `user_roles` table
+2. The user's permissions are retrieved from Supabase
 3. The user context is set up with the user's ID and permissions
 
 #### For Service Keys:
 
 1. The user ID is set to the `service_user_id` value of the API key
-2. The service user's permissions are retrieved from the `user_roles` table
+2. The service user's permissions are retrieved from Supabase
 3. The user context is set up with the service user's ID and permissions
 
-### 4. Request Processing
+### 5. Request Processing
 
-Once the user context is set up, the request is processed as if it came from the authenticated user:
+Once the user context is set up, the request is processed:
 
-1. The system checks if the user has the required permissions for the requested operation
-2. If the user has the required permissions, the operation is performed
+1. Zuplo checks if the user has the required permissions for the requested operation
+2. If the user has the required permissions, the request is forwarded to the appropriate backend service
 3. If the user does not have the required permissions, a 403 Forbidden response is returned
 
-### 5. Usage Tracking
+### 6. Usage Tracking
 
-After processing the request, the system updates the `last_used_at` timestamp for the API key.
+After processing the request, Zuplo:
 
-## High-Performance Implementation with Redis
+1. Logs the API key usage for analytics
+2. Updates rate limiting counters if applicable
+3. Collects metrics on response time and status
 
-To support high-volume API usage, the platform implements a Redis-based caching layer for API key authentication:
+## Zuplo Policy Implementation
 
-### Redis Caching Architecture
+Zuplo uses policies to enforce authentication and authorization:
 
-- **Key Format**: `apikey:{api_key_hash}`
-- **Value Structure**:
-  ```json
-  {
-    "jwt": "raw_jwt_token",
-    "decoded_jwt": {
-      "sub": "user_id",
-      "user_roles": [...],
-      "is_platform_admin": boolean,
-      "exp": timestamp
-    },
-    "expires": timestamp,
-    "user_id": "user_id",
-    "is_service_account": boolean
-  }
-  ```
-- **TTL**: Automatically set to match JWT expiration
+### API Key Validation Policy
 
-### Optimized Authentication Flow
-
-1. Extract API key from request (Authorization header or query parameter)
-2. Look up API key in Redis cache
-   - If found and not expired:
-     - Use stored JWT for authentication
-     - Use decoded JWT data for authorization checks
-     - Skip database lookup entirely
-   - If not found or expired:
-     - Look up API key in Supabase
-     - If valid, generate new JWT
-     - Decode JWT and store both raw and decoded JWT in Redis
-     - Set TTL to match JWT expiration
-3. Use JWT for authentication and decoded data for authorization checks
-4. Update usage tracking asynchronously to avoid blocking the request
-
-### Performance Benefits
-
-- Minimizes database queries for frequently used API keys
-- Reduces latency for API key validation
-- Scales to support thousands of concurrent API requests
-- Maintains security by respecting token expiration
-- Synchronizes with Supabase for consistency
-
-### Refresh Token Handling
-
-When a token is expired:
-1. The system uses the refresh token to obtain a new session
-2. The new JWT and decoded data are stored in Redis
-3. The TTL is updated to match the new expiration time
-
-## Implementation Details
-
-### Authentication Middleware
-
-The authentication middleware is responsible for verifying API keys and setting up the user context. It should:
-
-1. Check if the request includes an API key
-2. If an API key is present, verify it using the `verify_api_key` function
-3. Set up the user context based on the API key type
-4. Pass the request to the next middleware or controller
-
-```typescript
-// Example authentication middleware
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // Check for API key in header or query parameter
-    const apiKey = extractApiKey(req);
+```javascript
+// Example Zuplo API Key Validation Policy
+export default class ApiKeyValidationPolicy implements ZuploRequest {
+  async handle(request: ZuploRequest, context: PolicyContext): Promise<ZuploRequest> {
+    // Extract API key from request
+    const apiKey = request.headers.get('authorization')?.replace('Bearer ', '');
     
-    if (apiKey) {
-      // Check Redis cache first
-      const cachedData = await getFromRedisCache(apiKey);
-      
-      if (cachedData) {
-        // Set up user context from cached data
-        req.user = {
-          userId: cachedData.decoded_jwt.sub,
-          isPersonalKey: !cachedData.is_service_account,
-          permissions: cachedData.decoded_jwt.user_roles,
-          isPlatformAdmin: cachedData.decoded_jwt.is_platform_admin
-        };
-        
-        // Update usage tracking asynchronously
-        updateApiKeyUsage(apiKey).catch(console.error);
-        
-        return next();
-      }
-      
-      // If not in cache, verify API key from database
-      const apiKeyInfo = await verifyApiKey(apiKey);
-      
-      if (apiKeyInfo) {
-        // Generate JWT and cache in Redis
-        const jwt = await generateJwtForApiKey(apiKeyInfo);
-        const decodedJwt = decodeJwt(jwt);
-        
-        await cacheInRedis(apiKey, {
-          jwt,
-          decoded_jwt: decodedJwt,
-          expires: decodedJwt.exp * 1000, // Convert to milliseconds
-          user_id: apiKeyInfo.user_id,
-          is_service_account: !apiKeyInfo.is_personal_key
-        });
-        
-        // Set up user context
-        req.user = {
-          userId: apiKeyInfo.user_id,
-          isPersonalKey: apiKeyInfo.is_personal_key,
-          applicationId: apiKeyInfo.application_id,
-          permissions: apiKeyInfo.permissions
-        };
-        
-        // Update usage tracking
-        await updateApiKeyUsage(apiKey);
-        
-        return next();
-      }
+    if (!apiKey) {
+      throw new HttpError(401, 'API key is required');
     }
     
-    // Continue with other authentication methods (JWT, etc.)
-    return next();
-  } catch (error) {
+    // Validate API key (implementation depends on storage method)
+    const apiKeyData = await validateApiKey(apiKey, context);
+    
+    if (!apiKeyData) {
+      throw new HttpError(401, 'Invalid API key');
+    }
+    
+    // Add user context to request for backend services
+    request.headers.set('x-user-id', apiKeyData.userId);
+    request.headers.set('x-user-roles', JSON.stringify(apiKeyData.roles));
+    request.headers.set('x-api-key-type', apiKeyData.isPersonalKey ? 'personal' : 'service');
+    
+    // Add secure shared secret for backend verification
+    request.headers.set('x-gateway-secret', context.environment.GATEWAY_SECRET);
+    
+    return request;
+  }
+}
+```
+
+### JWT Validation Policy
+
+```javascript
+// Example Zuplo JWT Validation Policy
+export default class JwtValidationPolicy implements ZuploRequest {
+  async handle(request: ZuploRequest, context: PolicyContext): Promise<ZuploRequest> {
+    // Extract JWT from request
+    const jwt = request.headers.get('authorization')?.replace('Bearer ', '');
+    
+    if (!jwt) {
+      throw new HttpError(401, 'JWT is required');
+    }
+    
+    // Validate JWT using Supabase public key
+    const jwtData = await validateJwt(jwt, context);
+    
+    if (!jwtData) {
+      throw new HttpError(401, 'Invalid JWT');
+    }
+    
+    // Add user context to request for backend services
+    request.headers.set('x-user-id', jwtData.sub);
+    request.headers.set('x-user-roles', JSON.stringify(jwtData.user_roles));
+    request.headers.set('x-is-platform-admin', jwtData.is_platform_admin ? 'true' : 'false');
+    
+    // Add secure shared secret for backend verification
+    request.headers.set('x-gateway-secret', context.environment.GATEWAY_SECRET);
+    
+    return request;
+  }
+}
+```
+
+## Backend Implementation
+
+### Gateway Secret Verification
+
+Backend services must verify that requests come from Zuplo:
+
+```typescript
+// Example gateway secret verification middleware
+export const verifyGatewaySecret = (req: Request, res: Response, next: NextFunction) => {
+  const gatewaySecret = req.headers['x-gateway-secret'];
+  
+  if (!gatewaySecret || gatewaySecret !== process.env.GATEWAY_SECRET) {
     return res.status(401).json({
       success: false,
-      message: 'Unauthorized'
+      message: 'Unauthorized: Invalid gateway secret'
     });
   }
+  
+  // Extract user context from headers
+  req.user = {
+    userId: req.headers['x-user-id'],
+    roles: JSON.parse(req.headers['x-user-roles'] || '[]'),
+    isPlatformAdmin: req.headers['x-is-platform-admin'] === 'true',
+    apiKeyType: req.headers['x-api-key-type']
+  };
+  
+  return next();
 };
 ```
 
-### Redis Cache Functions
+### API Key Management
+
+API keys are still managed in Supabase, but validation happens at the Zuplo layer:
 
 ```typescript
-// Example Redis cache functions
-export const getFromRedisCache = async (apiKey: string) => {
-  const apiKeyHash = hashApiKey(apiKey);
-  const key = `apikey:${apiKeyHash}`;
-  
-  const data = await redis.get(key);
-  if (!data) return null;
-  
-  const parsedData = JSON.parse(data);
-  
-  // Check if token is expired
-  if (parsedData.expires < Date.now()) {
-    // Token is expired, remove from cache
-    await redis.del(key);
-    return null;
+// Example API key creation function
+export const createApiKey = async (req: Request, res: Response) => {
+  try {
+    const { keyName, isPersonalKey, serviceUserName, permissions, expiresAt } = req.body;
+    const app = getInstance();
+    
+    if (!app || !app.Supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+    
+    // Create API key in Supabase
+    const { data, error } = await app.Supabase.rpc('generate_api_key', {
+      p_application_id: req.params.applicationId,
+      p_key_name: keyName,
+      p_is_personal_key: isPersonalKey,
+      p_service_user_name: serviceUserName,
+      p_permissions: permissions,
+      p_expires_at: expiresAt
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    // Notify Zuplo of new API key (if using Zuplo's API key storage)
+    // This step may not be necessary if Zuplo validates against Supabase directly
+    
+    return res.status(200).json({
+      success: true,
+      data: {
+        apiKey: data
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
-  
-  return parsedData;
-};
-
-export const cacheInRedis = async (apiKey: string, data: any) => {
-  const apiKeyHash = hashApiKey(apiKey);
-  const key = `apikey:${apiKeyHash}`;
-  
-  // Calculate TTL in seconds
-  const now = Date.now();
-  const ttl = Math.floor((data.expires - now) / 1000);
-  
-  if (ttl <= 0) return; // Don't cache expired tokens
-  
-  await redis.set(key, JSON.stringify(data), 'EX', ttl);
-};
-```
-
-### API Key Verification Function
-
-The `verify_api_key` function is responsible for verifying API keys and retrieving the associated user information:
-
-```typescript
-// Example API key verification function
-export const verifyApiKey = async (apiKey: string) => {
-  const app = getInstance();
-  if (!app || !app.Supabase) {
-    throw new Error('Supabase client not initialized');
-  }
-  
-  const { data, error } = await app.Supabase.rpc('verify_api_key', {
-    p_api_key: apiKey
-  });
-  
-  if (error || !data || data.length === 0) {
-    return null;
-  }
-  
-  return data[0];
-};
-```
-
-### API Key Usage Tracking Function
-
-The `updateApiKeyUsage` function is responsible for updating the `last_used_at` timestamp for API keys:
-
-```typescript
-// Example API key usage tracking function
-export const updateApiKeyUsage = async (apiKey: string) => {
-  const app = getInstance();
-  if (!app || !app.Supabase) {
-    throw new Error('Supabase client not initialized');
-  }
-  
-  await app.Supabase.rpc('update_api_key_usage', {
-    p_api_key: apiKey
-  });
 };
 ```
 
@@ -271,8 +232,8 @@ export const updateApiKeyUsage = async (apiKey: string) => {
 - API keys should be revocable
 - Failed API key authentication attempts should be logged
 - Rate limiting should be applied to prevent brute force attacks
-- Redis cache should use encryption at rest and in transit
-- Redis TTL should match or be shorter than the JWT expiration
+- Backend services should only accept requests from Zuplo
+- Zuplo should implement proper error handling to avoid leaking sensitive information
 
 ## Best Practices for API Key Management
 
