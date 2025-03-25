@@ -1,0 +1,99 @@
+---
+description: This is an index of all zuplo included policies (does not include custom ones)
+globs: 
+alwaysApply: false
+---
+---
+description: This is an index of all zuplo included policies (does not include custom ones)
+globs: 
+alwaysApply: false
+---
+These are the urls for all Zuplo API gateway default policies:
+https://zuplo.com/docs/policies/overview
+https://zuplo.com/docs/policies/custom-code-inbound
+https://zuplo.com/docs/policies/custom-code-outbound
+https://zuplo.com/docs/policies/composite-inbound
+https://zuplo.com/docs/policies/acl-policy-inbound
+https://zuplo.com/docs/policies/readme-metrics-inbound
+https://zuplo.com/docs/policies/ab-test-inbound
+https://zuplo.com/docs/policies/set-status-outbound
+https://zuplo.com/docs/policies/change-method-inbound
+https://zuplo.com/docs/policies/set-query-params-inbound
+https://zuplo.com/docs/policies/transform-body-inbound
+https://zuplo.com/docs/policies/rate-limit-inbound
+https://zuplo.com/docs/policies/api-key-inbound
+https://zuplo.com/docs/policies/remove-headers-outbound
+https://zuplo.com/docs/policies/caching-inbound
+https://zuplo.com/docs/policies/require-origin-inbound
+https://zuplo.com/docs/policies/ab-test-outbound
+https://zuplo.com/docs/policies/validate-json-schema-inbound
+https://zuplo.com/docs/policies/axiomatics-authz-inbound
+https://zuplo.com/docs/policies/request-size-limit-inbound
+https://zuplo.com/docs/policies/sleep-inbound
+https://zuplo.com/docs/policies/openfga-authz-inbound
+https://zuplo.com/docs/policies/remove-headers-inbound
+https://zuplo.com/docs/policies/quota-inbound
+https://zuplo.com/docs/policies/jwt-scopes-inbound
+https://zuplo.com/docs/policies/basic-auth-inbound
+https://zuplo.com/docs/policies/rbac-policy-inbound
+https://zuplo.com/docs/policies/geo-filter-inbound
+https://zuplo.com/docs/policies/brownout-inbound
+https://zuplo.com/docs/policies/mock-api-inbound
+https://zuplo.com/docs/policies/set-body-inbound
+https://zuplo.com/docs/policies/ldap-auth-inbound
+https://zuplo.com/docs/policies/clear-headers-outbound
+https://zuplo.com/docs/policies/graphql-disable-introspection-inbound
+https://zuplo.com/docs/policies/moesif-inbound
+https://zuplo.com/docs/policies/request-validation-inbound
+https://zuplo.com/docs/policies/complex-rate-limit-inbound
+https://zuplo.com/docs/policies/formdata-to-json-inbound
+https://zuplo.com/docs/policies/open-id-jwt-auth-inbound
+https://zuplo.com/docs/policies/aserto-authz-inbound
+https://zuplo.com/docs/policies/firebase-jwt-inbound
+https://zuplo.com/docs/policies/mtls-auth-inbound
+https://zuplo.com/docs/policies/okta-fga-authz-inbound
+https://zuplo.com/docs/policies/archive-response-aws-s3-outbound
+https://zuplo.com/docs/policies/archive-request-gcp-storage-inbound
+https://zuplo.com/docs/policies/ip-restriction-inbound
+https://zuplo.com/docs/policies/audit-log-inbound
+https://zuplo.com/docs/policies/amberflo-metering-inbound
+https://zuplo.com/docs/policies/upstream-firebase-user-auth-inbound
+https://zuplo.com/docs/policies/clerk-jwt-auth-inbound
+https://zuplo.com/docs/policies/upstream-gcp-jwt-inbound
+https://zuplo.com/docs/policies/upstream-gcp-service-auth-inbound
+https://zuplo.com/docs/policies/auth0-jwt-auth-inbound
+https://zuplo.com/docs/policies/upstream-gcp-federated-auth-inbound
+https://zuplo.com/docs/policies/upstream-firebase-admin-auth-inbound
+https://zuplo.com/docs/policies/supabase-jwt-auth-inbound
+https://zuplo.com/docs/policies/archive-response-azure-storage-outbound
+https://zuplo.com/docs/policies/curity-phantom-token-inbound
+https://zuplo.com/docs/policies
+http://zuplo.com/docs/policies/index
+http://zuplo.com/docs/policies/authzen-inbound
+http://zuplo.com/docs/policies/hmac-auth-inbound
+http://zuplo.com/docs/policies/set-headers-inbound
+http://zuplo.com/docs/policies/xml-to-json-outbound
+http://zuplo.com/docs/policies/set-headers-outbound
+http://zuplo.com/docs/policies/monetization-inbound
+http://zuplo.com/docs/policies/okta-jwt-auth-inbound
+http://zuplo.com/docs/policies/clear-headers-inbound
+http://zuplo.com/docs/policies/bot-detection-inbound
+http://zuplo.com/docs/policies/transform-body-outbound
+http://zuplo.com/docs/policies/replace-string-outbound
+http://zuplo.com/docs/policies/propel-auth-jwt-inbound
+http://zuplo.com/docs/policies/cognito-jwt-auth-inbound
+http://zuplo.com/docs/policies/remove-query-params-inbound
+http://zuplo.com/docs/policies/archive-request-aws-s3-inbound
+http://zuplo.com/docs/policies/stripe-webhook-verification-inbound
+http://zuplo.com/docs/policies/archive-request-azure-storage-inbound
+http://zuplo.com/docs/policies/upstream-azure-ad-service-auth-inbound
+http://zuplo.com/docs/policies/composite-outbound
+http://zuplo.com/docs/policies/graphql-complexity-limit-inbound
+
+## Available Policy Rules
+
+The following policy rules are available in this workspace:
+
+- [Supabase JWT Auth Inbound Policy](mdc:Flowise/.cursor/rules/zuplo/zuplo-policies-documentation/supabase-jwt-auth-inbound.mdc) - Authenticate requests using a Supabase JWT token
+- [JWT Scopes Inbound Policy](mdc:Flowise/.cursor/rules/zuplo/zuplo-policies-documentation/jwt-scopes-inbound.mdc) - Validate that the JWT token includes specific scopes
+- [RBAC Authorization Policy](mdc:Flowise/.cursor/rules/zuplo/zuplo-policies-documentation/rbac-policy-inbound.mdc) - Authorize requests based on user roles

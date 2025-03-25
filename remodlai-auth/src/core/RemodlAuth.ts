@@ -5,12 +5,11 @@
  * It wraps Supabase Auth functionality and provides a consistent interface.
  * 
  * CURRENT IMPLEMENTATION:
- * - Basic authentication functionality
+ * - Authentication functionality with PKCE flow
  * - Session management
  * - Token storage
  * 
  * FUTURE ENHANCEMENTS:
- * - Support for PKCE flow
  * - MFA support
  * - Role-based access control
  * - API key authentication
@@ -51,6 +50,7 @@ export class RemodlAuth {
     this.options = {
       autoRefreshToken: true,
       persistSession: true,
+      detectSessionInUrl: true,
       ...options
     };
 
@@ -62,6 +62,8 @@ export class RemodlAuth {
       auth: {
         autoRefreshToken: options.autoRefreshToken,
         persistSession: options.persistSession,
+        flowType: 'pkce',
+        detectSessionInUrl: this.options.detectSessionInUrl,
         storage: options.storage === 'memory' ? undefined : window.localStorage
       }
     });
@@ -351,6 +353,37 @@ export class RemodlAuth {
   isAuthenticated(): boolean {
     const accessToken = this.tokenStorage.getItem('access_token');
     return !!accessToken;
+  }
+
+  /**
+   * Exchange code for session in PKCE flow
+   * 
+   * @param code - The code from the URL after redirect
+   * @returns Session response
+   */
+  async exchangeCodeForSession(code: string): Promise<SessionResponse> {
+    try {
+      const { data, error } = await this.client.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        return { session: null, error };
+      }
+
+      // Store session data
+      if (data.session) {
+        this.storeSession(data.session);
+      }
+
+      return {
+        session: data.session ? this.mapSession(data.session) : null,
+        error: null
+      };
+    } catch (error) {
+      return {
+        session: null,
+        error: error instanceof Error ? error : new Error('Unknown error exchanging code for session')
+      };
+    }
   }
 
   /**

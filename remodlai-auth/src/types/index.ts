@@ -5,6 +5,7 @@
  * 
  * CURRENT IMPLEMENTATION:
  * - Basic type definitions for authentication
+ * - PKCE flow authentication
  * 
  * FUTURE ENHANCEMENTS:
  * - Expanded types for all authentication flows
@@ -45,6 +46,13 @@ export interface AuthOptions {
    * Defaults to true
    */
   persistSession?: boolean;
+  
+  /**
+   * Optional setting to automatically detect and exchange code for session in URL
+   * Used for PKCE flow
+   * Defaults to true
+   */
+  detectSessionInUrl?: boolean;
   
   /**
    * Optional debug mode

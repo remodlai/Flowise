@@ -1,5 +1,5 @@
 {
-    "remodlPlatformDataUrl": "https://data.remodl.ai",
+    "remodlPlatformDataUrl": "http://localhost:9000/supabase",
     "remodlPlatformDataAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlbW9kbC1wYWdlLXNlcnZpY2UtZGF0YSIsInJlZ2lvbl91cmwiOiJlbW9kbC1wYWdlLXNlcnZpY2UtZGF0YSIsImlhdCI6MTcyMzYxMjMwMCwiZXhwIjoyMDM5MTg4MzAwfQ.0000000000000000000000000000000000000000",
     "remodlApplicationMagicLinkRedirectUrl": "THE PLACE YOU WANT TO REDIRECT TO",
     "remodlApplicationId": "THE APPLICATION ID"

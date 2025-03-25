@@ -7,7 +7,7 @@ import logger from './logger'
 // DEPRECATED: Direct client initialization
 // This is kept for backward compatibility but will be removed in a future version
 // Use the centralized client from App class instead
-const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://data.remodl.ai';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
 // For backward compatibility, we'll still export a supabase client
