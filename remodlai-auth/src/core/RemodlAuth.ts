@@ -57,6 +57,12 @@ export class RemodlAuth {
     // Initialize token storage
     this.tokenStorage = new TokenStorage(options.storage);
 
+    // Determine storage for Supabase client
+    // Check if window exists for non-browser environments
+    const storageOption = options.storage === 'memory' 
+      ? undefined 
+      : typeof window !== 'undefined' ? window.localStorage : undefined;
+
     // Initialize Supabase client
     this.client = createRemodlAIAuthClient(options.remodlPlatformDataUrl, options.remodlPlatformDataAnonKey, {
       auth: {
@@ -64,7 +70,7 @@ export class RemodlAuth {
         persistSession: options.persistSession,
         flowType: 'pkce',
         detectSessionInUrl: this.options.detectSessionInUrl,
-        storage: options.storage === 'memory' ? undefined : window.localStorage
+        storage: storageOption
       }
     });
 
@@ -477,6 +483,36 @@ export class RemodlAuth {
    */
   getRemodlAiClient(): RemodlAIAuthClient {
     return this.client;
+  }
+
+  /**
+   * Get the current access token
+   * 
+   * @returns The current access token or null if not authenticated
+   */
+  getAccessToken(): string | null {
+    return this.tokenStorage.getItem('access_token');
+  }
+
+  /**
+   * Get the complete decoded JWT with all claims
+   * 
+   * @returns The complete decoded JWT object or null if not authenticated
+   * @throws Error if token is invalid or decoding fails
+   */
+  getDecodedJwt(): any | null {
+    const accessToken = this.tokenStorage.getItem('access_token');
+    if (!accessToken) return null;
+    
+    try {
+      const decoded = jwtDecode(accessToken);
+      return {
+        ...decoded,
+        raw: accessToken // Include the raw token for convenience
+      };
+    } catch (error) {
+      throw new Error(`Failed to decode JWT: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**

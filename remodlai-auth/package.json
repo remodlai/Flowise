@@ -2,6 +2,7 @@
   "name": "remodl-ai-auth-client",
   "version": "0.0.1",
   "description": "Remodl AI Platform applications auth client",
+  "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -12,6 +13,8 @@
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "jest",
+    "express-test": "node tests/express-test-server.js",
+    "browser-test": "node tests/run-browser-test.js",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "prepare": "npm run build"
@@ -38,6 +41,7 @@
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-typescript": "^11.1.6",
     "@types/jest": "^29.5.12",
@@ -45,6 +49,7 @@
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
     "eslint": "^8.57.0",
+    "express": "^4.21.2",
     "jest": "^29.7.0",
     "prettier": "^3.2.5",
     "rollup": "^4.13.0",

@@ -37,7 +37,7 @@ The configuration shows how to configure the policy in the 'policies.json' docum
 - `policyType` `<string>` - The identifier of the policy. This is used by the Zuplo UI. Value should be `jwt-scopes-inbound`.
 - `handler.export` `<string>` - The name of the exported type. Value should be `JWTScopeValidationInboundPolicy`.
 - `handler.module` `<string>` - The module containing the policy. Value should be `$import(@zuplo/runtime)`.
-- `handler.options` `<object>` - The options for this policy. [See Policy Options](mdc:Flowise/#policy-options) below.
+- `handler.options` `<object>` - The options for this policy. [See Policy Options](mdc:Flowise/Flowise/#policy-options) below.
 
 ### Policy Options
 
@@ -47,4 +47,4 @@ The options for this policy are specified below. All properties are optional unl
 
 ## Using the Policy
 
-Read more about [how policies work](mdc:Flowise/https:/zuplo.com/docs/articles/policies)
+Read more about [how policies work](mdc:Flowise/Flowise/https:/zuplo.com/docs/articles/policies)

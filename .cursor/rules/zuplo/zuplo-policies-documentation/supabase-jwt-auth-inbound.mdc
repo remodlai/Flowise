@@ -1,9 +1,4 @@
 ---
-description: Use this when working with zuplo api gateway referencing Supabase JWT Auth on inbound requests
-globs: 
-alwaysApply: false
----
- ---
 description: Documentation for Zuplo's Supabase JWT Auth Inbound Policy
 globs: 
 alwaysApply: false
@@ -12,7 +7,7 @@ alwaysApply: false
 # Supabase JWT Auth Policy
 
 The Supabase JWT Authentication policy allows you to authenticate incoming
-requests using a token created by [supabase.com](mdc:Flowise/https:/supabase.com).
+requests using a token created by [supabase.com](https://supabase.com/).
 
 When configured, you can have Zuplo check incoming requests for a JWT token and
 automatically populate the `ZuploRequest`'s `user` property with a user object.
@@ -52,7 +47,7 @@ The configuration shows how to configure the policy in the 'policies.json' docum
 - `policyType` `<string>` - The identifier of the policy. This is used by the Zuplo UI. Value should be `supabase-jwt-auth-inbound`.
 - `handler.export` `<string>` - The name of the exported type. Value should be `SupabaseJwtInboundPolicy`.
 - `handler.module` `<string>` - The module containing the policy. Value should be `$import(@zuplo/runtime)`.
-- `handler.options` `<object>` - The options for this policy. [See Policy Options](mdc:Flowise/#policy-options) below.
+- `handler.options` `<object>` - The options for this policy. [See Policy Options](#policy-options) below.
 
 ### Policy Options
 
@@ -84,4 +79,4 @@ or `supa_user`, you would configure the policy as follows:
 }
 ```
 
-Read more about [how policies work](mdc:Flowise/https:/zuplo.com/docs/articles/policies)
+Read more about [how policies work](https://zuplo.com/docs/articles/policies) 
