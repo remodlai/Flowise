@@ -2,5 +2,6 @@
     "remodlPlatformDataUrl": "https://data.remodl.ai",
     "remodlPlatformDataAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZva3NqdGpyc2hvbmphZHdqb3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgwMDY4MDksImV4cCI6MjA1MzU4MjgwOX0.5xUOvmiyfJCQduvYAQse6oC7mRMICreWXsGPO7kNxok",
     "remodlApplicationMagicLinkRedirectUrl": "THE PLACE YOU WANT TO REDIRECT TO",
-    "remodlApplicationId": "THE APPLICATION ID"
+    "remodlApplicationId": "THE APPLICATION ID",
+    "remodlPlatformApiUrl": "https://remodl-platform-main-7607e34.d2.zuplo.dev"
 }

@@ -146,6 +146,7 @@ export class RemodlAuth {
   }
 
   /**
+   * @deprecated Use signupForAppWithEmailPassword instead. This method does not properly implement the PKCE flow or handle application-specific signup.
    * Sign up with email and password
    * 
    * @param email - User's email
@@ -154,6 +155,7 @@ export class RemodlAuth {
    * @returns Authentication response
    */
   async signUp(email: string, password: string, userData?: Record<string, any>): Promise<AuthResponse> {
+    console.warn('This method is deprecated. Please use signupForAppWithEmailPassword instead.');
     try {
       const { data, error } = await this.client.auth.signUp({
         email,
@@ -178,6 +180,85 @@ export class RemodlAuth {
       return {
         session: data.session ? this.mapSession(data.session) : null,
         user: data.user ? this.mapUser(data.user) : null,
+        error: null
+      };
+    } catch (error) {
+      return {
+        session: null,
+        user: null,
+        error: error instanceof Error ? error : new Error('Unknown error during sign up')
+      };
+    }
+  }
+
+  /**
+   * Sign up a user for a specific Remodl AI application using email and password
+   * 
+   * This method implements the proper PKCE flow through the Remodl Platform API:
+   * 1. Creates the user account
+   * 2. Sends confirmation email
+   * 3. When user confirms email, they are redirected to auth/confirm endpoint
+   * 4. auth/confirm handles PKCE token exchange
+   * 5. User is redirected to redirectTarget with tokens in query params
+   * 
+   * The signup process includes:
+   * - User account creation in the specified application
+   * - Email verification
+   * - Setting initial user metadata (isOnboarded: false)
+   * - PKCE flow implementation for secure token exchange
+   * 
+   * @param applicationId - The ID of the Remodl AI application
+   * @param email - User's email address
+   * @param password - User's password (min 8 characters)
+   * @param firstName - User's first name
+   * @param lastName - User's last name
+   * @param redirectTarget - URL to redirect to after email confirmation
+   * @returns Promise<AuthResponse>
+   */
+  async signupForAppWithEmailPassword(
+    applicationId: string,
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    redirectTarget: string
+  ): Promise<AuthResponse> {
+    try {
+      const response = await fetch(
+        `${config.remodlPlatformApiUrl}/applications/${applicationId}/users/signup/email`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            firstName,
+            lastName,
+            redirectTarget
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        return {
+          session: null,
+          user: null,
+          error: new Error(error.message || 'Failed to sign up user')
+        };
+      }
+
+      // At this point, the user is created but not confirmed
+      // They will receive an email with a confirmation link
+      // When they click it, they'll be redirected to auth/confirm
+      // which will handle the PKCE flow and redirect to redirectTarget
+      // with tokens in query params
+        
+      return {
+        session: null, // No session yet until email confirmation
+        user: null,   // No user details yet until email confirmation
         error: null
       };
     } catch (error) {
@@ -590,6 +671,76 @@ export class RemodlAuth {
       userMetadata: user.user_metadata || {},
       appMetadata: user.app_metadata || {}
     };
+  }
+
+  /**
+   * Make an authenticated API request
+   * 
+   * Handles:
+   * - Token retrieval
+   * - Token expiration check
+   * - Automatic token refresh
+   * - Authorization header
+   * 
+   * @param url - The API endpoint URL
+   * @param options - Fetch options (method, body, etc.)
+   * @returns Promise with the fetch response
+   */
+  async authenticatedRequest(
+      url: string,
+      options: RequestInit = {}
+  ): Promise<Response> {
+      try {
+          // Get current token and check expiration
+          let token = this.getAccessToken();
+          if (token) {
+              const claims = this.getJwtClaims();
+              // Check if token is expired or close to expiry (within 1 minute)
+              if (claims.exp && claims.exp * 1000 - Date.now() < 60000) {
+                  // Token is expired or about to expire, try to refresh
+                  const { session, error } = await this.refreshSession();
+                  if (error) throw error;
+                  token = session?.accessToken || null;
+              }
+          }
+
+          if (!token) {
+              throw new Error('No valid authentication token available');
+          }
+
+          // Merge headers with existing options
+          const headers = {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              ...(options.headers || {})
+          };
+
+          // Make the authenticated request
+          const response = await fetch(url, {
+              ...options,
+              headers
+          });
+
+          // Handle 401 (Unauthorized) - token might have just expired
+          if (response.status === 401) {
+              // Try to refresh token
+              const { session, error } = await this.refreshSession();
+              if (error) throw error;
+              
+              // Retry request with new token
+              return fetch(url, {
+                  ...options,
+                  headers: {
+                      ...headers,
+                      'Authorization': `Bearer ${session?.accessToken}`
+                  }
+              });
+          }
+
+          return response;
+      } catch (error) {
+          throw error instanceof Error ? error : new Error('Failed to make authenticated request');
+      }
   }
 } 
 
