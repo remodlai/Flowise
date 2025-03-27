@@ -6,7 +6,7 @@ A TypeScript-based authentication library for Remodl AI applications. This packa
 
 - 🔐 **Secure Authentication**: Built on top of Supabase Auth with additional security features
 - 🔄 **Automatic Token Refreshing**: Keep users logged in without manual intervention
-- 📦 **Flexible Storage Options**: Support for localStorage, sessionStorage, and memory storage
+- 📦 **Secure Storage**: Uses localStorage for secure token storage
 - 📱 **Cross-Platform**: Works in browsers, React Native, and Node.js environments
 - 🧩 **TypeScript Support**: Comprehensive type definitions for better developer experience
 - 🛡️ **Role-Based Access Control**: Simple permission checking (coming soon)
@@ -73,7 +73,6 @@ For detailed documentation and examples, see the [docs](./docs) directory:
 const auth = new RemodlAuth({
   supabaseUrl: string,
   supabaseKey: string,
-  storage?: 'localStorage' | 'sessionStorage' | 'memory',
   autoRefreshToken?: boolean,
   persistSession?: boolean,
   debug?: boolean

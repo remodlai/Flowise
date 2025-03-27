@@ -50,3 +50,20 @@ End users should not be ever logging directly into the platform. ⁠
 
 
 The platform overall across everything is in TypeScript, and the server uses Express. We use TypeScript. We use Vite for the platform UI. ⁠And we also have various integrations when it comes to Supabase, etc. Do not install any packages without permission. If you need one installed, ask me to, and I will do it because we have specific things. For instance, in our monorepo, we have specific ways we have to handle adding packages, and we cannot do it without otherwise gently breaking the monorepo structure. ⁠It is also important to understand that remodlai-auth and the remodl-platform-api are not part of the mono repo. ⁠
+
+## Authentication Architecture
+1. Supabase Auth:
+   - Handles user authentication
+   - Custom access token hook in public schema
+   - JWT structure:
+     * app_metadata: Contains all claims (access control, resource IDs)
+     * user_metadata: Contains user profile information
+     * Required app_metadata claims: application_id(s), organization_id(s), user_id
+   - Direct database updates for hook changes
+
+2. Zuplo API Gateway:
+   - Uses Supabase JWT auth policy
+   - Requires specific JWT structure
+   - Validates claims from app_metadata
+   - Uses app_metadata claims for resource access validation
+   - Handles route-level authorization

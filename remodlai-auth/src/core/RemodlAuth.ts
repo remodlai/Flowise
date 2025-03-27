@@ -18,7 +18,7 @@
  */
 
 import { createRemodlAIAuthClient, RemodlAIAuthClient } from '../utils/remodlAiClient';
-import { TokenStorage, StorageType } from './TokenStorage';
+import { TokenStorage } from './TokenStorage';
 import config from '../../config.json';
 import {
   AuthOptions,
@@ -55,13 +55,11 @@ export class RemodlAuth {
     };
 
     // Initialize token storage
-    this.tokenStorage = new TokenStorage(options.storage);
+    this.tokenStorage = new TokenStorage();
 
     // Determine storage for Supabase client
     // Check if window exists for non-browser environments
-    const storageOption = options.storage === 'memory' 
-      ? undefined 
-      : typeof window !== 'undefined' ? window.localStorage : undefined;
+    const storageOption = typeof window !== 'undefined' ? window.localStorage : undefined;
 
     // Initialize Supabase client
     this.client = createRemodlAIAuthClient(options.remodlPlatformDataUrl, options.remodlPlatformDataAnonKey, {

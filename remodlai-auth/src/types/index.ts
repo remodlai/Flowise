@@ -31,9 +31,9 @@ export interface AuthOptions {
   
   /**
    * Optional storage mechanism for tokens
-   * Defaults to localStorage in browsers, memory storage in other environments
+   * Only localStorage is supported
    */
-  storage?: 'localStorage' | 'sessionStorage' | 'memory';
+  storage?: 'localStorage';
   
   /**
    * Optional auto refresh token setting

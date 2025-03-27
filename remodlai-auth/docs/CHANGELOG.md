@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created README with usage examples
 - Added detailed API documentation
 
+### Changed
+- Refactored TokenStorage to use only localStorage for better security and simplicity
+- Simplified RemodlAuth constructor to remove storage type options
+- Updated documentation to reflect localStorage-only implementation
+
 ### Fixed
 - Resolved TypeScript module resolution issue with types by adding a barrel file
 - Fixed syntax error in RemodlAuth.ts (unexpected parenthesis)

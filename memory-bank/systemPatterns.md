@@ -142,6 +142,47 @@
    - External systems subscribe to events
    - Reduces direct integration complexity
 
+## JWT and Claims Patterns
+1. JWT Structure Requirements:
+   - Custom claims MUST be nested under app_metadata for Zuplo compatibility
+   - Standard JWT claims (sub, aud, exp, iat, iss, email) remain at root level
+   - Never place custom claims at root level of JWT
+
+2. Metadata Organization:
+   - app_metadata: Contains all claim-related data
+     * Access control claims (isPlatformAdmin, roles, permissions)
+     * Resource access claims (application_ids, organization_ids)
+     * User identification claims (user_id)
+     * Service-related claims (is_service_user)
+   - user_metadata: Contains user profile information
+     * Personal info (first_name, last_name)
+     * Profile settings
+     * Non-claim user attributes
+   - Required Claims in app_metadata:
+     * application_id(s) for resource access
+     * organization_id(s) for resource access
+     * user_id for direct claims validation
+
+3. Supabase Custom Hook Patterns:
+   - Direct database updates preferred over migration files for hook changes
+   - Always verify hook changes with test endpoints
+   - Hook modifications should be documented in activeContext.md
+   - Changes should be tracked in progress.md during implementation
+
+4. Zuplo Integration Patterns:
+   - Zuplo Supabase JWT auth policy expects specific JWT structure
+   - Claims validation depends on proper app_metadata nesting
+   - Test endpoints should verify both JWT structure and claim access
+   - Changes to JWT structure require coordination between Supabase hooks and Zuplo policies
+   - Claims in app_metadata used for direct resource access validation
+
+5. Testing Patterns for JWT Changes:
+   - Always test login flow first to get fresh token
+   - Verify token structure matches requirements
+   - Test endpoints that rely on custom claims
+   - Confirm Zuplo policy access to claims
+   - Document successful verification
+
 ## Legacy Considerations
 
 1. Naming Convention:

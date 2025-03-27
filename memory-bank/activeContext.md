@@ -116,6 +116,47 @@
    - Note deprecated terminology
    - Track branding changes
 
+### Custom Access Token Hook
+1. Location: public schema
+2. Current Implementation:
+   - Three versions exist in the database
+   - Handles JWT claims enhancement
+   - Adds user roles and permissions
+   - Includes platform admin status
+   - Adds application and organization context
+   - Includes service user status
+   - Adds creator information
+   - Includes debug information
+   - Claims properly structured under app_metadata for Zuplo compatibility
+   - Verified working with Zuplo Supabase JWT auth policy
+
+3. Key Functionality:
+   - User metadata management
+   - Role-based access control
+   - Resource-level permissions
+   - Organization context
+   - Application context
+   - Platform admin detection
+   - Service user handling
+   - Proper JWT claim structuring for Zuplo
+
+4. Claims Added (all under app_metadata):
+   - test_claim
+   - is_platform_admin
+   - is_service_user
+   - user_roles
+   - user_status
+   - creator info
+   - application info
+   - organization info
+   - profile information (first_name, last_name)
+   
+5. JWT Structure:
+   - Custom claims nested under app_metadata
+   - Standard JWT claims at root level
+   - Verified compatible with Zuplo JWT validation
+   - Successfully tested with platform endpoints
+
 <glossary>
 [
   "Remodl AI Platform": "The complete platform, formerly known as Flowise",

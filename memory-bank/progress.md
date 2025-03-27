@@ -18,11 +18,33 @@
    - Route handler refactoring
    - Permission system centralization
    - Context management implementation
+   - Custom Access Token Hook Update:
+     * [x] Identify JWT structure issue with Zuplo
+     * [x] Document required changes
+     * [x] Update hook to place claims under app_metadata
+     * [x] Test with Zuplo endpoints
+     * [x] Verify JWT structure
+     * ✓ COMPLETED: JWT claims now properly structured for Zuplo Supabase JWT auth policy
 
 2. Auth Package Updates:
    - Method refactoring for gateway
    - Permission handling improvements
    - Escalation flow implementation
+   - TokenStorage refactoring to use only localStorage
+     * [x] Remove StorageType type definition
+     * [x] Fix StorageType references in class
+     * [x] Verify authenticatedRequest properly uses StorageItem
+     * [x] Simplify storage property to Storage type
+     * [x] Remove memory storage code
+     * [x] Remove sessionStorage code
+     * [x] Update constructor for localStorage only
+     * [x] Simplify methods for localStorage only
+     * [x] Remove sessionStorage and memory tests
+     * [x] Update localStorage tests
+     * [x] Update error handling tests
+     * [x] Remove StorageType from RemodlAuth
+     * [x] Update RemodlAuth constructor
+     * [x] Update related documentation
 
 3. Documentation:
    - System pattern documentation
