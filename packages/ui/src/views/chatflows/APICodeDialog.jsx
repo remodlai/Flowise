@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import PropTypes from 'prop-types'
+import { CopyBlock } from 'react-code-blocks'
 
 import {
     Tabs,
@@ -18,7 +19,6 @@ import {
     Stack,
     Card
 } from '@mui/material'
-import { CopyBlock, atomOneDark } from 'react-code-blocks'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { useTheme } from '@mui/material/styles'
 
@@ -80,6 +80,19 @@ function a11yProps(index) {
         id: `attachment-tab-${index}`,
         'aria-controls': `attachment-tabpanel-${index}`
     }
+}
+
+// Safe language map that works with refractor
+const LANGUAGE_MAP = {
+    Python: 'text',
+    JavaScript: 'text',
+    cURL: 'text',
+    default: 'text'
+}
+
+// Function to ensure we only use safe languages
+const getSafeLanguage = (codeLang) => {
+    return LANGUAGE_MAP[codeLang] || LANGUAGE_MAP.default;
 }
 
 const APICodeDialog = ({ show, dialogProps, onCancel }) => {
@@ -717,11 +730,10 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                         {codeLang !== 'Embed' && codeLang !== 'Share Chatbot' && codeLang !== 'Configuration' && (
                             <>
                                 <CopyBlock
-                                    theme={atomOneDark}
+                                    language={getSafeLanguage(codeLang)}
                                     text={chatflowApiKeyId ? getCodeWithAuthorization(codeLang) : getCode(codeLang)}
-                                    language={getLang(codeLang)}
-                                    showLineNumbers={false}
-                                    wrapLines
+                                    showLineNumbers={true}
+                                    wrapLines={true}
                                 />
                                 <CheckboxInput label='Show Override Config' value={checkboxVal} onChange={onCheckBoxChanged} />
                                 {checkboxVal && getConfigApi.data && getConfigApi.data.length > 0 && (
@@ -838,7 +850,7 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                             </Card>
                                         </Stack>
                                         <CopyBlock
-                                            theme={atomOneDark}
+                                            language={getSafeLanguage(codeLang)}
                                             text={
                                                 chatflowApiKeyId
                                                     ? dialogProps.isFormDataRequired
@@ -848,9 +860,8 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                     ? getConfigCodeWithFormData(codeLang, getConfigApi.data)
                                                     : getConfigCode(codeLang, getConfigApi.data)
                                             }
-                                            language={getLang(codeLang)}
-                                            showLineNumbers={false}
-                                            wrapLines
+                                            showLineNumbers={true}
+                                            wrapLines={true}
                                         />
                                         <div
                                             style={{
@@ -877,15 +888,14 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                             </div>
                                             <div style={{ padding: 10 }}>
                                                 <CopyBlock
-                                                    theme={atomOneDark}
+                                                    language={getSafeLanguage(codeLang)}
                                                     text={
                                                         dialogProps.isFormDataRequired
                                                             ? getMultiConfigCodeWithFormData(codeLang)
                                                             : getMultiConfigCode()
                                                     }
-                                                    language={getLang(codeLang)}
-                                                    showLineNumbers={false}
-                                                    wrapLines
+                                                    showLineNumbers={true}
+                                                    wrapLines={true}
                                                 />
                                             </div>
                                         </div>

@@ -1,10 +1,37 @@
 import { IconClipboard, IconDownload } from '@tabler/icons-react'
 import { memo, useState } from 'react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import PropTypes from 'prop-types'
 import { Box, IconButton, Popover, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
+
+// Safe language list that we know work correctly
+const SAFE_LANGUAGES = [
+    'javascript',
+    'python',
+    'java',
+    'c',
+    'cpp',
+    'csharp',
+    'ruby',
+    'php',
+    'swift',
+    'typescript',
+    'go',
+    'rust',
+    'sql',
+    'html',
+    'css',
+    'json',
+    'xml',
+    'yaml',
+    'markdown',
+    'bash',
+    'shell',
+    'plaintext',
+    'text'
+]
 
 const programmingLanguages = {
     javascript: '.js',
@@ -14,6 +41,7 @@ const programmingLanguages = {
     cpp: '.cpp',
     'c++': '.cpp',
     'c#': '.cs',
+    csharp: '.cs',
     ruby: '.rb',
     php: '.php',
     swift: '.swift',
@@ -29,13 +57,25 @@ const programmingLanguages = {
     shell: '.sh',
     sql: '.sql',
     html: '.html',
-    css: '.css'
+    css: '.css',
+    json: '.json',
+    xml: '.xml',
+    yaml: '.yml',
+    markdown: '.md',
+    bash: '.sh',
+    plaintext: '.txt',
+    text: '.txt'
 }
 
 export const CodeBlock = memo(({ language, chatflowid, isDialog, value }) => {
     const theme = useTheme()
     const [anchorEl, setAnchorEl] = useState(null)
     const openPopOver = Boolean(anchorEl)
+
+    // Make sure we use a safe language that won't cause errors
+    const safeLang = language && SAFE_LANGUAGES.includes(language.toLowerCase()) 
+        ? language.toLowerCase() 
+        : 'plaintext'
 
     const handleClosePopOver = () => {
         setAnchorEl(null)
@@ -54,7 +94,7 @@ export const CodeBlock = memo(({ language, chatflowid, isDialog, value }) => {
     }
 
     const downloadAsFile = () => {
-        const fileExtension = programmingLanguages[language] || '.file'
+        const fileExtension = programmingLanguages[safeLang] || '.file'
         const suggestedFileName = `file-${chatflowid}${fileExtension}`
         const fileName = suggestedFileName
 
@@ -79,7 +119,7 @@ export const CodeBlock = memo(({ language, chatflowid, isDialog, value }) => {
         <div style={{ width: isDialog ? '' : 300 }}>
             <Box sx={{ color: 'white', background: theme.palette?.common.dark, p: 1, borderTopLeftRadius: 10, borderTopRightRadius: 10 }}>
                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
-                    {language}
+                    {language || 'plaintext'}
                     <div style={{ flex: 1 }}></div>
                     <IconButton size='small' title='Copy' color='success' onClick={copyToClipboard}>
                         <IconClipboard />
@@ -107,8 +147,14 @@ export const CodeBlock = memo(({ language, chatflowid, isDialog, value }) => {
                 </div>
             </Box>
 
-            <SyntaxHighlighter language={language} style={oneDark} customStyle={{ margin: 0 }}>
-                {value}
+            <SyntaxHighlighter 
+                language={safeLang} 
+                style={vs} 
+                customStyle={{ margin: 0 }}
+                wrapLines={true}
+                wrapLongLines={true}
+            >
+                {value || ''}
             </SyntaxHighlighter>
         </div>
     )
