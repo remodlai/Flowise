@@ -169,6 +169,7 @@ export interface IUsedTool {
     toolInput: object
     toolOutput: string | object
     sourceDocuments?: ICommonObject[]
+    error?: string
 }
 
 export interface IMultiAgentNode {
@@ -437,6 +438,7 @@ export type FollowUpPromptProviderConfig = {
     [key in FollowUpPromptProvider]: {
         credentialId: string
         modelName: string
+        baseUrl: string
         prompt: string
         temperature: string
     }
