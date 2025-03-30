@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
+import { useDispatch } from 'react-redux'
 
 import { Tabs, Tab, Box } from '@mui/material'
-import { CopyBlock, atomOneDark } from 'react-code-blocks'
+import { CopyBlock } from 'react-code-blocks'
 
 // Project import
 import { CheckboxInput } from '@/ui-component/checkbox/Checkbox'
@@ -361,15 +362,19 @@ const EmbedChat = ({ chatflowid }) => {
                             <div style={{ height: 10 }}></div>
                         </>
                     )}
-                    <CopyBlock theme={atomOneDark} text={getCode(codeLang)} language='javascript' showLineNumbers={false} wrapLines />
+                    <CopyBlock 
+                        text={getCode(codeLang)} 
+                        language='text' 
+                        showLineNumbers={false} 
+                        wrapLines 
+                    />
 
                     <CheckboxInput label='Show Embed Chat Config' value={embedChatCheckboxVal} onChange={onCheckBoxEmbedChatChanged} />
 
                     {embedChatCheckboxVal && (
                         <CopyBlock
-                            theme={atomOneDark}
                             text={getCodeCustomization(codeLang)}
-                            language='javascript'
+                            language='text'
                             showLineNumbers={false}
                             wrapLines
                         />

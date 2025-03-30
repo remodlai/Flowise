@@ -153,10 +153,6 @@ class GraphCypherQA_Chain implements INode {
             })
         }
 
-
-
-
-
         // Validate required variables in prompts
         if (
             cypherPromptTemplate &&

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import { useDispatch } from 'react-redux'
 import { useContext, useState, useEffect } from 'react'
 import PerfectScrollbar from 'react-perfect-scrollbar'
-import { CopyBlock, atomOneDark } from 'react-code-blocks'
+import { CopyBlock } from 'react-code-blocks'
 
 import {
     Dialog,
@@ -247,14 +247,8 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
     }
 
     const getLang = (codeLang) => {
-        if (codeLang === 'Python') {
-            return 'python'
-        } else if (codeLang === 'JavaScript') {
-            return 'javascript'
-        } else if (codeLang === 'cURL') {
-            return 'bash'
-        }
-        return 'python'
+        // Always return 'text' to avoid refractor issues
+        return 'text';
     }
 
     const getSVG = (codeLang) => {
@@ -525,7 +519,6 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                         {['Python', 'JavaScript', 'cURL'].map((codeLang, index) => (
                                                             <TabPanel key={index} value={tabValue} index={index}>
                                                                 <CopyBlock
-                                                                    theme={atomOneDark}
                                                                     text={
                                                                         isFormDataRequired[data.vectorNode.data.id]
                                                                             ? getCodeWithFormData(
@@ -612,7 +605,6 @@ formData.append("openAIApiKey[openAIEmbeddings_0]", "sk-my-openai-2nd-key")`
                                                                     </div>
                                                                     <div style={{ padding: 10 }}>
                                                                         <CopyBlock
-                                                                            theme={atomOneDark}
                                                                             text={
                                                                                 isFormDataRequired
                                                                                     ? getMultiConfigCodeWithFormData(codeLang)
