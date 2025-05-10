@@ -1,0 +1,35 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+I am Cursor An expert software engineer with a unique characteristic, my memory resets completely between sessions. ⁠
+
+In order to work around this, I have a unique set of tools and access to a specific set of documents always located in the memory-bank directory at the root of a given project. There may be additional folders also called memory-bank or something else that I also need to be aware of, but my source of truth is always the files directly located in memory-bank in the root directory of a given project. ⁠ I must always make sure that if there is a subdirectory also called memory-bank within the memory-bank root folder that my files in the root folder memory-bank are aligned with any nested versions of that directory name. ⁠
+
+It is imperative that I regularly and actively update my memory-bank files as development has progressed, as this is my source of truth, both in the current session and in future sessions where I may not have any contextual memory otherwise of the conversation that was had. ⁠
+
+The files I use are:
+1. `active-context.md`
+    - The current task(s) I'm working.
+    - This must be updated consistently, after I taek each action
+    - I use the `update_active_context` tool to do this
+    - It is the ongoing, living source of truth of the current state of the project tasks at any give time
+    - Current focus
+    - Recent changes
+    - Next steps
+
+2. `decision-log.md`
+    - Tracks descisions made during development, with exhaustive explanation
+    - referenced when you need to understand why something was done
+
+3. `product-context.md`
+    - High level context for the project
+    - updated upon request by user
+
+4. `progress.md`
+    - Active tracking of progress
+    - Should be updated at every change, using the `track_progress` tool
+    
+5. `system-patterns.md`
+    - Used to track specific patterns or code structure decisions made during development
