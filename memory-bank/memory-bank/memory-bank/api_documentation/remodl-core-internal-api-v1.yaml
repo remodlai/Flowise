@@ -1,0 +1,33 @@
+openapi: 3.1.0
+info:
+  title: "Remodl Core Internal Server API (for Remodl AI Platform)"
+  version: "2.2.8" # Based on Remodl Core version on remodel-v2-base
+  description: |
+    Comprehensive internal API documentation for the Remodl Core server component.
+    This document details all server routes available for integration with the Remodl AI Platform.
+    Adheres to rules.md for the Remodl AI Platform. All routes are prefixed /api/v1.
+servers:
+  - url: http://localhost:3000/api/v1 
+    description: Local Remodl Core development server
+tags:
+  - name: InternalAPI
+    description: Endpoints primarily for internal Remodl platform use or requiring deeper integration.
+paths: {}
+components:
+  schemas:
+    ErrorResponse: 
+      type: object
+      properties:
+        statusCode: { type: integer }
+        success: { type: boolean, example: false }
+        message: { type: string }
+        stack: { type: object, description: "Dev mode only", nullable: true }
+  securitySchemes:
+    InternalApiKeyAuth: 
+      type: apiKey
+      in: header
+      name: Authorization # Placeholder - CONFIRM ACTUAL HEADER
+      description: API Key for internal Remodl platform calls.
+    FlowiseBasicAuth:
+      type: http
+      scheme: basic
