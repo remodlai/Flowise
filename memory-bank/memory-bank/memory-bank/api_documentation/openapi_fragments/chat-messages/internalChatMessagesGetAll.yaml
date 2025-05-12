@@ -1,0 +1,110 @@
+"/chatmessage/{chatflowid}": # Path param is :id in router, refers to chatflowid
+  get:
+    summary: "INTERNAL: Get All Chat Messages for a Chatflow"
+    description: "INTERNAL: Retrieves chat messages for a specified chatflow, with extensive filtering options."
+    operationId: "internalChatMessagesGetAll"
+    tags: ["Chat Messages", "InternalAPI"]
+    parameters:
+      - name: chatflowid # Corresponds to :id in router path
+        in: path
+        required: true
+        description: "ID of the Chatflow."
+        schema:
+          type: string
+          format: uuid
+      - name: chatType
+        in: query
+        description: "Filter by chat type(s) (e.g., INTERNAL, EXTERNAL). Can be a single string or array."
+        required: false
+        schema:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string # Should reference ChatType enum
+      - name: order
+        in: query
+        description: "Sort order for results by creation date."
+        required: false
+        schema:
+          type: string
+          enum: [ASC, DESC]
+          default: ASC
+      - name: chatId
+        in: query
+        description: "Filter by specific Chat ID."
+        required: false
+        schema:
+          type: string
+      - name: memoryType
+        in: query
+        description: "Filter by memory type."
+        required: false
+        schema:
+          type: string
+      - name: sessionId
+        in: query
+        description: "Filter by session ID."
+        required: false
+        schema:
+          type: string
+      - name: messageId
+        in: query
+        description: "Filter by specific message ID."
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: startDate
+        in: query
+        description: "Filter messages created on or after this date (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: endDate
+        in: query
+        description: "Filter messages created on or before this date (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: feedback
+        in: query
+        description: "If true, enables feedback-related filtering."
+        required: false
+        schema:
+          type: boolean
+      - name: feedbackType
+        in: query
+        description: "Filter by feedback rating type(s) (e.g., THUMBS_UP). Used if feedback=true. Can be single or array."
+        required: false
+        schema:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string # Should reference ChatMessageRatingType enum
+    responses:
+      '200':
+        description: "Successfully retrieved chat messages."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ChatMessageWithFeedback" # To be defined (ChatMessage + optional Feedback)
+      '412':
+        description: "Precondition Failed (chatflowid not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

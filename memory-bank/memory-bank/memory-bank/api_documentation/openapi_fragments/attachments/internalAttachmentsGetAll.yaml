@@ -1,0 +1,15 @@
+"/attachments/":
+  get:
+    summary: "INTERNAL: Get All Attachments (Non-Operational)"
+    description: |
+      INTERNAL: **NON-OPERATIONAL.** Defined in router, but controller handler is missing.
+      Intended to retrieve a list of attachments.
+    operationId: "internalAttachmentsGetAll"
+    tags: ["Attachments", "InternalAPI", "NonOperational"]
+    responses:
+      '500':
+        description: "Internal Server Error (Likely due to missing handler)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"

@@ -1,0 +1,42 @@
+"/apikey/{id}":
+  delete:
+    summary: "INTERNAL: Delete API Key"
+    description: "INTERNAL: Deletes an API key specified by ID."
+    operationId: "internalApikeyDelete"
+    tags: ["API Keys", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        description: "ID of the API key to delete."
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "API Key deleted successfully. Returns the full list of remaining API keys."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ApiKeyWithCount"
+      '404':
+        description: "API Key not found (more likely for JSON storage if ID invalid)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (e.g., missing id)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

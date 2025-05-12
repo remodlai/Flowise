@@ -1,0 +1,55 @@
+"/apikey/{id}": # Also handles PUT /apikey/ (controller logic checks req.params.id)
+  put:
+    summary: "INTERNAL: Update API Key Name"
+    description: "INTERNAL: Updates the name (`keyName`) of an existing API key specified by ID."
+    operationId: "internalApikeyUpdate"
+    tags: ["API Keys", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        description: "ID of the API key to update."
+        required: true # Effectively required if using this path
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - keyName
+            properties:
+              keyName:
+                type: string
+                description: "The new descriptive name for the API key."
+                example: "My Updated Key"
+    responses:
+      '200':
+        description: "API Key updated successfully. Returns the full list of all API keys."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ApiKeyWithCount"
+      '404':
+        description: "API Key not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (e.g., missing id or keyName)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

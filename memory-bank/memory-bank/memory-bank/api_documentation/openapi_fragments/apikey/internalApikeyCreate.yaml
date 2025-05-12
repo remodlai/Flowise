@@ -1,0 +1,47 @@
+# Fragment for POST /api/v1/apikey/
+"/apikey/":
+  post:
+    summary: "INTERNAL: Create API Key"
+    description: "INTERNAL: Creates a new API key and secret. The plaintext secret is only returned on creation."
+    operationId: "internalApikeyCreate"
+    tags: ["API Keys", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - keyName
+            properties:
+              keyName:
+                type: string
+                description: "A descriptive name for the API key."
+                example: "My Integration Key"
+    responses:
+      '200': # Assuming 200 for successful creation based on controller
+        description: "API Key created successfully. The apiSecret returned is the only time the plaintext secret is available."
+        content:
+          application/json:
+            schema:
+              # $ref: "#/components/schemas/ApiKeyCreateResponse" # To be defined in main spec
+              type: object
+              properties:
+                id: { type: string, description: "Generated API key ID." }
+                keyName: { type: string, description: "Name of the API key." }
+                apiKey: { type: string, description: "The generated API key." }
+                apiSecret: { type: string, description: "The plaintext API secret (only available on creation)." }
+      '412':
+        description: "Precondition Failed (e.g., missing keyName)."
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+    # security:
+    #   - InternalApiKeyAuth: [] # To be confirmed
