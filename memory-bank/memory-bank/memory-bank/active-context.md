@@ -27,6 +27,8 @@
 
 ## Current Session Notes
 
+- [1:18:28 PM] [Unknown User] File Update: Updated project-brief.md
+- [12:57:52 PM] [Unknown User] File Update: Updated system-patterns.md
 - [11:37:30 AM] [Unknown User] File Update: Updated active-context.md
 - Prioritized full documentation of server routes before making UI architectural changes or duplicating UI packages.
 - Decision made to "start fresh" on a new branch (`remodel-v2-base`) based on upstream Flowise v2.2.8.
