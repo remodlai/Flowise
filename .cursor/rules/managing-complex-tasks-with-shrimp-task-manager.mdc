@@ -1,0 +1,30 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+If you have access to the MCP tools of Shrimp Task Manager:
+
+<overview>>
+Shrimp Task Manager is a set of tools that allows for the methodical, sequential development, analysis, reflection, and breakdown into subtasks in a cyclical and recursive manner. This enables us to take very, very complex, high-level tasks and break them down recursively to very manageable tasks. It cannot be done in one go, and it has to follow the process for Shrimp Task Manager. 
+
+There are a series of tools that you have available: plan tasks, analyze tasks, reflect tasks, split tasks, list tasks, execute tasks, verify tasks, delete tasks, clear all tasks, update tasks, query tasks, get task detail, and process thought. Init project rules is only used at the beginning of a new project. 
+
+For any given task that you are working on, you must query the task, then get the task detail, then proceed through this sequence. :
+
+1. plan_task
+2. analyze_task
+3. reflect_task
+4. split_tasks - THIS MUST BE CALLED, BUT IF SUFfficiently granular, the split task may only be one task.
+
+
+This allows you to, on any individual task, go through a prescriptive process to break it down to the most granular and easily executed steps that you can then execute, update, and mark as done or in progress—or whatever—and then move on to the next one. 
+
+CRITICAL: When breaking down an existing larger task into sub-tasks, you must use `updateMode: append`
+
+FORBIDDEN: Do not jump beyond or deviate from this process.
+
+<TASK EXECUTION>
+CRITICAL: IF A TASK REQUIRES READING A FILE(S) YOU MUST READ THE FILE. NEVER MAKE ASSUMPTINOS. 
+If it is a route, you must determine if there is a handler and controller, and read those files as well.
+</TASK EXECUTION>

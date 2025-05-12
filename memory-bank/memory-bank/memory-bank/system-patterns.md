@@ -74,6 +74,15 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
     -   Other files as needed (e.g., draft API specifications, research notes).
 -   **Interaction:** The AI Agent uses `mcp_read_memory_bank_file` and `mcp_write_memory_bank_file` for full file operations, and `mcp_update_active_context`, `mcp_log_decision`, `mcp_track_progress` for structured updates to specific files. `mcp_get_memory_bank_status` can be used but has shown some inconsistencies in file listing previously.
 
+#### 6.1.1. Creating Subdirectories in Memory Bank
+
+-   **Pattern:** The `mcp_memory-bank-mcp_write_memory_bank_file` tool may not automatically create intermediate subdirectories within the Memory Bank's configured path if they do not already exist.
+-   **Solution:**
+    1.  To write a file to a nested path (e.g., `MEMORY_BANK_ROOT/api_documentation/endpoint_mappings/file.md`), first ensure the subdirectories (`api_documentation/endpoint_mappings/`) exist.
+    2.  Use the `run_terminal_cmd` tool with `mkdir -p [full_absolute_path_to_memory_bank_root]/api_documentation/endpoint_mappings` to create the necessary directory structure. (Replace `[full_absolute_path_to_memory_bank_root]` with the actual path like `/Users/brianbagdasarian/projects/Flowise/memory-bank/memory-bank/memory-bank`).
+    3.  Once the directories are confirmed to exist (or created by `mkdir -p`), then use `mcp_memory-bank-mcp_write_memory_bank_file` with the relative path from the Memory Bank root (e.g., `filename = "api_documentation/endpoint_mappings/file.md"`).
+-   **Context:** This pattern was established when creating organized storage for API documentation artifacts. The Memory Bank path is currently `/Users/brianbagdasarian/projects/Flowise/memory-bank/memory-bank/memory-bank`.
+
 ### 6.2. Shrimp Task Manager (`mcp_mcp-shrimp-task-manager_*` tools)
 
 -   **Purpose:** Provides a structured, multi-stage workflow for planning, analyzing, reflecting on, and decomposing complex development tasks into manageable sub-tasks.

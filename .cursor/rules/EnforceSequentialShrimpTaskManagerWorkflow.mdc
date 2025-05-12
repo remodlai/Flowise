@@ -1,0 +1,35 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Rule: Enforce Sequential Shrimp Task Manager Workflow
+
+**Objective:** To ensure a systematic and methodical approach when executing tasks provided by the `mcp_mcp-shrimp-task-manager_execute_task` tool, preventing premature implementation and fostering thorough planning for each specific task.
+
+## Workflow Mandate Upon `execute_task` Trigger:
+
+When a task is initiated for execution via the `mcp_mcp-shrimp-task-manager_execute_task` tool, the AI assistant (Cursor) MUST adhere to the following sequence **before** undertaking any direct implementation steps outlined in the task's "Implementation Guide":
+
+1.  **Articulate Task-Specific Analysis & Design via `process_thought`:**
+    *   The AI assistant MUST explicitly perform and articulate its "Analyze Requirements" and "Design Solution" phases *for the currently executing task*.
+    *   This internal analysis and design process for the current task (not the overall plan) MUST be articulated using one or more `mcp_mcp-shrimp-task-manager_process_thought` calls.
+    *   The thoughts should detail:
+        *   A clear understanding of the *specific current task's* objectives, inputs, and expected outputs/artifacts.
+        *   A step-by-step plan or strategy for *how the AI assistant will implement this specific current task*. This includes identifying which tools (`read_file`, `codebase_search`, `edit_file`, etc.) will be used and in what sequence for this task.
+    *   The `next_thought_needed` parameter in the final `process_thought` call for this pre-implementation planning phase should be `False`.
+
+2.  **Proceed to Implementation:**
+    *   Only after the "Analyze Requirements" and "Design Solution" for the *current task* have been articulated and logged via `process_thought` (and the AI has confirmed its understanding of its own plan for the task), should the AI assistant begin the "Implement Solution" phase.
+    *   Implementation then follows the AI's designed plan for the task, which should align with or refine the generic "Implementation Guide" provided by the `execute_task` tool.
+
+## Rationale:
+
+-   **Methodical Execution:** Ensures each task, no matter its perceived complexity by the Shrimp Task Manager, is approached with a distinct planning phase by the AI.
+-   **Prevents Jumping Ahead:** Avoids premature execution of implementation steps without a clear, articulated plan for the specific task.
+-   **Facilitates Complexity Management:** If the AI's "Design Solution" for a current task reveals it to be more complex than initially anticipated, this articulated plan can serve as the basis for a user-guided decision to potentially trigger a *new* `split_tasks` call to break down that *current task* further.
+-   **Clarity and Traceability:** Provides a clear record (via `process_thought` logs) of the AI's strategy for executing each sub-task.
+
+## Adherence:
+
+This rule is a fundamental operational guideline for interacting with the `mcp_mcp-shrimp-task-manager` tool suite and MUST be followed consistently.

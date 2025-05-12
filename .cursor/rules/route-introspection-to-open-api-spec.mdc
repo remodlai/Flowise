@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+When a task involves introspecting existing code or routes within a code base, you should not only introspect it, but you should also document out and create a proper OpenAPI definition for future inclusion into a larger OpenAPI spec. 
+
+<IntrospectionProcess>
+Introspecting, especially with a code base that uses Express, you need to not just look at the route or the handler, but actually fully understand the structure of the route, the handler, etc., and document accordingly. 
+
+This allows for actual understanding versus basic documentation, and that understanding should then be included into the description key of the OpenAPI spec and in the description instructions in any markdown that's created. 
+</IntrospectionProcess>
