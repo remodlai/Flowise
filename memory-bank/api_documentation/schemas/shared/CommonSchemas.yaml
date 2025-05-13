@@ -20,9 +20,11 @@ components:
         name: # For tool calls
           type: string
           description: The name of the tool that was called (if role is 'tool').
+          nullable: true
         tool_call_id: # For tool calls
           type: string
           description: The ID of the tool call (if role is 'tool').
+          nullable: true
         tool_calls: # For assistant messages requesting tool calls
           type: array
           items:
@@ -40,12 +42,13 @@ components:
                     type: string
                   arguments:
                     type: string # JSON string
+          nullable: true
 
     ErrorResponse:
       type: object
       required:
         - statusCode
-        - error
+        # - error # Error can be missing if thrown directly as new Error(message)
         - message
       properties:
         statusCode:
@@ -55,9 +58,28 @@ components:
         error:
           type: string
           description: Short error description (e.g., 'Not Found', 'Internal ServerError').
+          nullable: true
         message:
           type: string
           description: Detailed error message.
         requestId: # Optional
           type: string
           description: Optional request identifier for tracing.
+          nullable: true
+        stack: # Often present in non-production from global error handler
+            type: string
+            description: "Stack trace (typically available in development mode only)."
+            nullable: true
+            
+    DeleteResultSchema:
+      type: object
+      description: "Standard TypeORM DeleteResult object."
+      properties:
+        raw:
+          type: array
+          items: {}
+          description: "Raw results returned by the database driver."
+        affected:
+          type: integer
+          nullable: true # Can be null if no rows were affected or if the operation did not return an affected count.
+          description: "Number of rows affected by the delete operation."

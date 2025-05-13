@@ -1,0 +1,27 @@
+"/upsert-history/":
+  patch:
+    summary: "INTERNAL: Delete Upsert History Records"
+    description: "Deletes specified upsert history records by their IDs."
+    operationId: "patchDeleteUpsertHistory"
+    tags: ["Upsert History", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/UpsertHistorySchemas.yaml#/components/schemas/PatchDeleteUpsertHistoryRequestSchema"
+    responses:
+      '200':
+        description: "Upsert history records deleted successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/DeleteResultSchema"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

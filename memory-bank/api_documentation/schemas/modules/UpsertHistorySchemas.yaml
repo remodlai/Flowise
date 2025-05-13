@@ -1,0 +1,61 @@
+openapi: 3.1.0
+info:
+  title: Upsert History Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    UpsertHistoryResultSchema:
+      type: object
+      description: "Parsed JSON object representing the result of a vector store upsert operation. Structure depends on the specific vector store and operation."
+      additionalProperties: true
+      example:
+        addedDocs: 50
+        totalKeys: 150
+        # other vector store specific result fields
+
+    UpsertHistoryFlowDataSchema:
+      type: object
+      description: "Parsed JSON object representing the configuration of nodes (embedding, vector store, record manager) used during the upsert operation."
+      additionalProperties: true # Node configurations are dynamic
+      example:
+        embeddingNode: { name: "openaiEmbedding", inputs: { model: "text-embedding-ada-002" } }
+        vectorStoreNode: { name: "pinecone", inputs: { index: "my-index" } }
+
+    UpsertHistoryResponseItemSchema: # Represents a single item in the GET response
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique ID of the upsert history record."
+        chatflowid: # Actually stores the DocumentStore ID
+          type: string
+          format: uuid
+          description: "ID of the DocumentStore this upsert history pertains to."
+        result:
+          $ref: '#/components/schemas/UpsertHistoryResultSchema'
+        flowData:
+          $ref: '#/components/schemas/UpsertHistoryFlowDataSchema'
+        date:
+          type: string
+          format: date-time
+          description: "Timestamp of when the upsert operation occurred."
+      required:
+        - id
+        - chatflowid
+        - result
+        - flowData
+        - date
+
+    PatchDeleteUpsertHistoryRequestSchema:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: "An array of UpsertHistory record IDs to delete."
+          minItems: 1
+      required:
+        - ids

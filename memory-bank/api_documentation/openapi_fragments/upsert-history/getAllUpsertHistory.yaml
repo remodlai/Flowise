@@ -1,0 +1,53 @@
+"/upsert-history/{id}": # Also handles GET /upsert-history/ (id becomes optional)
+  get:
+    summary: "INTERNAL: Get Upsert History"
+    description: "Retrieves history of upsert operations, typically for a Document Store (using its ID as chatflowid). Results have parsed 'result' and 'flowData' objects."
+    operationId: "getAllUpsertHistory"
+    tags: ["Upsert History", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: false # Optional, if not provided, fetches across all chatflowids/storeids subject to other filters
+        description: "ID of the Chatflow/DocumentStore to filter history for."
+        schema:
+          type: string
+          format: uuid
+      - name: sortOrder
+        in: query
+        description: "Sort order for results by date."
+        required: false
+        schema:
+          type: string
+          enum: [ASC, DESC]
+          default: ASC
+      - name: startDate
+        in: query
+        description: "Filter records on or after this date (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: endDate
+        in: query
+        description: "Filter records on or before this date (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: "Successfully retrieved upsert history records."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../../schemas/modules/UpsertHistorySchemas.yaml#/components/schemas/UpsertHistoryResponseItemSchema"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

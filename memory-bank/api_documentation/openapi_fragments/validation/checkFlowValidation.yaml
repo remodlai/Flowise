@@ -1,0 +1,43 @@
+"/validation/{id}":
+  get:
+    summary: "INTERNAL: Validate Chatflow Configuration"
+    description: "Validates a chatflow by its ID, returning a list of issues if any are found."
+    operationId: "checkFlowValidation"
+    tags: ["Validation", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow to validate."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Validation check completed. An empty array indicates no issues."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../../schemas/modules/ValidationSchemas.yaml#/components/schemas/ValidationResultItemSchema"
+      '404':
+        description: "Chatflow not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during validation."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

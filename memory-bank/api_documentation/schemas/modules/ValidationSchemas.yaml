@@ -1,0 +1,29 @@
+openapi: 3.1.0
+info:
+  title: Validation Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    ValidationResultItemSchema:
+      type: object
+      description: "Describes validation issues found for a specific node or edge in a chatflow."
+      properties:
+        id:
+          type: string
+          description: "ID of the node or edge with validation issues."
+        label:
+          type: string
+          description: "Display label of the node, or a generic label for an edge."
+        name:
+          type: string
+          description: "Internal name/type of the node, or 'edge' for edge issues."
+        issues:
+          type: array
+          items:
+            type: string
+          description: "List of validation issue descriptions for this item."
+      required:
+        - id
+        - label
+        - name
+        - issues

@@ -1,0 +1,40 @@
+---
+description: When introspecting routes, controllers, methods, handlers, services use this rule.
+globs: 
+alwaysApply: false
+---
+# Rule: Verify Against TypeORM and Interface Definitions
+
+**Rule Description:**
+"When documenting API endpoints, especially when defining request and response schemas, the AI assistant (Cursor) MUST actively cross-reference and verify data structures against their corresponding TypeORM entity definitions (`packages/server/src/database/entities/`) and TypeScript interface/type alias definitions (primarily in `packages/server/src/Interface.ts`, `packages/server/src/Interface.[Feature].ts`, or module-specific type files).
+
+1.  **Schema Generation Basis:**
+    *   For any data object being schematized (e.g., a request body, a response DTO, or a nested object within these), the primary source of truth for its properties, types, nullability, and relationships MUST be its TypeORM entity class and/or its TypeScript interface/type definition.
+    *   Do not infer schema structure solely from observed controller/service logic or example payloads if an explicit entity or interface exists.
+
+2.  **Field Verification:**
+    *   Ensure all fields present in the entity/interface are considered for the OpenAPI schema.
+    *   Accurately map TypeScript types (e.g., `string`, `number`, `boolean`, `Date`, custom enums, nested interfaces) to their corresponding OpenAPI schema types and formats (e.g., `string`, `integer`, `boolean`, `string` with `format: date-time`, `enum` arrays, `$ref` to other component schemas).
+    *   Pay close attention to `nullable: true` in entities or `?` optional markers in interfaces to correctly set `nullable: true` or omit fields from `required` arrays in OpenAPI schemas.
+    *   For relations in TypeORM entities (e.g., `@OneToMany`, `@ManyToOne`, `@ManyToMany`), determine how these are typically serialized in API responses (e.g., are they included, and if so, as full objects, IDs, or summarized DTOs?) and reflect this in the schema.
+
+3.  **DTO Transformation Awareness:**
+    *   If a controller or service transforms an entity into a DTO before sending the response (e.g., using a `SomeClass.fromEntity(entity)` static method), the OpenAPI schema MUST reflect the structure of the *DTO*, not just the raw entity. This involves:
+        *   Reading the DTO class/interface definition.
+        *   Analyzing the transformation logic (e.g., `fromEntity` method) to see which fields are included, excluded, renamed, or computed.
+
+4.  **Rationale:**
+    *   **Accuracy:** Ensures API documentation (especially schemas) accurately reflects the true data contracts as defined by the codebase's type system and ORM.
+    *   **Completeness:** Prevents omission of fields or incorrect typing that might occur from relying only on partial code observation.
+    *   **Maintainability:** Produces more robust documentation that is less likely to become outdated if it's tied to the formal type definitions.
+
+This rule reinforces the importance of using the codebase's defined types as the canonical source for schema information during API documentation."
+
+**Key Aspects Enforced:**
+
+*   Mandates checking TypeORM entities and TypeScript interfaces/types as the source for schema properties.
+*   Requires accurate mapping of types, nullability, and relationships.
+*   Emphasizes documenting the DTO structure if transformations occur.
+
+
+#CRITICAL: You must review ALL definitions  in this manner prior to marking a task complete or calling verify_task.
