@@ -1,0 +1,40 @@
+"/verify/apikey/{apikey}":
+  get:
+    summary: "INTERNAL: Verify API Key"
+    description: "Verifies if a given API key is valid."
+    operationId: "internalVerifyApiKey"
+    tags: ["Verification", "InternalAPI"]
+    parameters:
+      - name: apikey
+        in: path
+        required: true
+        description: "The API key to verify."
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "API key is valid."
+        content:
+          application/json: # Controller uses res.json("OK")
+            schema:
+              type: string
+              example: "OK"
+      '401':
+        description: "Unauthorized - API key is invalid or not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (apikey path parameter not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # No specific security on this endpoint itself, relies on the key being verified 
