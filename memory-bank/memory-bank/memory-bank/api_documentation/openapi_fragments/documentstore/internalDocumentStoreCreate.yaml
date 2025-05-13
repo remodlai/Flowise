@@ -1,0 +1,28 @@
+"/document-stores/store":
+  post:
+    summary: "INTERNAL: Create Document Store"
+    operationId: "internalDocumentStoreCreate"
+    tags: ["Document Store", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/DocumentStoreCreateRequest" # To be defined
+            type: object
+            required: [name]
+            properties:
+              name: { type: string }
+              description: { type: string, nullable: true }
+              loaders: { type: string, description: "JSON string of loader configs", nullable: true }
+              vectorStoreConfig: { type: string, description: "JSON string", nullable: true }
+              embeddingConfig: { type: string, description: "JSON string", nullable: true }
+              recordManagerConfig: { type: string, description: "JSON string", nullable: true }
+    responses:
+      '200':
+        description: "Document Store created."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentStore" # To be defined
+      # ... other error responses

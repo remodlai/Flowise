@@ -1,0 +1,87 @@
+"/document-stores/store":
+  get:
+    summary: "INTERNAL: Get All Document Stores"
+    description: "INTERNAL: Retrieves a list of all configured document stores with processed details."
+    operationId: "internalDocumentStoreGetAll"
+    tags: ["Document Store", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved document stores."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/DocumentStoreDTO" 
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []
+
+# In components.schemas (example, expand based on Interface.DocumentStore.ts):
+# DocumentStoreDTO:
+#   type: object
+#   properties:
+#     id: { type: string, format: uuid }
+#     name: { type: string }
+#     description: { type: string, nullable: true }
+#     status: { $ref: "#/components/schemas/DocumentStoreStatusEnum" }
+#     totalChars: { type: integer }
+#     totalChunks: { type: integer }
+#     whereUsed:
+#       type: array
+#       items:
+#         $ref: "#/components/schemas/DocumentStoreWhereUsed"
+#     vectorStoreConfig: { type: object, additionalProperties: true, nullable: true }
+#     embeddingConfig: { type: object, additionalProperties: true, nullable: true }
+#     recordManagerConfig: { type: object, additionalProperties: true, nullable: true }
+#     loaders:
+#       type: array
+#       items:
+#         $ref: "#/components/schemas/IDocumentStoreLoaderDTO"
+#     createdDate: { type: string, format: date-time }
+#     updatedDate: { type: string, format: date-time }
+
+# DocumentStoreStatusEnum:
+#   type: string
+#   enum: [EMPTY, SYNC, SYNCING, STALE, NEW, UPSERTED, FAILED] # Actual: EMPTY_SYNC, SYNC, SYNCING, STALE, NEW, UPSERTED
+
+# DocumentStoreWhereUsed:
+#   type: object
+#   properties:
+#     id: { type: string }
+#     name: { type: string }
+
+# IDocumentStoreLoaderDTO: 
+#   type: object
+#   properties:
+#     id: { type: string, nullable: true }
+#     loaderId: { type: string, nullable: true }
+#     loaderName: { type: string, nullable: true }
+#     loaderConfig: { type: object, additionalProperties: true, nullable: true }
+#     splitterId: { type: string, nullable: true }
+#     splitterName: { type: string, nullable: true }
+#     splitterConfig: { type: object, additionalProperties: true, nullable: true }
+#     totalChunks: { type: integer, nullable: true }
+#     totalChars: { type: integer, nullable: true }
+#     status: { $ref: "#/components/schemas/DocumentStoreStatusEnum", nullable: true }
+#     files:
+#       type: array
+#       items: { $ref: "#/components/schemas/IDocumentStoreLoaderFileDTO" }
+#       nullable: true
+#     source: { type: string, nullable: true }
+#     credential: { type: string, nullable: true }
+
+# IDocumentStoreLoaderFileDTO:
+#   type: object
+#   properties:
+#     id: { type: string }
+#     name: { type: string }
+#     mimePrefix: { type: string }
+#     size: { type: integer }
+#     status: { $ref: "#/components/schemas/DocumentStoreStatusEnum" }
+#     uploaded: { type: string, format: date-time }

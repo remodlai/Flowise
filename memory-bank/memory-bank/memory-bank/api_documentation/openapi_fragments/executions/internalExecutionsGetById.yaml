@@ -1,0 +1,19 @@
+"/executions/{id}":
+  get:
+    summary: "INTERNAL: Get Execution By ID"
+    operationId: "internalExecutionsGetById"
+    tags: ["Executions", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Execution record."
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: "Success"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecutionResponse" # Execution entity with parsed executionData & action
+      # ... other error responses

@@ -1,0 +1,23 @@
+"/export-import/import":
+  post:
+    summary: "INTERNAL: Import Data"
+    operationId: "internalExportImportImportData"
+    tags: ["Export-Import", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/ImportDataRequest" # Same as ExportDataResponse
+            type: object
+            # properties for ChatFlows, Tools, Assistants etc.
+    responses:
+      '200':
+        description: "Data imported successfully."
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, example: "success" }
+      # ... other error responses

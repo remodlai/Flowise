@@ -1,0 +1,73 @@
+"/chatflows-uploads/{id}": # Also handles / as per router, but controller relies on :id
+  get:
+    summary: "INTERNAL: Check Chatflow Upload Validity & Config"
+    description: "INTERNAL: Checks if a chatflow (by ID) supports various uploads (STT, RAG, Image) and returns config."
+    operationId: "internalChatflowsUploadsCheckValidity"
+    tags: ["Chatflows Uploads", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow to check."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully determined upload configurations."
+        content:
+          application/json:
+            schema:
+              # $ref: "#/components/schemas/UploadConfig" # To be defined based on IUploadConfig
+              type: object
+              properties:
+                isSpeechToTextEnabled:
+                  type: boolean
+                isImageUploadAllowed:
+                  type: boolean
+                isRAGFileUploadAllowed:
+                  type: boolean
+                imgUploadSizeAndTypes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      fileTypes:
+                        type: array
+                        items:
+                          type: string
+                      maxUploadSize:
+                        type: number
+                        description: "Max size in MB."
+                fileUploadSizeAndTypes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      fileTypes:
+                        type: array
+                        items:
+                          type: string
+                      maxUploadSize:
+                        type: number
+                        description: "Max size in MB."
+      '404':
+        description: "Chatflow not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

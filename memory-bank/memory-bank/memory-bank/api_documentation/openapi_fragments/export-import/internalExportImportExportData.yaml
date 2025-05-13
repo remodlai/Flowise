@@ -1,0 +1,28 @@
+"/export-import/export":
+  post:
+    summary: "INTERNAL: Export Data"
+    operationId: "internalExportImportExportData"
+    tags: ["Export-Import", "InternalAPI"]
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              chatflowIds:
+                type: array
+                items: { type: string, format: uuid }
+                nullable: true
+              includeMessages:
+                type: boolean
+                default: false
+    responses:
+      '200':
+        description: "Data exported successfully."
+        content:
+          application/json:
+            schema:
+              # $ref: "#/components/schemas/ExportDataResponse" # Define this based on service output
+              type: object 
+              # properties for ChatFlows, Tools, Assistants etc. each an array of their respective schemas
+      # ... other error responses

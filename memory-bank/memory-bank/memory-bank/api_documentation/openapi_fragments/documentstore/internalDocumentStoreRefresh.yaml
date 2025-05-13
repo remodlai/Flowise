@@ -1,0 +1,73 @@
+"/document-stores/refresh/{id}": # Path :id is storeId
+  post:
+    summary: "INTERNAL: Refresh Document Store Loaders"
+    description: "INTERNAL: Re-processes documents for a document store using its existing loader configurations, effectively refreshing its content in the vector store. ID in path is storeId."
+    operationId: "internalDocumentStoreRefresh"
+    tags: ["Document Store", "InternalAPI"]
+    parameters:
+      - name: id # storeId
+        in: path
+        required: false # Required if not in body's storeId
+        description: "ID of the Document Store. Overrides storeId in body if both present."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true # body itself required for storeId if not in path
+      content:
+        application/json: # Service expects IDocumentStoreRefreshData (items: IDocumentStoreUpsertData[])
+          schema:
+            type: object
+            properties:
+              storeId: 
+                type: string
+                format: uuid
+                description: "ID of the Document Store (required if :id not in path)."
+                nullable: true # One of path :id or body storeId must be present
+              docId: 
+                type: string
+                nullable: true
+                description: "Optional: Specific loader ID within the store to refresh. If omitted, all loaders are refreshed."
+              replaceExisting: 
+                type: string # Boolean as string
+                enum: ["true", "false"]
+                nullable: true
+              # Potentially other override fields if supported by refresh logic for IDocumentStoreUpsertData items
+              # e.g., vectorStore, embedding, recordManager as JSON strings.
+    responses:
+      '200':
+        description: "Refresh process initiated or completed."
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                result: { type: string, example: "Successfully Upserted" }
+                jobId: { type: string, example: "queue-job-id", nullable: true }
+              additionalProperties: true
+      '400':
+        description: "Bad Request."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '404':
+        description: "DocumentStore not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (e.g., storeId not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

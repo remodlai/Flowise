@@ -1,0 +1,58 @@
+"/leads/":
+  post:
+    summary: "INTERNAL: Create Lead"
+    description: "INTERNAL: Creates a new lead record from a chat session."
+    operationId: "internalLeadsCreate"
+    tags: ["Leads", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/LeadCreateRequest" # To be defined based on Lead entity
+            type: object
+            required:
+              - chatflowid
+              - chatId
+            properties:
+              chatflowid:
+                type: string
+                format: uuid
+                description: "ID of the associated chatflow."
+              chatId:
+                type: string
+                description: "ID of the associated chat session."
+              name:
+                type: string
+                nullable: true
+                description: "Name of the lead."
+              email:
+                type: string
+                format: email
+                nullable: true
+                description: "Email of the lead."
+              phone:
+                type: string
+                nullable: true
+                description: "Phone number of the lead."
+    responses:
+      '200': # Assuming 200 OK as controller simply returns res.json()
+        description: "Lead created successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Lead" # To be defined based on Lead entity
+      '400':
+        description: "Bad Request (e.g., missing required fields)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

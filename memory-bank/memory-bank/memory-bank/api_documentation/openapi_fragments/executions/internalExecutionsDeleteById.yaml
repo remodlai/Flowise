@@ -1,0 +1,17 @@
+"/executions/{id}":
+  delete:
+    summary: "INTERNAL: Delete Execution by ID"
+    operationId: "internalExecutionsDeleteById"
+    tags: ["Executions", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: "Success. Returns DeleteResult."
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeleteResult" } # Define DeleteResult
+      # ... other error responses

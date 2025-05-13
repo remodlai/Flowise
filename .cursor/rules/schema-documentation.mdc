@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+CRITICAL: When introspecting and documenting a codebase's API routes, DTOs, etc. and a schema is referenced, you MUST also document the associated schema, EVEN IF A CHILD to the main response or requst body.  This should be documented in a separate folder, and then referenced/linked.
+
+FORBIDDEN: NO STUBS OR "SIMULATED" PLACEHOLDERS CAN EXIST.

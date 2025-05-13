@@ -1,0 +1,21 @@
+"/executions/":
+  delete:
+    summary: "INTERNAL: Delete All Executions (Filtered)"
+    operationId: "internalExecutionsDeleteAllFiltered"
+    tags: ["Executions", "InternalAPI"]
+    parameters:
+      - name: agentflowId
+        in: query
+        schema: { type: string, format: uuid }
+        required: false
+      - name: chatId # Maps to sessionId
+        in: query
+        schema: { type: string, format: uuid }
+        required: false
+    responses:
+      '200':
+        description: "Success. Returns DeleteResult."
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeleteResult" }
+      # ... other error responses

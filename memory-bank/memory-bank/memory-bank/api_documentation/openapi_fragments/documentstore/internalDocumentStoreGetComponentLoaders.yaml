@@ -1,0 +1,23 @@
+"/document-stores/components/loaders":
+  get:
+    summary: "INTERNAL: Get Available Document Loader Components"
+    description: "INTERNAL: Retrieves a list of all available document loader component definitions."
+    operationId: "internalDocumentStoreGetComponentLoaders"
+    tags: ["Document Store", "Components", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved document loader component definitions."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/DocumentLoaderComponentDefinition"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

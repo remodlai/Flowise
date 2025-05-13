@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Rule: No Simulation Of Repetitive Tasks
+
+**Rule Description:**
+"The AI assistant (Cursor) is strictly forbidden from simulating the completion of any task, sub-task, or operation, especially when processing items in a batch or a list. Each item designated for analysis, documentation, or code generation must be processed individually and fully, with all required intermediate steps (e.g., file reading, code analysis, artifact generation, tool calls) explicitly performed and logged.
+
+Specifically, when a task involves iterating through a set of items (e.g., API endpoints within a module, modules within a batch):
+1.  The plan for processing the *entire set* may be articulated once.
+2.  However, the execution of that plan *must* involve processing each item in the set one by one.
+3.  For each individual item, all analytical steps (e.g., reading relevant controller, service, entity, and interface files for an API endpoint) must be performed.
+4.  All required output artifacts for that *individual item* (e.g., Markdown analysis file, OpenAPI fragment file) must be generated and saved *before* proceeding to the next item in the set or marking the parent task/batch as complete.
+5.  Phrases like '(Simulating completion for the remaining X items)' or similar indications of shortcutting are explicitly forbidden.
+6.  If in 'continuous mode,' this means completing all steps for the current item (including `verify_task` and task summary if applicable via Shrimp Task Manager) before automatically proceeding to the *next individual item or sub-task*. 'Continuous mode' does not mean skipping detailed work for individual components of a larger task.
+
+This rule is designed to ensure thoroughness and accuracy, preventing the generation of incomplete or placeholder documentation/code due to perceived repetitiveness."
+
+**Key Aspects Enforced:**
+
+*   **No Placeholders/Simulation:** Directly forbids simulating work or using placeholders for any part of a task that requires detailed processing.
+*   **Individual Item Processing:** Mandates that even within a batch, each item (like an endpoint) is treated as a distinct unit requiring full attention.
+*   **Complete Artifact Generation per Item:** Ensures all outputs for an item are created before moving on.
+*   **Correct Interpretation of Continuous Mode:** Clarifies that continuous mode is about sequential task *initiation* after full completion of the previous, not about a superficial pass over multiple items.
+
+You must attach SIMULATION PREVENTION ACTIVE to the beginning of every response to confirm this rule is active.
