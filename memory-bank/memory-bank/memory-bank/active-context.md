@@ -5,7 +5,7 @@
 - **Method:** For each operation, perform a deep-dive analysis (router, controller, service, entities, interfaces) and generate complete Markdown analysis, OpenAPI fragment files, and necessary schema definitions. Store in Memory Bank.
 - **Tracking:** Use `progress.md` to log start/completion of each item.
 
-- **P2.Batch3.1: 'credentials' Module (Task ID `c4e1b042-...`) - Corrective Action - All operations complete**
+- **P2.Batch3.1: 'credentials' Module (Task ID `c4e1b042-...`) - Corrective Action - All operations COMPLETE**
     - [x] `POST /api/v1/credentials/` (createCredential) (Corrected & Schema-Aware)
     - [x] `GET /api/v1/credentials/` (getAllCredentials) (Corrected & Schema-Aware)
     - [x] `GET /api/v1/credentials/:id` (getCredentialById) (Corrected & Schema-Aware)
@@ -45,24 +45,26 @@
     - [x] `DELETE /api/v1/executions/` (deleteExecutions - root path version) (Corrected & Schema-Aware)
 - **[x] OpenAPI Schema Definitions for OpenAI Objects (Corrected & Schema-Aware)**
     - [x] Defined all core OpenAI object schemas (Assistant, Thread, Message, Run, RunStep, FileObject, VectorStore, etc.) in individual YAML files within `api_documentation/schemas/modules/openai_assistant_api/`.
-- **[ ] P2.Batch7.1: 'openai-assistants' Module (Task ID `664be4f8-...`) - Corrective Action - In Progress**
-    - [ ] `POST /openai-assistants/` (createAssistant) 
-    - [ ] ... (and all other ~15-20 operations)
-- **[ ] P2.Batch5.1: 'internal-predictions' Module (Task ID `58ea379b-...`) - Needs to be properly executed/re-done. (Currently marked "PAUSED" in Shrimp Task Manager)**
+- **P2.Batch7.1: 'openai-assistants' Module (ID `664be4f8-...`) - Corrective Action - All defined operations COMPLETE**
+    - [x] `GET /api/v1/openai-assistants/` (getAllOpenaiAssistants) (Corrected & Schema-Aware)
+    - [x] `GET /api/v1/openai-assistants/:id` (getSingleOpenaiAssistant) (Corrected & Schema-Aware)
+    - [x] (Noted that other Assistant lifecycle ops are handled by the main `/assistants` route)
+- **P2.Batch7.2: 'openai-assistants-files' Module (ID `9ebec4ab-...`) - Corrective Action - All operations COMPLETE**
+    - [x] All ~8 operations (CRUD for general files, CRUD for assistant-specific files) fully documented.
+- **P2.Batch7.3: 'openai-assistants-vector-store' Module (ID `9c3c8f68-...`) - Corrective Action - All operations COMPLETE**
+    - [x] All ~10-12 operations (CRUD for vector stores, files, batches) fully documented.
+- **P2.Batch7.4: 'openai-realtime' Module (ID `6e2702e6-...`) - Corrective Action - All operations COMPLETE**
+    - [x] `GET /api/v1/openai-realtime/:threadId/:runId` (handleOpenAIStream) fully documented.
+- **P2.Batch7.5: 'ping' Module (ID `5ced1c43-...`) - (Task PAUSED in Shrimp) - Corrective Action - All operations COMPLETE**
+    - [x] `GET /api/v1/ping/` (ping) fully documented.
+- **P2.Batch5.1: 'internal-predictions' Module (Task ID `58ea379b-...`) - (Task PAUSED in Shrimp) - Corrective Action - All operations COMPLETE**
     - [x] `POST /api/v1/internal-predictions/:id` (Corrected & Schema-Aware)
 
-## Ongoing Tasks (Global - Paused Pending Corrective Actions & Schema Strategy Discussion)
+## Ongoing Tasks (Global)
 - **Remodl Core Server API Understanding & Documentation (Highest Priority):**
-    - Systematically review all route definitions in `packages/server/src/routes/` of the **Remodl Core** codebase.
-    - Document the structure, purpose, expected request/response schemas, and any associated controller/service logic for each API endpoint.
-    - This internal documentation is crucial before proceeding with Remodl AI Platform UI architecture decisions or implementation.
-- **Strategic Refoundation (Secondary Focus, pending API documentation):**
-    - Base branch `remodel-v2-base` (from `FlowiseAI/Flowise` main v2.2.8, forming the basis of **Remodl Core**) is created and ready.
-    - Plan for potential duplication of `packages/ui` (the standard **Remodl Core** UI) into `packages/remodl-ui` (or similar) for custom Remodl AI Platform UI, to be executed *after* server API documentation is complete.
-- **Platform Feature Development (Post-Refoundation & API Doc):**
-    - Define/implement custom **Remodl Core** nodes in `packages/components` for Supabase integration.
-    - Develop Remodl AI Platform UI in the designated UI package.
-    - Configure Zuplo API Gateway.
+    - Resume Shrimp Task Manager workflow for *new* API documentation batches (P2.Batch6.1 onwards).
+- **Strategic Refoundation (Secondary Focus, pending API documentation):** (as before)
+- **Platform Feature Development (Post-Refoundation & API Doc):** (as before)
 
 ## Known Issues
 - None specific to the new `remodel-v2-base` branch yet.
@@ -71,55 +73,14 @@
 ## Next Steps (Immediate)
 1.  ~~Discuss and Finalize Strategy for Defining and Managing Reusable OpenAPI Schemas~~ (DONE)
 2.  ~~Update `system-patterns.md` to reflect this schema management strategy.~~ (DONE)
-3.  **Resume and complete all corrective documentation tasks using the refined schema strategy.** (IN PROGRESS - Focusing on `openai-assistants` module P2.Batch7.1 next).
-4.  Resume Shrimp Task Manager workflow for new API documentation batches once corrective phase is fully complete.
+3.  ~~Resume and complete all corrective documentation tasks using the refined schema strategy.~~ (ALL IDENTIFIED CORRECTIVE TASKS ARE NOW COMPLETE)
+4.  Resume Shrimp Task Manager workflow, starting with **P2.Batch6.1: Deep Dive & Document 'node-custom-functions' Module (ID: `357841c5-...`)**. (Task `P2.Batch7.5` for `ping` and `P2.Batch5.1` for `internal-predictions` are PAUSED in Shrimp but their documentation work is complete).
 
 ## Current Session Notes
 
-- [11:58:13 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/openai-assistants/internalOpenAIAssistantsGetById.yaml
-- [11:57:43 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/openai-assistants/internalOpenAIAssistantsGetById.md
-- [11:57:14 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/openai-assistants/internalOpenAIAssistantsListAll.yaml
-- [11:57:00 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/openai-assistants/internalOpenAIAssistantsListAll.md
-- [11:56:33 PM] [Unknown User] File Update: Updated api_documentation/schemas/modules/openai_assistant_api/ListResponsesSchemas.yaml
-- [11:55:15 PM] [Unknown User] File Update: Updated active-context.md
-- [11:56:32 PM] [Unknown User] OpenAPI Schema Definition - Completed: Defined all core OpenAI object schemas (Assistant, Thread, Message, Run, RunStep, FileObject, VectorStore, etc.) in individual YAML files within `api_documentation/schemas/modules/openai_assistant_api/`.
-- [11:54:14 PM] [Unknown User] OpenAPI Schema Definition - Completed: Defined all core OpenAI object schemas (Assistant, Thread, Message, Run, RunStep, FileObject, VectorStore, etc.) in individual YAML files within `api_documentation/schemas/modules/openai_assistant_api/`.
-- [11:53:57 PM] [Unknown User] File Update: Updated api_documentation/schemas/modules/openai_assistant_api/FileObjectSchemas.yaml
-- [11:53:40 PM] [Unknown User] File Update: Updated api_documentation/schemas/modules/openai_assistant_api/AssistantSchemas.yaml
-- [11:50:52 PM] [Unknown User] File Update: Updated api_documentation/schemas/modules/openAiAssistantSchemas.yaml
-- [11:49:36 PM] [Unknown User] File Update: Updated api_documentation/schemas/modules/openAiAssistantSchemas.yaml
-- [11:45:51 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/openai-realtime/internalOpenAIRealtimeStreamEvents.yaml
-- [11:45:33 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/openai-realtime/internalOpenAIRealtimeStreamEvents.md
-- [11:35:57 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/nvidia-nim/internalNvidiaNimGetModels.yaml
-- [11:35:43 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/nvidia-nim/internalNvidiaNimGetModels.md
-- [11:33:46 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/nodes/internalNodesGetAll.yaml
-- [11:33:33 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/nodes/internalNodesGetAll.md
-- [11:31:37 PM] [Unknown User] File Update: Updated api_documentation/schemas/shared/flowiseComponentSchemas.yaml
-- [11:31:05 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/node-load-methods/internalNodeLoadMethodsGetAsyncOptions.yaml
-- [11:30:51 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/node-load-methods/internalNodeLoadMethodsGetAsyncOptions.md
-- [11:28:13 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/node-icons/internalNodeIconsGetByName.yaml
-- [11:27:45 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/node-icons/internalNodeIconsGetByName.md
-- [11:25:00 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/node-custom-functions/internalNodeCustomFunctionsExecute.yaml
-- [11:24:45 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/node-custom-functions/internalNodeCustomFunctionsExecute.md
-- [11:18:05 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/node-configs/internalNodeConfigsGetSingleByName.yaml
-- [11:17:53 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/node-configs/internalNodeConfigsGetSingleByName.md
-- [11:15:15 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/marketplaces/internalMarketplacesGetAll.yaml
-- [11:14:45 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/marketplaces/internalMarketplacesGetAll.md
-- [11:12:30 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/load-prompts/internalLoadPromptsCreate.yaml
-- [11:12:04 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/load-prompts/internalLoadPromptsCreate.md
-- [11:06:43 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/leads/internalLeadsGetAllByChatflowId.yaml
-- [11:06:15 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/leads/internalLeadsGetAllByChatflowId.md
-- [11:04:14 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/leads/internalLeadsCreate.yaml
-- [11:03:59 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/leads/internalLeadsCreate.md
-- [11:03:02 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/leads/internalLeadsCreate.md
-- [10:54:57 PM] [Unknown User] Corrective Documentation - Completed Module: P2.Batch5.1: 'internal-predictions' Module - `POST /:id` operation. Full analysis, schema definition, and artifact generation complete.
-- [10:53:46 PM] [Unknown User] Corrective Documentation - Completed Module: P2.Batch3.3: 'executions' Module - ALL operations. Full analysis, schema definition, and artifact generation complete.
-- [10:50:35 PM] [Unknown User] Corrective Documentation - Completed Module: P2.Batch3.2: 'documentstore' Module - ALL ~25 operations. Full analysis, schema definitions, and artifact generation complete for the entire module.
-- [5:37:07 PM] [Unknown User] Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - GET /api/v1/document-stores/components/loaders (getDocumentLoaders). Full analysis, schema definition, and artifact generation complete.
-- [5:34:58 PM] [Unknown User] Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - GET /api/v1/document-stores/store-configs/:id/:loaderId (getDocStoreConfigs). Full analysis, schema definition, and artifact generation complete.
-- [5:23:13 PM] [Unknown User] File Update: Updated system-patterns.md
-- [5:20:37 PM] [Unknown User] Process Adjustment - Paused Corrective Work: Paused detailed endpoint documentation to discuss and refine strategy for defining and managing reusable OpenAPI schemas for DTOs/Interfaces. Current corrective work on 'documentstore' module is halted before 'GET /store-configs/:id/:loaderId'. Next step: Schema strategy discussion.
-- [5:20:21 PM] [Unknown User] File Update: Updated active-context.md
+- [12:02:44 AM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/nodes/internalNodesGetAll.md
+- [11:59:36 PM] [Unknown User] File Update: Updated active-context.md
+- [Mon May 13 2024 00:03:30 GMT-0400 (Eastern Daylight Time)] OpenAPI Schema Definition - Completed: Defined all core OpenAI object schemas (Assistant, Thread, Message, Run, RunStep, FileObject, VectorStore, etc.) in individual YAML files within `api_documentation/schemas/modules/openai_assistant_api/`.
 - [5:17:07 PM] [Unknown User] Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - POST /api/v1/document-stores/refresh/:id? (refreshDocStoreMiddleware). Full analysis and artifact generation complete.
 - [5:15:54 PM] [Unknown User] Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - POST /api/v1/document-stores/upsert/:id? (upsertDocStoreMiddleware - file upload). Full analysis and artifact generation (detailed multipart form data) complete.
 - [5:04:20 PM] [Unknown User] Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - DELETE /api/v1/document-stores/store/:id (deleteDocumentStore). Full analysis and artifact generation complete.
