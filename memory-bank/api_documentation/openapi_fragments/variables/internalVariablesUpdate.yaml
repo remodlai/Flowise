@@ -1,0 +1,47 @@
+"/variables/{id}":
+  put:
+    summary: "INTERNAL: Update Variable"
+    description: "INTERNAL: Updates an existing global variable."
+    operationId: "internalVariablesUpdate"
+    tags: ["Variables", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the variable to update."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableUpdateRequest"
+    responses:
+      '200':
+        description: "Variable updated successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableSchema"
+      '404':
+        description: "Variable not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (e.g., missing ID or body)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

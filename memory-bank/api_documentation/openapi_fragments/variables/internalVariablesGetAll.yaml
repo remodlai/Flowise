@@ -1,0 +1,23 @@
+"/variables/":
+  get:
+    summary: "INTERNAL: Get All Variables"
+    description: "INTERNAL: Retrieves a list of all globally defined variables."
+    operationId: "internalVariablesGetAll"
+    tags: ["Variables", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved all variables."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableSchema"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

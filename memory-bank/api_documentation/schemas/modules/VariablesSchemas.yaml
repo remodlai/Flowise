@@ -1,0 +1,70 @@
+openapi: 3.1.0
+info:
+  title: Variables Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    VariableSchema: # Based on Variable entity / IVariable interface
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier for the variable."
+          readOnly: true
+        name:
+          type: string
+          description: "Name of the variable."
+        value:
+          type: string
+          nullable: true
+          description: "Value of the variable (can be long text)."
+        type:
+          type: string
+          description: "Data type of the variable (e.g., 'string', 'number', 'json')."
+          default: "string"
+        createdDate:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedDate:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - name
+        - type # Type defaults in DB but usually specified by user
+
+    VariableCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: "Name of the variable."
+        value:
+          type: string
+          nullable: true
+          description: "Value of the variable."
+        type:
+          type: string
+          description: "Data type of the variable (e.g., 'string', 'number', 'json'). Defaults to 'string' if not provided in request but entity has default."
+          nullable: true 
+      required:
+        - name
+
+    VariableUpdateRequest:
+      type: object
+      description: "Fields for updating an existing variable. All fields are optional."
+      properties:
+        name:
+          type: string
+          description: "New name for the variable."
+          nullable: true
+        value:
+          type: string
+          nullable: true
+          description: "New value for the variable."
+        type:
+          type: string
+          description: "New data type for the variable."
+          nullable: true 

@@ -1,0 +1,33 @@
+"/variables/":
+  post:
+    summary: "INTERNAL: Create Variable"
+    description: "INTERNAL: Creates a new global variable."
+    operationId: "internalVariablesCreate"
+    tags: ["Variables", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableCreateRequest"
+    responses:
+      '200': # Assuming 200 OK
+        description: "Variable created successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableSchema"
+      '412':
+        description: "Precondition Failed (e.g., missing request body or required fields)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 
