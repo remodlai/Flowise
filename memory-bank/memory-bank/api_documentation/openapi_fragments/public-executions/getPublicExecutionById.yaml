@@ -1,0 +1,33 @@
+"/public-executions/{id}":
+  get:
+    summary: "PUBLIC: Get Single Public Execution Record"
+    description: "Retrieves a specific execution record by ID, if it's public. Credential details are redacted from executionData."
+    operationId: "getPublicExecutionById"
+    tags: ["Public Executions", "PublicAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Execution record."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully retrieved the public execution record."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/ExecutionsSchemas.yaml#/components/schemas/ExecutionSchema"
+      '404':
+        description: "Execution record not found or not public."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse" 

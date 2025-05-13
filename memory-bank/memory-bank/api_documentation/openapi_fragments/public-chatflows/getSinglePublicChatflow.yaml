@@ -1,0 +1,45 @@
+"/public-chatflows/{id}":
+  get:
+    summary: "PUBLIC: Get Single Public Chatflow Definition"
+    description: "Retrieves the definition of a specific chatflow by its ID, if it's marked as public."
+    operationId: "getSinglePublicChatflow"
+    tags: ["Public Chatflows", "PublicAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully retrieved the public chatflow definition."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/ChatflowsSchemas.yaml#/components/schemas/ChatFlowSchema"
+      '401':
+        description: "Unauthorized - Chatflow is not public."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '404':
+        description: "Chatflow not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse" 

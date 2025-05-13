@@ -1,0 +1,33 @@
+openapi: 3.1.0
+info:
+  title: Chatflows Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    ChatflowTypeEnum: # From Interface.ts
+      type: string
+      enum: [CHATFLOW, MULTIAGENT, AGENTFLOW, ASSISTANT] # AGENTFLOW is V2, MULTIAGENT is older agent
+      description: "The type of the chatflow."
+
+    ChatFlowSchema: # Based on ChatFlow entity and IChatFlow interface
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        flowData: { type: string, description: "JSON string representing the ReactFlow graph." }
+        deployed: { type: boolean, nullable: true }
+        isPublic: { type: boolean, nullable: true }
+        apikeyid: { type: string, format: uuid, nullable: true, description: "ID of the API key associated with this chatflow, if any." }
+        chatbotConfig: { type: string, nullable: true, description: "JSON string of chatbot UI configurations." } 
+        speechToText: { type: string, nullable: true, description: "JSON string of speech-to-text configurations."}
+        analytic: { type: string, nullable: true, description: "JSON string of analytics configurations."}
+        category: { type: string, nullable: true }
+        type: { $ref: '#/components/schemas/ChatflowTypeEnum', nullable: true }
+        createdDate: { type: string, format: date-time }
+        updatedDate: { type: string, format: date-time }
+        followUpPrompts: { type: string, nullable: true, description: "JSON string for follow-up prompts config."}
+        apiConfig: { type: string, nullable: true, description: "JSON string for API configuration if any."}
+      required:
+        - id
+        - name
+        - flowData

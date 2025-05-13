@@ -918,34 +918,40 @@
       "id": "88500a11-f26a-4593-a24a-f0e09fb364f7",
       "name": "P2.Batch8.3: Document `public-chatbots` Module",
       "description": "Perform deep-dive analysis of all endpoints in the `public-chatbots` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/public-chatbots/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/public-chatbots/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
-      "status": "進行中",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-13T04:15:20.716Z",
-      "updatedAt": "2025-05-13T04:27:19.940Z",
+      "updatedAt": "2025-05-13T04:43:06.926Z",
       "implementationGuide": "Follow standard procedure: `mkdir -p` target dirs, `read_file` (router, controller, service, entities/interfaces), `mcp_write_memory_bank_file` (schemas), `mcp_write_memory_bank_file` (Markdown analysis), `mcp_write_memory_bank_file` (OpenAPI fragment) for each endpoint. Reference `schema-documentation`.",
-      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-chatbots` endpoints."
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-chatbots` endpoints.",
+      "summary": "Completed documentation for the GET /public-chatbots/{id} endpoint. Created Markdown analysis, OpenAPI fragment, and supporting schemas (PublicChatbotConfigResponse, UploadsConfig) in the Memory Bank.",
+      "completedAt": "2025-05-13T04:43:06.926Z"
     },
     {
       "id": "43175fce-7f35-4f75-a205-5e46c563d5a2",
       "name": "P2.Batch8.4: Document `public-chatflows` Module",
       "description": "Perform deep-dive analysis of all endpoints in the `public-chatflows` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/public-chatflows/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/public-chatflows/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-13T04:15:20.716Z",
-      "updatedAt": "2025-05-13T04:15:20.716Z",
+      "updatedAt": "2025-05-13T04:46:19.714Z",
       "implementationGuide": "Follow standard procedure: `mkdir -p` target dirs, `read_file` (router, controller, service, entities/interfaces), `mcp_write_memory_bank_file` (schemas), `mcp_write_memory_bank_file` (Markdown analysis), `mcp_write_memory_bank_file` (OpenAPI fragment) for each endpoint. Reference `schema-documentation`.",
-      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-chatflows` endpoints."
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-chatflows` endpoints.",
+      "summary": "Completed documentation for GET /public-chatflows/{id}. Created Markdown analysis, OpenAPI fragment, and ensured ChatFlowSchema was defined. Used edit_file for artifacts due to Memory Bank tool issues.",
+      "completedAt": "2025-05-13T04:46:19.714Z"
     },
     {
       "id": "61625c9b-1629-4b12-acad-177440f22962",
       "name": "P2.Batch8.5: Document `public-executions` Module",
       "description": "Perform deep-dive analysis of all endpoints in the `public-executions` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/public-executions/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/public-executions/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-13T04:15:20.716Z",
-      "updatedAt": "2025-05-13T04:15:20.716Z",
+      "updatedAt": "2025-05-13T04:50:01.631Z",
       "implementationGuide": "Follow standard procedure: `mkdir -p` target dirs, `read_file` (router, controller, service, entities/interfaces), `mcp_write_memory_bank_file` (schemas), `mcp_write_memory_bank_file` (Markdown analysis), `mcp_write_memory_bank_file` (OpenAPI fragment) for each endpoint. Reference `schema-documentation`.",
-      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-executions` endpoints."
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-executions` endpoints.",
+      "summary": "Completed documentation for GET /public-executions/{id}. Created Markdown analysis, OpenAPI fragment, and supporting schemas (ExecutionSchema, etc.) in the Memory Bank. Used edit_file for artifacts.",
+      "completedAt": "2025-05-13T04:50:01.630Z"
     }
   ]
 }

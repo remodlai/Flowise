@@ -1,0 +1,48 @@
+"/public-chatbots/{id}":
+  get:
+    summary: "PUBLIC: Get Public Chatbot Configuration"
+    description: "Retrieves the public UI configuration, upload settings, and flow data for a specific chatbot (chatflow ID)."
+    operationId: "getSinglePublicChatbotConfig"
+    tags: ["Public Chatbots", "PublicAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully retrieved public chatbot configuration or 'OK' string."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/PublicChatbotsSchemas.yaml#/components/schemas/PublicChatbotConfigResponse"
+            examples:
+              fullConfig:
+                value:
+                  botName: "My Public Bot"
+                  icon: "data:image/svg+xml;base64,..."
+                  uploads: { fileTypes: [".pdf"], maxUploadSize: 5 }
+                  flowData: "{...}"
+              okResponse:
+                value: "OK"
+      '404':
+        description: "Chatflow not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"

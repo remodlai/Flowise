@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: Executions Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    ExecutionStateEnum: # From Interface.ts
+      type: string
+      enum: [INPROGRESS, FINISHED, ERROR, TERMINATED, TIMEOUT, STOPPED]
+      description: "The state of an execution."
+
+    INodeExecutionDataSchema: # Represents the 'data' field within IAgentflowExecutedData
+      type: object
+      description: "Output data from a node execution. Structure is dynamic based on the node."
+      properties:
+        output:
+          description: "Primary output of the node."
+          additionalProperties: true
+      additionalProperties: true
+
+    IAgentflowExecutedDataSchema: # Based on IAgentflowExecutedData from Interface.ts
+      type: object
+      properties:
+        nodeLabel:
+          type: string
+          description: "Label of the executed node."
+        nodeId:
+          type: string
+          description: "ID of the executed node."
+        data:
+          $ref: '#/components/schemas/INodeExecutionDataSchema'
+        previousNodeIds:
+          type: array
+          items:
+            type: string
+          description: "IDs of the nodes that preceded this one in execution."
+        status:
+          $ref: '#/components/schemas/ExecutionStateEnum'
+          nullable: true
+          description: "Status of this specific node's execution within the run."
+      required: [nodeLabel, nodeId, data]
+
+    ExecutionSchema: # Based on Execution entity
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        executionData: 
+          type: string # JSON string
+          description: >-
+            JSON string representing an array of executed node data (`IAgentflowExecutedDataSchema[]`).
+            For public GET requests, credential IDs are removed from this data.
+        state: { $ref: '#/components/schemas/ExecutionStateEnum' }
+        agentflowId: { type: string, format: uuid }
+        sessionId: { type: string, format: uuid }
+        isPublic: { type: boolean, nullable: true }
+        action: { type: string, nullable: true, description: "JSON string representing the last action taken or required." }
+        createdDate: { type: string, format: date-time }
+        updatedDate: { type: string, format: date-time }
+        stoppedDate: { type: string, format: date-time, nullable: true }
+      required: [id, executionData, state, agentflowId, sessionId, createdDate, updatedDate]
