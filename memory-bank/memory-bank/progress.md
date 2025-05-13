@@ -1,18 +1,113 @@
-# Project Progress
+# Progress Log - Remodl Core API Documentation
 
-## Completed Milestones
-- [Milestone 1] - [Date]
-- [Milestone 2] - [Date]
+## Corrective Documentation Phase
 
-## Pending Milestones
-- [Milestone 3] - [Expected date]
-- [Milestone 4] - [Expected date]
+**Objective:** Fully and correctly document all previously simulated Remodl Core server API endpoints.
+
+*Timestamp format: YYYY-MM-DD HH:MM:SS*
+
+---
+
+
 
 ## Update History
 
-- [2025-05-12 11:37:30 AM] [Unknown User] - File Update: Updated active-context.md
-- [2025-05-12 11:31:05 AM] [Unknown User] - File Update: Updated system-patterns.md
-- [2025-05-12 11:28:10 AM] [Unknown User] - File Update: Updated active-context.md
-- [2025-05-12 11:27:49 AM] [Unknown User] - File Update: Updated project-brief.md
-- [Date] - [Update]
-- [Date] - [Update]
+- [2025-05-13 12:25:45 AM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/prompts-lists/createPromptsList.yaml
+- [2025-05-13 12:25:29 AM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/prompts-lists/createPromptsList.md
+- [2025-05-13 12:25:15 AM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/PromptsListsSchemas.yaml
+- [2025-05-13 12:20:12 AM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/predictions/createPrediction.yaml
+- [2025-05-13 12:19:53 AM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/predictions/createPrediction.md
+- [2025-05-13 12:18:42 AM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/PredictionsSchemas.yaml
+- [2025-05-13 12:18:21 AM] [Unknown User] - File Update: Updated api_documentation/schemas/shared/CommonSchemas.yaml
+- [2025-05-13 12:18:08 AM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/PredictionsSchemas.yaml
+- [2025-05-13 12:06:59 AM] [Unknown User] - File Update: Updated active-context.md
+- [2025-05-13 12:04:44 AM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/ping/internalPingServer.yaml
+- [2025-05-13 12:04:29 AM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/ping/internalPingServer.md
+- [2025-05-13 12:02:44 AM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/nodes/internalNodesGetAll.md
+- [2025-05-13 11:59:36 PM] [Unknown User] - File Update: Updated active-context.md
+- [2025-05-13 11:58:13 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/openai-assistants/internalOpenAIAssistantsGetById.yaml
+- [2025-05-13 11:57:43 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/openai-assistants/internalOpenAIAssistantsGetById.md
+- [2025-05-13 11:57:14 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/openai-assistants/internalOpenAIAssistantsListAll.yaml
+- [2025-05-13 11:57:00 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/openai-assistants/internalOpenAIAssistantsListAll.md
+- [2025-05-13 11:56:33 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/openai_assistant_api/ListResponsesSchemas.yaml
+- [2025-05-13 11:55:15 PM] [Unknown User] - File Update: Updated active-context.md
+- [2025-05-13 11:54:14 PM] [Unknown User] - OpenAPI Schema Definition - Completed: Defined all core OpenAI object schemas (Assistant, Thread, Message, Run, RunStep, FileObject, VectorStore, etc.) in individual YAML files within `api_documentation/schemas/modules/openai_assistant_api/`.
+- [2025-05-13 11:53:57 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/openai_assistant_api/FileObjectSchemas.yaml
+- [2025-05-13 11:53:40 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/openai_assistant_api/AssistantSchemas.yaml
+- [2025-05-13 11:50:52 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/openAiAssistantSchemas.yaml
+- [2025-05-13 11:49:36 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/openAiAssistantSchemas.yaml
+- [2025-05-13 11:45:51 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/openai-realtime/internalOpenAIRealtimeStreamEvents.yaml
+- [2025-05-13 11:45:33 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/openai-realtime/internalOpenAIRealtimeStreamEvents.md
+- [2025-05-13 11:35:57 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/nvidia-nim/internalNvidiaNimGetModels.yaml
+- [2025-05-13 11:35:43 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/nvidia-nim/internalNvidiaNimGetModels.md
+- [2025-05-13 11:33:46 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/nodes/internalNodesGetAll.yaml
+- [2025-05-13 11:33:33 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/nodes/internalNodesGetAll.md
+- [2025-05-13 11:31:37 PM] [Unknown User] - File Update: Updated api_documentation/schemas/shared/flowiseComponentSchemas.yaml
+- [2025-05-13 11:31:05 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/node-load-methods/internalNodeLoadMethodsGetAsyncOptions.yaml
+- [2025-05-13 11:30:51 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/node-load-methods/internalNodeLoadMethodsGetAsyncOptions.md
+- [2025-05-13 11:28:13 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/node-icons/internalNodeIconsGetByName.yaml
+- [2025-05-13 11:27:45 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/node-icons/internalNodeIconsGetByName.md
+- [2025-05-13 11:25:00 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/node-custom-functions/internalNodeCustomFunctionsExecute.yaml
+- [2025-05-13 11:24:45 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/node-custom-functions/internalNodeCustomFunctionsExecute.md
+- [2025-05-13 11:18:05 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/node-configs/internalNodeConfigsGetSingleByName.yaml
+- [2025-05-13 11:17:53 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/node-configs/internalNodeConfigsGetSingleByName.md
+- [2025-05-13 11:15:15 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/marketplaces/internalMarketplacesGetAll.yaml
+- [2025-05-13 11:14:45 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/marketplaces/internalMarketplacesGetAll.md
+- [2025-05-13 11:12:30 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/load-prompts/internalLoadPromptsCreate.yaml
+- [2025-05-13 11:12:04 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/load-prompts/internalLoadPromptsCreate.md
+- [2025-05-13 11:06:43 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/leads/internalLeadsGetAllByChatflowId.yaml
+- [2025-05-13 11:06:15 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/leads/internalLeadsGetAllByChatflowId.md
+- [2025-05-13 11:04:14 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/leads/internalLeadsCreate.yaml
+- [2025-05-13 11:03:59 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/leads/internalLeadsCreate.md
+- [2025-05-13 11:03:02 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/leads/internalLeadsCreate.md
+- [2025-05-13 10:54:57 PM] [Unknown User] - Corrective Documentation - Completed Module: P2.Batch5.1: 'internal-predictions' Module - `POST /:id` operation. Full analysis, schema definition, and artifact generation complete.
+- [2025-05-13 10:54:46 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/internal-predictions/internalPredictionsCreateInternal.yaml
+- [2025-05-13 10:54:28 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/internal-predictions/internalPredictionsCreateInternal.md
+- [2025-05-13 10:53:46 PM] [Unknown User] - Corrective Documentation - Completed Module: P2.Batch3.3: 'executions' Module - ALL operations. Full analysis, schema definition, and artifact generation complete.
+- [2025-05-13 10:53:25 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsDeleteAllFiltered.yaml
+- [2025-05-13 10:52:57 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/executions/internalExecutionsDeleteAllFiltered.md
+- [2025-05-13 10:52:36 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsDeleteById.yaml
+- [2025-05-13 10:52:20 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/executions/internalExecutionsDeleteById.md
+- [2025-05-13 10:52:00 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsUpdate.yaml
+- [2025-05-13 10:51:48 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/executions/internalExecutionsUpdate.md
+- [2025-05-13 10:51:32 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsGetById.yaml
+- [2025-05-13 10:51:20 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/executions/internalExecutionsGetById.md
+- [2025-05-13 10:50:35 PM] [Unknown User] - Corrective Documentation - Completed Module: P2.Batch3.2: 'documentstore' Module - ALL ~25 operations. Full analysis, schema definitions, and artifact generation complete for the entire module.
+- [2025-05-12 5:37:07 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - GET /api/v1/document-stores/components/loaders (getDocumentLoaders). Full analysis, schema definition, and artifact generation complete.
+- [2025-05-12 5:36:57 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetComponentLoaders.yaml
+- [2025-05-12 5:36:46 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreGetComponentLoaders.md
+- [2025-05-12 5:36:32 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/documentStoreSchemas.yaml
+- [2025-05-12 5:34:58 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - GET /api/v1/document-stores/store-configs/:id/:loaderId (getDocStoreConfigs). Full analysis, schema definition, and artifact generation complete.
+- [2025-05-12 5:34:48 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetConfigs.yaml
+- [2025-05-12 5:34:26 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreGetConfigs.md
+- [2025-05-12 5:33:53 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/documentStoreSchemas.yaml
+- [2025-05-12 5:33:01 PM] [Unknown User] - File Update: Updated system-patterns.md
+- [2025-05-12 5:28:23 PM] [Unknown User] - File Update: Updated api_documentation/schemas/shared/ErrorResponse.yaml
+- [2025-05-12 5:23:13 PM] [Unknown User] - File Update: Updated system-patterns.md
+- [2025-05-12 5:20:37 PM] [Unknown User] - Process Adjustment - Paused Corrective Work: Paused detailed endpoint documentation to discuss and refine strategy for defining and managing reusable OpenAPI schemas for DTOs/Interfaces. Current corrective work on 'documentstore' module is halted before 'GET /store-configs/:id/:loaderId'. Next step: Schema strategy discussion.
+- [2025-05-12 5:20:21 PM] [Unknown User] - File Update: Updated active-context.md
+- [2025-05-12 5:11:18 PM] [Unknown User] - File Update: Updated active-context.md
+- [2025-05-12 5:08:40 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - POST /api/v1/document-stores/refresh/:id? (refreshDocStoreMiddleware). Full analysis and artifact generation complete.
+- [2025-05-12 5:08:33 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreRefresh.yaml
+- [2025-05-12 5:08:19 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreRefresh.md
+- [2025-05-12 5:07:20 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - POST /api/v1/document-stores/upsert/:id? (upsertDocStoreMiddleware). Full analysis and artifact generation (detailed multipart form data) complete.
+- [2025-05-12 5:07:13 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreUpsert.yaml
+- [2025-05-12 5:06:52 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreUpsert.md
+- [2025-05-12 5:04:20 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - DELETE /api/v1/document-stores/store/:id (deleteDocumentStore). Full analysis and artifact generation complete.
+- [2025-05-12 5:04:14 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreDeleteById.yaml
+- [2025-05-12 5:04:04 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreDeleteById.md
+- [2025-05-12 5:03:27 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - PUT /api/v1/document-stores/store/:id (updateDocumentStore). Full analysis and artifact generation complete.
+- [2025-05-12 5:03:20 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreUpdateById.yaml
+- [2025-05-12 5:03:09 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreUpdateById.md
+- [2025-05-12 5:01:11 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - GET /api/v1/document-stores/store/:id (getDocumentStoreById). Full analysis and artifact generation (including DTO definition details) complete.
+- [2025-05-12 5:00:55 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetById.yaml
+- [2025-05-12 5:00:38 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreGetById.md
+- [2025-05-12 4:59:49 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.2: 'documentstore' Module - GET /api/v1/document-stores/store (getAllDocumentStores). Full analysis and artifact generation (including DTO definition details) complete.
+- [2025-05-12 4:59:43 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetAll.yaml
+- [2025-05-12 4:59:28 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreGetAll.md
+- [2025-05-12 4:57:59 PM] [Unknown User] - File Update: Updated api_documentation/endpoint_analysis/documentstore/internalDocumentStoreGetAll.md
+- [2025-05-12 4:57:19 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.1: 'credentials' Module - DELETE /api/v1/credentials/:id (deleteCredentials). Full analysis and artifact generation complete. Files: api_documentation/endpoint_analysis/credentials/internalCredentialsDelete.md, api_documentation/openapi_fragments/credentials/internalCredentialsDelete.yaml
+- [2025-05-12 4:57:06 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.1: 'credentials' Module - PUT /api/v1/credentials/:id (updateCredential). Full analysis and artifact generation complete. Files: api_documentation/endpoint_analysis/credentials/internalCredentialsUpdate.md, api_documentation/openapi_fragments/credentials/internalCredentialsUpdate.yaml
+- [2025-05-12 4:56:53 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.1: 'credentials' Module - GET /api/v1/credentials/:id (getCredentialById). Full analysis and artifact generation complete. Files: api_documentation/endpoint_analysis/credentials/internalCredentialsGetById.md, api_documentation/openapi_fragments/credentials/internalCredentialsGetById.yaml
+- [2025-05-12 4:56:36 PM] [Unknown User] - Corrective Documentation - Completed Operation: P2.Batch3.1: 'credentials' Module - GET /api/v1/credentials/ (getAllCredentials). Full analysis and artifact generation complete. Files: api_documentation/endpoint_analysis/credentials/internalCredentialsGetAll.md, api_documentation/openapi_fragments/credentials/internalCredentialsGetAll.yaml
+- [2025-05-12 4:56:28 PM] [Unknown User] - File Update: Updated progress.md

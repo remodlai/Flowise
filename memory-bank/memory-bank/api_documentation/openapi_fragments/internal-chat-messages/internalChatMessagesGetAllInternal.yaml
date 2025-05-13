@@ -1,0 +1,24 @@
+"/internal-chat-messages/{id}":
+  get:
+    summary: "INTERNAL: Get All Internal Chat Messages for a Chatflow"
+    operationId: "internalChatMessagesGetAllInternal"
+    tags: ["Chat Messages", "InternalAPI"]
+    parameters:
+      - name: id # chatflowId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      # Add other query params from getAllChatMessages, noting chatType is fixed to INTERNAL
+      - {name: order, in: query, schema: {type: string, enum: [ASC, DESC], default: ASC}, required: false}
+      - {name: chatId, in: query, schema: {type: string}, required: false}
+      # ... etc. for other filters
+    responses:
+      '200':
+        description: "Successfully retrieved internal chat messages."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ChatMessageWithFeedback"
+      # ... other error responses

@@ -1,0 +1,108 @@
+"/chatmessage/{chatflowid}": # Path param :id in router is chatflowid
+  delete:
+    summary: "INTERNAL: Remove Chat Messages for a Chatflow"
+    description: |
+      INTERNAL: Deletes chat messages for a given chatflow, with criteria.
+      If `chatId` is provided in query, targets that specific chat session, including clearing its memory.
+      Otherwise, deletes based on `chatflowid` and other filters.
+    operationId: "internalChatMessagesRemoveAll"
+    tags: ["Chat Messages", "InternalAPI"]
+    parameters:
+      - name: chatflowid
+        in: path
+        required: true
+        description: "ID of the Chatflow whose messages are to be deleted."
+        schema:
+          type: string
+          format: uuid
+      - name: chatId
+        in: query
+        description: "Optional specific Chat ID to target for deletion and memory clearing."
+        required: false
+        schema:
+          type: string
+      - name: memoryType
+        in: query
+        description: "Memory type, used with chatId for session clearing."
+        required: false
+        schema:
+          type: string
+      - name: sessionId
+        in: query
+        description: "Session ID, used with chatId for session clearing."
+        required: false
+        schema:
+          type: string
+      - name: chatType
+        in: query
+        description: "Filter by chat type(s). Can be single string or array."
+        required: false
+        schema:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+      - name: startDate
+        in: query
+        description: "Start date filter (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: endDate
+        in: query
+        description: "End date filter (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: isClearFromViewMessageDialog
+        in: query
+        description: "Hint for session memory clearing context."
+        required: false
+        schema:
+          type: string # boolean as string
+      - name: feedbackType
+        in: query
+        description: "Filter by feedback rating type(s). Can be single or array."
+        required: false
+        schema:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+      - name: hardDelete
+        in: query
+        description: "If chatId is not provided, and hardDelete is true, also clear third-party session memory."
+        required: false
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: "Chat messages deleted successfully."
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                raw:
+                  type: array
+                  items: {}
+                affected:
+                  type: integer
+      '404':
+        description: "Chatflow not found."
+        # content: text/plain or application/json with ErrorResponse
+      '412':
+        description: "Precondition Failed (chatflowid not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        # content: text/plain or application/json with ErrorResponse
+    # security:
+    #   - InternalApiKeyAuth: []

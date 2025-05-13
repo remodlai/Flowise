@@ -1,0 +1,47 @@
+/prompts-lists:
+  post:
+    operationId: createPromptsList
+    summary: List Prompts from Langchain Hub
+    description: Fetches a list of prompt repositories from the public Langchain Hub, with optional tag filtering.
+    tags:
+      - Prompts Lists
+    requestBody:
+      description: Optional tags for filtering prompts.
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListRequestBody'
+    responses:
+      '200':
+        description: >-
+          Successful fetch from Langchain Hub or a service error occurred during the fetch.
+          Check the 'status' field in the response body.
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '../../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListSuccessResponse'
+                - $ref: '../../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListServiceErrorResponse'
+            examples:
+              success:
+                value:
+                  status: "OK"
+                  repos: 
+                    - id: 1
+                      author: "langchain-ai"
+                      full_name: "langchain-ai/some-prompt"
+                      description: "A cool prompt."
+                      num_likes: 150
+                      # ... other LangchainHubRepo fields
+                    # ... more repos
+              serviceError:
+                value:
+                  status: "ERROR"
+                  repos: []
+      '500':
+        description: Internal Server Error (unexpected error in controller).
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'

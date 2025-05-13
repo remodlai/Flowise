@@ -905,21 +905,23 @@
       "id": "b921b6cc-a76a-4731-877f-4e2f8e7eced6",
       "name": "P2.Batch8.2: Document `prompts-lists` Module",
       "description": "Perform deep-dive analysis of all endpoints in the `prompts-lists` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/prompts-lists/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/prompts-lists/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-13T04:15:20.716Z",
-      "updatedAt": "2025-05-13T04:15:20.716Z",
+      "updatedAt": "2025-05-13T04:25:57.297Z",
       "implementationGuide": "Follow standard procedure: `mkdir -p` target dirs, `read_file` (router, controller, service, entities/interfaces), `mcp_write_memory_bank_file` (schemas), `mcp_write_memory_bank_file` (Markdown analysis), `mcp_write_memory_bank_file` (OpenAPI fragment) for each endpoint. Reference `schema-documentation`.",
-      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `prompts-lists` endpoints."
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `prompts-lists` endpoints.",
+      "summary": "Completed documentation for the POST /prompts-lists endpoint. Created Markdown analysis, OpenAPI fragment, and supporting schemas (PromptsListRequestBody, LangchainHubRepo, PromptsListSuccessResponse, PromptsListServiceErrorResponse) in the Memory Bank.",
+      "completedAt": "2025-05-13T04:25:57.297Z"
     },
     {
       "id": "88500a11-f26a-4593-a24a-f0e09fb364f7",
       "name": "P2.Batch8.3: Document `public-chatbots` Module",
       "description": "Perform deep-dive analysis of all endpoints in the `public-chatbots` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/public-chatbots/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/public-chatbots/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
-      "status": "待處理",
+      "status": "進行中",
       "dependencies": [],
       "createdAt": "2025-05-13T04:15:20.716Z",
-      "updatedAt": "2025-05-13T04:15:20.716Z",
+      "updatedAt": "2025-05-13T04:27:19.940Z",
       "implementationGuide": "Follow standard procedure: `mkdir -p` target dirs, `read_file` (router, controller, service, entities/interfaces), `mcp_write_memory_bank_file` (schemas), `mcp_write_memory_bank_file` (Markdown analysis), `mcp_write_memory_bank_file` (OpenAPI fragment) for each endpoint. Reference `schema-documentation`.",
       "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-chatbots` endpoints."
     },

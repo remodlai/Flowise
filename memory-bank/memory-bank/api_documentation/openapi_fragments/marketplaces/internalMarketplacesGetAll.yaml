@@ -1,0 +1,43 @@
+"/marketplaces/":
+  get:
+    summary: "INTERNAL: Get All Marketplace Items"
+    description: "INTERNAL: Retrieves all available marketplace items (chatflows, tools, agentflows, agentflowsv2) loaded from local JSON files."
+    operationId: "internalMarketplacesGetAll"
+    tags: ["Marketplaces", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved all marketplace items."
+        content:
+          application/json:
+            schema:
+              # $ref: "#/components/schemas/MarketplaceItemsResponse" # To be defined
+              type: object
+              properties:
+                chatflows:
+                  type: array
+                  items:
+                    type: object # Define ChatflowMarketplaceItem schema
+                    additionalProperties: true 
+                tools:
+                  type: array
+                  items:
+                    type: object # Define ToolMarketplaceItem schema
+                    additionalProperties: true
+                agentflows:
+                  type: array
+                  items:
+                    type: object # Define AgentflowV1MarketplaceItem schema
+                    additionalProperties: true
+                agentflowsv2:
+                  type: array
+                  items:
+                    type: object # Define AgentflowV2MarketplaceItem schema
+                    additionalProperties: true
+      '500':
+        description: "Internal Server Error (e.g., error reading marketplace files)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

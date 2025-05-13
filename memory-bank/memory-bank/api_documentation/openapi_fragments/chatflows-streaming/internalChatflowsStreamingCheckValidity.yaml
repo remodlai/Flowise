@@ -1,0 +1,45 @@
+"/chatflows-streaming/{id}": # Also handles / as per router, but controller relies on :id
+  get:
+    summary: "INTERNAL: Check Chatflow Streaming Validity"
+    description: "INTERNAL: Checks if a given chatflow (by ID) is valid and configured for SSE streaming."
+    operationId: "internalChatflowsStreamingCheckValidity"
+    tags: ["Chatflows Streaming", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow to check."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully determined streaming validity."
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isStreaming:
+                  type: boolean
+                  description: "True if the chatflow is valid for streaming, false otherwise."
+      '404':
+        description: "Chatflow not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

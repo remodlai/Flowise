@@ -1,0 +1,33 @@
+"/get-upload-path/":
+  post:
+    summary: "INTERNAL: Get Upload Path/URL"
+    operationId: "internalGetUploadPath"
+    tags: ["File Uploads", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/GetUploadPathRequest" # To be defined
+            type: object
+            required: [chatflowId, chatId, fileName, type]
+            properties:
+              chatflowId: { type: string }
+              chatId: { type: string }
+              fileName: { type: string }
+              type: { type: string, enum: [chatmessage, fileloader] } # Confirm enum values
+              fileType: { type: string, nullable: true, description: "MIME type" }
+    responses:
+      '200':
+        description: "Upload path/URL retrieved."
+        content:
+          application/json:
+            schema:
+              # $ref: "#/components/schemas/GetUploadPathResponse" # To be defined
+              type: object
+              properties:
+                type: { type: string, enum: [S3, local] }
+                uploadPath: { type: string, format: uri }
+                key: { type: string, nullable: true, description: "S3 object key" }
+                fields: { type: object, additionalProperties: true, nullable: true, description: "S3 pre-signed POST fields" }
+      # ... other error responses

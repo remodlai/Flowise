@@ -1,0 +1,41 @@
+"/document-stores/store/{id}":
+  get:
+    summary: "INTERNAL: Get Document Store By ID"
+    description: "INTERNAL: Retrieves a specific document store by ID, with enriched `whereUsed` info."
+    operationId: "internalDocumentStoreGetById"
+    tags: ["Document Store", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Document Store."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully retrieved document store."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentStoreDTO" # As defined previously
+      '404':
+        description: "Document Store not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

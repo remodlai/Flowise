@@ -1,0 +1,115 @@
+"/document-stores/upsert/{id}": # Path :id is storeId
+  post:
+    summary: "INTERNAL: Upsert Documents to Store"
+    description: |
+      INTERNAL: Upserts documents to a document store.
+      Files are uploaded via multipart/form-data.
+      Other configuration parameters (loader, splitter, vectorStore, embedding, recordManager configs, metadata) are sent as form fields, typically as JSON strings if they represent objects.
+      The ID in the path is the storeId. A storeId can also be provided in the form data if the root /upsert/ path is used.
+    operationId: "internalDocumentStoreUpsert"
+    tags: ["Document Store", "InternalAPI", "File Uploads"]
+    parameters:
+      - name: id # storeId
+        in: path
+        required: false # Only required if storeId is not in the form data and path is /upsert/{id}. One must be present.
+        description: "ID of the Document Store. Overrides storeId in form data if both present."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              files:
+                type: array
+                items:
+                  type: string
+                  format: binary
+                description: "Files to upload and process."
+                nullable: true
+              storeId: 
+                type: string
+                format: uuid
+                description: "ID of the Document Store (required if :id not in path or if path is /upsert/)."
+                nullable: true 
+              docId: 
+                type: string
+                nullable: true
+                description: "Specific loader configuration ID within the store to use/update. Refers to an entry in the DocumentStore entity's 'loaders' array."
+              metadata: 
+                type: string 
+                nullable: true
+                description: "JSON string of metadata object to apply to all documents in this upsert."
+                example: '{"source":"manual_upload", "category":"project_alpha"}'
+              replaceExisting: 
+                type: string 
+                enum: ["true", "false"]
+                nullable: true
+                description: "If 'true', existing documents/chunks might be replaced based on loader/vector store logic."
+              loader:
+                type: string 
+                nullable: true
+                description: "JSON string of loader config object, e.g., {\"name\":\"cheerioWebScraper\", \"config\":{\"url\":\"http://example.com\"}}."
+              splitter:
+                type: string
+                nullable: true
+                description: "JSON string of splitter config object, e.g., {\"name\":\"recursiveCharacterTextSplitter\", \"config\":{\"chunkSize\":500}}."
+              vectorStore: 
+                type: string 
+                nullable: true
+                description: "JSON string of vector store config object (name, config details) to override store's default."
+              embedding: 
+                type: string
+                nullable: true
+                description: "JSON string of embedding config object (name, config details) to override store's default."
+              recordManager: 
+                type: string 
+                nullable: true
+                description: "JSON string of record manager config object (name, config details) to override store's default."
+    responses:
+      '200':
+        description: "Upsert process initiated or completed."
+        content:
+          application/json:
+            schema:
+              type: object 
+              properties:
+                result: 
+                  type: string 
+                  example: "Successfully Upserted"
+                  description: "Status message from the upsert process."
+                jobId: 
+                  type: string 
+                  example: "queue-job-id"
+                  nullable: true
+                  description: "Job ID if the process is queued."
+              additionalProperties: true # For other potential fields from vector store response
+      '400':
+        description: "Bad Request (e.g., invalid input, malformed JSON strings, missing storeId)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '404':
+        description: "DocumentStore not found for the given storeId."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (e.g., storeId not provided adequately in path or body)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during processing."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

@@ -1,0 +1,63 @@
+"/assistants/":
+  post:
+    summary: "INTERNAL: Create Assistant"
+    description: |
+      INTERNAL: Creates a new Remodl Core Assistant. 
+      If not type CUSTOM, interacts with OpenAI Assistants API.
+      The `details` field is a JSON string of the assistant's configuration.
+    operationId: "internalAssistantsCreate"
+    tags: ["Assistants", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/AssistantCreateRequest" # To be defined
+            type: object
+            required:
+              - details
+              # - credential # Required if type is not CUSTOM, but service logic implies it can be part of details for CUSTOM
+            properties:
+              details:
+                type: string
+                description: "JSON string of assistant configuration (OpenAI Assistant like structure + tool_resources)."
+                example: '{"name":"My New Assistant","model":"gpt-4-turbo","instructions":"Be helpful."}'
+              credential:
+                type: string
+                format: uuid
+                description: "Credential ID (e.g., for OpenAI API key). Required if type is not CUSTOM."
+              iconSrc:
+                type: string
+                nullable: true
+              type:
+                type: string
+                description: "Type of assistant (e.g., OPENAI, CUSTOM)."
+                # enum: from AssistantType interface, need to confirm values
+                nullable: true
+    responses:
+      '200':
+        description: "Assistant created/updated successfully. Returns the Remodl Core Assistant entity."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Assistant" # To be defined based on entity
+      '400':
+        description: "Bad Request / Precondition Failed (e.g., missing body or details)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '404':
+        description: "Credential not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error (OpenAI API error, DB error, etc.)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

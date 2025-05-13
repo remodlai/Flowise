@@ -1,0 +1,64 @@
+"/load-prompt/": # Note: singular "prompt" in path
+  post:
+    summary: "INTERNAL: Load Prompt from Langchain Hub"
+    description: "INTERNAL: Fetches a prompt template from Langchain Hub by its name and parses it."
+    operationId: "internalLoadPromptsCreate" # "Create" is a misnomer from controller
+    tags: ["Prompts", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - promptName
+            properties:
+              promptName:
+                type: string
+                description: "Name/path of the prompt on Langchain Hub (e.g., hwchase17/react)."
+                example: "hwchase17/react-chat"
+    responses:
+      '200':
+        description: "Prompt fetched and parsed successfully."
+        content:
+          application/json:
+            schema:
+              # $ref: "#/components/schemas/LoadedPromptResponse" # To be defined
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: "OK"
+                prompt:
+                  type: string
+                  description: "The requested promptName."
+                templates:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: "Internal type identifier (e.g., systemMessagePrompt)."
+                      typeDisplay:
+                        type: string
+                        description: "User-friendly type (e.g., System Message)."
+                      template:
+                        type: string
+                        description: "The actual prompt template string."
+                    required: [type, typeDisplay, template]
+              required: [status, prompt, templates]
+      '412':
+        description: "Precondition Failed (e.g., missing promptName)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error (e.g., error fetching from Hub or parsing)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

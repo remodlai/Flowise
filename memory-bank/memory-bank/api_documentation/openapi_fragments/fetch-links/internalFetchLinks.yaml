@@ -1,0 +1,29 @@
+"/fetch-links/":
+  post:
+    summary: "INTERNAL: Fetch Content from URL(s)"
+    operationId: "internalFetchLinks"
+    tags: ["Fetch Links", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/FetchLinksRequest" # To be defined
+            type: object
+            required: [url]
+            properties:
+              url: { type: string, format: url }
+              relativeLinksMethod: { type: string, nullable: true }
+              relativeLinksLimit: { type: integer, nullable: true }
+              selector: { type: string, nullable: true }
+              configuration: { type: object, additionalProperties: true, nullable: true, description: "Puppeteer launch options" }
+    responses:
+      '200':
+        description: "Successfully fetched and processed content."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/IDocument" # Placeholder from flowise-components
+      # ... other error responses

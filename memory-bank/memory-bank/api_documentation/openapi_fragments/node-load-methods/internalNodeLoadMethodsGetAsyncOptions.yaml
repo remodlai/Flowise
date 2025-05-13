@@ -1,0 +1,49 @@
+"/node-load-method/{name}":
+  post:
+    summary: "INTERNAL: Get Node Dynamic Async Options"
+    description: "INTERNAL: Executes a specific `loadMethod` on a node component to fetch dynamic options for its UI parameters (e.g., for dropdowns)."
+    operationId: "internalNodeLoadMethodsGetAsyncOptions"
+    tags: ["Node Load Methods", "InternalAPI"]
+    parameters:
+      - name: name
+        in: path
+        required: true
+        description: "The internal name of the node component (e.g., vectorStoreChroma)."
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/INodeData" # Define INodeData from flowise-components in shared schemas
+            # Request body must include 'loadMethod' property, either at top level or within 'inputs'.
+    responses:
+      '200':
+        description: "Successfully retrieved dynamic options."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/INodeOptionsValue" # Define INodeOptionsValue in shared schemas
+      '404':
+        description: "Node or specified loadMethod not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (name or body not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during load method execution."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

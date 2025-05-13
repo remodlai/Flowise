@@ -1,0 +1,117 @@
+/predictions/{id}:
+  post:
+    operationId: createPrediction
+    summary: Execute Chatflow/Agentflow
+    description: >-
+      Executes a specific chatflow or agentflow identified by its ID.
+      Accepts user input, overrides, history, and optional files.
+      Returns a JSON response or streams Server-Sent Events (SSE).
+      This is the primary endpoint for interacting with deployed flows.
+    tags:
+      - Predictions
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: The unique identifier of the chatflow/agentflow to execute.
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      description: Request payload containing user input, overrides, and options.
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/modules/PredictionsSchemas.yaml#/components/schemas/PredictionsRequestBody'
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: '../../schemas/modules/PredictionsSchemas.yaml#/components/schemas/PredictionsRequestBody'
+              - type: object
+                properties:
+                  # Specific file fields (e.g., pdfFile, imageFile, txtFile) are added dynamically
+                  # based on uploaded file types, mapping to overrideConfig internally.
+                  # Define common potential types or use additionalProperties.
+                  question: {}
+                  overrideConfig: {}
+                  history: {}
+                  uploads: {}
+                  streaming: {}
+                  chatId: {}
+                  leadEmail: {}
+                  vars: {}
+                  # Example potential file field:
+                  fileInputFieldName: 
+                    type: string
+                    format: binary
+                    description: "Field name depends on file type (e.g., 'imageFile', 'pdfFile'). Multiple files can be uploaded."
+          encoding:
+            history:
+              contentType: application/json
+            overrideConfig:
+              contentType: application/json
+            uploads:
+              contentType: application/json
+            vars:
+              contentType: application/json
+            # Add encodings for potential file fields if needed, though often handled by server
+
+    responses:
+      '200':
+        description: >-
+          Successful execution. Response format depends on the 'streaming' parameter
+          and flow configuration.
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/modules/PredictionsSchemas.yaml#/components/schemas/PredictionsSuccessResponse'
+            example: # Example for non-streaming response
+              text: "Hello! How can I help you today?"
+              chatId: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+              chatMessageId: "b2c3d4e5-f6a7-8901-2345-67890abcdef0"
+              question: "Hi"
+              sessionId: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+              isStreamValid: false
+          text/event-stream:
+            schema:
+              type: string
+            description: >-
+              Server-Sent Events stream. Events include `metadata`, `chunk` (or similar),
+              and `error`. The stream structure depends on the specific nodes in the flow.
+      '400':
+        description: Bad Request (e.g., missing required fields, invalid input).
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+      '401':
+        description: Unauthorized (e.g., invalid API key).
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+      '403':
+        description: Forbidden (e.g., request origin not allowed).
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+      '404':
+        description: Not Found (e.g., chatflow ID does not exist).
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+      '429':
+        description: Too Many Requests (Rate limit exceeded).
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+      '500':
+        description: Internal Server Error.
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'

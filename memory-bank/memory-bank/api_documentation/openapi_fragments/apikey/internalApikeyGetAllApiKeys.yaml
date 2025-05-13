@@ -1,0 +1,35 @@
+"/apikey/":
+  get: # This assumes the router.get('/', getAllApiKeys) is primary for this path, others might be handled by more specific paths or logic in controller
+    summary: "INTERNAL: Get All API Keys"
+    description: "INTERNAL: Retrieves all API keys, optionally filtered by credentialName(s). Omits sensitive encrypted data and includes a chatflow count."
+    operationId: "internalApikeyGetAllApiKeys"
+    tags: ["API Keys", "InternalAPI"]
+    parameters:
+      - name: credentialName
+        in: query
+        description: "Filter API keys by specific credential name(s). Can be a single string or an array of strings for multiple (e.g., ?credentialName=val1&credentialName=val2)."
+        required: false
+        schema:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        example: "openAIApi"
+    responses:
+      '200':
+        description: "Successfully retrieved API keys."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ApiKeyWithCount" # To be defined in main spec
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

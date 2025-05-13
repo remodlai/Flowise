@@ -1,0 +1,37 @@
+"/leads/{chatflowid}": # Router uses /:id, where id is chatflowid
+  get:
+    summary: "INTERNAL: Get All Leads for a Chatflow"
+    description: "INTERNAL: Retrieves all lead records associated with a specific chatflow ID."
+    operationId: "internalLeadsGetAllByChatflowId"
+    tags: ["Leads", "InternalAPI"]
+    parameters:
+      - name: chatflowid
+        in: path
+        required: true
+        description: "ID of the chatflow to retrieve leads for."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully retrieved leads. Returns an array of Lead objects."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/Lead" # To be defined based on Lead entity
+      '412':
+        description: "Precondition Failed (chatflowid not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

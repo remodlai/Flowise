@@ -1,0 +1,44 @@
+# Filename: api_documentation/schemas/modules/openai_assistant_api/FileObjectSchemas.yaml
+components:
+  schemas:
+    OpenAIFileObject:
+      type: object
+      description: "Represents a file uploaded to OpenAI."
+      properties:
+        id:
+          type: string
+          description: "The file identifier, which can be referenced in API endpoints."
+        object:
+          type: string
+          enum: [file]
+          description: "The object type, which is always `file`."
+        bytes:
+          type: integer
+          description: "The size of the file, in bytes."
+        created_at:
+          type: integer
+          format: unixtime
+          description: "The Unix timestamp (in seconds) for when the file was created."
+        filename:
+          type: string
+          description: "The name of the file."
+        purpose:
+          type: string
+          enum: [fine-tune, fine-tune-results, assistants, assistants_output, vision]
+          description: "The intended purpose of the file."
+        status: 
+          type: string
+          enum: [uploaded, processed, error]
+          description: "The current status of the file."
+          nullable: true 
+        status_details:
+          type: string
+          nullable: true
+          description: "Additional details about the status of the file if it is in an error state."
+      required:
+        - id
+        - object
+        - bytes
+        - created_at
+        - filename
+        - purpose

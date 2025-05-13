@@ -1,0 +1,15 @@
+"/ping/":
+  get:
+    summary: "INTERNAL: Server Health Check (Ping)"
+    description: "INTERNAL: A simple health check endpoint that returns 'pong' if the server is responsive."
+    operationId: "internalPingServer"
+    tags: ["Health Check", "InternalAPI"]
+    responses:
+      '200':
+        description: "Server is responsive."
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: "pong"
+    # No security typically applied to ping/health endpoints

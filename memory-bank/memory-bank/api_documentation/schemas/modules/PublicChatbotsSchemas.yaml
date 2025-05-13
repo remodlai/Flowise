@@ -1,0 +1,59 @@
+openapi: 3.1.0
+info:
+  title: Public Chatbots Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    UploadsConfig:
+      type: object
+      description: Configuration for file uploads in the public chatbot interface.
+      properties:
+        fileTypes:
+          type: array
+          items:
+            type: string
+          example: [".pdf", ".txt", ".csv"]
+          description: Allowed file extensions/types.
+        maxUploadSize:
+          type: integer # size in MB
+          description: Maximum upload size in megabytes.
+          example: 10
+        isSpeechToTextEnabled:
+          type: boolean
+          description: Whether speech-to-text is enabled for audio uploads.
+        speechToTextCredentials:
+          type: string # Credential name
+          description: Name of the credential used for speech-to-text service.
+          nullable: true
+        # Other fields from utilGetUploadsConfig if they exist
+
+    PublicChatbotConfigResponse:
+      # Can also be a plain string "OK" if no config and no uploadsConfig
+      description: >-
+        Configuration for a public-facing chatbot, including UI settings,
+        file upload capabilities, and the underlying flow data.
+      oneOf: 
+        - type: object
+          properties:
+            # Properties from parsed chatbotConfig JSON string (dynamic)
+            botName: { type: string, nullable: true }
+            botDescription: { type: string, nullable: true }
+            icon: { type: string, nullable: true, description: "Icon for the chatbot." }
+            backgroundColor: { type: string, nullable: true }
+            textColor: { type: string, nullable: true }
+            fontSize: { type: integer, nullable: true }
+            overrideConfig: { type: object, additionalProperties: true, nullable: true, description: "Overrides for the chatflow when run publicly." }
+            allowedOrigins: { type: array, items: { type: string }, nullable: true }
+            isIframe: { type: boolean, nullable: true }
+            isFullPage: { type: boolean, nullable: true }
+            # ... many other potential chatbotConfig fields like welcomeMessage, chatInterfaceConfig, etc.
+            uploads:
+              $ref: '#/components/schemas/UploadsConfig'
+              nullable: true # uploadsConfig can be null if not configured
+            flowData:
+              type: string # Raw JSON string of the chatflow
+              description: "The raw JSON string representation of the chatflow's graph (nodes and edges)."
+          additionalProperties: true # To accommodate all fields from chatbotConfig JSON string
+        - type: string
+          enum: [OK]
+          description: "Returned if no specific chatbotConfig or uploadsConfig is found by the service."

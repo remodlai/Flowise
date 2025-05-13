@@ -1,0 +1,24 @@
+"/executions/":
+  get:
+    summary: "INTERNAL: Get All Executions"
+    operationId: "internalExecutionsGetAll"
+    tags: ["Executions", "InternalAPI"]
+    parameters:
+      - name: agentflowId
+        in: query
+        schema: { type: string }
+        required: false
+      - name: chatId # Maps to sessionId in entity
+        in: query
+        schema: { type: string }
+        required: false
+    responses:
+      '200':
+        description: "Success"
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/Execution" # To be defined
+      # ... other error responses

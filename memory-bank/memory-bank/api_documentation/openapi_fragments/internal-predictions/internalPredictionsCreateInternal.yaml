@@ -1,0 +1,86 @@
+"/internal-predictions/{id}":
+  post:
+    summary: "INTERNAL: Create Internal Prediction (Non-Streamed)"
+    description: "INTERNAL: Executes a chatflow for internal purposes (e.g., by a tool) and returns a direct, non-streamed prediction. The ID in the path is the chatflowId."
+    operationId: "internalPredictionsCreateInternal"
+    tags: ["Predictions", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow to execute."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/InternalPredictionRequest" # To be defined
+            type: object
+            required:
+              - question
+            properties:
+              question:
+                type: string
+                description: "The input query/question for the chatflow."
+              overrideConfig:
+                type: object
+                additionalProperties: true
+                nullable: true
+                description: "Key-value pairs to override node configurations."
+              history:
+                type: array
+                items: 
+                  $ref: "#/components/schemas/IChatMessage" # Assumes IChatMessage schema is defined elsewhere
+                nullable: true
+                description: "Array of previous chat messages for context."
+              chatId:
+                type: string
+                nullable: true
+                description: "ID of the chat session."
+              sessionId:
+                type: string
+                nullable: true
+                description: "Specific session ID for memory persistence."
+              stopNodeId:
+                type: string
+                nullable: true
+                description: "ID of a node at which flow execution should stop."
+              uploads:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IFileUpload" # To be defined
+                nullable: true
+                description: "Array of uploaded file details."
+    responses:
+      '200':
+        description: "Prediction executed successfully. Response structure is dynamic based on the chatflow output."
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: "The direct output of the executed chatflow. Structure varies."
+              example: { "text": "The capital of France is Paris." }
+      '400':
+        description: "Bad Request (e.g., malformed request body, invalid input for the chatflow)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '404':
+        description: "Chatflow with the specified ID not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during chatflow execution."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

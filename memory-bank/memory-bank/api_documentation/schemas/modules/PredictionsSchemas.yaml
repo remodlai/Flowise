@@ -1,0 +1,148 @@
+openapi: 3.1.0
+info:
+  title: Predictions Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    PredictionsRequestBody:
+      type: object
+      properties:
+        question:
+          type: string
+          description: The user's query or input message.
+        overrideConfig:
+          type: object
+          description: >-
+            Optional JSON object to override specific node parameters within the
+            chatflow execution. Keys correspond to node IDs, and values are objects
+            mapping parameter names to their new values. The exact structure depends
+            heavily on the specific chatflow being executed.
+          additionalProperties: true
+          example:
+            IntentDetection_0:
+              modelName: 'gpt-4'
+            OutputParser_1:
+              returnReasoning: true
+        history:
+          type: array
+          description: Optional array of previous chat messages for context.
+          items:
+            $ref: '../../shared/CommonSchemas.yaml#/components/schemas/ChatMessage'
+        uploads:
+          type: array
+          description: Optional array of file uploads provided via chat component (data URI format). Ignored if using multipart/form-data.
+          items:
+            $ref: '#/components/schemas/FileUploadChat'
+        streaming:
+          type: boolean
+          description: Request a Server-Sent Events (SSE) streaming response instead of a single JSON response.
+          default: false
+        chatId:
+          type: string
+          description: Optional chat session ID. If not provided, uses overrideConfig.sessionId or generates a new one.
+          format: uuid
+        leadEmail:
+          type: string
+          description: Optional email address for lead capture features.
+        vars:
+           type: object
+           description: Optional key-value pairs for variable overrides. Typically provided via form-data rather than JSON body.
+           additionalProperties: true
+
+    FileUploadChat:
+      type: object
+      required:
+        - name
+        - type
+        - data
+        - mime
+      properties:
+        name:
+          type: string
+          description: The name of the uploaded file.
+        type:
+          type: string
+          description: The type of upload (e.g., 'image', 'audio', 'file', 'file:rag', 'url'). Use 'stored-file' for subsequent references after initial upload.
+        data:
+          type: string
+          description: The file content, typically as a base64 encoded data URI. Omitted after initial processing for 'stored-file'.
+        mime:
+          type: string
+          description: The MIME type of the file (e.g., 'image/png', 'audio/webm').
+
+    PredictionsSuccessResponse:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The primary textual response from the chatflow execution.
+        chatId:
+          type: string
+          format: uuid
+          description: The chat session ID used for the execution.
+        chatMessageId:
+          type: string
+          format: uuid
+          description: The ID of the API message saved to the database.
+        question:
+          type: string
+          description: The original user question that triggered the prediction.
+        sessionId:
+          type: string
+          format: uuid
+          description: Session ID, often the same as chatId, but can differ based on memory node config or OpenAI Assistant usage (threadId).
+        memoryType:
+          type: string
+          description: Label/type of the memory node used in the flow (if any).
+        sourceDocuments:
+          type: array
+          description: Optional array of source documents retrieved and used by RAG nodes.
+          items:
+            type: object
+            # Structure depends on the specific retriever/vector store node
+            additionalProperties: true
+        usedTools:
+          type: array
+          description: Optional array describing tools used during the execution (e.g., by ReAct agents).
+          items:
+            type: object
+            # Structure depends on the agent/tool node
+            additionalProperties: true
+        fileAnnotations:
+          type: array
+          description: Optional array of file annotations, typically from OpenAI Assistants.
+          items:
+            type: object
+            # Structure depends on the OpenAI Assistant node
+            additionalProperties: true
+        artifacts:
+          type: array
+          description: Optional array of artifacts generated during the flow (e.g., images, files).
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+                enum: [url, stored-file, base64]
+              data:
+                type: string
+              # Other properties might exist depending on the node
+            additionalProperties: true
+        followUpPrompts:
+          type: array
+          description: Optional array of suggested follow-up prompts.
+          items:
+            type: string
+        flowVariables:
+          type: object
+          description: Optional key-value pairs representing the output of Set Variable nodes configured with 'Show Output'.
+          additionalProperties: true
+        isStreamValid:
+          type: boolean
+          description: Indicates if the executed flow configuration *could* have supported streaming (true/false).
+        json:
+          type: object
+          description: If the primary result is a JSON object instead of text, it will appear here.
+          additionalProperties: true

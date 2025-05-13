@@ -1,0 +1,24 @@
+"/flow-config/{id}":
+  get:
+    summary: "INTERNAL: Get Specific Flow Configuration"
+    operationId: "internalFlowConfigGetById"
+    tags: ["Flow Config", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow."
+        schema: { type: string, format: uuid }
+    responses:
+      '200':
+        description: "Successfully retrieved flow configurations."
+        content:
+          application/json:
+            schema:
+              # $ref: "#/components/schemas/FlowConfigResponse" # To be defined
+              type: object
+              properties:
+                chatbotConfig: { type: object, additionalProperties: true, description: "Parsed chatbotConfig from ChatFlow entity or empty object." }
+                speechToText: { type: object, additionalProperties: true, description: "Parsed speechToText config from ChatFlow entity or empty object." }
+                uploadsConfig: { $ref: "#/components/schemas/UploadConfig" } # From utilGetUploadsConfig
+      # ... other error responses

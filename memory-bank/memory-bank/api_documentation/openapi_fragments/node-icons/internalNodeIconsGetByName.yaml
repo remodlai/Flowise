@@ -1,0 +1,50 @@
+"/node-icon/{name}":
+  get:
+    summary: "INTERNAL: Get Node Component Icon"
+    description: "INTERNAL: Retrieves the icon file (SVG, PNG, JPG) for a specific node component by its name."
+    operationId: "internalNodeIconsGetByName"
+    tags: ["Node Icons", "InternalAPI", "Assets"]
+    parameters:
+      - name: name
+        in: path
+        required: true
+        description: "The internal name of the node component (e.g., stringPrompt)."
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "Node icon file. Content-Type will vary (e.g., image/svg+xml, image/png)."
+        content:
+          image/svg+xml:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          # Add other potential image types if supported
+      '404':
+        description: "Node or icon not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (name not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

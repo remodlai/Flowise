@@ -1,0 +1,48 @@
+"/apikey/import":
+  post:
+    summary: "INTERNAL: Import API Keys"
+    description: "INTERNAL: Imports API keys from a JSON file (data URI). Supports different import modes."
+    operationId: "internalApikeyImportKeys"
+    tags: ["API Keys", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            # $ref: "#/components/schemas/ApiKeyImportRequest" # To be defined
+            type: object
+            required:
+              - jsonFile
+            properties:
+              jsonFile:
+                type: string
+                format: data-uri
+                description: "Data URI of the JSON file (e.g., data:application/json;base64,BASE64_ENCODED_JSON_ARRAY_OF_APIKEYS)"
+              importMode:
+                type: string
+                enum: [replaceAll, errorIfExist, overwriteIfExist, ignoreIfExist]
+                description: "Strategy for handling existing keys."
+                nullable: true
+    responses:
+      '200':
+        description: "API Keys imported successfully. Returns the full list of API keys."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ApiKey" # Assumes an ApiKey schema is defined
+      '412':
+        description: "Precondition Failed (e.g., missing jsonFile)."
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+      '500':
+        description: "Internal Server Error (e.g., invalid data URI, JSON parse error, import conflict)."
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorResponse'
+    # security:
+    #   - InternalApiKeyAuth: []

@@ -1,0 +1,26 @@
+"/executions/{id}":
+  put:
+    summary: "INTERNAL: Update Execution Record"
+    operationId: "internalExecutionsUpdate"
+    tags: ["Executions", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              state: { $ref: "#/components/schemas/ExecutionStateEnum" , nullable: true } # Define ExecutionStateEnum
+              executionData: { type: string, description: "JSON string of execution data", nullable: true }
+    responses:
+      '200':
+        description: "Success"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecutionResponse"
+      # ... other error responses

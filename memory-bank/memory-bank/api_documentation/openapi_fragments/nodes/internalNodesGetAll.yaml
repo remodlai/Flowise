@@ -1,0 +1,15 @@
+"/nodes/":
+  get:
+    summary: "INTERNAL: Get All Node Component Definitions"
+    operationId: "internalNodesGetAll"
+    tags: ["Nodes", "InternalAPI"]
+    responses:
+      '200':
+        description: "Success"
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/NodeComponentDefinition"
+      '500': { $ref: "#/components/responses/InternalServerError" }

@@ -1,0 +1,17 @@
+"/get-upload-file/{chatflowId}/{chatId}/{folderName}/{fileName}":
+  get:
+    summary: "INTERNAL: Get Uploaded File"
+    operationId: "internalGetUploadFile"
+    tags: ["File Uploads", "InternalAPI"]
+    parameters:
+      - {name: chatflowId, in: path, required: true, schema: {type: string}}
+      - {name: chatId, in: path, required: true, schema: {type: string}}
+      - {name: folderName, in: path, required: true, schema: {type: string}}
+      - {name: fileName, in: path, required: true, schema: {type: string}}
+    responses:
+      '200':
+        description: "File content."
+        content:
+          application/octet-stream: {}
+          # Actual content type will vary based on the file
+      # ... other error responses

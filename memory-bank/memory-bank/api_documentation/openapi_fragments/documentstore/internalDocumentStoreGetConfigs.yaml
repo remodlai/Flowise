@@ -1,0 +1,47 @@
+"/document-stores/store-configs/{id}/{loaderId}":
+  get:
+    summary: "INTERNAL: Get Document Store Loader & Related Configs"
+    description: "INTERNAL: Retrieves configurations for a specific loader instance within a document store, including its associated splitter (if any), and the parent document store's embedding, vector store, and record manager configurations."
+    operationId: "internalDocumentStoreGetConfigs"
+    tags: ["Document Store", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Document Store."
+        schema:
+          type: string
+          format: uuid
+      - name: loaderId
+        in: path
+        required: true
+        description: "ID of the specific loader configuration entry within the document store's 'loaders' array."
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "Successfully retrieved configurations."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentStoreLoaderFullConfigResponse"
+      '404':
+        description: "Document Store or Loader ID not found within the store."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID or loaderId not provided in path)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error (e.g., error parsing JSON from database)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

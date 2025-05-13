@@ -1,0 +1,81 @@
+"/attachments/{chatflowId}/{chatId}/":
+  post:
+    summary: "INTERNAL: Upload File Attachment(s)"
+    description: |
+      INTERNAL: Uploads one or more files for a given chatflow and chat session.
+      Files are stored, and their content (base64 or extracted text) is returned.
+      This endpoint expects `multipart/form-data`.
+    operationId: "internalAttachmentsUpload"
+    tags: ["Attachments", "InternalAPI"]
+    parameters:
+      - name: chatflowId
+        in: path
+        required: true
+        description: "ID of the chatflow."
+        schema:
+          type: string
+          format: uuid
+      - name: chatId
+        in: path
+        required: true
+        description: "ID of the chat session."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              files: # Actual field name for files might vary based on client usage with Multer
+                type: array
+                items:
+                  type: string
+                  format: binary
+                description: "One or more files to upload."
+              base64:
+                type: boolean
+                description: "If true, response content is base64; otherwise, extracted text."
+                default: false
+          # encoding: # Optional, for more detailed multipart specification
+    responses:
+      '200':
+        description: "Files uploaded and processed successfully."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                # $ref: "#/components/schemas/AttachmentDetail" # To be defined
+                type: object
+                properties:
+                  name:
+                    type: string
+                  mimeType:
+                    type: string
+                  size:
+                    type: integer
+                  content:
+                    type: string
+      '400':
+        description: "Bad Request (e.g., invalid chatflowId/chatId, path traversal)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '404':
+        description: "Chatflow not found."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during file processing."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []
