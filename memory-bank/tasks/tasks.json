@@ -192,30 +192,32 @@
       "id": "1a3e9124-aee3-4b46-a0d8-cbe613bc7d1b",
       "name": "P2.Batch8: Deep Dive & Doc (predictions to public-executions)",
       "description": "P2.Batch8: Perform deep-dive analysis for modules: `predictions`, `prompts-lists`, `public-chatbots`, `public-chatflows`, `public-executions`. For each endpoint, generate: 1. Markdown analysis file (`api_documentation/endpoint_analysis/[moduleName]/[operationId].md`). 2. OpenAPI path fragment (`api_documentation/openapi_fragments/[moduleName]/[operationId].yaml`). 3. Associated schema definitions (`api_documentation/schemas/...`).",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [
         {
           "taskId": "58d15ddd-a630-4824-8806-22b28ddbd2d3"
         }
       ],
       "createdAt": "2025-05-12T19:36:56.651Z",
-      "updatedAt": "2025-05-13T04:13:58.732Z",
+      "updatedAt": "2025-05-13T05:03:27.126Z",
       "implementationGuide": "For each module: analyze router, controller, service, entity, interface files. Document each endpoint comprehensively in `api_documentation/endpoint_analysis/batch8-details.md`.",
       "verificationCriteria": "For all endpoints in the 5 specified modules (`predictions`, `prompts-lists`, `public-chatbots`, `public-chatflows`, `public-executions`), verify the creation and correctness of: 1. Markdown analysis files in `api_documentation/endpoint_analysis/[moduleName]/`. 2. OpenAPI path fragment files in `api_documentation/openapi_fragments/[moduleName]/`. 3. All referenced schemas documented in `api_documentation/schemas/`. Ensure adherence to `route-introspection-to-open-api-spec` and `schema-documentation` rules.",
-      "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n"
+      "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n",
+      "summary": "All sub-tasks for P2.Batch8 (P2.Batch8.1 through P2.Batch8.5 covering modules: predictions, prompts-lists, public-chatbots, public-chatflows, public-executions) have been individually completed and verified. All required Markdown analyses, OpenAPI fragments, and schema definitions have been created and stored in the Memory Bank. This parent batch task is therefore complete.",
+      "completedAt": "2025-05-13T05:03:27.125Z"
     },
     {
       "id": "e9becb80-dcf7-4851-98a6-ee65b7642d7b",
       "name": "P2.Batch9: Deep Dive & Doc (stats to variables)",
       "description": "P2.Batch9: Deep-dive analysis & Markdown documentation for modules: stats, tools, upsert-history, validation, variables.",
-      "status": "待處理",
+      "status": "進行中",
       "dependencies": [
         {
           "taskId": "1a3e9124-aee3-4b46-a0d8-cbe613bc7d1b"
         }
       ],
       "createdAt": "2025-05-12T19:36:56.651Z",
-      "updatedAt": "2025-05-12T19:36:56.651Z",
+      "updatedAt": "2025-05-13T05:05:42.458Z",
       "implementationGuide": "For each module: analyze router, controller, service, entity, interface files. Document each endpoint comprehensively in `api_documentation/endpoint_analysis/batch9-details.md`.",
       "verificationCriteria": "Comprehensive Markdown docs for all endpoints in the 5 specified modules created in `api_documentation/endpoint_analysis/batch9-details.md`.",
       "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n"
@@ -952,6 +954,86 @@
       "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `public-executions` endpoints.",
       "summary": "Completed documentation for GET /public-executions/{id}. Created Markdown analysis, OpenAPI fragment, and supporting schemas (ExecutionSchema, etc.) in the Memory Bank. Used edit_file for artifacts.",
       "completedAt": "2025-05-13T04:50:01.630Z"
+    },
+    {
+      "id": "4a5ee056-fe5a-47b3-b91c-0b5a4f096d69",
+      "name": "P2.Batch9.1: Document `stats` Module",
+      "description": "Perform deep-dive analysis of all endpoints in the `stats` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/stats/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/stats/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
+      "status": "進行中",
+      "dependencies": [
+        {
+          "taskId": "1a3e9124-aee3-4b46-a0d8-cbe613bc7d1b"
+        }
+      ],
+      "createdAt": "2025-05-13T05:07:01.218Z",
+      "updatedAt": "2025-05-13T05:07:14.238Z",
+      "implementationGuide": "Follow standard procedure: `mkdir -p` target dirs (absolute paths), `read_file` (router, controller, service, entities/interfaces), `mcp_memory-bank-mcp_write_memory_bank_file` (or `edit_file` fallback) for schemas, Markdown analysis, and OpenAPI fragment for each endpoint. Reference `schema-documentation`.",
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `stats` endpoints.",
+      "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n"
+    },
+    {
+      "id": "8327cf6e-762b-4fc3-bf6c-48d1bab2828f",
+      "name": "P2.Batch9.2: Document `tools` Module",
+      "description": "Perform deep-dive analysis of all endpoints in the `tools` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/tools/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/tools/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "4a5ee056-fe5a-47b3-b91c-0b5a4f096d69"
+        }
+      ],
+      "createdAt": "2025-05-13T05:07:01.218Z",
+      "updatedAt": "2025-05-13T05:07:01.218Z",
+      "implementationGuide": "Follow standard procedure for each endpoint.",
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `tools` endpoints.",
+      "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n"
+    },
+    {
+      "id": "5a3da0fc-5364-4043-af3c-0ae8033a0079",
+      "name": "P2.Batch9.3: Document `upsert-history` Module",
+      "description": "Perform deep-dive analysis of all endpoints in the `upsert-history` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/upsert-history/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/upsert-history/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "8327cf6e-762b-4fc3-bf6c-48d1bab2828f"
+        }
+      ],
+      "createdAt": "2025-05-13T05:07:01.218Z",
+      "updatedAt": "2025-05-13T05:07:01.218Z",
+      "implementationGuide": "Follow standard procedure for each endpoint.",
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `upsert-history` endpoints.",
+      "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n"
+    },
+    {
+      "id": "6899472d-65f7-4736-a7c0-5bdddf283217",
+      "name": "P2.Batch9.4: Document `validation` Module",
+      "description": "Perform deep-dive analysis of all endpoints in the `validation` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/validation/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/validation/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "5a3da0fc-5364-4043-af3c-0ae8033a0079"
+        }
+      ],
+      "createdAt": "2025-05-13T05:07:01.218Z",
+      "updatedAt": "2025-05-13T05:07:01.218Z",
+      "implementationGuide": "Follow standard procedure for each endpoint.",
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `validation` endpoints.",
+      "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n"
+    },
+    {
+      "id": "908da364-1556-426f-97d3-4e9f14a7075d",
+      "name": "P2.Batch9.5: Document `variables` Module",
+      "description": "Perform deep-dive analysis of all endpoints in the `variables` module. Create: 1. Detailed Markdown analysis files in `api_documentation/endpoint_analysis/variables/`. 2. OpenAPI path fragments in `api_documentation/openapi_fragments/variables/`. 3. Associated schema definitions in `api_documentation/schemas/`.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "6899472d-65f7-4736-a7c0-5bdddf283217"
+        }
+      ],
+      "createdAt": "2025-05-13T05:07:01.218Z",
+      "updatedAt": "2025-05-13T05:07:01.218Z",
+      "implementationGuide": "Follow standard procedure for each endpoint.",
+      "verificationCriteria": "Correct Markdown, OpenAPI fragment, and schema files generated for all `variables` endpoints.",
+      "analysisResult": "# Reflection on Multi-Phase Plan for Remodl Core Internal API Documentation\n\n## 1. Requirements Alignment & Structural Integrity:\nThe multi-phase plan (Phase 1: Setup/Inventory; Phase 2: Iterative Deep-Dive Analysis & Markdown Documentation per Module; Phase 3: OpenAPI Specification Assembly; Phase 4: Review) comprehensively addresses the objective of creating a detailed OpenAPI 3.1.0 specification for all internal Remodl Core APIs. It ensures all necessary information (routes, methods, handlers, services, entities, interfaces, request/response schemas, auth, logic summaries) is captured methodically.\n\n## 2. Implementability & Scalability:\nThe phased approach, particularly the intention to use `split_tasks` to break down Phase 2 (Deep-Dive Analysis) into per-module (or small batch) tasks, makes this large undertaking implementable and scalable. Each phase has clear inputs and outputs.\n\n## 3. Adherence to `rules.md` and Best Practices:\nThe plan emphasizes adherence to `rules.md` and OpenAPI 3.1.0 best practices, including comprehensive descriptions and the use of reusable schemas. The creation of intermediate detailed Markdown documentation per module (Phase 2 output) will be a valuable asset for accuracy in Phase 3.\n\n## 4. Key File Management:\n- Input: `remodel-v2-base` branch source code.\n- Intermediate outputs: `remodl-core-route-module-inventory.md`, per-module detailed analysis Markdown files (e.g., in `api_documentation/endpoint_analysis/`).\n- Final output: `remodl-core-internal-api-v1.yaml`.\n\n## 5. Confirmation:\nThis overall plan is sound and provides a clear roadmap. No deficiencies noted in the plan itself. The success will depend on diligent execution of each phase and its constituent tasks.\n"
     }
   ]
 }

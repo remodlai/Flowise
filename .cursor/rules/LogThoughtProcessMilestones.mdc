@@ -1,0 +1,27 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Log Thought Process Milestones
+
+**Rule Description:**
+"When the AI assistant (Cursor) uses the `mcp_mcp-shrimp-task-manager_process_thought` tool as part of the `EnforceSequentialShrimpTaskManagerWorkflow` (i.e., after `execute_task` for a specific, granular task and before the subsequent `analyze_task`), the AI MUST log this planning milestone in the Memory Bank.
+
+1.  **After successful completion of `process_thought` (where `next_thought_needed = False` and the thought details the execution plan for the current granular task):**
+    *   **Update `progress.md`:** Use `mcp_memory-bank-mcp_track_progress` to log an action indicating that the detailed plan for the current task has been formulated.
+        *   *Example Action:* "Task Execution Plan Articulated"
+        *   *Example Description:* "Detailed plan for P2.Batch9.1 (`stats` module) formulated via `process_thought`. Ready for `analyze_task`."
+    *   **Update `active-context.md` (Optional but Recommended):** If the formulated plan within `process_thought` clarifies or breaks down the immediate next steps for the current task in a way that's useful for context, use `mcp_memory-bank-mcp_update_active_context` to briefly reflect this under a sub-heading for the current task. This is especially useful if the `process_thought` involved significant refinement or sub-step identification for the task given by `execute_task`.
+
+2.  **Rationale:**
+    *   **Traceability:** Provides a clear record in `progress.md` that the task-specific planning phase (via `process_thought`) has occurred before Shrimp's `analyze_task` is called with that plan.
+    *   **Contextual Clarity:** Optionally allows `active-context.md` to reflect a more granular status if the AI's plan involves multiple internal steps before it can consider the overarching Shrimp task "implemented."
+    *   **Workflow Adherence:** Reinforces that `process_thought` is a distinct and important step in the `EnforceSequentialShrimpTaskManagerWorkflow`.
+
+This rule applies specifically to the `process_thought` call that occurs *after* `execute_task` and *before* the `analyze_task` that Shrimp then prompts for. It does not necessarily apply to `process_thought` calls used during the initial `plan_task -> analyze_task -> reflect_task` cycle for a *new, high-level* plan."
+
+**Key Aspects Enforced:**
+
+*   Mandates logging to `progress.md` after the task-specific `process_thought`.
+*   Recommends updating `active-context.md` if the thought process yielded a more detailed local plan.

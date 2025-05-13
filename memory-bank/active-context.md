@@ -81,25 +81,33 @@
 - **P2.Batch6.5: 'nvidia-nim' Module (ID `3d67f713-...`) - Corrective Action - All operations COMPLETE**
     - [x] `GET /models` (getNvidiaNimModels) (Corrected & Schema-Aware)
 
-## Ongoing Tasks (Global)
-- **Remodl Core Server API Understanding & Documentation (Highest Priority):**
-    - All corrective documentation now complete.
-    - Resume Shrimp Task Manager workflow for *new* API documentation batches (P2.Batch8 onwards).
-- **Strategic Refoundation (Secondary Focus, pending API documentation):** (as before)
-- **Platform Feature Development (Post-Refoundation & API Doc):** (as before)
+## Ongoing Tasks
 
+- Corrective Documentation Tasks (ALL COMPLETE)
+- P2.Batch1: Deep Dive & Doc (agentflowv2-generator to chat-messages) (COMPLETE)
+- P2.Batch2: Deep Dive & Doc (chatflows to components-credentials-icon) (COMPLETE)
+- P2.Batch3: Deep Dive & Doc (credentials to feedback) (COMPLETE)
+- P2.Batch4: Deep Dive & Doc (fetch-links to internal-chat-messages) (COMPLETE)
+- P2.Batch5: Deep Dive & Doc (internal-predictions to node-configs) (COMPLETE)
+- P2.Batch6: Deep Dive & Doc (node-custom-functions to nvidia-nim) (COMPLETE)
+- P2.Batch7: Deep Dive & Doc (openai-assistants to ping) (COMPLETE)
+- P2.Batch8: Deep Dive & Doc (predictions to public-executions) (COMPLETE)
+- P2.Batch9: Deep Dive & Doc (stats to variables) (IN PROGRESS)
 ## Known Issues
 - None specific to the new `remodel-v2-base` branch yet.
 - Previously identified "gotchas" in the underlying **Remodl Core** engine (e.g., base64 image uploads) will be addressed by architectural choices for the Remodl AI Platform (e.g., pre-processing via Supabase, Zuplo transformations) rather than deep core modifications to **Remodl Core**.
 
-## Next Steps (Immediate)
-1.  ~~Discuss and Finalize Strategy for Defining and Managing Reusable OpenAPI Schemas~~ (DONE)
-2.  ~~Update `system-patterns.md` to reflect this schema management strategy.~~ (DONE)
-3.  ~~Resume and complete all corrective documentation tasks using the refined schema strategy.~~ (ALL IDENTIFIED CORRECTIVE TASKS ARE NOW COMPLETE)
-4.  Resume Shrimp Task Manager workflow, starting with **P2.Batch8: Deep Dive & Doc (predictions to public-executions) (ID: `1a3e9124-...`)**.
+## Next Steps
 
+- Execute and complete P2.Batch9: Deep Dive & Doc (stats to variables).
+- Proceed to P2.Batch10 after P2.Batch9 is complete.
+- Proceed to P2.Finalize after P2.Batch10 is complete.
+- Proceed to API_DOC_P3 (OpenAPI Specification Assembly) after P2.Finalize.
+- Proceed to API_DOC_P4 (Review & Finalize) after API_DOC_P3.
 ## Current Session Notes
 
+- [1:08:56 AM] [Unknown User] Task Execution Plan Articulated: Detailed plan for P2.Batch9.1 (`stats` module) formulated via `process_thought`. Ready for `analyze_task` step in Shrimp workflow.
+- [1:04:16 AM] [Unknown User] API Documentation - Completed Batch Task: P2.Batch8: Deep Dive & Doc (predictions to public-executions) and all its sub-tasks (P2.Batch8.1-P2.Batch8.5) completed. Modules: predictions, prompts-lists, public-chatbots, public-chatflows, public-executions. All artifacts (Markdown, OpenAPI fragments, Schemas) created and stored.
 - [12:49:17 AM] [Unknown User] File Update: Updated api_documentation/schemas/modules/ExecutionsSchemas.yaml
 - [12:45:17 AM] [Unknown User] File Update: Updated api_documentation/schemas/modules/ChatflowsSchemas.yaml
 - [12:42:57 AM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/public-chatbots/getSinglePublicChatbotConfig.yaml
@@ -131,6 +139,6 @@
 - The Remodl AI Platform features multi-application, multi-tenant architecture (Supabase for business logic, Zuplo for API gateway).
 - Custom UI for Remodl AI Platform will likely be in a duplicated, dedicated UI package.
 - The `Flowise` directory contains the **Remodl Core** codebase (forked initially from FlowiseAI). `Flowise-Upstream` is a reference clone.
-- Memory Bank path: `/Users/brianbagdasarian/projects/Flowise/memory-bank/memory-bank/memory-bank`.
+- Memory Bank path: `/Users/brianbagdasarian/projects/Flowise/memory-bank`.
 - Documented the monorepo build & serve pattern (for **Remodl Core**) in `system-patterns.md`.
 - Confirmed `packages/api-documentation` relates to the public API of the underlying engine.

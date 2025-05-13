@@ -63,7 +63,7 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
 ### 6.1. Memory Bank (`mcp_memory-bank-mcp_*` tools)
 
 -   **Purpose:** Provides persistent storage and retrieval for key project documentation and context.
--   **Path:** The primary Memory Bank is located at `/Users/brianbagdasarian/projects/Flowise/memory-bank/memory-bank/memory-bank`.
+-   **Path:** The primary Memory Bank is located at `/Users/brianbagdasarian/projects/Flowise/memory-bank`.
     -   *Note:* This path is currently triply nested due to previous initialization behavior. While functional, it may be revised to a simpler path (e.g., `/Users/brianbagdasarian/projects/Flowise/memory-bank`) in the future.
 -   **Core Files Managed:**
     -   `project-brief.md`: High-level overview, objectives, and architecture of the Remodl AI Platform.
@@ -79,9 +79,9 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
 -   **Pattern:** The `mcp_memory-bank-mcp_write_memory_bank_file` tool may not automatically create intermediate subdirectories within the Memory Bank's configured path if they do not already exist.
 -   **Solution:**
     1.  To write a file to a nested path (e.g., `MEMORY_BANK_ROOT/api_documentation/endpoint_mappings/file.md`), first ensure the subdirectories (`api_documentation/endpoint_mappings/`) exist.
-    2.  Use the `run_terminal_cmd` tool with `mkdir -p [full_absolute_path_to_memory_bank_root]/sub/directory` to create the necessary directory structure. (Replace `[full_absolute_path_to_memory_bank_root]` with the actual path like `/Users/brianbagdasarian/projects/Flowise/memory-bank/memory-bank/memory-bank`).
+    2.  Use the `run_terminal_cmd` tool with `mkdir -p [full_absolute_path_to_memory_bank_root]/sub/directory` to create the necessary directory structure. (Replace `[full_absolute_path_to_memory_bank_root]` with the actual path like `/Users/brianbagdasarian/projects/Flowise/memory-bank`).
     3.  Once the directories are confirmed to exist (or created by `mkdir -p`), then use `mcp_memory-bank-mcp_write_memory_bank_file` with the relative path from the Memory Bank root (e.g., `filename = "sub/directory/file.md"`).
--   **Context:** This pattern was established when creating organized storage for API documentation artifacts. The Memory Bank path is currently `/Users/brianbagdasarian/projects/Flowise/memory-bank/memory-bank/memory-bank`.
+-   **Context:** This pattern was established when creating organized storage for API documentation artifacts. The Memory Bank path is currently `/Users/brianbagdasarian/projects/Flowise/memory-bank`.
 
 ### 6.2. Shrimp Task Manager (`mcp_mcp-shrimp-task-manager_*` tools)
 
@@ -101,7 +101,7 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
 ### 6.4. OpenAPI Specification Strategy (Internal Remodl Core API)
 
 -   **Objective:** To create a comprehensive and maintainable OpenAPI 3.1.0 specification for the internal APIs of the Remodl Core server component.
--   **Storage Location for Artifacts (Memory Bank Root: `/Users/brianbagdasarian/projects/Flowise/memory-bank/memory-bank/memory-bank`):**
+-   **Storage Location for Artifacts (Memory Bank Root: `/Users/brianbagdasarian/projects/Flowise/memory-bank`):**
     -   **Schema Definitions:** Stored in YAML format within `api_documentation/schemas/` relative to the Memory Bank root. This directory is further organized:
         -   `api_documentation/schemas/shared/`: For common, reusable schema definitions (e.g., `ErrorResponse.yaml`, `Pagination.yaml`, common enums like `DocumentStoreStatusEnum.yaml`). File per distinct shared schema.
         -   `api_documentation/schemas/modules/`: For module-specific schema definitions. Each module will have its own YAML file (e.g., `documentStoreSchemas.yaml`, `chatflowsSchemas.yaml`). These files will contain all schema definitions for DTOs, request/response bodies, and enums primarily used by that module's API endpoints. Schemas within these files should be named clearly (e.g., `DocumentStoreDTO`, `ChatflowRequest`).
