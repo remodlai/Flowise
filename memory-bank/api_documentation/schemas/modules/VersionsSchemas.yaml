@@ -1,0 +1,15 @@
+openapi: 3.1.0
+info:
+  title: Versions Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    VersionResponse:
+      type: object
+      properties:
+        version:
+          type: string
+          description: "The current version of the Remodl Core application."
+          example: "1.4.0"
+      required:
+        - version 

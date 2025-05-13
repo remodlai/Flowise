@@ -1,0 +1,26 @@
+"/versions/":
+  get:
+    summary: "INTERNAL: Get Application Version"
+    description: "Retrieves the current version of the Remodl Core application."
+    operationId: "getVersion"
+    tags: ["Versions", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved the application version."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/VersionsSchemas.yaml#/components/schemas/VersionResponse"
+      '404':
+        description: "Version information not found (e.g., package.json issue)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # No security typically applied 

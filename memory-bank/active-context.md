@@ -83,30 +83,30 @@
 
 ## Ongoing Tasks
 
-- Corrective Documentation Tasks (ALL COMPLETE)
-- P2.Batch1: Deep Dive & Doc (agentflowv2-generator to chat-messages) (COMPLETE)
-- P2.Batch2: Deep Dive & Doc (chatflows to components-credentials-icon) (COMPLETE)
-- P2.Batch3: Deep Dive & Doc (credentials to feedback) (COMPLETE)
-- P2.Batch4: Deep Dive & Doc (fetch-links to internal-chat-messages) (COMPLETE)
-- P2.Batch5: Deep Dive & Doc (internal-predictions to node-configs) (COMPLETE)
-- P2.Batch6: Deep Dive & Doc (node-custom-functions to nvidia-nim) (COMPLETE)
-- P2.Batch7: Deep Dive & Doc (openai-assistants to ping) (COMPLETE)
-- P2.Batch8: Deep Dive & Doc (predictions to public-executions) (COMPLETE)
-- P2.Batch9: Deep Dive & Doc (stats to variables) (COMPLETE - All sub-modules documented)
-    - [x] P2.Batch9.1: Document `stats` Module (Corrected & Schema-Aware)
-    - [x] P2.Batch9.2: Document `tools` Module (Corrected & Schema-Aware)
-    - [x] P2.Batch9.3: Document `upsert-history` Module (Corrected & Schema-Aware)
-    - [x] P2.Batch9.4: Document `validation` Module (Corrected & Schema-Aware)
-    - [x] P2.Batch9.5: Document `variables` Module (Corrected & Schema-Aware)
+- All Corrective Documentation Tasks (COMPLETE)
+- All P2 Batch Tasks (P2.Batch1 through P2.Batch10) for per-module endpoint analysis and initial schema definition (COMPLETE)
+- P2.Finalize: Create API Documentation Index (ID: 7be1e094-...) (PAUSED - Was about to generate README.md content)
+- API_DOC_P3: OpenAPI Specification Assembly (ID: aecfc078-...) (PENDING - Includes critical schema audit against TypeORM/Interfaces)
+- API_DOC_P4: Review & Finalize OpenAPI Specification (ID: 1763229c-...) (PENDING)
 ## Known Issues
-- None specific to the new `remodel-v2-base` branch yet.
-- Previously identified "gotchas" in the underlying **Remodl Core** engine (e.g., base64 image uploads) will be addressed by architectural choices for the Remodl AI Platform (e.g., pre-processing via Supabase, Zuplo transformations) rather than deep core modifications to **Remodl Core**.
 
+- Memory Bank tool `mcp_memory-bank-mcp_get_memory_bank_status` does not reliably list subdirectory contents, impacting dynamic discovery of generated artifacts. Workaround: Using `remodl-core-route-module-inventory.md` and user-provided context for file lists.
+- Memory Bank tool `mcp_memory-bank-mcp_write_memory_bank_file` has shown inconsistent behavior creating new files in subdirectories, sometimes requiring absolute paths for `mkdir -p` and `edit_file` as a fallback for writes. Current working assumption is Memory Bank root: `/Users/brianbagdasarian/projects/Flowise/memory-bank/`.
 ## Next Steps
 
-- Resume Shrimp Task Manager workflow, starting with **P2.Batch10: Deep Dive & Doc (vectors to versions) (ID: `e76d9f13-...`)**.
+- **Immediate Focus:** Discuss Remodl Core's API key system in detail with Brian to ensure full understanding of its current implementation (general vs. chatflow-specific keys, validation logic via `utils/validateKey.ts` and `utils/apiKey.ts`) and its implications for the Remodl AI Platform's security model and API documentation.
+- Based on discussion, potentially update `api_documentation/security_analysis.md` and refine the `securitySchemes` section of the main `remodl-core-internal-api-v1.yaml` shell.
+- Resume and complete Task `P2.Finalize: Create API Documentation Index` (ID: `7be1e094-...`), ensuring the `README.md` accurately reflects the API's security posture.
+- Proceed to `API_DOC_P3: OpenAPI Specification Assembly` (ID: `aecfc078-...`), starting with the mandated schema audit.
+- Proceed to `API_DOC_P4: Review & Finalize OpenAPI Specification` (ID: `1763229c-...`).
 ## Current Session Notes
 
+- [11:20:11 AM] [Unknown User] File Update: Updated session_snapshot_20250513_0530.md
+- [11:19:00 AM] [Unknown User] Project State - Paused Task for Discussion: Paused Task P2.Finalize (Create API Documentation Index) before content generation for api_documentation/README.md. The immediate next step is to discuss the API key system and its implications for documentation and potential platform changes. All individual module documentation tasks (P2.Batch1 through P2.Batch10) are complete, including corrective actions. The security mechanisms have been initially analyzed and documented in api_documentation/security_analysis.md.
+- [11:17:09 AM] [Unknown User] File Update: Updated api_documentation/security_analysis.md
+- [9:52:23 AM] [Unknown User] Task Execution Plan Articulated: Detailed plan for P2.Finalize (Consolidate Endpoint Analysis Documents) formulated via `process_thought`. Ready for `analyze_task` step in Shrimp workflow.
+- [9:47:39 AM] [Unknown User] Task Execution Plan Articulated: Detailed plan for P2.Finalize (Consolidate Endpoint Analysis Documents) formulated via `process_thought`. Ready for `analyze_task` step.
+- [9:38:26 AM] [Unknown User] Task Execution Plan Articulated: Detailed plan for P2.Batch10.3 (`versions` module - Strict No Simulation) formulated via `process_thought`. Ready for `analyze_task` step in Shrimp workflow.
 - [9:32:57 AM] [Unknown User] Task Execution Plan Articulated: Detailed plan for P2.Batch10.2 (`verify` module - Strict No Simulation) formulated via `process_thought`. Ready for `analyze_task` step in Shrimp workflow.
 - [1:58:37 AM] [Unknown User] Task Execution Plan Articulated: Detailed plan for P2.Batch10.1 (`vectors` module - Strict No Simulation) formulated via `process_thought`. Ready for `analyze_task` step in Shrimp workflow.
 - [1:54:10 AM] [Unknown User] Corrective Documentation - Module Re-verified Complete: P2.Batch9.5: `variables` Module - All 4 CRUD operations now fully documented with schemas and artifacts. Task was previously verified after simulation; this confirms actual completion.
