@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Prioritize Dedicated Memory Bank Tools
+
+**Rule Description:**
+"When updating core Memory Bank context files (`active-context.md`, `progress.md`, `decision-log.md`), the AI assistant (Cursor) MUST prioritize using the dedicated MCP Memory Bank tools designed for structured updates to these specific files.
+
+1.  **For `active-context.md`:**
+    *   To update the list of ongoing tasks, known issues, or next steps, the `mcp_memory-bank-mcp_update_active_context` tool (with its `tasks`, `issues`, `nextSteps` parameters) MUST be used.
+    *   Overwriting `active-context.md` with `mcp_memory-bank-mcp_write_memory_bank_file` should be avoided for these structured updates unless the `mcp_update_active_context` tool consistently fails or is insufficient for a complex restructuring.
+2.  **For `progress.md`:**
+    *   To log actions, milestones, or phases, the `mcp_memory-bank-mcp_track_progress` tool (with its `action` and `description` parameters) MUST be used.
+    *   Overwriting `progress.md` with `mcp_memory-bank-mcp_write_memory_bank_file` should be avoided for simple log entries.
+3.  **For `decision-log.md`:**
+    *   To record decisions, the `mcp_memory-bank-mcp_log_decision` tool MUST be used.
+4.  **General Principle:** The `mcp_memory-bank-mcp_write_memory_bank_file` tool is primarily for creating new, distinct documents in the Memory Bank or for complete overwrites of files not managed by dedicated update tools (e.g., `system-patterns.md`, `project-brief.md`, or generated artifacts like API documentation files).
+5.  **Error Handling:** If a dedicated update tool (e.g., `mcp_update_active_context`) fails, the AI may attempt the operation once more. If it fails again, the AI should then consider using `mcp_memory-bank-mcp_read_memory_bank_file` to get the current content, manually merge the intended update into that content, and then use `mcp_memory-bank-mcp_write_memory_bank_file` as a last resort, clearly explaining why this fallback was necessary.
+
+This rule emphasizes using the purpose-built tools for their intended files, ensuring structured data is maintained correctly and reducing the chance of accidental data loss or malformed context files from manual overwrites."
+
+**Key Aspects Enforced:**
+
+*   **Tool Prioritization:** Mandates using `mcp_update_active_context`, `mcp_track_progress`, and `mcp_log_decision` for their respective target files.
+*   **Restricted `write_memory_bank_file` Usage:** Clarifies that `write_memory_bank_file` is for new files or full overwrites of non-structured-update files, not for routine updates to `active-context.md`, `progress.md`, etc.
+*   **Fallback Mechanism:** Allows for `write_memory_bank_file` as a last resort for these special files if the dedicated tools fail, but requires justification.

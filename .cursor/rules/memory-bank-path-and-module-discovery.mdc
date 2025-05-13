@@ -1,0 +1,33 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Memory Bank Directory Creation and Module File Discovery
+
+**Objective:** To ensure robust interaction with the Memory Bank file system and accurate identification of module-specific files (routers, controllers, services) when their names are not predictable (e.g., defaulting to `index.ts`).
+
+## 1. Memory Bank Directory Creation for Write Operations
+
+*   **Problem:** When creating nested directories within the Memory Bank (e.g., for API documentation artifacts) using `run_terminal_cmd mkdir -p` with a *relative* path (e.g., `memory-bank/api_documentation/some_module/`), the `mcp_memory-bank-mcp_write_memory_bank_file` tool may subsequently fail with an `ENOENT` (No such file or directory) error, even if `mkdir -p` reported success. This suggests an inconsistency in path resolution or visibility between the tools.
+*   **Solution:**
+    1.  **Identify Target Absolute Path:** Determine the full absolute path where the Memory Bank tool will attempt to write. This is often revealed in the `ENOENT` error message itself (e.g., `/Users/username/projects/ProjectName/memory-bank/memory-bank/memory-bank/path/to/target`). Note that the Memory Bank root can be nested (e.g., `memory-bank/memory-bank/memory-bank/`).
+    2.  **`mkdir` with Absolute Path:** Execute `run_terminal_cmd mkdir -p [ABSOLUTE_TARGET_DIRECTORY_PATH]` using the full absolute path identified in step 1. This ensures the directory is created at the location the Memory Bank tools expect.
+    3.  **`write_memory_bank_file` with Relative Path:** After the directory is created with an absolute path, use `mcp_memory-bank-mcp_write_memory_bank_file` with a path *relative to the Memory Bank's root directory* (e.g., `api_documentation/some_module/file.yaml`).
+
+*   **Example Scenario:**
+    *   Memory Bank Root (resolved by write tool): `/workspace/memory-bank/memory-bank/memory-bank/`
+    *   Desired file: `api_documentation/foo/bar.md` within the Memory Bank.
+    *   `mkdir` command: `run_terminal_cmd mkdir -p /workspace/memory-bank/memory-bank/memory-bank/api_documentation/foo/`
+    *   `write` command: `mcp_memory-bank-mcp_write_memory_bank_file(filename="api_documentation/foo/bar.md", ...)`
+
+## 2. Discovering Module Entry Files (e.g., `index.ts`)
+
+*   **Problem:** In this codebase, many modules (e.g., under `packages/server/src/routes/`, `packages/server/src/controllers/`, `packages/server/src/services/`) use a generic `index.ts` file as their main entry point or router/controller/service definition, rather than a descriptively named file (e.g., `moduleName.router.ts`). Assuming a descriptive name will lead to `read_file` errors.
+*   **Solution:**
+    1.  **Target Directory:** Identify the presumed directory for the module's specific component (e.g., `packages/server/src/routes/predictions/`).
+    2.  **List Directory Contents:** Before attempting to read a presumed file, use `list_dir` on the target directory.
+    3.  **Identify Actual File:** Examine the output of `list_dir`. If an `index.ts` file is present and no other more specific file (like `predictions.router.ts`) seems appropriate, assume `index.ts` is the target file.
+    4.  **Read Actual File:** Use `read_file` with the confirmed file name (e.g., `packages/server/src/routes/predictions/index.ts`).
+
+*   **Rationale:** This prevents failed `read_file` attempts and ensures the correct source code is analyzed.
