@@ -1,0 +1,22 @@
+openapi: 3.1.0
+info:
+  title: Stats Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    ChatflowStatsResponse:
+      type: object
+      properties:
+        totalMessages:
+          type: integer
+          description: Total number of messages for the chatflow matching the filters.
+        totalFeedback:
+          type: integer
+          description: Total number of messages with feedback for the chatflow matching the filters.
+        positiveFeedback:
+          type: integer
+          description: Total number of messages with positive (THUMBS_UP) feedback for the chatflow matching the filters.
+      required:
+        - totalMessages
+        - totalFeedback
+        - positiveFeedback

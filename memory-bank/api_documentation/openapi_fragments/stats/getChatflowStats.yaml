@@ -1,0 +1,69 @@
+"/stats/{id}":
+  get:
+    summary: "INTERNAL: Get Chatflow Statistics"
+    description: "Retrieves statistics for a specific chatflow based on ID and optional filters."
+    operationId: "getChatflowStats"
+    tags: ["Stats", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow."
+        schema:
+          type: string
+          format: uuid
+      - name: chatType
+        in: query
+        description: "Filter by chat type(s). Can be a single string or an array of strings (e.g., INTERNAL, EXTERNAL)."
+        required: false
+        schema:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string # Ideally $ref ChatTypeEnum if defined globally
+      - name: startDate
+        in: query
+        description: "Start date for filtering messages (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: endDate
+        in: query
+        description: "End date for filtering messages (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: feedbackType
+        in: query
+        description: "Filter by feedback rating type(s) (THUMBS_UP, THUMBS_DOWN). Can be single or array."
+        required: false
+        schema:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string # Ideally $ref ChatMessageRatingTypeEnum if defined globally
+    responses:
+      '200':
+        description: "Successfully retrieved chatflow statistics."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/StatsSchemas.yaml#/components/schemas/ChatflowStatsResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 
