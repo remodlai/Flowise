@@ -1,0 +1,23 @@
+"/tools/":
+  get:
+    summary: "INTERNAL: Get All Custom Tools"
+    description: "INTERNAL: Retrieves a list of all custom tool definitions."
+    operationId: "internalToolsGetAll"
+    tags: ["Tools", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved all tools."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolSchema"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

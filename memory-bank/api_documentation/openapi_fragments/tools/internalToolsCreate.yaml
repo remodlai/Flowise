@@ -1,0 +1,33 @@
+"/tools/":
+  post:
+    summary: "INTERNAL: Create Custom Tool"
+    description: "INTERNAL: Creates a new custom tool definition."
+    operationId: "internalToolsCreate"
+    tags: ["Tools", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolCreateRequest"
+    responses:
+      '200': # Assuming 200 OK based on controller
+        description: "Tool created successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolSchema"
+      '412':
+        description: "Precondition Failed (e.g., missing request body or required fields)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

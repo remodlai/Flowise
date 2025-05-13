@@ -1,0 +1,41 @@
+"/tools/{id}":
+  get:
+    summary: "INTERNAL: Get Custom Tool by ID"
+    description: "INTERNAL: Retrieves a specific custom tool definition by its ID."
+    operationId: "internalToolsGetById"
+    tags: ["Tools", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the tool."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Successfully retrieved the tool."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolSchema"
+      '404':
+        description: "Tool not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

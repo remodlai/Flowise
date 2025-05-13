@@ -1,0 +1,47 @@
+"/tools/{id}":
+  put:
+    summary: "INTERNAL: Update Custom Tool"
+    description: "INTERNAL: Updates an existing custom tool definition."
+    operationId: "internalToolsUpdate"
+    tags: ["Tools", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the tool to update."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolUpdateRequest"
+    responses:
+      '200':
+        description: "Tool updated successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolSchema"
+      '404':
+        description: "Tool not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (e.g., missing ID or body)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

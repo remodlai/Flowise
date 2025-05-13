@@ -1,0 +1,108 @@
+openapi: 3.1.0
+info:
+  title: Tools Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    ToolSchema: # Based on Tool entity / ITool interface
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier for the tool."
+          readOnly: true
+        name:
+          type: string
+          description: "Name of the tool."
+        description:
+          type: string
+          description: "Description of what the tool does."
+        color:
+          type: string
+          description: "A color string (e.g., hex code) associated with the tool for UI purposes."
+          example: "#FF0000"
+        iconSrc:
+          type: string
+          nullable: true
+          description: "URL or data URI for the tool's icon."
+        schema:
+          type: string # JSON string
+          nullable: true
+          description: "JSON string defining the input schema for the tool (e.g., for functions)."
+        func:
+          type: string # JavaScript code
+          nullable: true
+          description: "JavaScript code string for custom function tools."
+        createdDate:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedDate:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+        - name
+        - description
+        - color
+
+    ToolCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: "Name of the tool."
+        description:
+          type: string
+          description: "Description of what the tool does."
+        color:
+          type: string
+          description: "A color string (e.g., hex code) associated with the tool."
+          example: "#00FF00"
+        iconSrc:
+          type: string
+          nullable: true
+          description: "URL or data URI for the tool's icon."
+        schema:
+          type: string # JSON string
+          nullable: true
+          description: "JSON string defining the input schema for the tool."
+        func:
+          type: string # JavaScript code
+          nullable: true
+          description: "JavaScript code string for custom function tools."
+      required:
+        - name
+        - description
+        - color
+
+    ToolUpdateRequest:
+      type: object
+      description: "Fields for updating an existing tool. All fields are optional."
+      properties:
+        name:
+          type: string
+          description: "New name for the tool."
+          nullable: true
+        description:
+          type: string
+          description: "New description for the tool."
+          nullable: true
+        color:
+          type: string
+          description: "New color string for the tool."
+          example: "#FFFF00"
+          nullable: true
+        iconSrc:
+          type: string
+          nullable: true
+          description: "New URL or data URI for the tool's icon."
+        schema:
+          type: string # JSON string
+          nullable: true
+          description: "New JSON string defining the input schema for the tool."
+        func:
+          type: string # JavaScript code
+          nullable: true
+          description: "New JavaScript code string for custom function tools." 
