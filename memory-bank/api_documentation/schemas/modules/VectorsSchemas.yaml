@@ -1,0 +1,47 @@
+openapi: 3.1.0
+info:
+  title: Vectors Module Schemas
+  version: '1.0'
+components:
+  schemas:
+    VectorUpsertRequest:
+      type: object
+      properties:
+        question: # Though often not directly used by upsert, it's part of IncomingInput
+          type: string
+          nullable: true
+          description: "Optional question or context, may be used by some pre-processing nodes."
+        overrideConfig:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: >-
+            Overrides for node parameters in the chatflow. 
+            For file uploads via multipart/form-data, file paths will be injected here by the server 
+            (e.g., pdfFile: \"FILE-STORAGE::...\").
+        stopNodeId:
+          type: string
+          nullable: true
+          description: "ID of the target vector store node in the chatflow to perform the upsert. Required if multiple vector stores exist in the flow."
+        chatId: # Primarily for session context if needed by nodes in the upsert path
+          type: string
+          format: uuid
+          nullable: true
+          description: "Optional chat session ID."
+        # When using multipart/form-data, files are sent as parts, not in this JSON body.
+        # The 'uploads' field (Array<IFileUpload>) is for client-side chat components sending data URIs.
+
+    VectorUpsertResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          description: "Status message of the upsert operation (e.g., 'Successfully Upserted'). Actual content can vary."
+        jobId: # If processing is queued
+          type: string
+          nullable: true
+          description: "Job ID if the upsert operation was queued."
+      additionalProperties: true # Vector stores might return other specific details
+      example:
+        result: "Successfully Upserted"
+        # numAdded: 100, numUpdated: 5, numSkipped: 0 (example fields) 

@@ -1,0 +1,66 @@
+"/vectors/upsert/{id}": # Also handles /upsert/ if id is in overrideConfig or handled by flow
+  post:
+    summary: "INTERNAL: Upsert Vectors to Chatflow's Store"
+    description: "Upserts documents/vectors to a target vector store within a chatflow. Supports file uploads."
+    operationId: "upsertVector"
+    tags: ["Vectors", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: false # chatflowid, can also be in overrideConfig for some flows
+        description: "ID of the Chatflow containing the target vector store."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      description: "Payload for vector upsert. For file uploads, use multipart/form-data."
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/VectorsSchemas.yaml#/components/schemas/VectorUpsertRequest"
+        multipart/form-data:
+          schema:
+            allOf: # Combines JSON fields with file upload part
+              - $ref: "../../schemas/modules/VectorsSchemas.yaml#/components/schemas/VectorUpsertRequest"
+              - type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: string
+                      format: binary
+                    description: "Files to be processed and upserted."
+    responses:
+      '200':
+        description: "Upsert operation successful or queued."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/VectorsSchemas.yaml#/components/schemas/VectorUpsertResponse"
+      '400':
+        description: "Bad Request (e.g., malformed request, invalid parameters)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '401':
+        description: "Unauthorized (API key validation failed)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '404':
+        description: "Not Found (e.g., Chatflow or target Vector Store node not found)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during upsert processing."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: [] 

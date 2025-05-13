@@ -1,0 +1,58 @@
+"/vectors/internal-upsert/{id}": # Also handles /internal-upsert/
+  post:
+    summary: "INTERNAL: Internal Upsert Vectors (Bypasses API Key)"
+    description: "Internally used endpoint to upsert documents/vectors. Bypasses API key validation. Otherwise identical to public /vectors/upsert."
+    operationId: "createInternalUpsert"
+    tags: ["Vectors", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: false
+        description: "ID of the Chatflow containing the target vector store."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      description: "Payload for vector upsert. For file uploads, use multipart/form-data."
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/VectorsSchemas.yaml#/components/schemas/VectorUpsertRequest"
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: "../../schemas/modules/VectorsSchemas.yaml#/components/schemas/VectorUpsertRequest"
+              - type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: string
+                      format: binary
+    responses:
+      '200':
+        description: "Upsert operation successful or queued."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/VectorsSchemas.yaml#/components/schemas/VectorUpsertResponse"
+      '400':
+        description: "Bad Request (e.g., malformed request, invalid parameters)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '404':
+        description: "Not Found (e.g., Chatflow or target Vector Store node not found)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during upsert processing."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    # No security section, as it's for internal use and bypasses API key checks. 
