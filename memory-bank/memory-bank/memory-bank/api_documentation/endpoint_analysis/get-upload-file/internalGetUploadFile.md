@@ -1,7 +1,9 @@
 # Endpoint Analysis: GET /api/v1/get-upload-file/{chatflowId}/{chatId}/{folderName}/{fileName}
 
 **Module:** `get-upload-file`
+
 **Operation ID:** `internalGetUploadFile`
+
 **Description:** Serves a previously uploaded file directly from the file system. The path components identify the specific file within the storage structure.
 
 **Key Files:**

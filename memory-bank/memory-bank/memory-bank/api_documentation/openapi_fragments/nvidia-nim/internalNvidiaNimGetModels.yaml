@@ -1,0 +1,36 @@
+"/nvidia-nim/models":
+  get:
+    summary: "INTERNAL: Get Available NVIDIA NIM Models"
+    description: "INTERNAL: Retrieves a list of available NVIDIA NIM models. Fetches from NVIDIA API if key is configured, otherwise returns a default list."
+    operationId: "internalNvidiaNimGetModels"
+    tags: ["NVIDIA NIM", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved NVIDIA NIM models."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                # $ref: "#/components/schemas/NvidiaNimModel" # To be defined
+                type: object
+                properties:
+                  id: 
+                    type: string
+                    description: "Model ID (e.g., playground_llama2_13b or from NVIDIA API)."
+                  label: 
+                    type: string
+                    description: "Display name of the model."
+                  name:
+                    type: string
+                    description: "Internal name of the model."
+                  # Other fields from NVIDIA API might be present if fetched directly
+                  # and not transformed by the service for this specific endpoint's primary use.
+      '500':
+        description: "Internal Server Error (e.g., error fetching from NVIDIA API)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

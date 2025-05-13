@@ -1,7 +1,9 @@
 # Endpoint Analysis: GET /api/v1/internal-chat-messages/{id}
 
 **Module:** `internal-chat-messages`
+
 **Operation ID:** `internalChatMessagesGetAllInternal`
+
 **Description:** Retrieves internal chat messages for a given `chatflowid` (passed as path param `:id`). This is a specialized version of the general `getAllChatMessages` endpoint, specifically filtering for `chatType = INTERNAL`.
 
 **Key Files:**

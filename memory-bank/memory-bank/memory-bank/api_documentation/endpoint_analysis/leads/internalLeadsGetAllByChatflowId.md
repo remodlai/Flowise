@@ -1,7 +1,9 @@
 # Endpoint Analysis: GET /api/v1/leads/{chatflowid}
 
 **Module:** `leads`
+
 **Operation ID:** `internalLeadsGetAllByChatflowId`
+
 **Description:** Retrieves all lead records associated with a specific chatflow ID.
 
 **Key Files:**

@@ -1,0 +1,43 @@
+"/node-configs/{name}":
+  get:
+    summary: "INTERNAL: Get Single Node UI Configuration"
+    description: "INTERNAL: Retrieves the saved UI configuration for a specific node component type by its name."
+    operationId: "internalNodeConfigsGetSingleByName"
+    tags: ["Node Configurations", "InternalAPI"]
+    parameters:
+      - name: name
+        in: path
+        required: true
+        description: "The internal name of the node component (e.g., stringPrompt)."
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "Successfully retrieved the node UI configuration."
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true # Node config structure is dynamic per node type
+              description: "Object representing the node's UI configuration from node-configs.json."
+              example: {"inputParams": [], "style": "default", "version": 1}
+      '404':
+        description: "Node configuration not found for the given name."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (name not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error (e.g., error reading node-configs.json)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

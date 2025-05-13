@@ -1,14 +1,20 @@
 # Endpoint Analysis: POST /api/v1/internal-predictions/{id}
 
 **Module:** `internal-predictions`
+
 **Operation ID:** `internalPredictionsCreateInternal` (Re-using previous ID, matches pattern)
+
 **Description:** Executes a chatflow identified by `:id` for internal, non-streaming predictions. This is typically used by tools or other server-side processes that need to run a chatflow and get a direct response.
 
 **Key Files:**
 *   **Router:** `packages/server/src/routes/internal-predictions/index.ts`
+
 *   **Controller:** `packages/server/src/controllers/internal-predictions/index.ts` (Handler: `createInternalPrediction`)
+
 *   **Service:** `packages/server/src/services/predictions/index.ts` (Method: `createInternalPrediction` which calls `runPrediction` with `isInternal=true`, `isSSE=false`)
+
 *   **Entity:** `packages/server/src/database/entities/ChatFlow.ts` (for fetching the chatflow)
+
 *   **Interfaces:** `IChatMessage` (for history), `ICommonObject` (for `overrideConfig`), `IFileUpload` (for `uploads`)
 
 **Authentication:** Requires API Key.

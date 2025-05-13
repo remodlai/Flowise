@@ -1,7 +1,9 @@
 # Endpoint Analysis: POST /api/v1/get-upload-path/
 
 **Module:** `get-upload-path`
+
 **Operation ID:** `internalGetUploadPath`
+
 **Description:** Determines and returns a suitable upload path or a pre-signed URL for file uploads, based on the provided file type and chatflow context. This is used by the frontend to know where to send file data, especially for S3 or similar cloud storage.
 
 **Key Files:**

@@ -1,7 +1,9 @@
 # Endpoint Analysis: GET /api/v1/flow-config/{id}
 
 **Module:** `flow-config`
+
 **Operation ID:** `internalFlowConfigGetById`
+
 **Description:** Retrieves specific UI/runtime configuration details for a chatflow, identified by its ID. This often includes chatbotConfig, speechToText, and uploadsConfig.
 
 **Key Files:**
