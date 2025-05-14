@@ -48,4 +48,4 @@
 1. Controller calls service `getAllTemplates()`.
 2. Service reads all `.json` files from subdirectories: `marketplaces/chatflows`, `marketplaces/tools`, `marketplaces/agentflows`, `marketplaces/agentflowsv2`.
 3. For each file, it parses the JSON content and adds a `templateName` (derived from filename) and other metadata to each object.
-4. Returns an array of template items organized by their type.
+4. Returns an array of template items organized by their type. 

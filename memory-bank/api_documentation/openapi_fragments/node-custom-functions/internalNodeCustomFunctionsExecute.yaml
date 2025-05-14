@@ -9,30 +9,14 @@
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - javascriptFunction
-            properties:
-              javascriptFunction:
-                type: string
-                description: "The JavaScript code to execute. Use `$[variableName]` for inputs."
-                example: "return $[a] + $[b];"
-            additionalProperties: true
-            description: "Other properties in the body are available as input variables to the function."
-            example:
-              javascriptFunction: "return $[a] + $[b];"
-              a: 5
-              b: 10
+            $ref: "#/components/schemas/ExecuteCustomFunctionRequestBody"
     responses:
       '200':
         description: "Custom function executed successfully. Response is the return value of the script."
         content:
           application/json:
             schema:
-              type: object # Or can be any type depending on the script's return
-              additionalProperties: true
-              description: "Dynamic: The result returned by the executed JavaScript function."
-              example: {"sum": 15}
+              $ref: "#/components/schemas/ExecuteCustomFunctionResponse"
       '412':
         description: "Precondition Failed (e.g., missing request body)."
         content:

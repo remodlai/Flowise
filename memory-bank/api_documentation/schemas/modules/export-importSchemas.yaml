@@ -8,82 +8,153 @@ components:
       type: object
       description: "Request body for exporting data from the system."
       properties:
-        chatflowIds:
-          type: array
-          items:
-            type: string
-            format: uuid
-          nullable: true
-          description: "Optional array of chatflow IDs to export. If omitted, all chatflows will be exported."
-        includeMessages:
+        agentflow:
           type: boolean
-          default: false
-          description: "Whether to include chat message history in the export."
+          description: "Whether to include agent flows in the export."
+        agentflowv2:
+          type: boolean
+          description: "Whether to include agent flows v2 in the export."
+        assistantCustom:
+          type: boolean
+          description: "Whether to include custom assistants in the export."
+        assistantOpenAI:
+          type: boolean
+          description: "Whether to include OpenAI assistants in the export."
+        assistantAzure:
+          type: boolean
+          description: "Whether to include Azure assistants in the export."
+        chatflow:
+          type: boolean
+          description: "Whether to include chatflows in the export."
+        chat_message:
+          type: boolean
+          description: "Whether to include chat messages in the export."
+        chat_feedback:
+          type: boolean
+          description: "Whether to include chat feedback in the export."
+        custom_template:
+          type: boolean
+          description: "Whether to include custom templates in the export."
+        document_store:
+          type: boolean
+          description: "Whether to include document stores in the export."
+        execution:
+          type: boolean
+          description: "Whether to include executions in the export."
+        tool:
+          type: boolean
+          description: "Whether to include tools in the export."
+        variable:
+          type: boolean
+          description: "Whether to include variables in the export."
+      example:
+        chatflow: true
+        variable: true
+        tool: true
+        chat_message: false
+        chat_feedback: false
+        document_store: false
     
     ExportDataResponse:
       type: object
       description: "Response containing exported data from the system."
       properties:
-        ChatFlows:
+        FileDefaultName:
+          type: string
+          description: "Default filename for the exported data."
+          example: "ExportData.json"
+        AgentFlow:
           type: array
           items:
-            $ref: '#/components/schemas/ExportChatflow'
-          description: "Array of chatflow configurations."
-        Tools:
+            $ref: "#/components/schemas/ExportChatflow"
+          description: "Array of agent flows."
+        AgentFlowV2:
           type: array
           items:
-            $ref: '#/components/schemas/ExportTool'
-          description: "Array of tool configurations."
-        Variables:
+            $ref: "#/components/schemas/ExportChatflow"
+          description: "Array of agent flows v2."
+        AssistantCustom:
           type: array
           items:
-            $ref: '#/components/schemas/ExportVariable'
-          description: "Array of variable configurations."
-        Credentials:
+            $ref: "#/components/schemas/ExportAssistant"
+          description: "Array of custom assistants."
+        AssistantFlow:
           type: array
           items:
-            $ref: '#/components/schemas/ExportCredential'
-          description: "Array of credential configurations."
-        Assistants:
+            $ref: "#/components/schemas/ExportChatflow"
+          description: "Array of assistant flows."
+        AssistantOpenAI:
           type: array
           items:
-            $ref: '#/components/schemas/ExportAssistant'
-          description: "Array of assistant configurations."
-        ChatMessages:
+            $ref: "#/components/schemas/ExportAssistant"
+          description: "Array of OpenAI assistants."
+        AssistantAzure:
           type: array
           items:
-            $ref: '#/components/schemas/ExportChatMessage'
-          description: "Array of chat message history (only included if includeMessages=true)."
-      required:
-        - ChatFlows
-      
+            $ref: "#/components/schemas/ExportAssistant"
+          description: "Array of Azure assistants."
+        ChatFlow:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportChatflow"
+          description: "Array of chatflows."
+        ChatMessage:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportChatMessage"
+          description: "Array of chat messages."
+        ChatMessageFeedback:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportChatMessageFeedback"
+          description: "Array of chat message feedback."
+        CustomTemplate:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportCustomTemplate"
+          description: "Array of custom templates."
+        DocumentStore:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportDocumentStore"
+          description: "Array of document stores."
+        DocumentStoreFileChunk:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportDocumentStoreFileChunk"
+          description: "Array of document store file chunks."
+        Execution:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportExecution"
+          description: "Array of executions."
+        Tool:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportTool"
+          description: "Array of tools."
+        Variable:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportVariable"
+          description: "Array of variables."
+    
     ImportDataRequest:
-      $ref: '#/components/schemas/ExportDataResponse'
+      $ref: "#/components/schemas/ExportDataResponse"
       description: "Request body for importing data into the system (same structure as export response)."
     
     ImportDataResponse:
       type: object
       description: "Response after importing data."
       properties:
-        status:
-          type: string
-          enum: [success, partial, error]
-          description: "Status of the import operation."
         message:
           type: string
-          nullable: true
-          description: "Optional message describing the import result."
-        importedCountByType:
-          type: object
-          additionalProperties:
-            type: integer
-          nullable: true
-          description: "Count of imported items by type."
-          example: {"ChatFlows": 5, "Tools": 2, "Credentials": 3}
+          enum: [success]
+          description: "Status message indicating successful import."
       required:
-        - status
+        - message
     
-    # Common export schema objects
+    # Supporting schemas for exported objects
     ExportChatflow:
       type: object
       description: "Chatflow configuration for export/import."
@@ -98,17 +169,344 @@ components:
         flowData:
           type: string
           description: "JSON string representing the flow configuration."
+        type:
+          type: string
+          enum: [CHATFLOW, MULTIAGENT, ASSISTANT, AGENTFLOW]
+          description: "Type of the chatflow."
         deployed:
           type: boolean
           nullable: true
+          description: "Whether the chatflow is deployed."
         isPublic:
           type: boolean
           nullable: true
-        # Other chatflow properties
+          description: "Whether the chatflow is public."
+        apikeyid:
+          type: string
+          format: uuid
+          nullable: true
+          description: "ID of the associated API key."
+        analytic:
+          type: string
+          nullable: true
+          description: "Analytics configuration."
+        speechToText:
+          type: string
+          nullable: true
+          description: "Speech-to-text configuration."
+        chatbotConfig:
+          type: string
+          nullable: true
+          description: "Chatbot UI configuration."
+        followUpPrompts:
+          type: string
+          nullable: true
+          description: "Follow-up prompts configuration."
+        apiConfig:
+          type: string
+          nullable: true
+          description: "API configuration."
+        category:
+          type: string
+          nullable: true
+          description: "Category of the chatflow."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+        updatedDate:
+          type: string
+          format: date-time
+          description: "Last update timestamp."
       required:
         - id
         - name
         - flowData
+        - createdDate
+        - updatedDate
+    
+    ExportAssistant:
+      type: object
+      description: "Assistant configuration for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the assistant."
+        details:
+          type: string
+          description: "JSON string with assistant details."
+        credential:
+          type: string
+          description: "Credential information."
+        iconSrc:
+          type: string
+          nullable: true
+          description: "Icon source URL."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+        updatedDate:
+          type: string
+          format: date-time
+          description: "Last update timestamp."
+      required:
+        - id
+        - details
+        - credential
+        - createdDate
+        - updatedDate
+    
+    ExportChatMessage:
+      type: object
+      description: "Chat message for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the message."
+        role:
+          type: string
+          enum: [apiMessage, userMessage]
+          description: "Role of the message sender."
+        content:
+          type: string
+          description: "Message content."
+        chatflowid:
+          type: string
+          format: uuid
+          description: "ID of the parent chatflow."
+        executionId:
+          type: string
+          format: uuid
+          nullable: true
+          description: "ID of the associated execution."
+        sourceDocuments:
+          type: string
+          nullable: true
+          description: "Source documents used for the response."
+        usedTools:
+          type: string
+          nullable: true
+          description: "Tools used during the conversation."
+        fileAnnotations:
+          type: string
+          nullable: true
+          description: "File annotations."
+        agentReasoning:
+          type: string
+          nullable: true
+          description: "Agent reasoning process."
+        fileUploads:
+          type: string
+          nullable: true
+          description: "Uploaded files information."
+        artifacts:
+          type: string
+          nullable: true
+          description: "Generated artifacts information."
+        chatType:
+          type: string
+          enum: [INTERNAL, EXTERNAL]
+          description: "Type of chat."
+        chatId:
+          type: string
+          description: "ID of the chat session."
+        memoryType:
+          type: string
+          nullable: true
+          description: "Type of memory used."
+        sessionId:
+          type: string
+          nullable: true
+          description: "Session ID."
+        leadEmail:
+          type: string
+          nullable: true
+          description: "Email address for lead capture."
+        action:
+          type: string
+          nullable: true
+          description: "Action information."
+        followUpPrompts:
+          type: string
+          nullable: true
+          description: "Follow-up prompts."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+      required:
+        - id
+        - role
+        - content
+        - chatflowid
+        - chatId
+        - chatType
+        - createdDate
+    
+    ExportChatMessageFeedback:
+      type: object
+      description: "Chat message feedback for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the feedback."
+        content:
+          type: string
+          nullable: true
+          description: "Feedback content."
+        chatflowid:
+          type: string
+          format: uuid
+          description: "ID of the parent chatflow."
+        chatId:
+          type: string
+          description: "ID of the chat session."
+        messageId:
+          type: string
+          format: uuid
+          description: "ID of the message receiving feedback."
+        rating:
+          type: string
+          enum: [THUMBS_UP, THUMBS_DOWN]
+          description: "Feedback rating."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+      required:
+        - id
+        - chatflowid
+        - chatId
+        - messageId
+        - rating
+        - createdDate
+    
+    ExportCustomTemplate:
+      type: object
+      description: "Custom template for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the template."
+        name:
+          type: string
+          description: "Name of the template."
+        flowData:
+          type: string
+          description: "JSON string representing the flow configuration."
+        description:
+          type: string
+          nullable: true
+          description: "Template description."
+        type:
+          type: string
+          nullable: true
+          description: "Type of the template."
+        badge:
+          type: string
+          nullable: true
+          description: "Badge label."
+        framework:
+          type: string
+          nullable: true
+          description: "Framework information."
+        usecases:
+          type: string
+          description: "JSON string representing use cases."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+        updatedDate:
+          type: string
+          format: date-time
+          description: "Last update timestamp."
+      required:
+        - id
+        - name
+        - flowData
+        - usecases
+        - createdDate
+        - updatedDate
+    
+    ExportDocumentStore:
+      type: object
+      description: "Document store for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the document store."
+        # Other properties would be defined here based on the DocumentStore entity
+        # Structure omitted for brevity
+    
+    ExportDocumentStoreFileChunk:
+      type: object
+      description: "Document store file chunk for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the file chunk."
+        # Other properties would be defined here based on the DocumentStoreFileChunk entity
+        # Structure omitted for brevity
+    
+    ExportExecution:
+      type: object
+      description: "Execution for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the execution."
+        executionData:
+          type: string
+          description: "Execution data."
+        state:
+          type: string
+          enum: [INPROGRESS, FINISHED, ERROR, TERMINATED, TIMEOUT, STOPPED]
+          description: "Execution state."
+        agentflowId:
+          type: string
+          format: uuid
+          description: "ID of the associated agentflow."
+        sessionId:
+          type: string
+          description: "Session ID."
+        isPublic:
+          type: boolean
+          nullable: true
+          description: "Whether the execution is public."
+        action:
+          type: string
+          nullable: true
+          description: "Action information."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+        updatedDate:
+          type: string
+          format: date-time
+          description: "Last update timestamp."
+        stoppedDate:
+          type: string
+          format: date-time
+          description: "Stopped timestamp."
+      required:
+        - id
+        - executionData
+        - state
+        - agentflowId
+        - sessionId
+        - createdDate
+        - updatedDate
+        - stoppedDate
     
     ExportTool:
       type: object
@@ -123,107 +521,67 @@ components:
           description: "Name of the tool."
         description:
           type: string
+          description: "Description of the tool."
+        color:
+          type: string
+          description: "Color for UI representation."
+        iconSrc:
+          type: string
           nullable: true
+          description: "Icon source URL."
         schema:
           type: string
+          nullable: true
           description: "JSON schema of the tool."
+        func:
+          type: string
+          nullable: true
+          description: "Function code."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+        updatedDate:
+          type: string
+          format: date-time
+          description: "Last update timestamp."
       required:
         - id
         - name
-        - schema
+        - description
+        - color
+        - createdDate
+        - updatedDate
     
     ExportVariable:
       type: object
-      description: "Variable configuration for export/import."
+      description: "Variable for export/import."
       properties:
         id:
           type: string
           format: uuid
           description: "Unique identifier of the variable."
-        key:
-          type: string
-          description: "Variable key."
-        value:
-          type: string
-          description: "Variable value."
-        type:
-          type: string
-          enum: [string, number, boolean, object, array, json]
-          description: "Variable type."
-      required:
-        - id
-        - key
-        - value
-        - type
-    
-    ExportCredential:
-      type: object
-      description: "Credential configuration for export/import (without sensitive data)."
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: "Unique identifier of the credential."
         name:
           type: string
-          description: "Name of the credential."
-        credentialName:
+          description: "Name of the variable."
+        value:
           type: string
-          description: "Type of credential."
-      required:
-        - id
-        - name
-        - credentialName
-    
-    ExportAssistant:
-      type: object
-      description: "Assistant configuration for export/import."
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: "Unique identifier of the assistant."
+          description: "Value of the variable."
         type:
           type: string
-          description: "Type of assistant."
-        details:
-          type: string
-          description: "JSON string with assistant details."
-      required:
-        - id
-        - type
-        - details
-    
-    ExportChatMessage:
-      type: object
-      description: "Chat message for export/import."
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: "Unique identifier of the message."
-        role:
-          type: string
-          enum: [user, assistant, system]
-          description: "Role of the message sender."
-        content:
-          type: string
-          description: "Message content."
-        chatflowid:
-          type: string
-          format: uuid
-          description: "ID of the parent chatflow."
-        chatId:
-          type: string
-          description: "ID of the chat session."
+          description: "Type of the variable."
         createdDate:
           type: string
           format: date-time
           description: "Creation timestamp."
+        updatedDate:
+          type: string
+          format: date-time
+          description: "Last update timestamp."
       required:
         - id
-        - role
-        - content
-        - chatflowid
-        - chatId
-        - createdDate 
+        - name
+        - value
+        - type
+        - createdDate
+        - updatedDate 

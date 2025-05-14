@@ -24,4 +24,4 @@
 **Responses:**
 *   **`201 Created` or `200 OK`:** Returns the created/updated `ChatMessageFeedback` entity.
 *   **`400 Bad Request`:** Missing required fields.
-*   **`500 Internal Server Error`**
+*   **`500 Internal Server Error`** 

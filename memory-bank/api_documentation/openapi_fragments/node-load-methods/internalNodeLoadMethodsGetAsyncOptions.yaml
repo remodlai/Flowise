@@ -16,17 +16,14 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/INodeData" # Define INodeData from flowise-components in shared schemas
-            # Request body must include 'loadMethod' property, either at top level or within 'inputs'.
+            $ref: "#/components/schemas/NodeLoadMethodRequestBody"
     responses:
       '200':
         description: "Successfully retrieved dynamic options."
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: "#/components/schemas/INodeOptionsValue" # Define INodeOptionsValue in shared schemas
+              $ref: "#/components/schemas/NodeLoadMethodResponse"
       '404':
         description: "Node or specified loadMethod not found."
         content:

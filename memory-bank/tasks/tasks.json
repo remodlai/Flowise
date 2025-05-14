@@ -2440,64 +2440,28 @@
       "completedAt": "2025-05-14T19:35:11.359Z"
     },
     {
-      "id": "cea34b92-22e3-451c-8620-9f9bb0329ed7",
-      "name": "P3B.Fix.2: Fix Schema References in node-custom-functions Module",
-      "description": "Correct the schema references in the node-custom-functions OpenAPI fragment to properly use $ref pointers to NodeCustomFunctionsSchemas.yaml instead of inline schema definitions. This will ensure consistency with other modules and proper schema reuse in the root specification.",
-      "status": "進行中",
-      "dependencies": [],
-      "createdAt": "2025-05-14T19:41:07.649Z",
-      "updatedAt": "2025-05-14T19:46:51.467Z",
-      "implementationGuide": "1. Analyze the current node-custom-functions OpenAPI fragment\n2. Compare against NodeCustomFunctionsSchemas.yaml to ensure all needed schemas exist\n3. Update the OpenAPI fragment to use proper $ref paths to reference schemas in NodeCustomFunctionsSchemas.yaml\n4. Ensure all schemas are properly defined and referenced"
-    },
-    {
-      "id": "4cfbb3da-3065-4157-9fda-9a36f08226b6",
-      "name": "P3B.Fix.3: Fix Schema References in node-load-methods Module",
-      "description": "Correct the schema references in the node-load-methods OpenAPI fragment to properly use $ref pointers to NodeLoadMethodsSchemas.yaml instead of inline schema definitions. This will ensure consistency with other modules and proper schema reuse in the root specification.",
-      "status": "待處理",
-      "dependencies": [],
-      "createdAt": "2025-05-14T19:41:07.649Z",
-      "updatedAt": "2025-05-14T19:41:07.649Z",
-      "implementationGuide": "1. Analyze the current node-load-methods OpenAPI fragment\n2. Compare against NodeLoadMethodsSchemas.yaml to ensure all needed schemas exist\n3. Update the OpenAPI fragment to use proper $ref paths to reference schemas in NodeLoadMethodsSchemas.yaml\n4. Ensure all schemas are properly defined and referenced"
-    },
-    {
-      "id": "f65ded44-f8dc-49d8-8be0-11f4f21c745f",
-      "name": "P3B.Fix.4: Correct nvidia-nim Documentation-Implementation Mismatch",
-      "description": "Address the critical discrepancy between the nvidia-nim documentation (which describes a GET /models endpoint) and the actual implementation (which doesn't have this endpoint). Either update the documentation to reflect the actual implementation or remove the incorrect documentation if the endpoint was removed/replaced.",
-      "status": "待處理",
-      "dependencies": [],
-      "createdAt": "2025-05-14T19:41:07.649Z",
-      "updatedAt": "2025-05-14T19:41:07.649Z",
-      "implementationGuide": "1. Thoroughly analyze the nvidia-nim module's controller, router, and service implementation\n2. Determine if the GET /models endpoint was removed, renamed, or implemented differently\n3. Based on findings:\n   - If endpoint was removed: Delete the misleading documentation and OpenAPI fragment\n   - If endpoint was renamed/moved: Update documentation and fragment to reflect actual path\n   - If implementation is different: Update documentation to match actual implementation\n4. Document the resolution in memory-bank for future reference"
-    },
-    {
-      "id": "a030141e-5f32-4c1c-bbe3-6df8d67c09f2",
-      "name": "P3B.Fix.5: Create export-importSchemas.yaml File",
-      "description": "Create the missing export-importSchemas.yaml file for the export-import module to properly define schemas used in the OpenAPI fragments. The schemas should include ExportDataRequest, ExportDataResponse, ImportDataRequest, and ImportDataResponse, matching the actual implementation in the controller and service.",
-      "status": "待處理",
-      "dependencies": [],
-      "createdAt": "2025-05-14T19:41:25.580Z",
-      "updatedAt": "2025-05-14T19:41:25.580Z",
-      "implementationGuide": "1. Analyze the export-import controller and service implementation to understand the data structures\n2. Create the export-importSchemas.yaml file with OpenAPI 3.1.0 format\n3. Define the following schemas:\n   - ExportDataRequest with chatflowIds and includeMessages properties\n   - ExportDataResponse with arrays for ChatFlows, Tools, Variables, etc.\n   - ImportDataRequest referencing ExportDataResponse\n   - ImportDataResponse with status, message, and importedCountByType\n   - Supporting schemas for exported objects (ExportChatflow, ExportTool, etc.)\n4. Place the file in api_documentation/schemas/modules/"
-    },
-    {
       "id": "553332c8-4a17-4718-8b53-d4f36e84d41a",
       "name": "P3B.Fix.6: Update Feedback Module Documentation Consistency",
       "description": "Fix naming inconsistency in the feedback module documentation. The Markdown documentation currently refers to 'internalFeedbackCreate' while the OpenAPI fragment is correctly named 'internalFeedbackCreateOrUpdate'. Update the documentation to maintain consistency.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-14T19:41:25.580Z",
-      "updatedAt": "2025-05-14T19:41:25.580Z",
-      "implementationGuide": "1. Locate the feedback module Markdown documentation file\n2. Update all references to 'internalFeedbackCreate' to use 'internalFeedbackCreateOrUpdate' instead\n3. Ensure the documentation accurately describes that the endpoint creates or updates feedback based on whether it already exists\n4. Check that the OpenAPI fragment properly references the correct schemas from FeedbackSchemas.yaml"
+      "updatedAt": "2025-05-14T20:10:01.512Z",
+      "implementationGuide": "1. Locate the feedback module Markdown documentation file\n2. Update all references to 'internalFeedbackCreate' to use 'internalFeedbackCreateOrUpdate' instead\n3. Ensure the documentation accurately describes that the endpoint creates or updates feedback based on whether it already exists\n4. Check that the OpenAPI fragment properly references the correct schemas from FeedbackSchemas.yaml",
+      "summary": "Successfully fixed the naming inconsistency in the feedback module documentation. Created a new Markdown file with the correct operation ID in the filename (internalFeedbackCreateOrUpdate.md) and deleted the old file (internalFeedbackCreate.md). Verified that the content correctly describes the endpoint's behavior as creating or updating feedback based on existing entries. Confirmed that the OpenAPI fragment properly references schemas from FeedbackSchemas.yaml (CreateFeedbackRequestBody for request and FeedbackObject for response).",
+      "completedAt": "2025-05-14T20:10:01.511Z"
     },
     {
       "id": "30f91bbc-9f1b-41b9-b070-9a9d074a826b",
       "name": "P3B.Fix.7: Fix Marketplaces Module Path Discrepancy",
       "description": "Correct the path discrepancy in the marketplaces module. The documentation incorrectly shows a root path (/marketplaces/) while the actual implementation uses /marketplaces/templates. Update documentation and OpenAPI fragments to reflect the actual implementation.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-14T19:41:25.580Z",
-      "updatedAt": "2025-05-14T19:41:25.580Z",
-      "implementationGuide": "1. Locate the marketplaces module documentation and OpenAPI fragment files\n2. Update the documentation to clearly indicate the correct path is '/marketplaces/templates'\n3. Update the OpenAPI fragment filename and content to match the correct path\n4. Ensure the schema references are correct and the operationId is 'internalMarketplacesGetAllTemplates'\n5. If there's an incorrect fragment file for the root path, it should be removed"
+      "updatedAt": "2025-05-14T20:13:09.163Z",
+      "implementationGuide": "1. Locate the marketplaces module documentation and OpenAPI fragment files\n2. Update the documentation to clearly indicate the correct path is '/marketplaces/templates'\n3. Update the OpenAPI fragment filename and content to match the correct path\n4. Ensure the schema references are correct and the operationId is 'internalMarketplacesGetAllTemplates'\n5. If there's an incorrect fragment file for the root path, it should be removed",
+      "summary": "Successfully fixed the path discrepancy in the marketplaces module documentation. Created a new Markdown file with the correct operation ID in the filename (internalMarketplacesGetAllTemplates.md), deleted the old file (internalMarketplacesGetAll.md), and removed the incorrect OpenAPI fragment that referenced a non-existent root path. Verified that the correct OpenAPI fragment properly references the GetAllMarketplaceTemplatesResponse schema from MarketplacesSchemas.yaml. All documentation now consistently references the correct path /marketplaces/templates and correctly matches the actual implementation in the router.",
+      "completedAt": "2025-05-14T20:13:09.162Z"
     },
     {
       "id": "32ddb2ce-6d18-4f22-a507-75761b15e17c",
@@ -2592,6 +2556,161 @@
       ],
       "summary": "Successfully created both missing OpenAPI fragment files for the nodes module: internalNodesGetByName.yaml for the GET /nodes/:name endpoint and internalNodesGetByCategory.yaml for the GET /nodes/category/:name endpoint. The files properly reference the NodeComponentDefinition schema from NodesSchemas.yaml and include appropriate security requirements.",
       "completedAt": "2025-05-14T19:45:57.484Z"
+    },
+    {
+      "id": "cea34b92-22e3-451c-8620-9f9bb0329ed7",
+      "name": "P3B.Fix.2: Fix Schema References in node-custom-functions Module",
+      "description": "Correct the schema references in the node-custom-functions OpenAPI fragment to properly use $ref pointers to NodeCustomFunctionsSchemas.yaml instead of inline schema definitions. This will ensure consistency with other modules and proper schema reuse in the root specification.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-14T19:41:07.649Z",
+      "updatedAt": "2025-05-14T19:48:24.858Z",
+      "implementationGuide": "1. Update the request body schema in internalNodeCustomFunctionsExecute.yaml to use $ref: \"#/components/schemas/ExecuteCustomFunctionRequestBody\" instead of inline definition\n2. Update the 200 response schema to use $ref: \"#/components/schemas/ExecuteCustomFunctionResponse\" instead of inline definition\n3. Ensure all other elements like security requirements, descriptions, and error responses remain unchanged\n4. Verify that the updated fragment maintains semantic equivalence with the original",
+      "relatedFiles": [
+        {
+          "path": "memory-bank/api_documentation/openapi_fragments/node-custom-functions/internalNodeCustomFunctionsExecute.yaml",
+          "type": "TO_MODIFY",
+          "description": "The OpenAPI fragment file that needs to be updated with proper schema references"
+        },
+        {
+          "path": "memory-bank/api_documentation/schemas/modules/NodeCustomFunctionsSchemas.yaml",
+          "type": "REFERENCE",
+          "description": "Schema file containing the definitions to be referenced in the fragment"
+        }
+      ],
+      "summary": "Successfully updated the node-custom-functions OpenAPI fragment to use proper $ref pointers to schemas defined in NodeCustomFunctionsSchemas.yaml instead of inline definitions. Replaced both the request body schema and the 200 response schema with appropriate references while maintaining all other elements like descriptions and error responses.",
+      "completedAt": "2025-05-14T19:48:24.857Z"
+    },
+    {
+      "id": "4cfbb3da-3065-4157-9fda-9a36f08226b6",
+      "name": "P3B.Fix.3: Fix Schema References in node-load-methods Module",
+      "description": "Correct the schema references in the node-load-methods OpenAPI fragment to properly use $ref pointers to NodeLoadMethodsSchemas.yaml instead of inline schema definitions. This will ensure consistency with other modules and proper schema reuse in the root specification.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-14T19:41:07.649Z",
+      "updatedAt": "2025-05-14T19:51:18.213Z",
+      "implementationGuide": "1. Analyze both the OpenAPI fragment and the actual implementation in controllers/services\n2. Verify the NodeLoadMethodsSchemas.yaml schema definitions match the actual implementation\n3. Update the request body schema reference from '#/components/schemas/INodeData' to '#/components/schemas/NodeLoadMethodRequestBody'\n4. Replace the inline array definition in the 200 response with a reference to '#/components/schemas/NodeLoadMethodResponse'\n5. Keep all other elements like parameters, descriptions, and paths unchanged",
+      "relatedFiles": [
+        {
+          "path": "memory-bank/api_documentation/openapi_fragments/node-load-methods/internalNodeLoadMethodsGetAsyncOptions.yaml",
+          "type": "TO_MODIFY",
+          "description": "The OpenAPI fragment file that needs to be updated with proper schema references"
+        },
+        {
+          "path": "memory-bank/api_documentation/schemas/modules/NodeLoadMethodsSchemas.yaml",
+          "type": "REFERENCE",
+          "description": "Schema file containing the definitions to be referenced in the fragment"
+        },
+        {
+          "path": "packages/server/src/controllers/nodes/index.ts",
+          "type": "REFERENCE",
+          "description": "Controller implementation for the endpoint"
+        },
+        {
+          "path": "packages/server/src/services/nodes/index.ts",
+          "type": "REFERENCE",
+          "description": "Service implementation showing the actual INodeData structure used"
+        },
+        {
+          "path": "packages/components/src/Interface.ts",
+          "type": "REFERENCE",
+          "description": "Interface definitions for INodeData and INodeOptionsValue"
+        }
+      ],
+      "summary": "Successfully updated the node-load-methods OpenAPI fragment to use proper $ref pointers to schemas defined in NodeLoadMethodsSchemas.yaml. After analyzing the actual controller and service implementation, I verified that the NodeLoadMethodRequestBody and NodeLoadMethodResponse schemas correctly represent the actual data structures used in the code. The request body now references NodeLoadMethodRequestBody and the response schema references NodeLoadMethodResponse, ensuring consistency with other modules and facilitating proper schema reuse.",
+      "completedAt": "2025-05-14T19:51:18.212Z"
+    },
+    {
+      "id": "f65ded44-f8dc-49d8-8be0-11f4f21c745f",
+      "name": "P3B.Fix.4: Correct nvidia-nim Documentation-Implementation Mismatch",
+      "description": "Address the critical discrepancy between the nvidia-nim documentation (which describes a GET /models endpoint) and the actual implementation (which doesn't have this endpoint). Remove the incorrect documentation files since the endpoint does not exist in the implementation.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-14T19:41:07.649Z",
+      "updatedAt": "2025-05-14T19:59:19.063Z",
+      "implementationGuide": "1. Remove the incorrect Markdown documentation file (memory-bank/api_documentation/endpoint_analysis/nvidia-nim/internalNvidiaNimGetModels.md)\n2. Remove the incorrect OpenAPI fragment file (memory-bank/api_documentation/openapi_fragments/nvidia-nim/internalNvidiaNimGetModels.yaml)\n3. Update the memory bank to document this correction",
+      "relatedFiles": [
+        {
+          "path": "memory-bank/api_documentation/endpoint_analysis/nvidia-nim/internalNvidiaNimGetModels.md",
+          "type": "TO_MODIFY",
+          "description": "Incorrect documentation file to be removed"
+        },
+        {
+          "path": "memory-bank/api_documentation/openapi_fragments/nvidia-nim/internalNvidiaNimGetModels.yaml",
+          "type": "TO_MODIFY",
+          "description": "Incorrect OpenAPI fragment to be removed"
+        },
+        {
+          "path": "packages/server/src/routes/nvidia-nim/index.ts",
+          "type": "REFERENCE",
+          "description": "Router file showing the actual implemented endpoints"
+        },
+        {
+          "path": "packages/server/src/controllers/nvidia-nim/index.ts",
+          "type": "REFERENCE",
+          "description": "Controller file showing the actual implemented methods"
+        }
+      ],
+      "summary": "Successfully corrected the nvidia-nim documentation-implementation mismatch by removing the incorrect documentation files. After thorough code examination, I confirmed that the GET /nvidia-nim/models endpoint does not exist in the actual implementation. Both the Markdown documentation file and OpenAPI fragment have been removed to ensure that the API documentation accurately reflects the actual implementation.",
+      "completedAt": "2025-05-14T19:59:19.061Z"
+    },
+    {
+      "id": "a030141e-5f32-4c1c-bbe3-6df8d67c09f2",
+      "name": "P3B.Fix.5: Create export-importSchemas.yaml File",
+      "description": "Create the missing export-importSchemas.yaml file for the export-import module to properly define schemas used in the OpenAPI fragments. The schemas should include ExportDataRequest, ExportDataResponse, ImportDataRequest, and ImportDataResponse, matching the actual implementation in the controller and service.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-14T19:41:25.580Z",
+      "updatedAt": "2025-05-14T20:05:09.294Z",
+      "implementationGuide": "1. Create the export-importSchemas.yaml file with OpenAPI 3.1.0 format defining:\n   - ExportDataRequest schema with boolean flags for different data types to export\n   - ExportDataResponse schema with arrays for different entity types\n   - ImportDataRequest schema referencing ExportDataResponse\n   - ImportDataResponse schema with status, message, and importedCountByType\n   - Supporting schemas for exported objects (ExportChatflow, ExportTool, etc.)\n2. Place the file in api_documentation/schemas/modules/\n3. Ensure schema definitions match the actual implementation in packages/server/src/services/export-import/index.ts\n4. Include detailed property descriptions and appropriate data types",
+      "relatedFiles": [
+        {
+          "path": "memory-bank/api_documentation/openapi_fragments/export-import/internalExportImportExportData.yaml",
+          "type": "REFERENCE",
+          "description": "OpenAPI fragment referencing ExportDataRequest and ExportDataResponse schemas"
+        },
+        {
+          "path": "memory-bank/api_documentation/openapi_fragments/export-import/internalExportImportImportData.yaml",
+          "type": "REFERENCE",
+          "description": "OpenAPI fragment referencing ImportDataRequest and ImportDataResponse schemas"
+        },
+        {
+          "path": "packages/server/src/services/export-import/index.ts",
+          "type": "REFERENCE",
+          "description": "Service implementation defining ExportInput and ExportData interfaces"
+        },
+        {
+          "path": "packages/server/src/controllers/export-import/index.ts",
+          "type": "REFERENCE",
+          "description": "Controller implementation showing request/response handling"
+        }
+      ],
+      "summary": "Successfully created the export-importSchemas.yaml file for the export-import module by thoroughly analyzing the actual implementation in the controller and service files. The schema file includes comprehensive definitions for ExportDataRequest, ExportDataResponse, ImportDataRequest, ImportDataResponse, and supporting schemas for all exported object types (chatflows, tools, variables, etc.). The schemas accurately reflect the actual data structures used in the implementation and properly match the OpenAPI fragments' references.",
+      "completedAt": "2025-05-14T20:05:09.293Z"
+    },
+    {
+      "id": "a2f61533-f4b8-4804-a86d-b3c3dbeb115a",
+      "name": "Update Feedback Module Documentation Consistency",
+      "description": "Fix naming inconsistency in the feedback module documentation. The Markdown documentation currently refers to 'internalFeedbackCreate' in its filename while using 'internalFeedbackCreateOrUpdate' in its content. The OpenAPI fragment is correctly named 'internalFeedbackCreateOrUpdate.yaml'. Create a new Markdown file with the correct name, ensure all content references are accurate, and delete the old file to maintain consistency.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-14T20:09:29.467Z",
+      "updatedAt": "2025-05-14T20:09:29.467Z",
+      "implementationGuide": "1. Read the content of the current Markdown file at `memory-bank/api_documentation/endpoint_analysis/feedback/internalFeedbackCreate.md`\n2. Create a new file at `memory-bank/api_documentation/endpoint_analysis/feedback/internalFeedbackCreateOrUpdate.md` with the same content, ensuring all references to the operation ID are consistent\n3. Verify that the content correctly describes the endpoint as creating or updating feedback based on whether it already exists\n4. Delete the old `internalFeedbackCreate.md` file\n5. Verify that the OpenAPI fragment at `memory-bank/api_documentation/openapi_fragments/feedback/internalFeedbackCreateOrUpdate.yaml` correctly references schemas from FeedbackSchemas.yaml",
+      "verificationCriteria": "1. A new file `internalFeedbackCreateOrUpdate.md` exists with correct content\n2. The old file `internalFeedbackCreate.md` has been deleted\n3. All references to the operation ID in the Markdown file are consistent\n4. The documentation accurately describes the endpoint's behavior\n5. The OpenAPI fragment correctly references schemas from FeedbackSchemas.yaml",
+      "analysisResult": "Based on thorough investigation, the inconsistency is between the Markdown documentation filename (`internalFeedbackCreate.md`) and its content which correctly uses \"internalFeedbackCreateOrUpdate\" as the operation ID. The OpenAPI fragment is correctly named and uses the proper operation ID throughout. The solution requires renaming the Markdown file to match the operation ID, ensuring all documentation is consistent while maintaining the accurate description of the endpoint's functionality."
+    },
+    {
+      "id": "ef805096-2125-40f2-a3f7-1b9d471aa8ff",
+      "name": "Fix Marketplaces Module Path Discrepancy",
+      "description": "Correct the path discrepancy in the marketplaces module documentation. The documentation incorrectly shows a root path (/marketplaces/) in some files while the actual implementation uses /marketplaces/templates. Update documentation and OpenAPI fragments to reflect the actual implementation and ensure consistency.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-14T20:12:25.734Z",
+      "updatedAt": "2025-05-14T20:12:25.734Z",
+      "implementationGuide": "1. Read the content of the current Markdown file at `memory-bank/api_documentation/endpoint_analysis/marketplaces/internalMarketplacesGetAll.md`\n2. Create a new file at `memory-bank/api_documentation/endpoint_analysis/marketplaces/internalMarketplacesGetAllTemplates.md` with the same content, ensuring it consistently references the correct path and operation ID\n3. Delete the old Markdown file `internalMarketplacesGetAll.md`\n4. Delete the incorrect OpenAPI fragment at `memory-bank/api_documentation/endpoint_analysis/openapi_fragments/marketplaces/internalMarketplacesGetAll.yaml`\n5. Verify that the correct OpenAPI fragment at `memory-bank/api_documentation/openapi_fragments/marketplaces/internalMarketplacesGetAllTemplates.yaml` references the proper schema from MarketplacesSchemas.yaml",
+      "verificationCriteria": "1. A new file `internalMarketplacesGetAllTemplates.md` exists with correct content\n2. The old file `internalMarketplacesGetAll.md` has been deleted\n3. The incorrect OpenAPI fragment has been deleted\n4. The correct OpenAPI fragment properly references the GetAllMarketplaceTemplatesResponse schema\n5. All documentation consistently references the correct path /marketplaces/templates and operation ID internalMarketplacesGetAllTemplates",
+      "analysisResult": "Based on thorough investigation of the codebase, I found that the marketplaces module documentation has inconsistencies with the actual implementation. The Markdown file has an incorrect filename (internalMarketplacesGetAll.md) that doesn't match its content's operation ID (internalMarketplacesGetAllTemplates). Additionally, there's an incorrect OpenAPI fragment in the endpoint_analysis directory referencing a root path that doesn't exist in the implementation. The router code confirms the endpoint should be /marketplaces/templates, not /marketplaces/."
     }
   ]
 }
