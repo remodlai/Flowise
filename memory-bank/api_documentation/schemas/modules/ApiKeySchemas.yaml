@@ -10,8 +10,8 @@ components:
       properties:
         id:
           type: string
-          format: uuid 
-          description: Unique identifier for the API key.
+          description: Unique identifier for the API key (string of length 20, not a UUID).
+          maxLength: 20
         keyName:
           type: string
           description: A user-defined name for the API key.
