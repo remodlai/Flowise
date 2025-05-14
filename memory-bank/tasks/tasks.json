@@ -1603,6 +1603,55 @@
       ],
       "implementationGuide": "1. **Full Validation:** Execute `redocly lint api_documentation/remodl-core-internal-api-v1.yaml` via `run_terminal_cmd`. Analyze output. If errors, identify source file(s) (root, fragment, or schema) and use `edit_file` to correct. Repeat until linting passes without critical errors.\n2. **Manual Review:** Read `remodl-core-internal-api-v1.yaml` for overall structure. Spot-check several `openapi_fragments` and `schemas` files for clarity, consistency in descriptions, tags, and security definitions.\n3. **Orphan Check (Conceptual):** Briefly assess if all known modules/schemas seem to be covered by the `$ref`s in the root document. (A full programmatic check is outside AI scope but a high-level review is good).\n4. **Bundling Test (Optional but Recommended):** Execute `redocly bundle api_documentation/remodl-core-internal-api-v1.yaml -o api_documentation/remodl-core-internal-api-v1-bundled.yaml` via `run_terminal_cmd`. A successful bundle further validates `$ref` integrity. The bundled file can be a secondary artifact.\n5. **Final Corrections:** Apply any last fixes identified during the above steps to the relevant YAML files using `edit_file`.",
       "verificationCriteria": "1. `remodl-core-internal-api-v1.yaml` passes `redocly lint` without critical errors.\n2. Manual review confirms overall quality, consistency, and clarity.\n3. (If bundling attempted) `redocly bundle` completes successfully.\n4. All identified necessary corrections have been applied to the specification files.\n5. The federated specification is deemed complete and accurate."
+    },
+    {
+      "id": "25879b79-81e5-41c4-87cf-b0f13d2d603d",
+      "name": "P3A.Batch3: Audit Module Schemas (Set 2)",
+      "description": "P3A.Batch3: Audit Module Schemas (Set 2 of ~6). Audit/Create/Verify `GetUploadPathSchemas.yaml`, `LeadsSchemas.yaml`, `LoadPromptsSchemas.yaml`, `MarketplacesSchemas.yaml`, `NodeCustomFunctionsSchemas.yaml` from `api_documentation/schemas/modules/`. Compare against TS definitions and correct/create YAMLs per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-14T14:13:43.711Z",
+      "updatedAt": "2025-05-14T14:13:43.711Z",
+      "relatedFiles": [
+        {
+          "path": "api_documentation/schemas/modules/GetUploadPathSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for get-upload-path."
+        },
+        {
+          "path": "api_documentation/schemas/modules/LeadsSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for leads."
+        },
+        {
+          "path": "api_documentation/schemas/modules/LoadPromptsSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for load-prompts."
+        },
+        {
+          "path": "api_documentation/schemas/modules/MarketplacesSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for marketplaces."
+        },
+        {
+          "path": "api_documentation/schemas/modules/NodeCustomFunctionsSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for node-custom-functions."
+        },
+        {
+          "path": "packages/server/src/database/entities/Lead.ts",
+          "type": "REFERENCE",
+          "description": "Entity for Lead."
+        },
+        {
+          "path": "packages/server/src/Interface.ts",
+          "type": "REFERENCE",
+          "description": "Server interfaces for DTOs."
+        }
+      ],
+      "implementationGuide": "For each listed YAML file:\n1. Read the schema file from `api_documentation/schemas/modules/` (if it exists, otherwise note for creation).\n2. Identify and read corresponding TS entity/interface files (e.g., `Lead.ts`, or from `Interface.ts` for others like GetUploadPath, LoadPrompts, Marketplaces DTOs, CustomFunction execution bodies).\n3. Compare YAML schema to TS definitions (properties, types, nullability) per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.\n4. If file needs creation or corrections, use `edit_file` to create/update the YAML.",
+      "verificationCriteria": "Schema objects in the listed module schema files accurately reflect their codebase definitions (or are accurately created if missing). Corrections applied and YAMLs valid.",
+      "analysisResult": "The plan for `P3A.Batch3: Audit Module Schemas (Set 2)` (ID: `5eb055a4-c6cb-4ce9-b5d6-3b8ca38f6bce`) is to sequentially audit/create/verify `GetUploadPathSchemas.yaml`, `LeadsSchemas.yaml`, `LoadPromptsSchemas.yaml`, `MarketplacesSchemas.yaml`, and `NodeCustomFunctionsSchemas.yaml`. For each file: read/check YAML, read corresponding TS definitions, meticulously compare schema objects against TS types (guided by `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`), and create/correct YAMLs via `edit_file` if needed. This `split_tasks` call with `selective` mode reaffirms this single batch task for immediate execution."
     }
   ]
 }
