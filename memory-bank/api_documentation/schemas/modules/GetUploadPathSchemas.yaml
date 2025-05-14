@@ -6,7 +6,7 @@ components:
   schemas:
     GetUploadPathResponse:
       type: object
-      description: "Response schema for the get-upload-path endpoint."
+      description: "Response schema for the get-upload-path endpoint that returns the server's storage path for file uploads."
       properties:
         storagePath:
           type: string

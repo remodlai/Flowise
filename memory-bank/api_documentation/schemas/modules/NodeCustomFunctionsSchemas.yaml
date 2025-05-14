@@ -12,8 +12,6 @@ components:
           type: string
           description: "The JavaScript code of the function to execute. Input variables can be referenced as $variableName within the code."
           example: "return $input1 + $input2;"
-        # Other properties sent in the body will be available as input variables to the function
-        # (e.g., if body is { javascriptFunction: '...', city: 'London' }, then $city is 'London')
       required:
         - javascriptFunction
       additionalProperties: true
@@ -23,7 +21,21 @@ components:
         country: "UK"
 
     ExecuteCustomFunctionResponse:
-      description: "The result of the executed custom function. This can be a string, a number, a boolean, an array, or a structured JSON object, depending on what the custom JavaScript function returns."
+      description: "The result of the executed custom function. This can be a string, a number, a boolean, an array, or a structured JSON object."
+      oneOf:
+        - type: string
+        - type: number
+        - type: boolean
+        - type: array
+          items: 
+            type: object
+            additionalProperties: true
+        - type: object
+          additionalProperties: true
+      example: {
+        "result": 35,
+        "message": "Calculation completed successfully"
+      }
       # To represent this flexibility, we can allow any type. 
       # For stricter typing, oneOf could list common primitives and a generic object/array.
       # Example: 
@@ -39,15 +51,5 @@ components:
       # A more generic way in OpenAPI for "any" is to omit type, or use a schema with no properties and additionalProperties: true, 
       # or use anyOf with all primitive types and generic object/array.
       # Let's use a flexible object as it's often structured data or string.
-      oneOf:
-        - type: string
-        - type: number
-        - type: boolean
-        - type: array
-          items: 
-            type: object # Defaulting to object, could be any primitive too
-            additionalProperties: true
-        - type: object
-          additionalProperties: true
-        # To truly allow *any* primitive directly as well, you might need a more complex anyOf or vendor extension approach.
-        # Most common will be string or object. 
+      # To truly allow *any* primitive directly as well, you might need a more complex anyOf or vendor extension approach.
+      # Most common will be string or object. 

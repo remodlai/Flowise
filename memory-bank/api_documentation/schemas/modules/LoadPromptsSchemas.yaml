@@ -14,9 +14,32 @@ components:
           description: "The name of the prompt to load from Langchain Hub (e.g., 'hwchase17/react')."
           example: "hwchase17/react"
 
+    PromptTemplateItem:
+      type: object
+      description: "A single prompt template item parsed from Langchain Hub."
+      properties:
+        type:
+          type: string
+          description: "Internal type identifier for the prompt template."
+          example: "systemMessagePrompt"
+          enum: [systemMessagePrompt, humanMessagePrompt, aiMessagePrompt, template]
+        typeDisplay:
+          type: string
+          description: "User-friendly display name for the prompt template type."
+          example: "System Message"
+          enum: [System Message, Human Message, AI Message, Message, Prompt]
+        template:
+          type: string
+          description: "The actual prompt template text."
+          example: "You are a helpful AI assistant."
+      required:
+        - type
+        - typeDisplay
+        - template
+
     LoadPromptResponse:
       type: object
-      description: "Response after attempting to load a prompt from Langchain Hub."
+      description: "Response after loading a prompt from Langchain Hub."
       properties:
         status:
           type: string
@@ -25,10 +48,12 @@ components:
         prompt:
           type: string
           description: "The name of the prompt that was requested."
+          example: "hwchase17/react"
         templates:
-          type: object # Assuming a potentially complex object; could also be an array.
-          additionalProperties: true
-          description: "The parsed prompt templates obtained from the hub. Structure varies based on the prompt."
+          type: array
+          description: "Array of parsed prompt templates extracted from the hub."
+          items:
+            $ref: '#/components/schemas/PromptTemplateItem'
       required:
         - status
         - prompt

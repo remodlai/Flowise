@@ -1,0 +1,84 @@
+openapi: 3.1.0
+info:
+  title: Node Load Methods Schemas
+  version: '1.0'
+components:
+  schemas:
+    NodeLoadMethodRequestBody:
+      type: object
+      description: "Request body for executing a load method on a specific node component."
+      properties:
+        name:
+          type: string
+          description: "The name of the node (redundant with path parameter, but sometimes included)."
+        inputs:
+          type: object
+          description: "Current input values for the node."
+          additionalProperties: true
+          example:
+            loadMethod: "getCollections"
+            credential: "some-credential-id"
+        credential:
+          type: string
+          description: "Credential ID if the load method requires it."
+        loadMethod:
+          type: string
+          description: "Name of the specific load method to execute on the node. Can also be specified in the inputs object."
+        id:
+          type: string
+          description: "Optional ID for the node instance."
+        previousNodes:
+          type: array
+          description: "Optional array of previous node data for context-aware load methods."
+          items:
+            type: object
+            additionalProperties: true
+        currentNode:
+          type: object
+          description: "Optional current node data for context."
+          additionalProperties: true
+      additionalProperties: true
+      example:
+        name: "chroma"
+        inputs:
+          loadMethod: "getCollections"
+          credential: "chroma-credential-id"
+    
+    NodeOptionsValue:
+      type: object
+      description: "Represents a selectable option returned by a node load method."
+      required:
+        - label
+        - name
+      properties:
+        label:
+          type: string
+          description: "Display label for the option."
+        name:
+          type: string
+          description: "Value/ID for the option."
+        description:
+          type: string
+          description: "Optional description of the option."
+        icon:
+          type: string
+          description: "Optional icon reference for the option."
+        value:
+          type: string
+          description: "Optional explicit value if different from name."
+        parentGroup:
+          type: string
+          description: "Optional parent group for hierarchical options."
+      example:
+        label: "My Collection"
+        name: "collection_1"
+        description: "A vector store collection"
+    
+    NodeLoadMethodResponse:
+      type: array
+      description: "Array of selectable options returned by the node load method."
+      items:
+        $ref: '#/components/schemas/NodeOptionsValue'
+      example:
+        - { "label": "My Collection 1", "name": "collection_1" }
+        - { "label": "My Collection 2", "name": "collection_2" } 

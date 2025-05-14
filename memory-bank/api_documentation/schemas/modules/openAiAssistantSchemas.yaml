@@ -1,4 +1,8 @@
 # Filename: api_documentation/schemas/modules/openAiAssistantSchemas.yaml
+openapi: 3.1.0
+info:
+  title: OpenAI Assistant Schemas
+  version: '1.0'
 components:
   schemas:
     OpenAIAssistant:

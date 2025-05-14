@@ -1229,61 +1229,13 @@
       "completedAt": "2025-05-14T14:22:03.049Z"
     },
     {
-      "id": "55ce9d30-6431-43aa-989e-80d6033560cf",
-      "name": "P3A.Batch4: Audit Module Schemas (Batch 3/approx 6)",
-      "description": "Audit module schema files: `NodeLoadMethodsSchemas.yaml`, `NodesSchemas.yaml`, `NvidiaNimSchemas.yaml`, `openAiAssistantSchemas.yaml`, `PredictionsSchemas.yaml` from `api_documentation/schemas/modules/`. Compare against TypeORM entities/interfaces, correct YAMLs per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
-      "status": "待處理",
-      "dependencies": [],
-      "createdAt": "2025-05-13T19:35:02.428Z",
-      "updatedAt": "2025-05-13T19:35:02.428Z",
-      "relatedFiles": [
-        {
-          "path": "api_documentation/schemas/modules/NodeLoadMethodsSchemas.yaml",
-          "type": "TO_MODIFY",
-          "description": "Schema file for node-load-methods module."
-        },
-        {
-          "path": "api_documentation/schemas/modules/NodesSchemas.yaml",
-          "type": "TO_MODIFY",
-          "description": "Schema file for nodes module."
-        },
-        {
-          "path": "api_documentation/schemas/modules/NvidiaNimSchemas.yaml",
-          "type": "TO_MODIFY",
-          "description": "Schema file for nvidia-nim module."
-        },
-        {
-          "path": "api_documentation/schemas/modules/openAiAssistantSchemas.yaml",
-          "type": "TO_MODIFY",
-          "description": "General schema file for OpenAI Assistant main object."
-        },
-        {
-          "path": "api_documentation/schemas/modules/PredictionsSchemas.yaml",
-          "type": "TO_MODIFY",
-          "description": "Schema file for predictions module."
-        },
-        {
-          "path": "packages/server/src/Interface.ts",
-          "type": "REFERENCE",
-          "description": "Interface definitions for nodes and predictions."
-        },
-        {
-          "path": "packages/server/src/database/entities/Assistant.ts",
-          "type": "REFERENCE",
-          "description": "Entity definition for Assistant (if different from IOpenAIAssistant)."
-        }
-      ],
-      "implementationGuide": "For each listed YAML file:\n1. Read the schema file.\n2. Identify corresponding entities/interfaces (e.g., `INode`, `IOpenAIAssistant`, `IPrediction`).\n3. Read relevant entity/interface files from codebase.\n4. Compare YAML schema to TS definitions.\n5. If corrections needed, use `edit_file` to update the YAML.",
-      "verificationCriteria": "Schema objects in the listed files accurately reflect codebase definitions. Corrections applied."
-    },
-    {
       "id": "8bafbe76-3007-448b-bd59-48651a6f5861",
       "name": "P3A.Batch5: Audit Module Schemas (Batch 4/approx 6)",
       "description": "Audit module schema files: `PromptsListsSchemas.yaml`, `PublicChatbotsSchemas.yaml`, `StatsSchemas.yaml`, `ToolsSchemas.yaml`, `UpsertHistorySchemas.yaml` from `api_documentation/schemas/modules/`. Compare against TypeORM entities/interfaces, correct YAMLs per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
-      "status": "待處理",
+      "status": "進行中",
       "dependencies": [],
       "createdAt": "2025-05-13T19:35:15.112Z",
-      "updatedAt": "2025-05-13T19:35:15.112Z",
+      "updatedAt": "2025-05-14T15:05:22.312Z",
       "relatedFiles": [
         {
           "path": "api_documentation/schemas/modules/PromptsListsSchemas.yaml",
@@ -1610,10 +1562,10 @@
       "id": "25879b79-81e5-41c4-87cf-b0f13d2d603d",
       "name": "P3A.Batch3: Audit Module Schemas (Set 2)",
       "description": "P3A.Batch3: Audit Module Schemas (Set 2 of ~6). Audit/Create/Verify `GetUploadPathSchemas.yaml`, `LeadsSchemas.yaml`, `LoadPromptsSchemas.yaml`, `MarketplacesSchemas.yaml`, `NodeCustomFunctionsSchemas.yaml` from `api_documentation/schemas/modules/`. Compare against TS definitions and correct/create YAMLs per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-14T14:13:43.711Z",
-      "updatedAt": "2025-05-14T14:13:43.711Z",
+      "updatedAt": "2025-05-14T14:47:52.164Z",
       "relatedFiles": [
         {
           "path": "api_documentation/schemas/modules/GetUploadPathSchemas.yaml",
@@ -1649,11 +1601,104 @@
           "path": "packages/server/src/Interface.ts",
           "type": "REFERENCE",
           "description": "Server interfaces for DTOs."
+        },
+        {
+          "path": "packages/server/src/routes/get-upload-path.ts",
+          "type": "REFERENCE",
+          "description": "Router for get-upload-path."
+        },
+        {
+          "path": "packages/server/src/routes/leads.ts",
+          "type": "REFERENCE",
+          "description": "Router for leads."
+        },
+        {
+          "path": "packages/server/src/routes/load-prompts.ts",
+          "type": "REFERENCE",
+          "description": "Router for load-prompts."
+        },
+        {
+          "path": "packages/server/src/routes/marketplaces.ts",
+          "type": "REFERENCE",
+          "description": "Router for marketplaces."
+        },
+        {
+          "path": "packages/server/src/routes/node-custom-functions.ts",
+          "type": "REFERENCE",
+          "description": "Router for node-custom-functions."
         }
       ],
-      "implementationGuide": "For each listed YAML file:\n1. Read the schema file from `api_documentation/schemas/modules/` (if it exists, otherwise note for creation).\n2. Identify and read corresponding TS entity/interface files (e.g., `Lead.ts`, or from `Interface.ts` for others like GetUploadPath, LoadPrompts, Marketplaces DTOs, CustomFunction execution bodies).\n3. Compare YAML schema to TS definitions (properties, types, nullability) per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.\n4. If file needs creation or corrections, use `edit_file` to create/update the YAML.",
-      "verificationCriteria": "Schema objects in the listed module schema files accurately reflect their codebase definitions (or are accurately created if missing). Corrections applied and YAMLs valid.",
-      "analysisResult": "The plan for `P3A.Batch3: Audit Module Schemas (Set 2)` (ID: `5eb055a4-c6cb-4ce9-b5d6-3b8ca38f6bce`) is to sequentially audit/create/verify `GetUploadPathSchemas.yaml`, `LeadsSchemas.yaml`, `LoadPromptsSchemas.yaml`, `MarketplacesSchemas.yaml`, and `NodeCustomFunctionsSchemas.yaml`. For each file: read/check YAML, read corresponding TS definitions, meticulously compare schema objects against TS types (guided by `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`), and create/correct YAMLs via `edit_file` if needed. This `split_tasks` call with `selective` mode reaffirms this single batch task for immediate execution."
+      "implementationGuide": "For each listed YAML file:\n1. Read the schema file from `api_documentation/schemas/modules/` (if it exists, otherwise note for creation).\n2. Identify and read corresponding TS entity/interface files (e.g., `Lead.ts`, or from `Interface.ts` for others like GetUploadPath, LoadPrompts, Marketplaces DTOs, CustomFunction execution bodies).\n3. Compare YAML schema to TS definitions (properties, types, nullability) per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.\n4. If file needs creation or corrections, use `edit_file` to create/update the YAML.\n5. Ensure proper OpenAPI 3.1.0 format with consistent type mappings:\n   - TypeScript `string` → OpenAPI `string`\n   - TypeScript `number` → OpenAPI `number`\n   - TypeScript `boolean` → OpenAPI `boolean`\n   - TypeScript `Date` → OpenAPI `string` with `format: date-time`\n   - TypeScript arrays (`[]`) → OpenAPI `array` with appropriate `items`\n   - TypeScript interfaces/classes → OpenAPI `object` with appropriate `properties`\n   - TypeScript enums → OpenAPI `enum` with correct values\n6. For optional properties, use OpenAPI's `required` array approach.\n7. Ensure shared components are referenced via `$ref` rather than duplicated.",
+      "verificationCriteria": "Schema objects in the listed module schema files accurately reflect their codebase definitions (or are accurately created if missing). Corrections applied and YAMLs valid. Files adhere to OpenAPI 3.1.0 conventions and maintain consistency with previously audited schemas.",
+      "analysisResult": "For P3A.Batch3 (Audit Module Schemas - Set 2), I've conducted a comprehensive analysis of the approach to audit/create/verify schema files for 5 modules (get-upload-path, leads, load-prompts, marketplaces, node-custom-functions). The analysis confirms the soundness of our systematic approach with refinements:\n\n1. The verification process should check each schema file against TypeScript definitions with meticulous attention to type mappings, property requirements, and proper OpenAPI conventions.\n\n2. We should leverage patterns from previously completed schema audits to maintain consistency.\n\n3. For each module, we need to:\n   - Verify file existence\n   - Examine corresponding TypeScript definitions\n   - Compare schema properties\n   - Update or create schemas as needed\n   - Validate for syntax and compliance\n\n4. Special attention must be given to:\n   - Consistent type mapping between TypeScript and OpenAPI\n   - Reuse of shared schema components via $ref\n   - Use of required arrays for optional properties\n   - Module-specific considerations for each schema file\n\nThis task requires careful examination of both schema files and TypeScript code to ensure accurate, standards-compliant schema definitions that correctly represent the codebase's data structures.",
+      "summary": "Successfully completed the audit of all 5 schema files. Each file was thoroughly compared with the actual implementation in the codebase. GetUploadPathSchemas.yaml was verified against the controller. LeadsSchemas.yaml was aligned with the Lead entity and ILead interface. LoadPromptsSchemas.yaml was significantly improved by properly modeling the templates array structure. MarketplacesSchemas.yaml was found to be accurate and comprehensive. NodeCustomFunctionsSchemas.yaml was cleaned up and made more concise. All schemas now accurately reflect their corresponding TypeScript definitions and follow consistent OpenAPI 3.1.0 conventions.",
+      "completedAt": "2025-05-14T14:47:52.163Z"
+    },
+    {
+      "id": "55ce9d30-6431-43aa-989e-80d6033560cf",
+      "name": "P3A.Batch4: Audit Module Schemas (Batch 3/approx 6)",
+      "description": "Audit module schema files: `NodeLoadMethodsSchemas.yaml`, `NodesSchemas.yaml`, `NvidiaNimSchemas.yaml`, `openAiAssistantSchemas.yaml`, `PredictionsSchemas.yaml` from `api_documentation/schemas/modules/`. Compare against TypeORM entities/interfaces, correct YAMLs per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-13T19:35:02.428Z",
+      "updatedAt": "2025-05-14T15:04:12.071Z",
+      "relatedFiles": [
+        {
+          "path": "api_documentation/schemas/modules/NodeLoadMethodsSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema file for node-load-methods module."
+        },
+        {
+          "path": "api_documentation/schemas/modules/NodesSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema file for nodes module."
+        },
+        {
+          "path": "api_documentation/schemas/modules/NvidiaNimSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema file for nvidia-nim module."
+        },
+        {
+          "path": "api_documentation/schemas/modules/openAiAssistantSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "General schema file for OpenAI Assistant main object."
+        },
+        {
+          "path": "api_documentation/schemas/modules/PredictionsSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema file for predictions module."
+        },
+        {
+          "path": "packages/server/src/Interface.ts",
+          "type": "REFERENCE",
+          "description": "Interface definitions for nodes and predictions."
+        },
+        {
+          "path": "packages/server/src/database/entities/Assistant.ts",
+          "type": "REFERENCE",
+          "description": "Entity definition for Assistant (if different from IOpenAIAssistant)."
+        },
+        {
+          "path": "packages/server/src/controllers/nodes/index.ts",
+          "type": "REFERENCE",
+          "description": "Controller implementation for nodes operations."
+        },
+        {
+          "path": "packages/server/src/controllers/nvidia-nim/index.ts",
+          "type": "REFERENCE",
+          "description": "Controller implementation for NVIDIA NIM operations."
+        },
+        {
+          "path": "packages/server/src/controllers/predictions/index.ts",
+          "type": "REFERENCE",
+          "description": "Controller implementation for predictions operations."
+        }
+      ],
+      "implementationGuide": "For each schema file:\n1. Check if the file exists in memory-bank/api_documentation/schemas/modules/\n2. Examine relevant interfaces in Interface.ts and entity files where applicable\n3. Review controller and service implementations to understand usage patterns\n4. Compare schema properties with TypeScript definitions for names, types, required status, and constraints\n5. Update schemas using edit_file to ensure OpenAPI 3.1.0 compliance, paying special attention to:\n   - Proper type mapping (e.g., TypeScript Date → OpenAPI string with format: date-time)\n   - Required vs. optional properties\n   - Schema interdependencies through $ref pointers\n   - Specific considerations for each module's unique structures\n\nWork through each schema file sequentially, completing all steps for one before moving to the next.",
+      "verificationCriteria": "Each schema file accurately reflects its corresponding TypeScript definitions. All properties have correct types, required status, and descriptions. Schemas follow OpenAPI 3.1.0 conventions consistently. Any schema interdependencies are properly maintained through $ref pointers.",
+      "analysisResult": "For P3A.Batch4 (Audit Module Schemas - Batch 3), I've analyzed a systematic approach to audit 5 schema files (NodeLoadMethodsSchemas.yaml, NodesSchemas.yaml, NvidiaNimSchemas.yaml, openAiAssistantSchemas.yaml, PredictionsSchemas.yaml) for alignment with TypeScript definitions. \n\nThe process involves:\n1. File existence verification for each schema\n2. Interface/entity discovery by examining relevant TypeScript files\n3. Implementation understanding through controller/service analysis\n4. Detailed schema-to-TypeScript comparison for properties, types, and requirements\n5. Schema updates to ensure OpenAPI 3.1.0 compliance\n\nThis systematic approach, applied sequentially to each schema, will ensure thorough verification while maintaining consistency with established patterns. Special attention will be given to:\n- Proper type mapping between TypeScript and OpenAPI\n- Bidirectional validation (schema-to-code and code-to-schema)\n- Schema interdependencies through $ref pointers\n- Specific considerations for each module's unique structures\n\nThe methodology follows the project's established patterns for schema documentation while addressing the specific needs of these 5 modules.",
+      "summary": "Successfully audited and updated all 5 schema files in the batch. Created 3 new schema files (NodeLoadMethodsSchemas.yaml, NodesSchemas.yaml, NvidiaNimSchemas.yaml) based on the corresponding interface definitions and controller/router implementations. The schema files accurately represent the data structures used in the API with proper types, descriptions, and examples. Updated openAiAssistantSchemas.yaml to include the proper OpenAPI header. Verified PredictionsSchemas.yaml and confirmed it was already correctly structured.",
+      "completedAt": "2025-05-14T15:04:12.070Z"
     }
   ]
 }

@@ -1,0 +1,167 @@
+openapi: 3.1.0
+info:
+  title: Nodes Schemas
+  version: '1.0'
+components:
+  schemas:
+    NodeComponentDefinition:
+      type: object
+      description: "Definition of a node component in the system."
+      properties:
+        id:
+          type: string
+          description: "Unique identifier for the component when instantiated."
+        label:
+          type: string
+          description: "User-friendly display name for the node component."
+        name:
+          type: string
+          description: "Internal identifier name for the node component (e.g., 'chatOpenAI')."
+        version:
+          type: number
+          description: "Version number of the node component."
+        type:
+          type: string
+          description: "Type classification of the node (e.g., 'ChatModel', 'Tool', 'Chain')."
+        category:
+          type: string
+          description: "Category grouping for the UI (e.g., 'Chat Models', 'Tools', 'Chains')."
+        icon:
+          type: string
+          description: "Path to the icon file for the node."
+        description:
+          type: string
+          description: "Description of what the node does."
+        baseClasses:
+          type: array
+          description: "Base class types this node implements or extends."
+          items:
+            type: string
+        tags:
+          type: array
+          description: "Tags for additional categorization or filtering."
+          items:
+            type: string
+        inputs:
+          type: array
+          description: "Input parameters accepted by this node."
+          items:
+            $ref: '#/components/schemas/NodeParameter'
+        outputs:
+          type: array
+          description: "Output types produced by this node."
+          items:
+            $ref: '#/components/schemas/NodeOutput'
+        inputAnchors:
+          type: array
+          description: "Input connection points for flow-based UI."
+          items:
+            $ref: '#/components/schemas/NodeAnchor'
+        outputAnchors:
+          type: array
+          description: "Output connection points for flow-based UI."
+          items:
+            $ref: '#/components/schemas/NodeAnchor'
+      required:
+        - label
+        - name
+        - version
+        - type
+        - category
+        - icon
+        - baseClasses
+    
+    NodeParameter:
+      type: object
+      description: "Definition of a parameter for a node component."
+      required:
+        - label
+        - name
+        - type
+      properties:
+        label:
+          type: string
+          description: "Display label for the parameter."
+        name:
+          type: string
+          description: "Programmatic name of the parameter."
+        type:
+          type: string
+          description: "Data type of the parameter (e.g., 'string', 'number', 'select', 'asyncOptions')."
+        default:
+          description: "Default value of the parameter."
+        description:
+          type: string
+          description: "Description of the parameter."
+        options:
+          type: array
+          description: "Available options for select-type parameters."
+          items:
+            $ref: '#/components/schemas/NodeOptionValue'
+        optional:
+          type: boolean
+          description: "Whether the parameter is optional."
+        acceptVariable:
+          type: boolean
+          description: "Whether the parameter accepts variable substitution."
+        list:
+          type: boolean
+          description: "Whether the parameter accepts a list of values."
+        loadMethod:
+          type: string
+          description: "Name of the async load method for dynamic options."
+    
+    NodeOptionValue:
+      type: object
+      description: "An option value for a select-type parameter."
+      required:
+        - label
+        - name
+      properties:
+        label:
+          type: string
+          description: "Display label for the option."
+        name:
+          type: string
+          description: "Value for the option."
+    
+    NodeAnchor:
+      type: object
+      description: "Connection point for a node in flow-based UI."
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description: "Unique identifier for the anchor."
+        name:
+          type: string
+          description: "Display name for the anchor."
+        type:
+          type: string
+          description: "Data type expected at this connection point."
+        required:
+          type: boolean
+          description: "Whether a connection to this anchor is required."
+    
+    NodeOutput:
+      type: object
+      description: "Output definition for a node component."
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: "Name of the output."
+        label:
+          type: string
+          description: "Display label for the output."
+        baseClasses:
+          type: array
+          description: "Data types supported by this output."
+          items:
+            type: string
+        description:
+          type: string
+          description: "Description of the output." 
