@@ -10,27 +10,14 @@
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - keyName
-            properties:
-              keyName:
-                type: string
-                description: "A descriptive name for the API key."
-                example: "My Integration Key"
+            $ref: "#/components/schemas/ApiKeyRequestBody"
     responses:
       '200': # Assuming 200 for successful creation based on controller
         description: "API Key created successfully. The apiSecret returned is the only time the plaintext secret is available."
         content:
           application/json:
             schema:
-              # $ref: "#/components/schemas/ApiKeyCreateResponse" # To be defined in main spec
-              type: object
-              properties:
-                id: { type: string, description: "Generated API key ID." }
-                keyName: { type: string, description: "Name of the API key." }
-                apiKey: { type: string, description: "The generated API key." }
-                apiSecret: { type: string, description: "The plaintext API secret (only available on creation)." }
+              $ref: "#/components/schemas/ApiKey"
       '412':
         description: "Precondition Failed (e.g., missing keyName)."
         content:
@@ -43,5 +30,5 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
-    # security:
-    #   - InternalApiKeyAuth: [] # To be confirmed
+    security:
+      - ApiKeyAuth: []

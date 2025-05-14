@@ -16,14 +16,7 @@
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - keyName
-            properties:
-              keyName:
-                type: string
-                description: "The new descriptive name for the API key."
-                example: "My Updated Key"
+            $ref: "#/components/schemas/ApiKeyRequestBody"
     responses:
       '200':
         description: "API Key updated successfully. Returns the full list of all API keys."
@@ -51,5 +44,5 @@
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - ApiKeyAuth: []

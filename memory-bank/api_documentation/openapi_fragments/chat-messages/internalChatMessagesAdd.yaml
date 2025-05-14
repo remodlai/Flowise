@@ -9,85 +9,14 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/ChatMessageCreateRequest" # To be defined
-            type: object
-            required:
-              - role
-              - chatflowid
-              - content
-              - chatType
-              - chatId
-            properties:
-              role:
-                type: string
-                # enum: from MessageType
-                description: "Role of the message sender."
-              chatflowid:
-                type: string
-                format: uuid
-                description: "ID of the parent chatflow."
-              content:
-                type: string
-                description: "The message content."
-              chatType:
-                type: string
-                # enum: from ChatType
-                description: "Type of chat."
-              chatId:
-                type: string
-                description: "ID of the chat session."
-              executionId:
-                type: string
-                format: uuid
-                nullable: true
-              sourceDocuments:
-                type: string
-                description: "JSON string of source documents."
-                nullable: true
-              usedTools:
-                type: string
-                description: "JSON string of used tools."
-                nullable: true
-              fileAnnotations:
-                type: string
-                description: "JSON string of file annotations."
-                nullable: true
-              agentReasoning:
-                type: string
-                description: "JSON string of agent reasoning steps."
-                nullable: true
-              fileUploads:
-                type: string
-                description: "JSON string of file upload details."
-                nullable: true
-              artifacts:
-                type: string
-                description: "JSON string of artifacts."
-                nullable: true
-              action:
-                type: string
-                description: "JSON string of a tool action."
-                nullable: true
-              memoryType:
-                type: string
-                nullable: true
-              sessionId:
-                type: string
-                nullable: true
-              leadEmail:
-                type: string
-                nullable: true
-              followUpPrompts:
-                type: string
-                description: "JSON string of suggested follow-up prompts."
-                nullable: true
+            $ref: "#/components/schemas/CreateChatMessageRequestBody"
     responses:
       '200':
         description: "Chat message added successfully."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ChatMessage" # To be defined
+              $ref: "#/components/schemas/ChatMessageObject"
       '412':
         description: "Precondition Failed (e.g., missing request body)."
         content:
@@ -100,5 +29,5 @@
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - InternalApiKeyAuth: []

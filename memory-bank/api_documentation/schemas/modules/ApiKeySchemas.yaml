@@ -32,6 +32,34 @@ components:
         - apiSecret 
         - updatedDate
 
+    ApiKeyWithCount:
+      type: object
+      description: Represents an API Key object with an added chatflowCount field, omitting sensitive data like encryptedData.
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the API key (string of length 20, not a UUID).
+          maxLength: 20
+        keyName:
+          type: string
+          description: A user-defined name for the API key.
+        apiKey:
+          type: string
+          description: "The actual API key value. Returned by the API. Handle with care."
+        chatflowCount:
+          type: integer
+          description: Number of chatflows associated with this API key.
+        updatedDate:
+          type: string
+          format: date-time
+          description: The date and time the API key was last updated.
+      required:
+        - id
+        - keyName
+        - apiKey
+        - chatflowCount
+        - updatedDate
+
     ApiKeyRequestBody:
       type: object
       description: Request body for creating or updating an API Key.
@@ -41,4 +69,20 @@ components:
         keyName:
           type: string
           description: User-defined name for the API key.
-          example: "My Application Key" 
+          example: "My Application Key"
+
+    ApiKeyImportRequest:
+      type: object
+      description: Request body for importing API keys from a JSON file.
+      required:
+        - jsonFile
+      properties:
+        jsonFile:
+          type: string
+          format: data-uri
+          description: "Data URI of the JSON file (e.g., data:application/json;base64,BASE64_ENCODED_JSON_ARRAY_OF_APIKEYS)"
+        importMode:
+          type: string
+          enum: [replaceAll, errorIfExist, overwriteIfExist, ignoreIfExist]
+          description: "Strategy for handling existing keys."
+          nullable: true 

@@ -24,12 +24,12 @@
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/ApiKeyWithCount" # To be defined in main spec
+                $ref: "#/components/schemas/ApiKeyWithCount"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - ApiKeyAuth: []

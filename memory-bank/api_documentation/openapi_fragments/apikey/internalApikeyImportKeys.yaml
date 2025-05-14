@@ -9,20 +9,7 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/ApiKeyImportRequest" # To be defined
-            type: object
-            required:
-              - jsonFile
-            properties:
-              jsonFile:
-                type: string
-                format: data-uri
-                description: "Data URI of the JSON file (e.g., data:application/json;base64,BASE64_ENCODED_JSON_ARRAY_OF_APIKEYS)"
-              importMode:
-                type: string
-                enum: [replaceAll, errorIfExist, overwriteIfExist, ignoreIfExist]
-                description: "Strategy for handling existing keys."
-                nullable: true
+            $ref: "#/components/schemas/ApiKeyImportRequest"
     responses:
       '200':
         description: "API Keys imported successfully. Returns the full list of API keys."
@@ -31,7 +18,7 @@
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/ApiKey" # Assumes an ApiKey schema is defined
+                $ref: "#/components/schemas/ApiKey"
       '412':
         description: "Precondition Failed (e.g., missing jsonFile)."
         content:
@@ -44,5 +31,5 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - ApiKeyAuth: []

@@ -39,26 +39,13 @@
                 type: boolean
                 description: "If true, response content is base64; otherwise, extracted text."
                 default: false
-          # encoding: # Optional, for more detailed multipart specification
     responses:
       '200':
         description: "Files uploaded and processed successfully."
         content:
           application/json:
             schema:
-              type: array
-              items:
-                # $ref: "#/components/schemas/AttachmentDetail" # To be defined
-                type: object
-                properties:
-                  name:
-                    type: string
-                  mimeType:
-                    type: string
-                  size:
-                    type: integer
-                  content:
-                    type: string
+              $ref: "#/components/schemas/CreateAttachmentResponse"
       '400':
         description: "Bad Request (e.g., invalid chatflowId/chatId, path traversal)."
         content:
@@ -77,5 +64,5 @@
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - InternalApiKeyAuth: []

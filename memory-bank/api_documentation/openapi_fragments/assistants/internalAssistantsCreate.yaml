@@ -12,35 +12,14 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/AssistantCreateRequest" # To be defined
-            type: object
-            required:
-              - details
-              # - credential # Required if type is not CUSTOM, but service logic implies it can be part of details for CUSTOM
-            properties:
-              details:
-                type: string
-                description: "JSON string of assistant configuration (OpenAI Assistant like structure + tool_resources)."
-                example: '{"name":"My New Assistant","model":"gpt-4-turbo","instructions":"Be helpful."}'
-              credential:
-                type: string
-                format: uuid
-                description: "Credential ID (e.g., for OpenAI API key). Required if type is not CUSTOM."
-              iconSrc:
-                type: string
-                nullable: true
-              type:
-                type: string
-                description: "Type of assistant (e.g., OPENAI, CUSTOM)."
-                # enum: from AssistantType interface, need to confirm values
-                nullable: true
+            $ref: "#/components/schemas/AssistantCreateRequest"
     responses:
       '200':
         description: "Assistant created/updated successfully. Returns the Remodl Core Assistant entity."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Assistant" # To be defined based on entity
+              $ref: "#/components/schemas/Assistant"
       '400':
         description: "Bad Request / Precondition Failed (e.g., missing body or details)."
         content:
@@ -59,5 +38,5 @@
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - InternalApiKeyAuth: []

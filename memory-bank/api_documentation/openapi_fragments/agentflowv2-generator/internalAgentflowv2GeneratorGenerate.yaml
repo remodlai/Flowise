@@ -13,24 +13,14 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AgentflowV2GenerateRequest" # To be defined in main spec
+            $ref: "#/components/schemas/AgentflowV2RequestBody"
     responses:
       '200':
         description: "AgentFlow V2 configuration generated successfully, or a parsing error object if validation failed."
         content:
           application/json:
             schema:
-              oneOf: 
-                - $ref: "#/components/schemas/AgentflowV2GenerateResponse" # To be defined
-                - type: object
-                  properties:
-                    error: 
-                      type: string
-                      description: Description of the parsing/validation error.
-                    rawResponse:
-                      type: object
-                      description: The raw, unvalidated response from the generation process.
-                      additionalProperties: true 
+              $ref: "#/components/schemas/AgentflowV2Response"
       '400':
         description: "Bad Request (e.g., missing `question` or `selectedChatModel` in request body)."
         content:
@@ -43,5 +33,5 @@
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorResponse'
-    # security:
-    #   - InternalApiKeyAuth: [] # To be confirmed
+    security:
+      - ApiKeyAuth: []
