@@ -1,0 +1,52 @@
+---
+description: 
+globs: memory-bank/api_documentation/**/*
+alwaysApply: false
+---
+# Rule: Always Verify Implementation Code Before Documentation Changes
+
+**Rule Description:**
+"The AI assistant (Cursor) MUST thoroughly examine the actual implementation code before making ANY changes to API documentation, OpenAPI fragments, schema definitions, or related artifacts. This rule is MANDATORY and serves as a critical safeguard against documentation that diverges from actual implementation.
+
+For ANY task involving API documentation or schema updates, the following verification steps MUST be performed in sequence:
+
+1. **Controller Verification:**
+   - Locate and read the relevant controller file(s) to understand how requests are handled
+   - Identify parameter validation, error handling, and the exact request/response structure
+   - Note any middleware that may affect request processing
+
+2. **Service Implementation Verification:**
+   - Examine the service methods called by the controller
+   - Understand the actual data structures processed and returned
+   - Identify any transformations applied to the data
+
+3. **Route Definition Verification:**
+   - Check the route configuration to confirm HTTP methods, paths, and parameter handling
+   - Verify middleware application and authentication requirements
+
+4. **Entity/Interface Definition Verification:**
+   - Examine related TypeScript interfaces and/or TypeORM entities
+   - Verify that schema definitions match the actual interfaces used in the code
+   - Pay attention to required vs. optional fields (e.g., via `?` syntax in TS)
+
+5. **Client Usage Verification (if applicable):**
+   - Check for examples of client code that uses the API to understand expected behavior
+
+Only after performing these verification steps may the AI proceed with documentation or schema updates, ensuring that:
+- Schema references match actual interface names and structures used in code
+- Property names, types, and nullability match the implementation
+- Documentation accurately describes the actual behavior, not just intended behavior
+
+If the AI identifies discrepancies between existing documentation and implementation, it MUST document these discrepancies clearly and seek user guidance before proceeding."
+
+**Mandatory Process For All Documentation Tasks:**
+1. Begin by stating "IMPLEMENTATION VERIFICATION REQUIRED" at the start of any documentation task
+2. Identify and read all relevant implementation files before proceeding
+3. Document discrepancies between existing documentation and implementation
+4. Only proceed with changes after verification is complete
+
+**Key Aspects Enforced:**
+* **Implementation-First Approach:** Mandates reading actual code before touching documentation
+* **Comprehensive Verification:** Requires examination of the full request-to-response flow
+* **Evidence-Based Documentation:** All schema references and descriptions must be based on actual implemented code
+* **Discrepancy Reporting:** Requires flagging and addressing conflicts between docs and implementation
