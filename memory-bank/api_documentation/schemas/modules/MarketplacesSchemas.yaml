@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: Marketplaces Schemas
+  version: '1.0'
+components:
+  schemas:
+    MarketplaceTemplateTypeEnum:
+      type: string
+      enum: [Chatflow, Tool, Agentflow, AgentflowV2]
+      description: The type of the marketplace template.
+
+    MarketplaceTemplateItem: # For GET /templates
+      type: object
+      description: "Represents a template item available in the marketplace."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "System-generated unique ID for the template item."
+        templateName:
+          type: string
+          description: "Name of the template, usually derived from the filename."
+        flowData:
+          type: string 
+          description: "Stringified JSON of the flow (Chatflow, Agentflow, AgentflowV2) or tool definition. For Tool type, this might be further parsed by the client or specific UIs to extract iconSrc, schema, func."
+          nullable: true # Null for tools if main fields are at top level in response
+        badge:
+          type: string
+          nullable: true
+        framework:
+          # Service logic seems to set this as string array from ITemplate, then string for CustomTemplate
+          # For file-based templates, it's an array of strings.
+          type: array
+          items: { type: string }
+          nullable: true
+        usecases:
+          type: array
+          items: { type: string }
+          nullable: true
+        categories:
+          type: array
+          items: { type: string }
+          nullable: true
+          description: "Categories derived from the template's nodes (for flow types)."
+        type:
+          $ref: '#/components/schemas/MarketplaceTemplateTypeEnum'
+        description:
+          type: string
+          nullable: true
+        # Additional properties for type: Tool, directly on the object by service
+        iconSrc: { type: string, nullable: true, description: "Icon source, present if type is Tool (from parsed flowData)."}
+        schema: { type: string, nullable: true, description: "Schema definition (stringified JSON), present if type is Tool (from parsed flowData)." } 
+        func: { type: string, nullable: true, description: "Function definition (stringified code/JSON), present if type is Tool (from parsed flowData)." } 
+      required:
+        - id
+        - templateName
+        - type
+
+    GetAllMarketplaceTemplatesResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/MarketplaceTemplateItem'
+
+    CustomMarketplaceTemplateResponseItem: # For GET /custom response and POST /custom response
+      type: object
+      description: "Represents a user-saved custom template."
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        flowData: 
+          type: string # Always string from CustomTemplate entity perspective
+          description: "Stringified JSON of the flow or tool definition."
+          nullable: true # Can be null if it's a tool and details are at top level
+        description: { type: string, nullable: true }
+        badge: { type: string, nullable: true }
+        framework: { type: string, nullable: true } # Entity stores as string (potentially stringified array)
+        usecases: # Service parses this from stringified JSON into array for response
+          type: array
+          items: { type: string }
+          nullable: true 
+        type: { $ref: '#/components/schemas/MarketplaceTemplateTypeEnum', nullable: true }
+        createdDate: { type: string, format: date-time }
+        updatedDate: { type: string, format: date-time }
+        # The service adds these top-level fields for 'Tool' type after parsing flowData from entity
+        iconSrc: { type: string, nullable: true, description: "Icon source, present if type is Tool (derived by service)." }
+        schema: { type: string, nullable: true, description: "Schema definition (stringified JSON), present if type is Tool (derived by service)." } 
+        func: { type: string, nullable: true, description: "Function definition (stringified code/JSON), present if type is Tool (derived by service)." }
+        categories: # Derived by service for non-Tool types
+          type: array
+          items: { type: string }
+          nullable: true
+      required: [id, name, createdDate, updatedDate]
+
+    ToolDefinitionForSave: 
+      type: object
+      description: "Structure for providing tool details when saving a custom tool template."
+      properties:
+        iconSrc: { type: string, nullable: true }
+        schema: { type: string, description: "Stringified JSON schema for the tool." }
+        func: { type: string, description: "Stringified code/JSON for the tool's function." }
+      # required: [schema, func] # Depending on tool requirements
+
+    SaveCustomTemplateRequestBody:
+      type: object
+      description: "Request body for saving a custom template."
+      properties:
+        name: { type: string, description: "Name for the custom template." }
+        description: { type: string, nullable: true }
+        badge: { type: string, nullable: true }
+        type: { $ref: '#/components/schemas/MarketplaceTemplateTypeEnum', nullable: true, description: "Type of template. Specify 'Tool' if providing tool details." }
+        usecases: # Sent as array, service stringifies for DB
+          type: array
+          items: { type: string }
+          nullable: true
+        chatflowId: { type: string, format: uuid, nullable: true, description: "ID of an existing chatflow to save as template. If provided, 'tool' details are ignored." }
+        tool: { $ref: '#/components/schemas/ToolDefinitionForSave', nullable: true, description: "Details of a tool to save as template. If provided, 'chatflowId' is ignored and 'type' should typically be 'Tool'." }
+      required:
+        - name
+      # Note: API enforces that either chatflowId or tool object must be provided in addition to name.
+
+    GetAllCustomTemplatesResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/CustomMarketplaceTemplateResponseItem'
+
+    DeleteCustomTemplateResponse: # Based on DeleteResult
+      $ref: '../shared/CommonSchemas.yaml#/components/schemas/DeleteResultSchema' 

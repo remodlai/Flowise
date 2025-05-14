@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: Load Prompts Schemas
+  version: '1.0'
+components:
+  schemas:
+    LoadPromptRequestBody:
+      type: object
+      required:
+        - promptName
+      properties:
+        promptName:
+          type: string
+          description: "The name of the prompt to load from Langchain Hub (e.g., 'hwchase17/react')."
+          example: "hwchase17/react"
+
+    LoadPromptResponse:
+      type: object
+      description: "Response after attempting to load a prompt from Langchain Hub."
+      properties:
+        status:
+          type: string
+          description: "Status of the operation."
+          example: "OK"
+        prompt:
+          type: string
+          description: "The name of the prompt that was requested."
+        templates:
+          type: object # Assuming a potentially complex object; could also be an array.
+          additionalProperties: true
+          description: "The parsed prompt templates obtained from the hub. Structure varies based on the prompt."
+      required:
+        - status
+        - prompt
+        - templates 

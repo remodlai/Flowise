@@ -1,0 +1,16 @@
+openapi: 3.1.0
+info:
+  title: Get Upload Path Schemas
+  version: '1.0'
+components:
+  schemas:
+    GetUploadPathResponse:
+      type: object
+      description: "Response schema for the get-upload-path endpoint."
+      properties:
+        storagePath:
+          type: string
+          description: "The server-configured base path for file uploads."
+          example: "/app/flowise/uploads"
+      required:
+        - storagePath 
