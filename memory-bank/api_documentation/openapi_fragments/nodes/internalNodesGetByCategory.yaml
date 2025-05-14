@@ -1,0 +1,30 @@
+"/nodes/category/{name}":
+  get:
+    summary: "INTERNAL: Get Node Component Definitions by Category"
+    operationId: "internalNodesGetByCategory"
+    tags: ["Nodes", "InternalAPI"]
+    parameters:
+      - name: name
+        in: path
+        required: true
+        description: "Name of the category to filter nodes by."
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "Success"
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/NodeComponentDefinition"
+      '412':
+        description: "Precondition Failed - category name not provided."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500': { $ref: "#/components/responses/InternalServerError" }
+    security:
+      - InternalApiKeyAuth: [] 

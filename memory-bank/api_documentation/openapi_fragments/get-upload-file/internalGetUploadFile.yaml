@@ -1,17 +1,43 @@
-"/get-upload-file/{chatflowId}/{chatId}/{folderName}/{fileName}":
+"/get-upload-file/":
   get:
     summary: "INTERNAL: Get Uploaded File"
     operationId: "internalGetUploadFile"
     tags: ["File Uploads", "InternalAPI"]
     parameters:
-      - {name: chatflowId, in: path, required: true, schema: {type: string}}
-      - {name: chatId, in: path, required: true, schema: {type: string}}
-      - {name: folderName, in: path, required: true, schema: {type: string}}
-      - {name: fileName, in: path, required: true, schema: {type: string}}
+      - name: chatflowId
+        in: query
+        required: true
+        schema: { type: string }
+        description: "ID of the chatflow."
+      - name: chatId
+        in: query
+        required: true
+        schema: { type: string }
+        description: "ID of the chat session."
+      - name: fileName
+        in: query
+        required: true
+        schema: { type: string }
+        description: "Name of the file to retrieve."
     responses:
       '200':
-        description: "File content."
+        description: "File content with appropriate Content-Disposition header."
         content:
-          application/octet-stream: {}
-          # Actual content type will vary based on the file
-      # ... other error responses
+          application/octet-stream: 
+            schema:
+              type: string
+              format: binary
+          image/*:
+            schema:
+              type: string
+              format: binary
+          text/*:
+            schema:
+              type: string
+              format: binary
+      '500':
+        description: "Internal Server Error or Invalid file path."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"

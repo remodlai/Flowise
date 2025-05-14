@@ -1,0 +1,35 @@
+openapi: 3.1.0
+info:
+  title: Fetch Links Schemas
+  version: '1.0'
+components:
+  schemas:
+    FetchLinksRequest:
+      type: object
+      required: [url, relativeLinksMethod, limit]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The URL to fetch links from.
+        relativeLinksMethod:
+          type: string
+          enum: [webCrawl, xmlScrape]
+          description: Method to use for finding relative links.
+        limit:
+          type: string
+          description: Maximum number of links to retrieve (will be parsed as integer).
+    
+    FetchLinksResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OK]
+          description: Status of the operation.
+        links:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Array of retrieved links. 

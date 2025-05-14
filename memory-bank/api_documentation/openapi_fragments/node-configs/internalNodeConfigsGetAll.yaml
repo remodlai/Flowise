@@ -1,0 +1,33 @@
+"/node-configs/":
+  post:
+    summary: "INTERNAL: Get Node UI Configurations"
+    description: "INTERNAL: Retrieves UI configurations for multiple node component types in a single request."
+    operationId: "internalNodeConfigsGetAll"
+    tags: ["Node Configurations", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NodeConfigsRequestBody"
+    responses:
+      '200':
+        description: "Successfully retrieved the requested node configurations."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NodeConfigsResponse"
+      '412':
+        description: "Precondition Failed (request body not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error (e.g., error reading node-configs.json)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    security:
+      - InternalApiKeyAuth: [] 

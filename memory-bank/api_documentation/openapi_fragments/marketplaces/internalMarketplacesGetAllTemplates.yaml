@@ -1,0 +1,21 @@
+"/marketplaces/templates":
+  get:
+    summary: "INTERNAL: Get All Marketplace Templates"
+    description: "INTERNAL: Retrieves all available marketplace template items (Chatflow, Tool, Agentflow, AgentflowV2) loaded from local JSON files."
+    operationId: "internalMarketplacesGetAllTemplates"
+    tags: ["Marketplaces", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved all marketplace templates."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetAllMarketplaceTemplatesResponse"
+      '500':
+        description: "Internal Server Error (e.g., error reading marketplace files)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    security:
+      - InternalApiKeyAuth: [] 

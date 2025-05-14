@@ -1,24 +1,29 @@
-# Endpoint Analysis: POST /api/v1/fetch-links/
+# Endpoint Analysis: GET /api/v1/fetch-links/
 
 **Module:** `fetch-links`
 **Operation ID:** `internalFetchLinks`
-**Description:** Fetches content from a given URL, optionally processing it to extract main content or specific data based on relative links or selectors. Uses `LinkContentRequest` from `flowise-components`.
+**Description:** Fetches links from a given URL using either web crawling or XML scraping methods. Returns an array of links up to the specified limit.
 
 **Key Files:**
 * Router: `routes/fetch-links/index.ts`
-* Controller: `controllers/fetch-links/index.ts` (Handler: `fetchLinks`)
-* Service: `services/fetch-links/index.ts` (Method: `fetchLinks`)
-* Component: `LinkContentRequest` from `flowise-components`
+* Controller: `controllers/fetch-links/index.ts` (Handler: `getAllLinks`)
+* Service: `services/fetch-links/index.ts` (Method: `getAllLinks`)
+* Components: `webCrawl`, `xmlScrape` from `flowise-components`
 
 **Authentication:** Requires API Key.
 
-**Request Body (`application/json`):**
-*   `url` (string, required): The URL to fetch.
-*   `relativeLinksMethod?` (string, optional): Method to find relative links (e.g., `web`, `github`).
-*   `relativeLinksLimit?` (number, optional): Max number of relative links to process.
-*   `selector?` (string, optional): CSS selector to extract specific content.
-*   `configuration?` (any, optional): Puppeteer configurations.
+**Query Parameters:**
+*   `url` (string, required): The URL to fetch links from (must be URL-encoded).
+*   `relativeLinksMethod` (string, required): Method to use for finding relative links (`webCrawl` or `xmlScrape`).
+*   `limit` (string, required): Maximum number of links to retrieve (will be parsed as integer).
 
 **Responses:**
-*   **`200 OK`:** Returns an array of `IDocument` objects from `flowise-components`.
+*   **`200 OK`:** Returns a response object with status and links array.
+    ```json
+    {
+      "status": "OK",
+      "links": ["https://example.com/page1", "https://example.com/page2", ...]
+    }
+    ```
+*   **`412 Precondition Failed`:** Missing required parameters.
 *   **`500 Internal Server Error`**

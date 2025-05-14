@@ -1,0 +1,8 @@
+---
+description: 
+globs: memory-bank/api_documentation/*
+alwaysApply: false
+---
+If reviewing/verifying documentation or other files and you discover errors, issues, or missing files, code, etc., PRIOR to calling the `verify_task` tool for Shrimp Task Manager, you must pause and discuss findings with the user, and make corrections as approved.
+
+ONLY after completing this, can you finally call `verify_task`.

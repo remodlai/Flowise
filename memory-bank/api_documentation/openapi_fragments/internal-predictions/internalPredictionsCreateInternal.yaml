@@ -17,43 +17,7 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/InternalPredictionRequest" # To be defined
-            type: object
-            required:
-              - question
-            properties:
-              question:
-                type: string
-                description: "The input query/question for the chatflow."
-              overrideConfig:
-                type: object
-                additionalProperties: true
-                nullable: true
-                description: "Key-value pairs to override node configurations."
-              history:
-                type: array
-                items: 
-                  $ref: "#/components/schemas/IChatMessage" # Assumes IChatMessage schema is defined elsewhere
-                nullable: true
-                description: "Array of previous chat messages for context."
-              chatId:
-                type: string
-                nullable: true
-                description: "ID of the chat session."
-              sessionId:
-                type: string
-                nullable: true
-                description: "Specific session ID for memory persistence."
-              stopNodeId:
-                type: string
-                nullable: true
-                description: "ID of a node at which flow execution should stop."
-              uploads:
-                type: array
-                items:
-                  $ref: "#/components/schemas/IFileUpload" # To be defined
-                nullable: true
-                description: "Array of uploaded file details."
+            $ref: "#/components/schemas/InternalPredictionRequest"
     responses:
       '200':
         description: "Prediction executed successfully. Response structure is dynamic based on the chatflow output."
@@ -82,5 +46,5 @@
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - InternalApiKeyAuth: []

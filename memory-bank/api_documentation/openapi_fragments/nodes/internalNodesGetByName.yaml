@@ -1,0 +1,28 @@
+"/nodes/{name}":
+  get:
+    summary: "INTERNAL: Get Node Component Definition by Name"
+    operationId: "internalNodesGetByName"
+    tags: ["Nodes", "InternalAPI"]
+    parameters:
+      - name: name
+        in: path
+        required: true
+        description: "Name of the node component to retrieve."
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "Success"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NodeComponentDefinition"
+      '412':
+        description: "Precondition Failed - name not provided."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500': { $ref: "#/components/responses/InternalServerError" }
+    security:
+      - InternalApiKeyAuth: [] 

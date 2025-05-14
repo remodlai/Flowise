@@ -1,0 +1,61 @@
+openapi: 3.1.0
+info:
+  title: Node Configs Schemas
+  version: '1.0'
+components:
+  schemas:
+    NodeConfigsRequestBody:
+      type: array
+      description: "Array of node component names to retrieve configurations for."
+      items:
+        type: string
+        description: "Internal name of a node component (e.g., 'stringPrompt')."
+      example: ["stringPrompt", "llmChain", "chatPromptTemplate"]
+      
+    NodeConfigItem:
+      type: object
+      description: "Configuration for a single node component type."
+      properties:
+        inputParams:
+          type: array
+          description: "Array of input parameter definitions for the node."
+          items:
+            $ref: "../../shared/flowiseComponentSchemas.yaml#/components/schemas/INodeParamSchema"
+        inputAnchors:
+          type: array
+          description: "Array of input anchor definitions for the node."
+          items:
+            type: object
+            additionalProperties: true
+        outputAnchors:
+          type: array
+          description: "Array of output anchor definitions for the node."
+          items:
+            type: object
+            additionalProperties: true
+        style:
+          type: object
+          description: "Style configuration for the node's UI appearance."
+          additionalProperties: true
+        version:
+          type: integer
+          description: "Version number of the node configuration."
+        icon:
+          type: string
+          description: "Icon identifier or data URI for the node."
+      additionalProperties: true
+      
+    NodeConfigsResponse:
+      type: object
+      description: "Map of node component names to their configurations."
+      additionalProperties:
+        $ref: "#/components/schemas/NodeConfigItem"
+      example: 
+        "stringPrompt": 
+          {
+            "inputParams": [],
+            "inputAnchors": [],
+            "outputAnchors": [],
+            "style": { "width": 180 },
+            "version": 1
+          } 

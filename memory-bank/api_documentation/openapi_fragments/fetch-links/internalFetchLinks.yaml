@@ -1,29 +1,45 @@
 "/fetch-links/":
-  post:
-    summary: "INTERNAL: Fetch Content from URL(s)"
+  get:
+    summary: "INTERNAL: Fetch Links from URL"
     operationId: "internalFetchLinks"
     tags: ["Fetch Links", "InternalAPI"]
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            # $ref: "#/components/schemas/FetchLinksRequest" # To be defined
-            type: object
-            required: [url]
-            properties:
-              url: { type: string, format: url }
-              relativeLinksMethod: { type: string, nullable: true }
-              relativeLinksLimit: { type: integer, nullable: true }
-              selector: { type: string, nullable: true }
-              configuration: { type: object, additionalProperties: true, nullable: true, description: "Puppeteer launch options" }
+    parameters:
+      - name: url
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uri
+        description: "The URL to fetch links from (URL-encoded)."
+      - name: relativeLinksMethod
+        in: query
+        required: true
+        schema:
+          type: string
+          enum: [webCrawl, xmlScrape]
+        description: "Method to use for finding relative links."
+      - name: limit
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "Maximum number of links to retrieve (will be parsed as integer)."
     responses:
       '200':
-        description: "Successfully fetched and processed content."
+        description: "Successfully fetched links."
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: "#/components/schemas/IDocument" # Placeholder from flowise-components
-      # ... other error responses
+              $ref: "#/components/schemas/FetchLinksResponse"
+      '412':
+        description: "Precondition Failed - Missing required parameters."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"

@@ -4,14 +4,56 @@
     operationId: "internalChatMessagesGetAllInternal"
     tags: ["Chat Messages", "InternalAPI"]
     parameters:
-      - name: id # chatflowId
+      - name: id
         in: path
         required: true
+        description: "ID of the chatflow."
         schema: { type: string, format: uuid }
-      # Add other query params from getAllChatMessages, noting chatType is fixed to INTERNAL
-      - {name: order, in: query, schema: {type: string, enum: [ASC, DESC], default: ASC}, required: false}
-      - {name: chatId, in: query, schema: {type: string}, required: false}
-      # ... etc. for other filters
+      - name: order
+        in: query
+        required: false
+        description: "Sort order for results."
+        schema: { type: string, enum: [ASC, DESC], default: ASC }
+      - name: chatId
+        in: query
+        required: false
+        description: "Filter by chat ID."
+        schema: { type: string }
+      - name: memoryType
+        in: query
+        required: false
+        description: "Filter by memory type."
+        schema: { type: string }
+      - name: sessionId
+        in: query
+        required: false
+        description: "Filter by session ID."
+        schema: { type: string }
+      - name: messageId
+        in: query
+        required: false
+        description: "Filter by message ID."
+        schema: { type: string }
+      - name: startDate
+        in: query
+        required: false
+        description: "Filter by start date (ISO format)."
+        schema: { type: string, format: date-time }
+      - name: endDate
+        in: query
+        required: false
+        description: "Filter by end date (ISO format)."
+        schema: { type: string, format: date-time }
+      - name: feedback
+        in: query
+        required: false
+        description: "Filter by whether message has feedback."
+        schema: { type: boolean }
+      - name: feedbackType
+        in: query
+        required: false
+        description: "Filter by feedback type."
+        schema: { type: array, items: { type: string, enum: [THUMBS_UP, THUMBS_DOWN] } }
     responses:
       '200':
         description: "Successfully retrieved internal chat messages."
@@ -21,4 +63,15 @@
               type: array
               items:
                 $ref: "#/components/schemas/ChatMessageWithFeedback"
-      # ... other error responses
+      '412':
+        description: "Precondition Failed - ID not provided."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"

@@ -8,8 +8,8 @@
 
 **Key Files:**
 * Router: `routes/flow-config/index.ts`
-* Controller: `controllers/flow-configs/index.ts` (Handler: `getSpecificFlowConfig`)
-* Service: `services/flow-configs/index.ts` (Method: `getSpecificFlowConfig`)
+* Controller: `controllers/flow-configs/index.ts` (Handler: `getSingleFlowConfig`)
+* Service: `services/flow-configs/index.ts` (Method: `getSingleFlowConfig`)
 * Entity: `ChatFlow.ts` (as it reads `chatbotConfig`, `speechToText` from it)
 * Utility: `utils/getUploadsConfig.ts`
 

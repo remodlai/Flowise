@@ -49,6 +49,49 @@ components:
            description: Optional key-value pairs for variable overrides. Typically provided via form-data rather than JSON body.
            additionalProperties: true
 
+    InternalPredictionRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          description: "The primary input/query for the chatflow."
+        overrideConfig:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: "Key-value pairs to override node configurations within the chatflow for this specific execution."
+        history:
+          type: array
+          items:
+            $ref: "../../shared/CommonSchemas.yaml#/components/schemas/ChatMessage"
+          nullable: true
+          description: "An array of previous chat messages to provide context."
+        chatId:
+          type: string
+          nullable: true
+          description: "ID of the chat session. If not provided, a new one might be generated or handled by session management."
+        sessionId:
+          type: string
+          nullable: true
+          description: "Specific session ID to use for memory persistence."
+        stopNodeId:
+          type: string
+          nullable: true
+          description: "ID of a node at which the flow execution should stop prematurely."
+        uploads:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileUploadChat"
+          nullable: true
+          description: "Array of uploaded file details, if the flow uses file inputs."
+        streaming:
+          type: boolean
+          nullable: true
+          description: "If true, the response will be streamed using SSE. Otherwise, a single JSON response will be returned."
+          default: false
+
     FileUploadChat:
       type: object
       required:
