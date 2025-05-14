@@ -1,0 +1,34 @@
+openapi: 3.1.0
+info:
+  title: Attachments Schemas
+  version: '1.0'
+components:
+  schemas:
+    Attachment:
+      type: object
+      description: Represents a processed file attachment.
+      properties:
+        name:
+          type: string
+          description: Original name of the uploaded file.
+        mimeType:
+          type: string
+          description: MIME type of the uploaded file.
+        size:
+          type: integer
+          format: int64 # Using int64 for file sizes
+          description: Size of the uploaded file in bytes.
+        content:
+          type: string
+          description: "Content of the file. This might be the base64 encoded file content if requested, or processed textual content if handled by a FileLoader node."
+      required:
+        - name
+        - mimeType
+        - size
+        - content
+
+    CreateAttachmentResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/Attachment'
+      description: A list of processed file attachments. 

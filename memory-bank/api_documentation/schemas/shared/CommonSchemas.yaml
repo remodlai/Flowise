@@ -17,15 +17,15 @@ components:
         content:
           type: string
           description: The textual content of the message.
-        name: # For tool calls
+        name:
           type: string
           description: The name of the tool that was called (if role is 'tool').
           nullable: true
-        tool_call_id: # For tool calls
+        tool_call_id:
           type: string
           description: The ID of the tool call (if role is 'tool').
           nullable: true
-        tool_calls: # For assistant messages requesting tool calls
+        tool_calls:
           type: array
           items:
             type: object
@@ -81,5 +81,5 @@ components:
           description: "Raw results returned by the database driver."
         affected:
           type: integer
-          nullable: true # Can be null if no rows were affected or if the operation did not return an affected count.
+          nullable: true
           description: "Number of rows affected by the delete operation."

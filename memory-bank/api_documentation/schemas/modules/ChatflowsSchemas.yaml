@@ -1,33 +1,131 @@
 openapi: 3.1.0
 info:
-  title: Chatflows Module Schemas
+  title: Chatflows Schemas
   version: '1.0'
 components:
   schemas:
-    ChatflowTypeEnum: # From Interface.ts
+    ChatflowTypeEnum:
       type: string
-      enum: [CHATFLOW, MULTIAGENT, AGENTFLOW, ASSISTANT] # AGENTFLOW is V2, MULTIAGENT is older agent
-      description: "The type of the chatflow."
+      enum: [CHATFLOW, MULTIAGENT, ASSISTANT, AGENTFLOW]
+      description: The type of the chatflow.
 
-    ChatFlowSchema: # Based on ChatFlow entity and IChatFlow interface
+    Chatflow:
       type: object
+      description: Represents a Chatflow configuration.
       properties:
-        id: { type: string, format: uuid }
-        name: { type: string }
-        flowData: { type: string, description: "JSON string representing the ReactFlow graph." }
-        deployed: { type: boolean, nullable: true }
-        isPublic: { type: boolean, nullable: true }
-        apikeyid: { type: string, format: uuid, nullable: true, description: "ID of the API key associated with this chatflow, if any." }
-        chatbotConfig: { type: string, nullable: true, description: "JSON string of chatbot UI configurations." } 
-        speechToText: { type: string, nullable: true, description: "JSON string of speech-to-text configurations."}
-        analytic: { type: string, nullable: true, description: "JSON string of analytics configurations."}
-        category: { type: string, nullable: true }
-        type: { $ref: '#/components/schemas/ChatflowTypeEnum', nullable: true }
-        createdDate: { type: string, format: date-time }
-        updatedDate: { type: string, format: date-time }
-        followUpPrompts: { type: string, nullable: true, description: "JSON string for follow-up prompts config."}
-        apiConfig: { type: string, nullable: true, description: "JSON string for API configuration if any."}
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the chatflow.
+          readOnly: true
+        name:
+          type: string
+          description: Name of the chatflow.
+        flowData:
+          type: string # stringified JSON object
+          description: "Stringified JSON object representing the chatflow's nodes and edges (e.g., IReactFlowObject structure)."
+        deployed:
+          type: boolean
+          nullable: true
+          description: Indicates if the chatflow is currently deployed.
+        isPublic:
+          type: boolean
+          nullable: true
+          description: Indicates if the chatflow is publicly accessible.
+        apikeyid:
+          type: string
+          # format: uuid # The column is varchar, not explicitly uuid in migration for chat_flow.apikeyid
+          nullable: true
+          description: Optional API key ID linked to this chatflow for specific access control.
+        chatbotConfig:
+          type: string # stringified JSON object
+          nullable: true
+          description: "Stringified JSON object containing UI and behavioral configurations for the chatbot."
+        apiConfig:
+          type: string # stringified JSON object
+          nullable: true
+          description: "Stringified JSON object for API-specific configurations for the chatflow."
+        analytic:
+          type: string # stringified JSON object
+          nullable: true
+          description: "Stringified JSON object for analytics configurations."
+        speechToText:
+          type: string # stringified JSON object
+          nullable: true
+          description: "Stringified JSON object for speech-to-text service configurations."
+        followUpPrompts:
+          type: string # stringified JSON object
+          nullable: true
+          description: "Stringified JSON array for follow-up prompt suggestions."
+        category:
+          type: string
+          nullable: true
+          description: Category of the chatflow, for organization.
+        type:
+          $ref: '#/components/schemas/ChatflowTypeEnum'
+          nullable: true
+        createdDate:
+          type: string
+          format: date-time
+          description: Timestamp of when the chatflow was created.
+          readOnly: true
+        updatedDate:
+          type: string
+          format: date-time
+          description: Timestamp of when the chatflow was last updated.
+          readOnly: true
       required:
         - id
         - name
         - flowData
+        - createdDate
+        - updatedDate
+
+    ChatflowRequestBody:
+      type: object
+      description: Request body for creating or updating a chatflow.
+      properties:
+        name:
+          type: string
+          description: Name of the chatflow.
+        flowData:
+          type: string # stringified JSON object
+          description: "Stringified JSON object representing the chatflow's nodes and edges."
+        deployed:
+          type: boolean
+          nullable: true
+        isPublic:
+          type: boolean
+          nullable: true
+        apikeyid:
+          type: string
+          nullable: true
+        chatbotConfig:
+          type: string # stringified JSON object
+          nullable: true
+        apiConfig:
+          type: string # stringified JSON object
+          nullable: true
+        analytic:
+          type: string # stringified JSON object
+          nullable: true
+        speechToText:
+          type: string # stringified JSON object
+          nullable: true
+        followUpPrompts:
+          type: string # stringified JSON object
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        type:
+          $ref: '#/components/schemas/ChatflowTypeEnum'
+          nullable: true
+      required: # Minimum required for a meaningful create/update
+        - name
+        - flowData
+
+    GetAllChatflowsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/Chatflow'

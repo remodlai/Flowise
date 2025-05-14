@@ -1,83 +1,309 @@
 components:
   schemas:
-    INodeParamOptionSchema: # Based on INodeParams options from flowise-components
-      type: object
-      properties:
-        label: { type: string }
-        name: { type: string }
-        description: { type: string, nullable: true }
-      required: [label, name]
-
     INodeParamSchema: # Based on INodeParams from flowise-components
       type: object
+      description: "Defines a parameter for a node, including its type, UI presentation, and validation."
       properties:
-        label: { type: string }
-        name: { type: string }
-        type: { type: string, description: "e.g., string, number, boolean, options, file, json, credential, asyncOptions" }
-        description: { type: string, nullable: true }
-        default: { type: string, nullable: true, description: "Can be of any type, represented as string for flexibility." } # Actual type can vary
+        label:
+          type: string
+          description: "Display label for the parameter in the UI."
+        name:
+          type: string
+          description: "Internal name/key for the parameter."
+        type:
+          type: string
+          description: "The type of the parameter, determining its UI control and validation."
+          enum:
+            - asyncOptions
+            - asyncMultiOptions
+            - options
+            - multiOptions
+            - datagrid
+            - string
+            - number
+            - boolean
+            - password
+            - json
+            - code
+            - date
+            - file
+            - folder
+            - tabs
+        description:
+          type: string
+          nullable: true
+          description: "Tooltip description for the parameter."
+        warning:
+          type: string
+          nullable: true
+          description: "A warning message to display with this parameter."
+        default:
+          description: "Default value for the parameter. Can be a primitive, a JSON object, or an array of JSON objects. Its specific structure depends on the parameter's 'type'."
+          nullable: true
         options:
           type: array
           items:
-            $ref: '#/components/schemas/INodeParamOptionSchema'
+            $ref: '#/components/schemas/INodeOptionsValue'
           nullable: true
-        fileType: { type: string, nullable: true, description: "e.g., .pdf,.txt,.json" }
-        optional: { type: boolean, nullable: true }
-        rows: { type: integer, nullable: true }
-        placeholder: { type: string, nullable: true }
-        credentialNames: { type: array, items: { type: string }, nullable: true }
-        loadMethod: { type: string, nullable: true, description: "Name of method on node class to load options."}
-        # Additional less common fields like list, acceptVariable, etc. could be added
-      required: [label, name, type]
+          description: "Array of predefined options, used if 'type' is 'options' or 'multiOptions'."
+        datagrid:
+          type: array
+          items:
+            type: object # Represents ICommonObject
+            additionalProperties: true
+          nullable: true
+          description: "Data for a datagrid input type."
+        credentialNames:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: "Array of credential names this parameter can accept, if 'type' is 'credential'."
+        optional:
+          description: "Indicates if the parameter is optional. Can also be an INodeDisplay object to conditionally show/hide other params."
+          nullable: true
+          anyOf:
+            - type: boolean
+            - type: object # Represents INodeDisplay
+              additionalProperties: true 
+              description: "Object defining conditions for showing/hiding other parameters based on this parameter's value."
+        step:
+          type: number
+          nullable: true
+          description: "Step value for number inputs."
+        rows:
+          type: integer
+          nullable: true
+          description: "Number of rows for multiline string inputs."
+        list:
+          type: boolean
+          nullable: true
+          description: "Indicates if the parameter should be represented as a list in the UI."
+        acceptVariable:
+          type: boolean
+          nullable: true
+          description: "Whether this parameter can accept a variable as input."
+        acceptNodeOutputAsVariable:
+          type: boolean
+          nullable: true
+          description: "Whether this parameter can accept another node's output as a variable."
+        placeholder:
+          type: string
+          nullable: true
+          description: "Placeholder text for the input field."
+        fileType:
+          type: string
+          nullable: true
+          description: "Comma-separated list of accepted file extensions (e.g., .pdf,.txt,.json) if 'type' is 'file'."
+        additionalParams:
+          type: boolean
+          nullable: true
+          description: "Indicates if additional parameters are allowed or expected."
+        loadMethod:
+          type: string
+          nullable: true
+          description: "Name of a method on the node class to dynamically load options for 'asyncOptions' or 'asyncMultiOptions'."
+        loadConfig:
+          type: boolean
+          nullable: true
+          description: "Used with loadMethod, specific purpose may vary."
+        hidden:
+          type: boolean
+          nullable: true
+          description: "Whether this parameter is hidden in the UI by default."
+        hideCodeExecute:
+          type: boolean
+          nullable: true
+          description: "For 'code' type parameters, whether to hide the execute button."
+        codeExample:
+          type: string
+          nullable: true
+          description: "Example code for 'code' type parameters."
+        hint:
+          type: object # TS: Record<string, string>
+          additionalProperties: { type: string }
+          nullable: true
+          description: "Hints related to specific input values or scenarios."
+        tabIdentifier:
+          type: string
+          nullable: true
+          description: "Identifier for a tab, used if 'type' is 'tabs'."
+        tabs:
+          type: array
+          items:
+            $ref: '#/components/schemas/INodeParamSchema' # Recursive definition
+          nullable: true
+          description: "Nested parameters defined within tabs."
+        refresh:
+          type: boolean
+          nullable: true
+          description: "Indicates if changing this parameter should trigger a refresh of other parameters."
+        freeSolo:
+          type: boolean
+          nullable: true
+          description: "Allows free-form input in an options-based field if true."
+        loadPreviousNodes:
+          type: boolean
+          nullable: true
+          description: "For specific parameter types, indicates if options should be loaded from previous nodes in the flow."
+        array:
+          type: array
+          items:
+            $ref: '#/components/schemas/INodeParamSchema' # Recursive definition
+          nullable: true
+          description: "Defines a list of parameters, used for array-like inputs where each item has its own set of fields."
+        show:
+          type: object # Represents INodeDisplay
+          additionalProperties: true 
+          nullable: true
+          description: "Object defining conditions for when this parameter should be shown."
+        hide:
+          type: object # Represents INodeDisplay
+          additionalProperties: true
+          nullable: true
+          description: "Object defining conditions for when this parameter should be hidden."
+        generateDocStoreDescription:
+          type: boolean
+          nullable: true
+          description: "For document store related nodes, indicates if a description should be auto-generated."
+        generateInstruction:
+          type: boolean
+          nullable: true
+          description: "For LLM nodes, indicates if an instruction/prompt should be auto-generated."
+      required:
+        - label
+        - name
+        - type
 
-    INodeData: # Based on INodeData from flowise-components (INodeDataFromComponent + INodeParams arrays)
+    INodeData: # Based on INodeData from flowise-components (INodeDataFromComponent + INodeParams arrays from server Interface.ts)
       type: object
       properties:
+        # Properties from INodeProperties (base of components/INodeData)
         label: { type: string }
-        name: { type: string } # Component name
-        version: { type: integer }
+        name: { type: string, description: "Component name, e.g., ChatOpenAI" }
+        version: { type: integer, description: "Node version, e.g., 1"}
         description: { type: string, nullable: true }
-        type: { type: string } # e.g., "ChatModel", "Tool"
-        category: { type: string }
-        icon: { type: string, nullable: true } # iconSrc
-        baseClasses: { type: array, items: { type: string } }
-        inputs: # This is a free-form object in INodeDataFromComponent, actual parameters are defined in inputParams
+        type: { type: string, description: "Functional type of the node, e.g., ChatModel, Tool, LLM" }
+        category: { type: string, description: "UI category, e.g., Chat Models, Tools" }
+        icon: { type: string, description: "Source for the node icon (e.g., base64 data URI or name if bundled)" } # from INodeProperties, not nullable
+        baseClasses: { type: array, items: { type: string }, description: "Base classes this node implements/extends" }
+        tags: { type: array, items: { type: string }, nullable: true, description: "Descriptive tags for the node type" } # from INodeProperties
+        filePath: { type: string, nullable: true, description: "Path to the node's source file (development/debug)" } # from INodeProperties
+        badge: { type: string, nullable: true, description: "Optional badge text displayed on the node in UI"} # from INodeProperties
+        deprecateMessage: {type: string, nullable: true, description: "Message if node is deprecated"} # from INodeProperties
+        hideOutput: {type: boolean, nullable: true, description: "Hide output anchor in UI"} # from INodeProperties
+        hideInput: {type: boolean, nullable: true, description: "Hide input anchor in UI"} # from INodeProperties
+        author: {type: string, nullable: true} # from INodeProperties
+        documentation: {type: string, format: uri, nullable: true, description: "URL to external documentation"} # from INodeProperties
+        color: {type: string, nullable: true, description: "Custom color for the node in UI"} # from INodeProperties
+        hint: {type: string, nullable: true, description: "Hint text displayed in UI"} # from INodeProperties
+        
+        # Properties specific to components/INodeData
+        id: { type: string, description: "Instance ID of the node within a flow." } # Crucial for identifying the node in a flow
+        inputs: 
           type: object
           additionalProperties: true 
-          description: "Key-value pairs of current input values for the node instance."
-        inputParams: # Definition of the parameters
+          description: "Key-value pairs of current input values for the node instance. Structure depends on the node's inputParams."
+        outputs: 
+          type: object
+          additionalProperties: true
+          description: "Key-value pairs of current output values from the node instance (if applicable). Structure depends on the node's output definition."
+        credential: { type: string, format: uuid, nullable: true, description: "ID of credential instance used by this node instance." } # Credential instance ID
+
+        # Properties from server/src/Interface.ts extension of INodeData
+        inputParams: 
           type: array
           items:
             $ref: '#/components/schemas/INodeParamSchema'
+          description: "Detailed definitions of the input parameters this node instance expects."
         inputAnchors:
           type: array
           items:
-            $ref: '#/components/schemas/INodeParamSchema' # Anchors often share structure with params
+            $ref: '#/components/schemas/INodeParamSchema' 
+          description: "Definitions of the input anchors for this node instance."
         outputAnchors:
           type: array
           items:
             $ref: '#/components/schemas/INodeParamSchema'
-        outputs: # Similar to inputs, the actual output fields might be defined elsewhere or implicitly
-          type: object
-          additionalProperties: true
-          description: "Key-value pairs of current output values from the node instance (if applicable)."
-        credential: { type: string, format: uuid, nullable: true, description: "ID of credential used by this node." }
-        # id: { type: string, description: "Instance ID of the node in a flow." } - Often part of ReactFlowNode, not strictly INodeData for this API
-        # ... other potential fields from INodeDataFromComponent like code, func ...
-      required: [label, name, version, type, category, baseClasses]
+          description: "Definitions of the output anchors for this node instance."
+      required:
+        - label
+        - name
+        - version
+        - type
+        - category
+        - icon # icon is mandatory in INodeProperties
+        - baseClasses
+        - id # Node instance id is crucial
+        - inputParams
+        - inputAnchors
+        - outputAnchors
 
-    INodeOptionsValue: # From flowise-components
+    INodeOptionsValue: # From flowise-components, corrected
       type: object
+      description: "Represents an option for a node parameter, typically used in dropdowns."
       properties:
-        label: { type: string }
-        name: { type: string }
-        value: { type: string, nullable: true, description: "Optional value, if different from name" }
-        description: { type: string, nullable: true }
-        icon: { type: string, nullable: true, description: "Base64 data URI for an icon." }
-        parentGroup: { type: string, nullable: true, description: "For grouping options in UI."}
-      required: [label, name]
+        label:
+          type: string
+          description: "The display label for the option."
+        name:
+          type: string
+          description: "The actual value for the option."
+        description:
+          type: string
+          nullable: true
+          description: "An optional description for the option."
+        imageSrc:
+          type: string
+          nullable: true
+          description: "An optional URL or path to an image for the option."
+      required:
+        - label
+        - name
+
+    INodeOutputsValueSchema: # NEW
+      type: object
+      description: "Defines an output anchor or a return value of a node type."
+      properties:
+        label:
+          type: string
+          description: "Display label for the output."
+        name:
+          type: string
+          description: "Internal name/key for the output."
+        baseClasses:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: "Array of base classes this output is compatible with."
+        description:
+          type: string
+          nullable: true
+          description: "Optional description for the output."
+        hidden:
+          type: boolean
+          nullable: true
+          description: "Whether this output is hidden in the UI."
+        isAnchor:
+          type: boolean
+          nullable: true
+          description: "Indicates if this output primarily serves as an anchor point."
+      required:
+        - label
+        - name
 
     NodeComponentDefinition: # Based on INode from flowise-components / services/nodes/getAllNodes
       allOf: 
-        - $ref: '#/components/schemas/INodeData'
-      # No additional properties here, INodeData covers most of what's returned by GET /nodes endpoints.
+        - $ref: '#/components/schemas/INodeData' # INodeData now includes INodeProperties fields
+      properties:
+        credential:
+          $ref: '#/components/schemas/INodeParamSchema' # Definition of the credential selector for this node type
+          nullable: true
+          description: "Defines how a credential should be selected for this node type, if applicable."
+        output:
+          type: array
+          items:
+            $ref: '#/components/schemas/INodeOutputsValueSchema'
+          nullable: true
+          description: "Definitions of the outputs for this node type."

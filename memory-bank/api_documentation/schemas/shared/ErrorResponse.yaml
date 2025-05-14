@@ -1,25 +1,33 @@
 # Filename: api_documentation/schemas/shared/ErrorResponse.yaml
+openapi: 3.1.0
+info:
+  title: Shared Error Response Schema
+  version: '1.0'
 components:
   schemas:
     ErrorResponse:
       type: object
+      required:
+        - statusCode
+        - success
+        - message
       properties:
         statusCode:
           type: integer
-          description: "HTTP status code."
-        error: # Often the HTTP status text like "Not Found" or "Bad Request"
-          type: string
-          description: "Short error description (e.g., 'Not Found', 'Bad Request')."
-          nullable: true # Controller sometimes just throws new Error(message)
+          format: int32
+          description: HTTP status code.
+        success:
+          type: boolean
+          description: Indicates if the request was successful (always false for an error response).
+          example: false
         message:
           type: string
-          description: "Detailed error message."
-        # Stack trace is usually conditional for dev mode and not part of a standard API contract
-        # For Remodl Core, it seems the global errorHandlerMiddleware includes it if not production
-        stack:
+          description: Detailed error message.
+        requestId:
           type: string
-          description: "Stack trace (typically available in development mode only)."
+          description: Optional request identifier for tracing (not currently implemented in the global error handler).
           nullable: true
-      required:
-        - statusCode
-        - message
+        stack:
+          type: string # In production, if not present, an empty object {} might be sent by the handler.
+          description: "Stack trace (typically available in development mode only; may be an empty object in production if suppressed)."
+          nullable: true

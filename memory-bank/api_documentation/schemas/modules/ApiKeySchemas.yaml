@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: API Key Schemas
+  version: '1.0'
+components:
+  schemas:
+    ApiKey:
+      type: object
+      description: Represents an API Key object as returned by the API.
+      properties:
+        id:
+          type: string
+          format: uuid 
+          description: Unique identifier for the API key.
+        keyName:
+          type: string
+          description: A user-defined name for the API key.
+        apiKey:
+          type: string
+          description: "The actual API key value. Returned by the API. Handle with care."
+        apiSecret: 
+          type: string
+          description: "The stored salted and hashed version of the API key. SECURITY NOTE: This field is returned by the API but should ideally not be exposed or used client-side beyond initial setup if absolutely necessary."
+        updatedDate:
+          type: string
+          format: date-time
+          description: The date and time the API key was last updated.
+      required:
+        - id
+        - keyName
+        - apiKey
+        - apiSecret 
+        - updatedDate
+
+    ApiKeyRequestBody:
+      type: object
+      description: Request body for creating or updating an API Key.
+      required:
+        - keyName
+      properties:
+        keyName:
+          type: string
+          description: User-defined name for the API key.
+          example: "My Application Key" 

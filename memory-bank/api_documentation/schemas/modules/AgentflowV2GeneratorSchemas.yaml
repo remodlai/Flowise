@@ -1,0 +1,85 @@
+openapi: 3.1.0
+info:
+  title: AgentflowV2Generator Schemas
+  version: '1.0'
+components:
+  schemas:
+    AgentflowV2RequestBody:
+      type: object
+      required:
+        - question
+        - selectedChatModel
+      properties:
+        question:
+          type: string
+          description: The user's question or prompt to generate the agent flow.
+        selectedChatModel:
+          # Refers to an ICommonObject, typically representing a chat model configuration.
+          # This can be a complex object, so using additionalProperties: true for flexibility.
+          type: object
+          additionalProperties: true
+          description: The configuration of the selected chat model to be used for generation.
+          example: 
+            modelName: "gpt-3.5-turbo"
+            temperature: 0.7
+            # ... other chat model params
+
+    # NodeType and EdgeType are deeply nested and similar to IReactFlowNode and IReactFlowEdge.
+    # We will reference the existing schemas from flowiseComponentSchemas.yaml after they are audited.
+    # For now, we assume they exist there or will be created/audited there.
+    # Let's use placeholder names that we expect to exist in flowiseComponentSchemas.yaml or server/Interface.ts schemas.
+
+    AgentflowV2Node: # Placeholder, expecting to refine this to $ref to ReactFlowNode or similar
+      $ref: '../shared/flowiseComponentSchemas.yaml#/components/schemas/INodeData' 
+      # Ideally, this should be something like IReactFlowNode which includes position etc.
+      # INodeData is the 'data' part of IReactFlowNode.
+      # We will refine this reference after flowiseComponentSchemas.yaml is fully audited.
+
+    AgentflowV2Edge: # Placeholder, expecting to refine this to $ref to ReactFlowEdge or similar
+      $ref: '../shared/flowiseComponentSchemas.yaml#/components/schemas/IReactFlowEdge' 
+      # Assuming IReactFlowEdge will be defined in flowiseComponentSchemas.yaml
+
+    AgentflowV2SuccessResponse:
+      type: object
+      properties:
+        description:
+          type: string
+          nullable: true
+        usecases:
+          type: array
+          items:
+            type: string
+          nullable: true
+        nodes:
+          type: array
+          items:
+            # This should ideally be a schema representing a flow node, e.g., IReactFlowNode
+            $ref: '#/components/schemas/AgentflowV2Node' 
+        edges:
+          type: array
+          items:
+            # This should ideally be a schema representing a flow edge, e.g., IReactFlowEdge
+            $ref: '#/components/schemas/AgentflowV2Edge'
+      required:
+        - nodes
+        - edges
+
+    AgentflowV2ValidationErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message indicating validation failure.
+        rawResponse:
+          description: The original raw response that failed validation.
+          # Could be string or object, thus flexible
+          type: object 
+          additionalProperties: true 
+          # Example if it were a string: type: string 
+      required:
+        - error
+
+    AgentflowV2Response:
+      oneOf:
+        - $ref: '#/components/schemas/AgentflowV2SuccessResponse'
+        - $ref: '#/components/schemas/AgentflowV2ValidationErrorResponse' 

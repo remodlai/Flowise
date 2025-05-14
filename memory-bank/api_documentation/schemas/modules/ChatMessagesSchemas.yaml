@@ -1,0 +1,259 @@
+openapi: 3.1.0
+info:
+  title: Chat Messages Schemas
+  version: '1.0'
+components:
+  schemas:
+    ChatMessageSourceDocument:
+      type: object
+      description: Represents a source document associated with a chat message.
+      properties:
+        pageContent:
+          type: string
+          description: The textual content of the source document chunk.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Metadata associated with the source document chunk.
+      required:
+        - pageContent
+        - metadata
+
+    ChatMessageUsedTool:
+      type: object
+      description: Describes a tool that was used during a chat turn.
+      properties:
+        tool:
+          type: string
+          description: The name of the tool used.
+        toolInput:
+          type: object
+          additionalProperties: true
+          description: The input provided to the tool.
+        toolOutput:
+          description: The output received from the tool (can be string or structured object).
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+        sourceDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageSourceDocument'
+          nullable: true
+          description: Source documents associated with the tool's output.
+        error:
+          type: string
+          nullable: true
+          description: Any error message if the tool execution failed.
+      required:
+        - tool
+        - toolInput
+        - toolOutput # Assuming output is always present, even if null/empty for some tools
+
+    ChatMessageFileUpload: # Based on IFileUpload from flowise-components
+      type: object
+      description: Represents a file uploaded as part of a chat message.
+      properties:
+        data: 
+          type: string
+          format: byte 
+          description: Base64 encoded content of the file.
+          nullable: true
+        type:
+          type: string
+          description: "Type of the uploaded content (e.g., 'dataURL', 'file' - indicates how data is provided)."
+        name:
+          type: string
+          description: "Filename of the uploaded file."
+        mime:
+          type: string
+          description: "MIME type of the uploaded file."
+      required:
+        - type
+        - name
+        - mime
+
+    ChatMessageActionElement:
+      type: object
+      description: An element within a chat message action, often for UI presentation.
+      properties:
+        type: { type: string, description: "Type of the action element (e.g., button)." }
+        label: { type: string, description: "Display label for the action element." }
+      required: [type, label]
+
+    ChatMessageActionMapping:
+      type: object
+      description: Defines mappings for action outcomes.
+      properties:
+        approve: { type: string, description: "Identifier or data for the approve action." }
+        reject: { type: string, description: "Identifier or data for the reject action." }
+        toolCalls: 
+          type: array
+          description: "Potential tool calls associated with this action mapping."
+          items:
+            type: object # Represents any object for tool call details
+            additionalProperties: true 
+      # Assuming approve and reject are generally present if mapping exists.
+      # required: [approve, reject] # Making it flexible for now
+
+    ChatMessageAction: # Based on IAction from flowise-components
+      type: object
+      description: Represents an action associated with a chat message, potentially for user interaction.
+      properties:
+        id: { type: string, nullable: true, description: "Optional ID for the action." }
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageActionElement'
+          nullable: true
+          description: "UI elements related to this action."
+        mapping:
+          $ref: '#/components/schemas/ChatMessageActionMapping'
+          nullable: true
+          description: "Mappings for outcomes of this action."
+
+    ChatMessageAgentReasoning: # Based on IAgentReasoning from flowise-components
+      type: object
+      description: Captures the reasoning steps of an agent for a given turn.
+      properties:
+        agentName: { type: string, description: "Name of the agent providing the reasoning." }
+        messages: 
+          type: array 
+          items: { type: string }
+          description: "Sequence of messages or thoughts representing the agent's reasoning process."
+        next: { type: string, nullable: true, description: "Next step or agent in a multi-agent sequence, if applicable." }
+        instructions: { type: string, nullable: true, description: "Instructions guiding this reasoning step." }
+        usedTools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageUsedTool'
+          nullable: true
+        sourceDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageSourceDocument' 
+          nullable: true
+        state:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: "Current state object of the agent, if applicable."
+        nodeName:
+          type: string
+          nullable: true
+          description: "Name of the Flowise node associated with this reasoning step."
+      required: 
+        - agentName
+        - messages
+
+    ChatMessageObject: # Represents the structure returned by API after parsing stringified JSON fields from IChatMessage
+      type: object
+      description: "A chat message object as returned by the API, with stringified JSON fields parsed into objects/arrays."
+      properties:
+        id: { type: string, format: uuid }
+        role: { $ref: '../../shared/CommonSchemas.yaml#/components/schemas/ChatMessage/properties/role' } 
+        content: { type: string }
+        chatflowid: { type: string, format: uuid }
+        executionId: { type: string, format: uuid, nullable: true }
+        sourceDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageSourceDocument'
+          nullable: true
+        usedTools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageUsedTool'
+          nullable: true
+        fileAnnotations: 
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          nullable: true
+          description: "Parsed file annotations, structure can be variable."
+        agentReasoning:
+          $ref: '#/components/schemas/ChatMessageAgentReasoning'
+          nullable: true
+        fileUploads:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessageFileUpload'
+          nullable: true
+        artifacts: 
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          nullable: true
+          description: "Parsed artifacts, structure can be variable."
+        action:
+          $ref: '#/components/schemas/ChatMessageAction'
+          nullable: true
+        chatType:
+          type: string
+          enum: [INTERNAL, EXTERNAL] # From ChatType enum in Interface.ts
+        chatId: { type: string }
+        memoryType: { type: string, nullable: true }
+        sessionId: { type: string, nullable: true }
+        createdDate: { type: string, format: date-time }
+        leadEmail: { type: string, nullable: true }
+        followUpPrompts: { type: string, nullable: true, description: "Stringified JSON array of follow-up prompt suggestions (parsed by client if needed)." } 
+      required:
+        - id
+        - role
+        - content
+        - chatflowid
+        - chatType
+        - chatId
+        - createdDate
+
+    CreateChatMessageRequestBody:
+      type: object
+      description: "Request body for creating a new chat message."
+      properties:
+        role: { $ref: '../../shared/CommonSchemas.yaml#/components/schemas/ChatMessage/properties/role' }
+        content: { type: string }
+        chatflowid: { type: string, format: uuid, description: "ID of the chatflow this message belongs to." }
+        executionId: { type: string, format: uuid, nullable: true, description: "Optional execution ID if this message is part of a specific execution trace." }
+        sourceDocuments: { type: string, nullable: true, description: "Stringified JSON array of source document objects." }
+        usedTools: { type: string, nullable: true, description: "Stringified JSON array of used tool objects." }
+        fileAnnotations: { type: string, nullable: true, description: "Stringified JSON for file annotations." }
+        agentReasoning: { type: string, nullable: true, description: "Stringified JSON for agent reasoning object." }
+        fileUploads: { type: string, nullable: true, description: "Stringified JSON array of file upload objects (IFileUpload)." }
+        artifacts: { type: string, nullable: true, description: "Stringified JSON array for artifacts." }
+        action: { type: string, nullable: true, description: "Stringified JSON for an action object (IAction)." }
+        chatType: { type: string, enum: [INTERNAL, EXTERNAL], description: "Type of chat session." }
+        chatId: { type: string, description: "Identifier for the specific chat session." }
+        memoryType: { type: string, nullable: true, description: "Type of memory used, if applicable." }
+        sessionId: { type: string, nullable: true, description: "Session identifier, if applicable." }
+        leadEmail: { type: string, nullable: true, description: "Email of the lead associated with this chat, if applicable." }
+        followUpPrompts: { type: string, nullable: true, description: "Stringified JSON array of follow-up prompt suggestions." } 
+        # id and createdDate are server-generated, not part of request body.
+      required:
+        - role
+        - content
+        - chatflowid
+        - chatType
+        - chatId
+
+    GetAllChatMessagesResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/ChatMessageObject'
+
+    AbortChatMessageResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 200
+          description: "HTTP status code, typically 200 for success."
+        message:
+          type: string
+          example: "Chat message aborted"
+          description: "Confirmation message."
+      required:
+        - status
+        - message 

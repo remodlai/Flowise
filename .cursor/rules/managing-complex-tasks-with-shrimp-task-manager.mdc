@@ -12,17 +12,30 @@ There are a series of tools that you have available: plan tasks, analyze tasks, 
 
 For any given task that you are working on, you must query the task, then get the task detail, then proceed through this sequence. :
 
-1. plan_task
-2. analyze_task
-3. reflect_task
-4. split_tasks - THIS MUST BE CALLED, BUT IF SUFfficiently granular, the split task may only be one task.
+1. plan_task (used for planning tasks at a high level)
 
+When starting a task:
+1. list_tasks
+
+For the given task you want to start working on:
+1. `query_task`
+2. `get_task_details`
+
+IF: the task details look good, then we can proceed to the next section, if not, use `update_task` to update the task as needed.
+
+2. `execute_task` - this begins the specific task
+
+Follow the task prompts and respones as needed. 
+Tools docs: https://cjo4m06.github.io/mcp-shrimp-task-manager/
+Tools Repo: https://github.com/cjo4m06/mcp-shrimp-task-manager
 
 This allows you to, on any individual task, go through a prescriptive process to break it down to the most granular and easily executed steps that you can then execute, update, and mark as done or in progress—or whatever—and then move on to the next one. 
 
-CRITICAL: When breaking down an existing larger task into sub-tasks, you must use `updateMode: append`
+CRITICAL (New Sub-tasks): When breaking down an existing larger task into *new* sub-tasks that should be added to the plan while preserving other unrelated pending tasks, you **MUST use `updateMode: "append"`** in the `split_tasks` call.
 
-FORBIDDEN: Do not jump beyond or deviate from this process.
+CRITICAL (Task Reaffirmation Cycle / Single Task Update): After an `execute_task` call for a specific, already-defined task, and after completing the subsequent `process_thought`, `analyze_task`, and `reflect_task` steps for that task's execution instance, if the Shrimp Task Manager then prompts for `split_tasks` and your intention is *only to reaffirm or make minor definition adjustments to that single task being executed* (i.e., you are not breaking it into further sub-tasks that replace it, nor are you adding genuinely new separate tasks to the overall plan at this moment), you **MUST use `updateMode: "selective"`** in that `split_tasks` call. Provide only the single task being reaffirmed/updated in the `tasks` array for `split_tasks`. Using `overwrite` or `clearAllTasks` in this specific context will erroneously delete other unrelated pending tasks from the overall plan.
+
+FORBIDDEN: Do not jump beyond or deviate from this process. Do not use `overwrite` or `clearAllTasks` without explicitly confirming with the USER the intent to reset or replace the broader existing task plan. When in doubt, ask.
 
 <TASK EXECUTION>
 CRITICAL: IF A TASK REQUIRES READING A FILE(S) YOU MUST READ THE FILE. NEVER MAKE ASSUMPTINOS. 
