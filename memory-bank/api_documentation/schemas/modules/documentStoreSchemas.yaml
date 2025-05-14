@@ -232,7 +232,7 @@ components:
           description: "Input parameters required by the loader."
       required: [label, name, version, type, category, baseClasses]
 
-    DocumentStoreLoaderFileSchema:
+    DocumentStoreLoaderFile:
       type: object
       description: "Represents a file associated with a document store loader."
       properties:
@@ -244,9 +244,9 @@ components:
         uploaded: { type: string, format: date-time, description: "Timestamp of when the file was uploaded/associated." }
       required: [id, name, mimePrefix, size, status, uploaded]
 
-    DocumentStoreLoaderSchema:
+    DocumentStoreLoader_WithinList:
       type: object
-      description: "Configuration and status of a specific loader within a document store."
+      description: "Configuration and status of a specific loader as part of a list (e.g., within DocumentStoreDTO). Configs are stringified JSON."
       properties:
         id: { type: string, format: uuid, nullable: true, description: "Unique ID of this loader instance within the store." }
         loaderId: { type: string, nullable: true, description: "Identifier of the base loader component used (e.g., 'pdfFile')." }
@@ -261,46 +261,44 @@ components:
         storeId: { type: string, format: uuid, nullable: true, description: "ID of the parent document store." }
         files:
           type: array
-          items: { $ref: '#/components/schemas/DocumentStoreLoaderFileSchema' }
+          items: { $ref: '#/components/schemas/DocumentStoreLoaderFile' }
           nullable: true
           description: "List of files associated with this loader instance."
         source: { type: string, nullable: true, description: "Derived source information for the loader (e.g., URL, main file path)." }
         credential: { type: string, format: uuid, nullable: true, description: "ID of the credential used by this loader instance, if applicable." }
 
-    DocumentStoreDTOSchema: # Main response object for GET /document-stores and GET /document-stores/:id
+    DocumentStoreWhereUsed:
       type: object
-      description: "Data Transfer Object for a Document Store, including processed loader information and parsed configurations."
+      description: "Indicates a chatflow where this document store is being used."
+      properties:
+        id: { type: string, format: uuid, description: "ID of the chatflow." }
+        name: { type: string, description: "Name of the chatflow." }
+      required: [id, name]
+
+    DocumentStoreResponseDTO: # Main response object for GET /document-stores and GET /document-stores/:id
+      type: object
+      description: "Data Transfer Object for a Document Store, including processed loader information and parsed top-level configurations."
       properties:
         id: { type: string, format: uuid, readOnly: true }
         name: { type: string }
         description: { type: string, nullable: true }
         whereUsed:
           type: array
-          items: { $ref: '#/components/schemas/DocumentStoreWhereUsedSchema' }
+          items: { $ref: '#/components/schemas/DocumentStoreWhereUsed' }
           description: "List of chatflows using this document store."
         createdDate: { type: string, format: date-time, readOnly: true }
         updatedDate: { type: string, format: date-time, readOnly: true }
         status: { $ref: '#/components/schemas/DocumentStoreStatusEnum' }
         totalChunks: { type: integer, description: "Sum of totalChunks from all loaders.", readOnly: true }
         totalChars: { type: integer, description: "Sum of totalChars from all loaders.", readOnly: true }
-        loaders:
+        loaders: # Array of loaders where their individual configs are stringified JSON
           type: array
-          items: { $ref: '#/components/schemas/DocumentStoreLoaderSchema' }
-          description: "Array of loader configurations and statuses within this document store."
+          items: { $ref: '#/components/schemas/DocumentStoreLoader_WithinList' }
+          description: "Array of loader configurations within this document store."
         vectorStoreConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed vector store configuration associated with this document store." } 
-        embeddingConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed embedding configuration associated with this document store." }
+        embeddingConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed embedding configuration associated with this document store." } 
         recordManagerConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed record manager configuration associated with this document store." }
-      required:
-        - id
-        - name
-        # - description # Entity allows null
-        - whereUsed
-        - createdDate
-        - updatedDate
-        - status
-        - totalChunks
-        - totalChars
-        - loaders
+      required: [id, name, whereUsed, createdDate, updatedDate, status, totalChunks, totalChars, loaders]
 
     CreateDocumentStoreRequestBody:
       type: object
@@ -318,7 +316,7 @@ components:
         description: { type: string, nullable: true, description: "New description for the document store." }
       # At least one property should be provided for an update.
 
-    DocumentStoreFileChunkSchema: # Based on IDocumentStoreFileChunk
+    DocumentStoreFileChunk:
       type: object
       description: Represents a specific chunk of a document file within a document store.
       properties:
@@ -327,26 +325,36 @@ components:
         docId: { type: string, format: uuid, description: "ID of the document (loader file record) this chunk belongs to." }
         storeId: { type: string, format: uuid, description: "ID of the parent document store." }
         pageContent: { type: string, description: "The textual content of this chunk." }
-        metadata: { type: string, description: "Stringified JSON metadata associated with this chunk." } # Stored as text, parsed by consumer
+        metadata: { type: string, description: "Stringified JSON metadata associated with this chunk." } 
       required: [id, chunkNo, docId, storeId, pageContent]
       
-    DocumentStoreFileChunkPagedResponse: # Based on IDocumentStoreFileChunkPagedResponse
+    DocumentStoreFileChunkPagedResponse:
       type: object
       description: "Paginated response for document store file chunks."
       properties:
         chunks:
           type: array
-          items: { $ref: '#/components/schemas/DocumentStoreFileChunkSchema' }
+          items: { $ref: '#/components/schemas/DocumentStoreFileChunk' }
         count: { type: integer, description: "Total number of chunks for the given fileId." }
         characters: { type: integer, description: "Total number of characters for the given fileId." }
-        file: { $ref: '#/components/schemas/DocumentStoreLoaderSchema', nullable: true, description: "Details of the loader associated with these chunks."}
+        file: { $ref: '#/components/schemas/DocumentStoreLoader_WithinList', nullable: true, description: "Details of the loader (with stringified configs) associated with these chunks."}
         currentPage: { type: integer, description: "The current page number of the chunks returned." }
         storeName: { type: string, description: "Name of the parent document store." }
         description: { type: string, nullable: true, description: "Description of the parent document store." }
         docId: { type: string, format: uuid, description: "ID of the document (loader file record) these chunks belong to." }
       required: [chunks, count, characters, currentPage, storeName, docId]
 
-    # Other schemas for specific operations like previewChunks, processLoader, vector store operations
-    # might be needed but are very complex and involve many dynamic parts or utility types not easily schematized.
-    # For now, focusing on the main CRUD and DTO objects.
-    # Example: PreviewChunksRequestBody, ProcessLoaderRequestBody, VectorStoreConfigBody etc.
+    DocStoreLoaderFullConfigResponse: # For GET /store-configs/:id/:loaderId - PARSED Configs
+      type: object
+      description: "Aggregated and PARSED configurations for a specific loader within a document store."
+      properties:
+        loaderId: { type: string, description: "Component name of the loader." }
+        loaderName: { type: string, description: "Display name of the loader instance." }
+        loaderConfig: { type: object, additionalProperties: true, description: "Parsed JSON object of the loader's specific configuration." }
+        splitterId: { type: string, nullable: true, description: "Component name of the splitter, if any." }
+        splitterName: { type: string, nullable: true, description: "Display name of the splitter, if any." }
+        splitterConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed JSON object of the splitter's configuration." }
+        embeddingConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed embedding configuration from the parent Document Store." }
+        vectorStoreConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed vector store configuration from the parent Document Store." }
+        recordManagerConfig: { type: object, additionalProperties: true, nullable: true, description: "Parsed record manager configuration from the parent Document Store." }
+      required: [loaderId, loaderName, loaderConfig]

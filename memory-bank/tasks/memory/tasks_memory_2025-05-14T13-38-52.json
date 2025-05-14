@@ -1,0 +1,111 @@
+{
+  "tasks": [
+    {
+      "id": "56a6a2ba-1786-412b-bbe5-821f1b03a347",
+      "name": "P3A.Batch1: Audit Shared Schemas",
+      "description": "Audit the three shared schema files: `CommonSchemas.yaml`, `ErrorResponse.yaml`, and `flowiseComponentSchemas.yaml` located in `api_documentation/schemas/shared/`. For each schema object, compare against relevant TypeScript definitions (from `Interface.ts` files, error classes, etc.). Correct YAML files directly if discrepancies are found. Adhere to `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-13T20:59:57.534Z",
+      "updatedAt": "2025-05-13T21:11:00.449Z",
+      "relatedFiles": [
+        {
+          "path": "api_documentation/schemas/shared/CommonSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Shared schema for common data structures."
+        },
+        {
+          "path": "api_documentation/schemas/shared/ErrorResponse.yaml",
+          "type": "TO_MODIFY",
+          "description": "Shared schema for error responses."
+        },
+        {
+          "path": "api_documentation/schemas/shared/flowiseComponentSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Shared schema for Flowise component structures."
+        },
+        {
+          "path": "packages/server/src/Interface.ts",
+          "type": "REFERENCE",
+          "description": "Primary TS interface file for server types."
+        },
+        {
+          "path": "packages/components/src/Interface.ts",
+          "type": "REFERENCE",
+          "description": "TS interface file for component types."
+        },
+        {
+          "path": "packages/server/src/errors/internalFlowiseError/index.ts",
+          "type": "REFERENCE",
+          "description": "TS class for error definitions."
+        }
+      ],
+      "implementationGuide": "1. Process `CommonSchemas.yaml`: Read YAML, read `packages/server/src/Interface.ts`, audit objects (e.g., `SuccessResponse`, `ChatMessage`), correct if needed via `edit_file`.\n2. Process `ErrorResponse.yaml`: Read YAML, read error classes (e.g., `internalFlowiseError/index.ts`), audit, correct if needed via `edit_file`.\n3. Process `flowiseComponentSchemas.yaml`: Read YAML, read `Interface.ts` from `components` and `server` packages, audit objects (e.g., `INodeParamSchema`, `INodeData`), correct if needed via `edit_file`.",
+      "verificationCriteria": "All schema objects in `CommonSchemas.yaml`, `ErrorResponse.yaml`, and `flowiseComponentSchemas.yaml` accurately reflect codebase definitions per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`. Corrections are applied and YAMLs are valid.",
+      "analysisResult": "The plan for `P3A.Batch1: Audit Shared Schemas` (ID: `56a6a2ba-1786-412b-bbe5-821f1b03a347`) is to sequentially audit `CommonSchemas.yaml`, `ErrorResponse.yaml`, and `flowiseComponentSchemas.yaml`. For each file: read YAML, read corresponding TS definitions, compare schema objects against TS types (guided by `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`), and correct YAML via `edit_file` if needed. This `split_tasks` call with `selective` mode reaffirms this single batch task for immediate execution.",
+      "summary": "Completed audit of shared schemas (P3A.Batch1 - Task ID `56a6a2ba-1786-412b-bbe5-821f1b03a347`):\n1. `CommonSchemas.yaml`: Ensured `ErrorResponse` was moved to its own file. `ChatMessage` and `DeleteResultSchema` were reviewed and deemed acceptable for their generic/standard purposes.\n2. `ErrorResponse.yaml`: Schema was reviewed and updated to accurately reflect the global error handler's output structure (including `success: false`, removal of a superfluous `error` text field, and clarification of `stack` behavior).\n3. `flowiseComponentSchemas.yaml`: \n    - `INodeParamOptionSchema` was removed.\n    - `INodeOptionsValue` schema was corrected (e.g., `imageSrc` instead of `icon`).\n    - New `INodeOutputsValueSchema` was added.\n    - `INodeParamSchema` was significantly updated: `type` field changed to an enum based on `NodeParamsType`; `optional` field now uses `anyOf` to accommodate `boolean | INodeDisplay`; many previously missing fields from the `INodeParams` TypeScript interface were added, including handling for recursive `tabs` and `array` structures. The `default` field's type was described for flexibility.\n    - `INodeData` schema was expanded to include more fields from its base `INodeProperties`, ensured the crucial `id` field is present and required, and `icon` was made non-nullable and required.\n    - `NodeComponentDefinition` schema, which uses `allOf: INodeData`, was updated to also include properties for `credential` (as an `INodeParamSchema` for its definition) and `output` (as an array of `INodeOutputsValueSchema`).\n\nAll changes were made adhering to `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`. The three shared schema files are now significantly more accurate.",
+      "completedAt": "2025-05-13T21:11:00.448Z"
+    },
+    {
+      "id": "c15a05d2-a136-455f-ab75-de867752a6c4",
+      "name": "P3A.Batch2: Audit Module Schemas (Set 1)",
+      "description": "P3A.Batch2: Audit Module Schemas (Set 1 of ~6). Audit `AgentflowV2GeneratorSchemas.yaml`, `ApiKeySchemas.yaml`, `AttachmentsSchemas.yaml`, `ChatMessagesSchemas.yaml`, `ChatflowsSchemas.yaml` from `api_documentation/schemas/modules/`. Compare against TS definitions and correct YAMLs per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-13T21:00:14.309Z",
+      "updatedAt": "2025-05-13T21:25:21.837Z",
+      "relatedFiles": [
+        {
+          "path": "api_documentation/schemas/modules/AgentflowV2GeneratorSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for agentflowv2-generator."
+        },
+        {
+          "path": "api_documentation/schemas/modules/ApiKeySchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for apikey."
+        },
+        {
+          "path": "api_documentation/schemas/modules/AttachmentsSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for attachments."
+        },
+        {
+          "path": "api_documentation/schemas/modules/ChatMessagesSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for chat-messages."
+        },
+        {
+          "path": "api_documentation/schemas/modules/ChatflowsSchemas.yaml",
+          "type": "TO_MODIFY",
+          "description": "Schema for chatflows."
+        },
+        {
+          "path": "packages/server/src/database/entities/ApiKey.ts",
+          "type": "REFERENCE",
+          "description": "Entity for ApiKey."
+        },
+        {
+          "path": "packages/server/src/database/entities/ChatMessage.ts",
+          "type": "REFERENCE",
+          "description": "Entity for ChatMessage."
+        },
+        {
+          "path": "packages/server/src/database/entities/ChatFlow.ts",
+          "type": "REFERENCE",
+          "description": "Entity for ChatFlow."
+        },
+        {
+          "path": "packages/server/src/Interface.ts",
+          "type": "REFERENCE",
+          "description": "Server interfaces for potential DTOs."
+        }
+      ],
+      "implementationGuide": "For each listed YAML file (e.g., `AgentflowV2GeneratorSchemas.yaml`):\n1. Read the schema file from `api_documentation/schemas/modules/`.\n2. Identify and read corresponding TS entity/interface files (e.g., from `packages/server/src/database/entities/` like `ApiKey.ts`, `ChatMessage.ts`, `ChatFlow.ts`, or `Interface.ts` for DTOs).\n3. Compare YAML schema to TS definitions (properties, types, nullability) per `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.\n4. If corrections needed, use `edit_file` to update the specific YAML file in the Memory Bank.",
+      "verificationCriteria": "Schema objects in the listed module schema files accurately reflect their codebase definitions. Corrections applied and YAMLs valid.",
+      "analysisResult": "The plan for `P3A.Batch2: Audit Module Schemas (Set 1)` (ID: `c15a05d2-a136-455f-ab75-de867752a6c4`) is to sequentially audit `AgentflowV2GeneratorSchemas.yaml`, `ApiKeySchemas.yaml`, `AttachmentsSchemas.yaml`, `ChatMessagesSchemas.yaml`, and `ChatflowsSchemas.yaml`. For each file: read its YAML, read corresponding TS definitions, meticulously compare schema objects against TS types (guided by `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`), and apply corrections to the YAML files via `edit_file` if discrepancies are found. This `split_tasks` call with `selective` mode reaffirms this single batch task for immediate execution.",
+      "summary": "Completed P3A.Batch2: Audit Module Schemas (Set 1).\n- `AgentflowV2GeneratorSchemas.yaml`: Created schema for request body, success response (referencing placeholder node/edge schemas from flowiseComponentSchemas.yaml), and a validation error response.\n- `ApiKeySchemas.yaml`: Created schema for `ApiKey` object (reflecting what API returns, including security note for `apiSecret`) and `ApiKeyRequestBody`.\n- `AttachmentsSchemas.yaml`: Created schema for `Attachment` object (reflecting structure of processed file uploads) and `CreateAttachmentResponse` (array of Attachments).\n- `ChatMessagesSchemas.yaml`: Created comprehensive schemas for `ChatMessageObject` (reflecting parsed fields like `sourceDocuments`, `usedTools`, etc., from `IChatMessage`), `CreateChatMessageRequestBody` (based on `Partial<IChatMessage>` with key required fields), `GetAllChatMessagesResponse`, and `AbortChatMessageResponse`.\n- `ChatflowsSchemas.yaml`: Created schemas for `ChatflowTypeEnum`, `Chatflow` (based on `IChatFlow` entity, noting stringified JSON fields), `ChatflowRequestBody`, and `GetAllChatflowsResponse`.\nAll new schemas were defined based on corresponding entity/interface definitions and observed API behavior, adhering to `VerifyAgainstTypeOrmAndInterfaceDefinitions.mdc`.",
+      "completedAt": "2025-05-13T21:25:21.836Z"
+    }
+  ]
+}
