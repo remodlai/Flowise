@@ -1,60 +1,111 @@
 openapi: 3.1.0
 info:
-  title: Executions Module Schemas
+  title: Executions Schemas
   version: '1.0'
 components:
   schemas:
-    ExecutionStateEnum: # From Interface.ts
+    ExecutionStateEnum:
       type: string
       enum: [INPROGRESS, FINISHED, ERROR, TERMINATED, TIMEOUT, STOPPED]
-      description: "The state of an execution."
+      description: The current state of an agent flow execution.
 
-    INodeExecutionDataSchema: # Represents the 'data' field within IAgentflowExecutedData
+    ExecutionObject:
       type: object
-      description: "Output data from a node execution. Structure is dynamic based on the node."
+      description: Represents an agent flow execution record.
       properties:
-        output:
-          description: "Primary output of the node."
-          additionalProperties: true
-      additionalProperties: true
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the execution.
+          readOnly: true
+        executionData:
+          type: string # Stringified JSON
+          description: "Detailed data of the execution, likely a JSON string representing steps, inputs, outputs, and state."
+        state:
+          $ref: '#/components/schemas/ExecutionStateEnum'
+        agentflowId:
+          type: string
+          format: uuid
+          description: "ID of the ChatFlow (Agentflow) this execution belongs to."
+        sessionId:
+          type: string
+          format: uuid
+          description: "Session ID for this execution."
+        action:
+          type: string # Potentially stringified JSON
+          nullable: true
+          description: "Last action taken or required in the execution, if applicable (may be stringified JSON)."
+        isPublic:
+          type: boolean
+          nullable: true
+          description: "Indicates if this execution record is publicly accessible (e.g., for shared results)."
+        createdDate:
+          type: string
+          format: date-time
+          description: Timestamp of when the execution record was created.
+          readOnly: true
+        updatedDate:
+          type: string
+          format: date-time
+          description: Timestamp of when the execution record was last updated.
+          readOnly: true
+        stoppedDate:
+          type: string
+          format: date-time
+          description: "Timestamp of when the execution stopped (finished, errored, terminated, etc.)."
+          # In entity it's not nullable, but logically it might be null until actually stopped.
+          # For API response, if it's always returned, keep as required. If it can be null, add nullable: true.
+          # Based on IExecution, it's not optional/nullable. So keeping it required.
+      required:
+        - id
+        - executionData
+        - state
+        - agentflowId
+        - sessionId
+        - createdDate
+        - updatedDate
+        - stoppedDate
 
-    IAgentflowExecutedDataSchema: # Based on IAgentflowExecutedData from Interface.ts
+    UpdateExecutionRequestBody:
       type: object
+      description: "Request body for updating an execution. Allows partial updates to mutable fields."
       properties:
-        nodeLabel:
+        executionData:
           type: string
-          description: "Label of the executed node."
-        nodeId:
+          description: "Updated detailed data of the execution (stringified JSON)."
+          nullable: true 
+        state:
+          $ref: '#/components/schemas/ExecutionStateEnum'
+          nullable: true
+        action:
           type: string
-          description: "ID of the executed node."
-        data:
-          $ref: '#/components/schemas/INodeExecutionDataSchema'
-        previousNodeIds:
+          description: "Updated action information (potentially stringified JSON)."
+          nullable: true
+        isPublic: # Assuming this might be updatable
+          type: boolean
+          nullable: true
+        stoppedDate: # Less likely to be updated via PUT, but included for completeness if service allows
+          type: string
+          format: date-time
+          nullable: true
+      # No specific fields are strictly required for a partial update via PUT.
+      # API might enforce at least one field.
+
+    DeleteExecutionsRequestBody: # For the bulk delete via POST body
+      type: object
+      description: "Request body for deleting multiple executions by their IDs."
+      properties:
+        executionIds:
           type: array
           items:
             type: string
-          description: "IDs of the nodes that preceded this one in execution."
-        status:
-          $ref: '#/components/schemas/ExecutionStateEnum'
-          nullable: true
-          description: "Status of this specific node's execution within the run."
-      required: [nodeLabel, nodeId, data]
+            format: uuid
+          description: "An array of execution IDs to be deleted."
+          minItems: 1
+      required:
+        - executionIds
 
-    ExecutionSchema: # Based on Execution entity
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        executionData: 
-          type: string # JSON string
-          description: >-
-            JSON string representing an array of executed node data (`IAgentflowExecutedDataSchema[]`).
-            For public GET requests, credential IDs are removed from this data.
-        state: { $ref: '#/components/schemas/ExecutionStateEnum' }
-        agentflowId: { type: string, format: uuid }
-        sessionId: { type: string, format: uuid }
-        isPublic: { type: boolean, nullable: true }
-        action: { type: string, nullable: true, description: "JSON string representing the last action taken or required." }
-        createdDate: { type: string, format: date-time }
-        updatedDate: { type: string, format: date-time }
-        stoppedDate: { type: string, format: date-time, nullable: true }
-      required: [id, executionData, state, agentflowId, sessionId, createdDate, updatedDate]
+    GetAllExecutionsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/ExecutionObject'

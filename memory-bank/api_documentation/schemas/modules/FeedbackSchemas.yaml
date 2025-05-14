@@ -1,0 +1,83 @@
+openapi: 3.1.0
+info:
+  title: Feedback Schemas
+  version: '1.0'
+components:
+  schemas:
+    ChatMessageRatingTypeEnum:
+      type: string
+      enum: [THUMBS_UP, THUMBS_DOWN]
+      description: Rating for a chat message.
+
+    FeedbackObject:
+      type: object
+      description: Represents feedback on a specific chat message.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the feedback record.
+          readOnly: true
+        chatflowid:
+          type: string
+          format: uuid
+          description: ID of the chatflow this feedback is associated with.
+        chatId:
+          type: string
+          description: ID of the specific chat session.
+        messageId:
+          type: string
+          format: uuid
+          description: "The ID of the ChatMessage this feedback pertains to."
+        rating:
+          $ref: '#/components/schemas/ChatMessageRatingTypeEnum'
+          nullable: true # As per entity definition
+        content:
+          type: string
+          nullable: true
+          description: "Optional textual feedback from the user."
+        createdDate:
+          type: string
+          format: date-time
+          description: Timestamp of when the feedback was submitted.
+          readOnly: true
+      required:
+        - id
+        - chatflowid
+        - chatId
+        - messageId
+        # rating and content are optional/nullable in entity
+        - createdDate
+
+    CreateFeedbackRequestBody:
+      type: object
+      description: Request body for submitting feedback for a chat message.
+      properties:
+        chatflowId:
+          type: string
+          format: uuid
+          description: ID of the chatflow the message belongs to.
+        chatId:
+          type: string
+          description: ID of the chat session.
+        messageId:
+          type: string
+          format: uuid
+          description: ID of the message receiving feedback.
+        rating:
+          $ref: '#/components/schemas/ChatMessageRatingTypeEnum'
+          description: User's rating for the message.
+        content:
+          type: string
+          nullable: true
+          description: Optional textual feedback from the user.
+      required:
+        - chatflowId
+        - chatId
+        - messageId
+        - rating # Rating is essential for feedback submission.
+
+    GetAllFeedbackResponse: # Assuming a GET all endpoint might exist, though not explicitly in batch
+      type: array
+      items:
+        $ref: '#/components/schemas/FeedbackObject' 
