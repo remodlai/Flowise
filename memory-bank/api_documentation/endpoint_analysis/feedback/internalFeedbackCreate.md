@@ -2,7 +2,7 @@
 
 **Module:** `feedback`
 
-**Operation ID:** `internalFeedbackCreate`
+**Operation ID:** `internalFeedbackCreateOrUpdate`
 
 **Description:** Creates or updates a feedback entry for a chat message. If feedback for the `messageId` and `chatId` already exists, it updates it; otherwise, it creates a new one.
 

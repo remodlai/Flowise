@@ -8,16 +8,23 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/ImportDataRequest" # Same as ExportDataResponse
-            type: object
-            # properties for ChatFlows, Tools, Assistants etc.
+            $ref: "#/components/schemas/ImportDataRequest"
     responses:
       '200':
         description: "Data imported successfully."
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                status: { type: string, example: "success" }
-      # ... other error responses
+              $ref: "#/components/schemas/ImportDataResponse"
+      '400':
+        description: "Bad Request - Invalid import data format."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"

@@ -1,27 +1,30 @@
 "/feedback/":
   post:
     summary: "INTERNAL: Create or Update Chat Message Feedback"
-    operationId: "internalFeedbackCreateOrUpdate" # Renamed for clarity
+    operationId: "internalFeedbackCreateOrUpdate"
     tags: ["Feedback", "InternalAPI"]
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/FeedbackRequest" # To be defined
-            type: object
-            required: [chatflowid, chatId, messageId, rating]
-            properties:
-              chatflowid: { type: string }
-              chatId: { type: string }
-              messageId: { type: string }
-              rating: { type: string, enum: [THUMBS_UP, THUMBS_DOWN] }
-              content: { type: string, nullable: true }
+            $ref: "#/components/schemas/CreateFeedbackRequestBody"
     responses:
-      '200': # Or 201 if always new or if update returns the entity
+      '200':
         description: "Feedback created or updated."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ChatMessageFeedback" # To be defined
-      # ... other error responses
+              $ref: "#/components/schemas/FeedbackObject"
+      '400':
+        description: "Bad Request - Missing required fields."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"

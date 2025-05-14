@@ -1,0 +1,229 @@
+openapi: 3.1.0
+info:
+  title: Export Import Schemas
+  version: '1.0'
+components:
+  schemas:
+    ExportDataRequest:
+      type: object
+      description: "Request body for exporting data from the system."
+      properties:
+        chatflowIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          nullable: true
+          description: "Optional array of chatflow IDs to export. If omitted, all chatflows will be exported."
+        includeMessages:
+          type: boolean
+          default: false
+          description: "Whether to include chat message history in the export."
+    
+    ExportDataResponse:
+      type: object
+      description: "Response containing exported data from the system."
+      properties:
+        ChatFlows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportChatflow'
+          description: "Array of chatflow configurations."
+        Tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportTool'
+          description: "Array of tool configurations."
+        Variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportVariable'
+          description: "Array of variable configurations."
+        Credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportCredential'
+          description: "Array of credential configurations."
+        Assistants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportAssistant'
+          description: "Array of assistant configurations."
+        ChatMessages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportChatMessage'
+          description: "Array of chat message history (only included if includeMessages=true)."
+      required:
+        - ChatFlows
+      
+    ImportDataRequest:
+      $ref: '#/components/schemas/ExportDataResponse'
+      description: "Request body for importing data into the system (same structure as export response)."
+    
+    ImportDataResponse:
+      type: object
+      description: "Response after importing data."
+      properties:
+        status:
+          type: string
+          enum: [success, partial, error]
+          description: "Status of the import operation."
+        message:
+          type: string
+          nullable: true
+          description: "Optional message describing the import result."
+        importedCountByType:
+          type: object
+          additionalProperties:
+            type: integer
+          nullable: true
+          description: "Count of imported items by type."
+          example: {"ChatFlows": 5, "Tools": 2, "Credentials": 3}
+      required:
+        - status
+    
+    # Common export schema objects
+    ExportChatflow:
+      type: object
+      description: "Chatflow configuration for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the chatflow."
+        name:
+          type: string
+          description: "Name of the chatflow."
+        flowData:
+          type: string
+          description: "JSON string representing the flow configuration."
+        deployed:
+          type: boolean
+          nullable: true
+        isPublic:
+          type: boolean
+          nullable: true
+        # Other chatflow properties
+      required:
+        - id
+        - name
+        - flowData
+    
+    ExportTool:
+      type: object
+      description: "Tool configuration for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the tool."
+        name:
+          type: string
+          description: "Name of the tool."
+        description:
+          type: string
+          nullable: true
+        schema:
+          type: string
+          description: "JSON schema of the tool."
+      required:
+        - id
+        - name
+        - schema
+    
+    ExportVariable:
+      type: object
+      description: "Variable configuration for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the variable."
+        key:
+          type: string
+          description: "Variable key."
+        value:
+          type: string
+          description: "Variable value."
+        type:
+          type: string
+          enum: [string, number, boolean, object, array, json]
+          description: "Variable type."
+      required:
+        - id
+        - key
+        - value
+        - type
+    
+    ExportCredential:
+      type: object
+      description: "Credential configuration for export/import (without sensitive data)."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the credential."
+        name:
+          type: string
+          description: "Name of the credential."
+        credentialName:
+          type: string
+          description: "Type of credential."
+      required:
+        - id
+        - name
+        - credentialName
+    
+    ExportAssistant:
+      type: object
+      description: "Assistant configuration for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the assistant."
+        type:
+          type: string
+          description: "Type of assistant."
+        details:
+          type: string
+          description: "JSON string with assistant details."
+      required:
+        - id
+        - type
+        - details
+    
+    ExportChatMessage:
+      type: object
+      description: "Chat message for export/import."
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier of the message."
+        role:
+          type: string
+          enum: [user, assistant, system]
+          description: "Role of the message sender."
+        content:
+          type: string
+          description: "Message content."
+        chatflowid:
+          type: string
+          format: uuid
+          description: "ID of the parent chatflow."
+        chatId:
+          type: string
+          description: "ID of the chat session."
+        createdDate:
+          type: string
+          format: date-time
+          description: "Creation timestamp."
+      required:
+        - id
+        - role
+        - content
+        - chatflowid
+        - chatId
+        - createdDate 
