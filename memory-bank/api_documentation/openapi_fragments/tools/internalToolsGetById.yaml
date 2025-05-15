@@ -37,5 +37,27 @@
           application/json:
             schema:
               $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: [] 
+    security:
+      - ApiKeyAuth: []
+
+"/tools/":
+  get:
+    summary: "INTERNAL: Get Custom Tool by ID (Root Path)"
+    description: "INTERNAL: Alternative endpoint that maps to the same controller method as /tools/{id}. Will typically result in a 412 error as the controller expects an ID parameter."
+    operationId: "internalToolsGetById"
+    tags: ["Tools", "InternalAPI"]
+    responses:
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: [] 

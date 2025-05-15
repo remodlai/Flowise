@@ -49,5 +49,52 @@
           application/json:
             schema:
               $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: [] 
+    security:
+      - ApiKeyAuth: []
+
+"/upsert-history/":
+  get:
+    summary: "INTERNAL: Get All Upsert History"
+    description: "Alternative endpoint that retrieves history of upsert operations across all Document Stores, subject to date filters."
+    operationId: "getAllUpsertHistory"
+    tags: ["Upsert History", "InternalAPI"]
+    parameters:
+      - name: sortOrder
+        in: query
+        description: "Sort order for results by date."
+        required: false
+        schema:
+          type: string
+          enum: [ASC, DESC]
+          default: ASC
+      - name: startDate
+        in: query
+        description: "Filter records on or after this date (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: endDate
+        in: query
+        description: "Filter records on or before this date (ISO8601)."
+        required: false
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: "Successfully retrieved upsert history records."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../../schemas/modules/UpsertHistorySchemas.yaml#/components/schemas/UpsertHistoryResponseItemSchema"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: [] 

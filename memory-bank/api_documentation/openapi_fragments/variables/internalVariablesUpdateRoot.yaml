@@ -1,23 +1,24 @@
-"/variables/{id}":
+"/variables/":
   put:
-    summary: "INTERNAL: Update Variable"
-    description: "INTERNAL: Updates an existing global variable."
-    operationId: "internalVariablesUpdate"
+    summary: "INTERNAL: Update Variable (Root Path)"
+    description: "INTERNAL: Updates an existing global variable using request body to specify ID."
+    operationId: "internalVariablesUpdateRoot"
     tags: ["Variables", "InternalAPI"]
-    parameters:
-      - name: id
-        in: path
-        required: true
-        description: "ID of the variable to update."
-        schema:
-          type: string
-          format: uuid
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            $ref: "../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableUpdateRequest"
+            allOf:
+              - $ref: "../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableUpdateRequest"
+              - type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: "ID of the variable to update."
+                required:
+                  - id
     responses:
       '200':
         description: "Variable updated successfully."

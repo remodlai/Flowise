@@ -1,17 +1,22 @@
-"/variables/{id}":
+"/variables/":
   delete:
-    summary: "INTERNAL: Delete Variable"
-    description: "INTERNAL: Deletes a global variable by its ID."
-    operationId: "internalVariablesDelete"
+    summary: "INTERNAL: Delete Variable (Root Path)"
+    description: "INTERNAL: Deletes a global variable using request body to specify ID."
+    operationId: "internalVariablesDeleteRoot"
     tags: ["Variables", "InternalAPI"]
-    parameters:
-      - name: id
-        in: path
-        required: true
-        description: "ID of the variable to delete."
-        schema:
-          type: string
-          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: "ID of the variable to delete."
+            required:
+              - id
     responses:
       '200':
         description: "Variable deleted successfully."

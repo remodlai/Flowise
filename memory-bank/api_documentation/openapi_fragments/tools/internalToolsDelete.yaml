@@ -18,11 +18,7 @@
         content:
           application/json:
             schema:
-              # $ref: "#/components/schemas/DeleteResult" # Define if not already in shared
-              type: object
-              properties:
-                raw: { type: array, items: {} }
-                affected: { type: integer }
+              $ref: "../../schemas/modules/ToolsSchemas.yaml#/components/schemas/DeleteResult"
       '412':
         description: "Precondition Failed (ID not provided)."
         content:
@@ -35,5 +31,27 @@
           application/json:
             schema:
               $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: [] 
+    security:
+      - ApiKeyAuth: []
+
+"/tools/":
+  delete:
+    summary: "INTERNAL: Delete Custom Tool (Root Path)"
+    description: "INTERNAL: Alternative endpoint that maps to the same controller method as /tools/{id}. Will typically result in a 412 error as the controller expects an ID parameter."
+    operationId: "internalToolsDelete"
+    tags: ["Tools", "InternalAPI"]
+    responses:
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: [] 

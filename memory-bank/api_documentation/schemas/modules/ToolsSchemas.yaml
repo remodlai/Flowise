@@ -105,4 +105,19 @@ components:
         func:
           type: string # JavaScript code
           nullable: true
-          description: "New JavaScript code string for custom function tools." 
+          description: "New JavaScript code string for custom function tools."
+          
+    DeleteResult:
+      type: object
+      description: "TypeORM DeleteResult object returned by delete operations"
+      properties:
+        raw:
+          type: array
+          items: {}
+          description: "Raw database response (typically empty for successful deletes)"
+        affected:
+          type: integer
+          description: "Number of records affected by the delete operation"
+      required:
+        - raw
+        - affected 

@@ -14,9 +14,11 @@
 
 **Request:**
 *   Method: `DELETE`
-*   Path: `/api/v1/variables/{id}`
-*   **Path Parameters:**
+*   Path: `/api/v1/variables/{id}` or `/api/v1/variables/`
+*   **Path Parameters:** (When using path version)
     *   `id` (string, format: uuid, required): ID of the variable to delete.
+*   **Request Body:** (When using root path version)
+    *   If using the root path variant (`/api/v1/variables/`), the ID must be specified in the request body as `{ "id": "uuid-here" }`.
 
 **Responses:**
 

@@ -15,9 +15,11 @@
 
 **Request:**
 *   Method: `PUT`
-*   Path: `/api/v1/variables/{id}`
-*   **Path Parameters:**
+*   Path: `/api/v1/variables/{id}` or `/api/v1/variables/`
+*   **Path Parameters:** (When using path version)
     *   `id` (string, format: uuid, required): ID of the variable to update.
+*   **Request Body ID:** (When using root path version)
+    *   If using the root path variant (`/api/v1/variables/`), the ID must be specified in the request body.
 *   **Headers:** `Content-Type: application/json`
 *   **Request Body Schema:** `$ref: '../../schemas/modules/VariablesSchemas.yaml#/components/schemas/VariableUpdateRequest'`
 

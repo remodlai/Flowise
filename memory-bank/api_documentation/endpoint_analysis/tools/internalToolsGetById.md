@@ -26,4 +26,14 @@
     *   Content (`application/json`): Schema `$ref: '../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolSchema'`.
 *   **`404 Not Found`:** Tool with the specified ID not found.
 *   **`412 Precondition Failed`:** `id` path parameter not provided.
-*   **`500 Internal Server Error`:** Database error. 
+*   **`500 Internal Server Error`:** Database error.
+
+**Core Logic Summary:**
+1. Controller checks `req.params.id`.
+2. Calls `toolsService.getToolById(req.params.id)`.
+3. Service retrieves the `Tool` entity with the specified ID.
+4. If not found, a 404 error is thrown.
+5. Returns the found `Tool` entity.
+
+**Additional Notes:**
+- The router also supports the path `/api/v1/tools/` (without an ID parameter), which maps to the same controller method. This will result in a 412 Precondition Failed error as the controller requires an ID parameter. 

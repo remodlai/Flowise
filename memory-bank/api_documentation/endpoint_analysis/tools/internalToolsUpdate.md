@@ -28,4 +28,15 @@
     *   Content (`application/json`): Schema `$ref: '../../schemas/modules/ToolsSchemas.yaml#/components/schemas/ToolSchema'`.
 *   **`404 Not Found`:** Tool with the specified ID not found.
 *   **`412 Precondition Failed`:** `id` or request body not provided.
-*   **`500 Internal Server Error`:** Database error. 
+*   **`500 Internal Server Error`:** Database error.
+
+**Core Logic Summary:**
+1. Controller checks `req.params.id` and `req.body`.
+2. Calls `toolsService.updateTool(req.params.id, req.body)`.
+3. Service first checks if the tool with the specified ID exists.
+4. If not found, a 404 error is thrown.
+5. Creates an object with the updated properties and merges it with the existing record.
+6. Saves the updated entity and returns it.
+
+**Additional Notes:**
+- The router also supports the path `/api/v1/tools/` (without an ID parameter), which maps to the same controller method. This will result in a 412 Precondition Failed error as the controller requires an ID parameter. 
