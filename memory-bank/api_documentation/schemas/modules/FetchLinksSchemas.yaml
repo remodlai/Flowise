@@ -4,14 +4,14 @@ info:
   version: '1.0'
 components:
   schemas:
-    FetchLinksRequest:
+    FetchLinksQueryParams:
       type: object
       required: [url, relativeLinksMethod, limit]
       properties:
         url:
           type: string
           format: uri
-          description: The URL to fetch links from.
+          description: The URL to fetch links from (must be URL-encoded).
         relativeLinksMethod:
           type: string
           enum: [webCrawl, xmlScrape]
@@ -32,4 +32,7 @@ components:
           items:
             type: string
             format: uri
-          description: Array of retrieved links. 
+          description: Array of retrieved links.
+      required:
+        - status
+        - links 
