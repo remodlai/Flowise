@@ -1,0 +1,103 @@
+paths:
+  /api/v1/openai-assistants-vector-store/{id}:
+    put:
+      tags:
+        - OpenAI Assistant Vector Store
+      summary: Update Assistant Vector Store
+      description: Updates an existing OpenAI vector store.
+      operationId: updateAssistantVectorStore
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the vector store to update
+          schema:
+            type: string
+        - name: credential
+          in: query
+          required: true
+          description: ID of the credential containing the OpenAI API key
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/modules/openai_assistant_api/VectorStoreSchemas.yaml#/components/schemas/OpenAIVectorStoreUpdateParams'
+      responses:
+        '200':
+          description: Vector store updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../../schemas/modules/openai_assistant_api/VectorStoreSchemas.yaml#/components/schemas/OpenAIVectorStore'
+                  - type: object
+                    properties:
+                      files:
+                        type: array
+                        items:
+                          $ref: '../../schemas/modules/openai_assistant_api/FileObjectSchemas.yaml#/components/schemas/OpenAIFileObject'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized - Invalid or missing API key
+        '404':
+          description: Vector store or credential not found
+        '500':
+          description: Internal server error
+      security:
+        - ApiKeyAuth: []
+  /api/v1/openai-assistants-vector-store:
+    put:
+      tags:
+        - OpenAI Assistant Vector Store
+      summary: Update Assistant Vector Store (ID in body)
+      description: Updates an existing OpenAI vector store with ID provided in the request body.
+      operationId: updateAssistantVectorStoreWithBodyId
+      parameters:
+        - name: credential
+          in: query
+          required: true
+          description: ID of the credential containing the OpenAI API key
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../schemas/modules/openai_assistant_api/VectorStoreSchemas.yaml#/components/schemas/OpenAIVectorStoreUpdateParams'
+                - type: object
+                  properties:
+                    id:
+                      type: string
+                      description: The ID of the vector store to update
+                  required:
+                    - id
+      responses:
+        '200':
+          description: Vector store updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../../schemas/modules/openai_assistant_api/VectorStoreSchemas.yaml#/components/schemas/OpenAIVectorStore'
+                  - type: object
+                    properties:
+                      files:
+                        type: array
+                        items:
+                          $ref: '../../schemas/modules/openai_assistant_api/FileObjectSchemas.yaml#/components/schemas/OpenAIFileObject'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized - Invalid or missing API key
+        '404':
+          description: Vector store or credential not found
+        '500':
+          description: Internal server error
+      security:
+        - ApiKeyAuth: []

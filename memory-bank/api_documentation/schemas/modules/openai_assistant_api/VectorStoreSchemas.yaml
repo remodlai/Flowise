@@ -1,0 +1,140 @@
+# Filename: api_documentation/schemas/modules/openai_assistant_api/VectorStoreSchemas.yaml
+components:
+  schemas:
+    OpenAIVectorStore:
+      type: object
+      description: "Represents a vector store in OpenAI."
+      properties:
+        id:
+          type: string
+          description: "The vector store identifier, which can be referenced in API endpoints."
+        object:
+          type: string
+          enum: [vector_store]
+          description: "The object type, which is always `vector_store`."
+        created_at:
+          type: integer
+          format: unixtime
+          description: "The Unix timestamp (in seconds) for when the vector store was created."
+        name:
+          type: string
+          description: "The name of the vector store."
+        file_counts:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: "The total number of files in the vector store."
+            completed:
+              type: integer
+              description: "The number of completed files in the vector store."
+            in_progress:
+              type: integer
+              description: "The number of files in progress in the vector store."
+            failed:
+              type: integer
+              description: "The number of failed files in the vector store."
+      required:
+        - id
+        - object
+        - created_at
+        - name
+        - file_counts
+
+    OpenAIVectorStoreCreateParams:
+      type: object
+      description: "Parameters for creating a new vector store."
+      properties:
+        name:
+          type: string
+          description: "The name of the vector store."
+        file_ids:
+          type: array
+          items:
+            type: string
+          description: "Array of file IDs to be added to the vector store."
+      required:
+        - name
+
+    OpenAIVectorStoreUpdateParams:
+      type: object
+      description: "Parameters for updating a vector store."
+      properties:
+        name:
+          type: string
+          description: "The new name of the vector store."
+      required:
+        - name
+
+    OpenAIVectorStoreFileBatch:
+      type: object
+      description: "Represents a batch of files being processed for a vector store."
+      properties:
+        id:
+          type: string
+          description: "The file batch identifier."
+        object:
+          type: string
+          enum: [vector_store.file_batch]
+          description: "The object type, which is always `vector_store.file_batch`."
+        status:
+          type: string
+          enum: [in_progress, completed, failed, cancelled]
+          description: "The status of the file batch."
+        vector_store_id:
+          type: string
+          description: "The ID of the vector store associated with this file batch."
+        file_counts:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: "The total number of files in the batch."
+            completed:
+              type: integer
+              description: "The number of completed files in the batch."
+            in_progress:
+              type: integer
+              description: "The number of files in progress in the batch."
+            failed:
+              type: integer
+              description: "The number of failed files in the batch."
+      required:
+        - id
+        - object
+        - status
+        - vector_store_id
+        - file_counts
+
+    OpenAIVectorStoreListResponse:
+      type: object
+      properties:
+        object:
+          type: string
+          enum: [list]
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpenAIVectorStore"
+        first_id:
+          type: string
+          nullable: true
+        last_id:
+          type: string
+          nullable: true
+        has_more:
+          type: boolean
+      required: [object, data, first_id, last_id, has_more]
+
+    DeleteFilesResponse:
+      type: object
+      properties:
+        deletedFileIds:
+          type: array
+          items:
+            type: string
+          description: "Array of file IDs that were successfully deleted."
+        count:
+          type: integer
+          description: "The number of files successfully deleted."
+      required: [deletedFileIds, count]

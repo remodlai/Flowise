@@ -1,0 +1,101 @@
+paths:
+  /api/v1/openai-assistants-vector-store/{id}:
+    patch:
+      tags:
+        - OpenAI Assistant Vector Store
+      summary: Delete Files from Assistant Vector Store
+      description: Deletes files from an existing OpenAI vector store.
+      operationId: deleteFilesFromAssistantVectorStore
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the vector store to delete files from
+          schema:
+            type: string
+        - name: credential
+          in: query
+          required: true
+          description: ID of the credential containing the OpenAI API key
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of file IDs to delete from the vector store
+              required:
+                - file_ids
+      responses:
+        '200':
+          description: Files deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/VectorStoreSchemas.yaml#/components/schemas/DeleteFilesResponse'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized - Invalid or missing API key
+        '404':
+          description: Vector store or credential not found
+        '500':
+          description: Internal server error
+      security:
+        - ApiKeyAuth: []
+  /api/v1/openai-assistants-vector-store:
+    patch:
+      tags:
+        - OpenAI Assistant Vector Store
+      summary: Delete Files from Assistant Vector Store (ID in body)
+      description: Deletes files from an existing OpenAI vector store with ID provided in the request body.
+      operationId: deleteFilesFromAssistantVectorStoreWithBodyId
+      parameters:
+        - name: credential
+          in: query
+          required: true
+          description: ID of the credential containing the OpenAI API key
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: The ID of the vector store to delete files from
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of file IDs to delete from the vector store
+              required:
+                - id
+                - file_ids
+      responses:
+        '200':
+          description: Files deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/VectorStoreSchemas.yaml#/components/schemas/DeleteFilesResponse'
+        '400':
+          description: Invalid request parameters
+        '401':
+          description: Unauthorized - Invalid or missing API key
+        '404':
+          description: Vector store or credential not found
+        '500':
+          description: Internal server error
+      security:
+        - ApiKeyAuth: []
