@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Node Icons Schemas
+  version: '1.0'
+components:
+  schemas:
+    # This module primarily deals with retrieving image files directly.
+    # It doesn't require complex schema definitions as it returns binary image files
+    # or uses standard error responses defined in ErrorResponse.yaml.
+    
+    # While this module doesn't have specific request or response schemas beyond
+    # the standard error responses, this placeholder is maintained for consistency
+    # with the documentation structure. Any future endpoints added to this module
+    # should define their schemas here.
+    
+    # Reference error schemas from ErrorResponse.yaml when needed:
+    # $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"

@@ -10,13 +10,13 @@ components:
       properties:
         javascriptFunction:
           type: string
-          description: "The JavaScript code of the function to execute. Input variables can be referenced as $variableName within the code."
-          example: "return $input1 + $input2;"
+          description: "The JavaScript code of the function to execute. Input variables can be referenced as $[variableName] within the code."
+          example: "return $[input1] + $[input2];"
       required:
         - javascriptFunction
       additionalProperties: true
       example:
-        javascriptFunction: "return $city + ', ' + $country;"
+        javascriptFunction: "const location = $[city] + ', ' + $[country]; return { text: location };"
         city: "London"
         country: "UK"
 

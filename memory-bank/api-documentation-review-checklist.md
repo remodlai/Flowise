@@ -36,10 +36,10 @@ This document tracks the progress of our API documentation review process, ensur
 | leads | ✅ | ✅ | ✅ | ✅ | Updated schema references, corrected security requirements, added detailed examples and implementation notes |
 | load-prompts | ✅ | ✅ | ✅ | ✅ | Updated schema references, enhanced documentation with detailed examples and implementation notes, clarified Langchain Hub integration |
 | marketplaces | ✅ | ✅ | ✅ | ✅ | Created missing endpoint documentation for custom templates, updated schema references, improved implementation notes |
-| node-configs | ⏳ | ⏳ | ⏳ | ⏳ | |
-| node-custom-functions | ⏳ | ⏳ | ⏳ | ⏳ | |
-| node-icons | ⏳ | ⏳ | ⏳ | ⏳ | |
-| node-load-methods | ⏳ | ⏳ | ⏳ | ⏳ | |
+| node-configs | ✅ | ✅ | ✅ | ✅ | Corrected endpoint path, updated schema definitions to match actual implementation, fixed schema references and security configuration |
+| node-custom-functions | ✅ | ✅ | ✅ | ✅ | Updated variable syntax documentation, fixed schema references, added security configuration and improved implementation notes |
+| node-icons | ✅ | ✅ | ✅ | ✅ | Fixed schema references, added security configuration, added placeholder schema file, and enhanced implementation notes including reuse of nodes module functionality |
+| node-load-methods | ✅ | ✅ | ✅ | ✅ | Fixed schema references, added security configuration, enhanced implementation notes to highlight module reuse and error handling behavior |
 | nodes | ⏳ | ⏳ | ⏳ | ⏳ | |
 | nvidia-nim | ⏳ | ⏳ | ⏳ | ⏳ | |
 | openai-assistants | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 24/47 (51.1%)
-- **Modules Pending**: 23/47 (48.9%)
+- **Modules Reviewed**: 28/47 (59.6%)
+- **Modules Pending**: 19/47 (40.4%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns
@@ -76,11 +76,15 @@ This document tracks the progress of our API documentation review process, ensur
 5. **Security Configuration**: Some endpoints used `InternalApiKeyAuth` instead of the correct `ApiKeyAuth` 
 6. **Streaming Responses**: Server-Sent Events (SSE) formats were not fully documented - this has been addressed for predictions endpoints
 7. **External Dependencies**: Integration with external services (like Langchain Hub) sometimes not fully documented
+8. **API Path Discrepancies**: Some modules have route registration that doesn't match directory/file naming (e.g., 'node-config' vs 'node-configs')
+9. **Variable Syntax**: Syntax for variables in custom functions was inconsistently documented (e.g., `$variableName` vs. `$[variableName]`)
+10. **Module Reuse**: Some endpoints rely on controllers and services from other modules (e.g., node-icons and node-load-methods use the nodes module functionality)
+11. **Error Handling Behavior**: Some modules have specific error handling behavior that wasn't fully documented (e.g., returning empty arrays instead of errors)
 
 ## Next Steps
 
 1. Continue reviewing modules based on priority
-2. Focus on critical API endpoints next (node-configs, node-custom-functions, etc.)
+2. Focus on critical API endpoints next (nodes, nvidia-nim, etc.)
 3. Establish patterns to apply across similar endpoints
 4. Update all OpenAPI fragments to use consistent reference patterns
 

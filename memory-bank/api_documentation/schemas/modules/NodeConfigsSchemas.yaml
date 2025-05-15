@@ -5,57 +5,96 @@ info:
 components:
   schemas:
     NodeConfigsRequestBody:
-      type: array
-      description: "Array of node component names to retrieve configurations for."
-      items:
-        type: string
-        description: "Internal name of a node component (e.g., 'stringPrompt')."
-      example: ["stringPrompt", "llmChain", "chatPromptTemplate"]
-      
-    NodeConfigItem:
       type: object
-      description: "Configuration for a single node component type."
+      description: "Node data object describing the node to retrieve configurations for."
       properties:
+        name:
+          type: string
+          description: "Internal name of the node component (e.g., 'chatOpenAI')."
+        label:
+          type: string
+          description: "Display label for the node."
+        type:
+          type: string
+          description: "Type of the node (often same as name)."
+        category:
+          type: string
+          description: "Category the node belongs to (e.g., 'Chat Models')."
+        inputs:
+          type: object
+          description: "Current input values for the node's parameters."
+          additionalProperties: true
         inputParams:
           type: array
-          description: "Array of input parameter definitions for the node."
+          description: "Definitions of input parameters for the node."
           items:
             $ref: "../../shared/flowiseComponentSchemas.yaml#/components/schemas/INodeParamSchema"
-        inputAnchors:
-          type: array
-          description: "Array of input anchor definitions for the node."
-          items:
-            type: object
-            additionalProperties: true
-        outputAnchors:
-          type: array
-          description: "Array of output anchor definitions for the node."
-          items:
-            type: object
-            additionalProperties: true
-        style:
-          type: object
-          description: "Style configuration for the node's UI appearance."
-          additionalProperties: true
-        version:
-          type: integer
-          description: "Version number of the node configuration."
-        icon:
-          type: string
-          description: "Icon identifier or data URI for the node."
       additionalProperties: true
+      example:
+        name: "chatOpenAI"
+        label: "ChatOpenAI"
+        type: "ChatOpenAI"
+        category: "Chat Models"
+        inputs:
+          modelName: "gpt-3.5-turbo"
+          temperature: 0.7
+      
+    ConfigurationItem:
+      type: object
+      description: "Configuration item for a node parameter."
+      properties:
+        node:
+          type: string
+          description: "Node label or name."
+        nodeId:
+          type: string
+          description: "Unique identifier of the node."
+        label:
+          type: string
+          description: "Display label for the parameter."
+        name:
+          type: string
+          description: "Internal name of the parameter."
+        type:
+          type: string
+          description: "Type of the parameter (string, number, boolean, etc.). For options, this might be a comma-separated list of option names."
+        schema:
+          type: array
+          description: "For array-type parameters, schema describing the structure of each item."
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: "Name of the field in the array item."
+              type:
+                type: string
+                description: "Type of the field in the array item."
+      required:
+        - node
+        - nodeId
+        - label
+        - name
+        - type
       
     NodeConfigsResponse:
-      type: object
-      description: "Map of node component names to their configurations."
-      additionalProperties:
-        $ref: "#/components/schemas/NodeConfigItem"
+      type: array
+      description: "Array of configuration objects for the node."
+      items:
+        $ref: "#/components/schemas/ConfigurationItem"
       example: 
-        "stringPrompt": 
-          {
-            "inputParams": [],
-            "inputAnchors": [],
-            "outputAnchors": [],
-            "style": { "width": 180 },
-            "version": 1
-          } 
+        - node: "ChatOpenAI"
+          nodeId: "node_123"
+          label: "Model Name"
+          name: "modelName"
+          type: "string"
+        - node: "ChatOpenAI"
+          nodeId: "node_123"
+          label: "Temperature"
+          name: "temperature"
+          type: "number"
+        - node: "ChatOpenAI"
+          nodeId: "node_123"
+          label: "OpenAI API Key"
+          name: "apiKey"
+          type: "string" 

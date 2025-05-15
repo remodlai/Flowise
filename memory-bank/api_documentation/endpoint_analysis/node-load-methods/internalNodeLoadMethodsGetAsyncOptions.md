@@ -1,6 +1,6 @@
 # Endpoint Analysis: POST /api/v1/node-load-method/{name}
 
-**Module:** `node-load-methods`
+**Module:** `node-load-methods` (Routed via `node-load-method`)
 **Operation ID:** `internalNodeLoadMethodsGetAsyncOptions`
 **Description:** Executes a specific `loadMethod` defined on a node component to fetch dynamic options for its UI parameters. This is used, for example, to populate dropdowns with values from an external API or database. The node's current configuration (`INodeData`) is passed in the request body.
 
@@ -45,14 +45,26 @@
         *   Example: `[ { "label": "My Collection 1", "name": "collection_1" }, { "label": "My Collection 2", "name": "collection_2" } ]`
 *   **`404 Not Found`:**
     *   Description: Node with the specified `name` not found, or the specified `loadMethod` does not exist on that node.
+    *   Content (`application/json`): Error response with message.
 *   **`412 Precondition Failed`:**
     *   Description: `name` path parameter or request body not provided.
-*   **`500 Internal Server Error`:** Error during load method execution.
+    *   Content (`application/json`): Error response with message.
+*   **`500 Internal Server Error`:** 
+    *   Description: Error during load method execution.
+    *   Content (`application/json`): Error response with message.
 
 **Core Logic Summary:**
 1. Controller validates `req.params.name` and `req.body`.
 2. Calls service `getSingleNodeAsyncOptions(name, req.body)`.
 3. Service retrieves the node component definition from `appServer.nodesPool.componentNodes`.
-4. If the node and its specified `loadMethod` (from `req.body.loadMethod` or `req.body.inputs.loadMethod`) exist, it calls that method. The method is passed the `req.body` (as `INodeData`) and context objects (DataSource, other nodes).
+4. If the node and its specified `loadMethod` (from `nodeData.loadMethod`) exist, it calls that method. The method is passed the `req.body` (as `INodeData`) and context objects (DataSource, other nodes).
 5. The node's `loadMethod` executes its logic (e.g., API call, DB query) and returns an array of `INodeOptionsValue`.
 6. Service returns this array. Returns empty array if the load method itself has an internal error.
+
+**Implementation Notes:**
+* There is no separate controller or service specifically for node-load-methods - it reuses functionality from the nodes module.
+* The endpoint is designed to support dynamic UI forms - when a user makes selections in a form, this endpoint is called to populate dependent fields.
+* The implementation includes a special context object with `appDataSource`, `databaseEntities`, `componentNodes`, `previousNodes`, and `currentNode` that is passed to the load method.
+* If the load method execution throws an error, the service catches it and returns an empty array instead of propagating the error. This is a resilient design that prevents UI failures if a particular load method has an internal error.
+* The node component must have a `loadMethods` property with a function matching the requested `methodName` for this to work.
+* This endpoint enables a plugin architecture where node components can define their own dynamic loading functions.

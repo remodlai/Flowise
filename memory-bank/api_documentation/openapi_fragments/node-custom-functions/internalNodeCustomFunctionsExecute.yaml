@@ -9,25 +9,25 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ExecuteCustomFunctionRequestBody"
+            $ref: "../../schemas/modules/NodeCustomFunctionsSchemas.yaml#/components/schemas/ExecuteCustomFunctionRequestBody"
     responses:
       '200':
         description: "Custom function executed successfully. Response is the return value of the script."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ExecuteCustomFunctionResponse"
+              $ref: "../../schemas/modules/NodeCustomFunctionsSchemas.yaml#/components/schemas/ExecuteCustomFunctionResponse"
       '412':
         description: "Precondition Failed (e.g., missing request body)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error (e.g., error in custom script execution)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

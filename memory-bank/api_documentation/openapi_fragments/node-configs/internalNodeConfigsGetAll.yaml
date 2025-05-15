@@ -9,25 +9,25 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/NodeConfigsRequestBody"
+            $ref: "../../schemas/modules/NodeConfigsSchemas.yaml#/components/schemas/NodeConfigsRequestBody"
     responses:
       '200':
         description: "Successfully retrieved the requested node configurations."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NodeConfigsResponse"
+              $ref: "../../schemas/modules/NodeConfigsSchemas.yaml#/components/schemas/NodeConfigsResponse"
       '412':
         description: "Precondition Failed (request body not provided)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error (e.g., error reading node-configs.json)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: [] 
+      - ApiKeyAuth: [] 

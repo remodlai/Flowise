@@ -403,3 +403,64 @@
   - Standardized schema references across all OpenAPI fragments
   - Provided detailed implementation notes that help API consumers understand how the endpoints work
   - Reached 51.1% completion milestone in the API documentation review process
+
+## Accurate Documentation of API Path Discrepancies
+- **Date:** 2025-05-15 4:19:30 PM
+- **Author:** Unknown User
+- **Context:** During the review of the node-configs module, we discovered a discrepancy between the module name (node-configs) and its actual API route registration (node-config). This mismatch between directory/file naming and actual route registration could lead to confusion for API consumers.
+- **Decision:** Always document the actual registered API path in all documentation, even when it differs from the directory or file naming convention. For the node-configs module, we documented the actual path as '/api/v1/node-config/' (singular) rather than '/api/v1/node-configs/' (plural) and added a note explaining this discrepancy.
+- **Alternatives Considered:** 
+  - Use the directory/file name in documentation for consistency with codebase structure
+  - Change the actual route registration to match the directory/file name
+  - Create redirects to handle both plural and singular forms
+- **Consequences:** 
+  - Improved accuracy - documentation reflects the actual working API routes
+  - Added clarity for API consumers by explicitly noting path discrepancies
+  - Identified a recurring pattern that will help improve documentation for other modules
+  - Added a new category of issues to track (API Path Discrepancies) in our review checklist
+
+## Consistent Variable Syntax Documentation
+- **Date:** 2025-05-15 4:22:04 PM
+- **Author:** Unknown User
+- **Context:** During the review of the node-custom-functions module, we found inconsistent documentation of the variable syntax used in custom JavaScript functions. Some parts used `$variableName` while others used `$[variableName]`, although the actual implementation uses the `$[variableName]` syntax.
+- **Decision:** Standardize all documentation to consistently use the `$[variableName]` syntax that matches the actual implementation. This includes updating the schema definitions, examples, and descriptions throughout all documentation files to ensure consistency.
+- **Alternatives Considered:** 
+  - Document both syntaxes as alternatives
+  - Change the implementation to support both syntax forms
+  - Keep the inconsistent documentation as is
+- **Consequences:** 
+  - Improved clarity for API consumers
+  - Consistent examples that will work correctly when copied and used
+  - Added a new category of issues to track (Variable Syntax) in our review checklist
+  - Identified a pattern to look for in other modules that might use variable interpolation
+
+## Documentation of Module Reuse Patterns
+- **Date:** 2025-05-15 4:27:55 PM
+- **Author:** Unknown User
+- **Context:** During the review of the node-icons module, we discovered that this module reuses controller and service functionality from the nodes module rather than having its own dedicated implementation. This is a pattern that might occur in other modules as well but wasn't explicitly documented in our review process.
+- **Decision:** Explicitly document module reuse patterns in endpoint analysis documentation. When an endpoint is implemented by reusing functionality from another module, this should be clearly noted in the documentation with explanations of how the functionality is shared and what dependencies exist between modules.
+- **Alternatives Considered:** 
+  - Document only the endpoint's direct implementation without mentioning reuse
+  - Merge documentation for modules that share functionality
+  - Reorganize the documentation structure to group related modules
+- **Consequences:** 
+  - Improved clarity about the actual implementation architecture
+  - Better understanding of dependencies between modules
+  - Easier maintenance when shared functionality changes
+  - Added a new category of issues to track (Module Reuse) in our review checklist
+  - Identified a pattern to look for in other modules
+
+## Documentation of Error Handling Behavior
+- **Date:** 2025-05-15 4:31:11 PM
+- **Author:** Unknown User
+- **Context:** During the review of the node-load-methods module, we discovered specific error handling behavior where errors from the execution of load methods are caught and transformed into empty arrays rather than propagating as error responses. This behavior wasn't fully documented but is important for API consumers to understand.
+- **Decision:** Explicitly document specific error handling behaviors in endpoint analysis documentation. When an endpoint handles errors in non-standard ways (like returning empty arrays instead of error responses, or having special fallback behaviors), these should be clearly documented in the Implementation Notes section of the endpoint analysis.
+- **Alternatives Considered:** 
+  - Document only the standard error responses
+  - Recommend changes to standardize error handling across all endpoints
+  - Create a separate error handling documentation section
+- **Consequences:** 
+  - Better understanding of actual endpoint behavior for API consumers
+  - Improved expectations for error scenarios
+  - Added a new category of issues to track (Error Handling Behavior) in our review checklist
+  - Identified a pattern to look for in other modules

@@ -16,31 +16,31 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/NodeLoadMethodRequestBody"
+            $ref: "../../schemas/modules/NodeLoadMethodsSchemas.yaml#/components/schemas/NodeLoadMethodRequestBody"
     responses:
       '200':
         description: "Successfully retrieved dynamic options."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NodeLoadMethodResponse"
+              $ref: "../../schemas/modules/NodeLoadMethodsSchemas.yaml#/components/schemas/NodeLoadMethodResponse"
       '404':
         description: "Node or specified loadMethod not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (name or body not provided)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error during load method execution."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []
