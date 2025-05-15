@@ -1,7 +1,7 @@
 "/load-prompt/": # Note: singular "prompt" in path
   post:
     summary: "INTERNAL: Load Prompt from Langchain Hub"
-    description: "INTERNAL: Fetches a prompt template from Langchain Hub by its name and parses it."
+    description: "INTERNAL: Fetches a prompt template from Langchain Hub by its name and parses it into a structured format. Does not save to the database but dynamically retrieves and processes the prompt."
     operationId: "internalLoadPromptsCreate" # "Create" is a misnomer from controller
     tags: ["Prompts", "InternalAPI"]
     requestBody:
@@ -9,25 +9,42 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/LoadPromptRequestBody"
+            $ref: "../../schemas/modules/LoadPromptsSchemas.yaml#/components/schemas/LoadPromptRequestBody"
+          example:
+            promptName: "hwchase17/react-chat"
     responses:
       '200':
         description: "Prompt fetched and parsed successfully."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoadPromptResponse"
+              $ref: "../../schemas/modules/LoadPromptsSchemas.yaml#/components/schemas/LoadPromptResponse"
+            example:
+              status: "OK"
+              prompt: "hwchase17/react-chat"
+              templates: [
+                {
+                  "type": "systemMessagePrompt",
+                  "typeDisplay": "System Message",
+                  "template": "You are a helpful AI assistant that follows the ReAct framework." 
+                },
+                {
+                  "type": "humanMessagePrompt",
+                  "typeDisplay": "Human Message",
+                  "template": "{input}"
+                }
+              ]
       '412':
         description: "Precondition Failed (e.g., missing promptName)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error (e.g., error fetching from Hub or parsing)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: []
+      - ApiKeyAuth: []

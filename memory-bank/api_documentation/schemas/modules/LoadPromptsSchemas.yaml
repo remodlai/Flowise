@@ -11,27 +11,42 @@ components:
       properties:
         promptName:
           type: string
-          description: "The name of the prompt to load from Langchain Hub (e.g., 'hwchase17/react')."
-          example: "hwchase17/react"
+          description: "The name/identifier of the prompt to load from Langchain Hub, typically in the format 'owner/prompt-id'."
+          examples:
+            - "hwchase17/react"
+            - "hwchase17/react-chat" 
+            - "hwchase17/multi-prompt-router"
+            - "langchain-ai/web-retrieval-chat"
 
     PromptTemplateItem:
       type: object
-      description: "A single prompt template item parsed from Langchain Hub."
+      description: "A single prompt template item parsed from a Langchain Hub prompt."
       properties:
         type:
           type: string
-          description: "Internal type identifier for the prompt template."
-          example: "systemMessagePrompt"
+          description: |
+            Internal type identifier for the prompt template type.
+            - systemMessagePrompt: System message for chat models
+            - humanMessagePrompt: Human/user message for chat models
+            - aiMessagePrompt: Assistant message for chat models
+            - template: Generic prompt template
           enum: [systemMessagePrompt, humanMessagePrompt, aiMessagePrompt, template]
+          example: "systemMessagePrompt"
         typeDisplay:
           type: string
-          description: "User-friendly display name for the prompt template type."
-          example: "System Message"
+          description: |
+            User-friendly display name for the prompt template type.
+            Used for UI rendering and template selection interfaces.
           enum: [System Message, Human Message, AI Message, Message, Prompt]
+          example: "System Message"
         template:
           type: string
-          description: "The actual prompt template text."
-          example: "You are a helpful AI assistant."
+          description: |
+            The actual prompt template text. May contain variables in {curly braces}.
+            Examples:
+            - "You are a helpful AI assistant that {behavior}."
+            - "Answer the following question: {question}"
+          example: "You are a helpful AI assistant. Follow these instructions: {instructions}"
       required:
         - type
         - typeDisplay
@@ -39,21 +54,39 @@ components:
 
     LoadPromptResponse:
       type: object
-      description: "Response after loading a prompt from Langchain Hub."
+      description: "Response after loading and parsing a prompt from Langchain Hub."
       properties:
         status:
           type: string
-          description: "Status of the operation."
+          description: "Status of the operation, typically 'OK' on success."
           example: "OK"
         prompt:
           type: string
-          description: "The name of the prompt that was requested."
+          description: "The name/identifier of the prompt that was requested and successfully loaded."
           example: "hwchase17/react"
         templates:
           type: array
-          description: "Array of parsed prompt templates extracted from the hub."
+          description: |
+            Array of parsed prompt templates extracted from the hub prompt.
+            For ChatPromptTemplates, this will contain multiple items (typically system, human, and AI messages).
+            For simple PromptTemplates, this may contain just a single template item.
           items:
             $ref: '#/components/schemas/PromptTemplateItem'
+          examples:
+            - [{
+                "type": "systemMessagePrompt",
+                "typeDisplay": "System Message",
+                "template": "You are a helpful AI assistant that answers questions."
+              }, {
+                "type": "humanMessagePrompt",
+                "typeDisplay": "Human Message",
+                "template": "{input}"
+              }]
+            - [{
+                "type": "template",
+                "typeDisplay": "Prompt",
+                "template": "Answer the following question: {question}"
+              }]
       required:
         - status
         - prompt
