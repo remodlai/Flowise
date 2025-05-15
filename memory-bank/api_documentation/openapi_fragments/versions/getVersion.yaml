@@ -23,4 +23,5 @@
           application/json:
             schema:
               $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
-    # No security typically applied 
+    # This is a public endpoint that doesn't require authentication
+    security: []

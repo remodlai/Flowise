@@ -37,4 +37,5 @@
           application/json:
             schema:
               $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
-    # No specific security on this endpoint itself, relies on the key being verified 
+    # This endpoint doesn't require authentication as its purpose is to verify an API key
+    security: []
