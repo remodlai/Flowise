@@ -9,25 +9,45 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CreateLeadRequestBody"
+            $ref: "../../schemas/modules/LeadsSchemas.yaml#/components/schemas/CreateLeadRequestBody"
+          example:
+            chatflowid: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+            chatId: "98765432-10ab-cdef-9876-543210abcdef"
+            name: "Jane Smith"
+            email: "jane.smith@example.com"
+            phone: "+15559876543"
     responses:
       '200': # Assuming 200 OK as controller simply returns res.json()
         description: "Lead created successfully."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LeadObject"
+              $ref: "../../schemas/modules/LeadsSchemas.yaml#/components/schemas/LeadObject"
+            example:
+              id: "a3b86e41-d12c-4e60-93e2-f9a8c3f87110"
+              name: "Jane Smith"
+              email: "jane.smith@example.com"
+              phone: "+15559876543"
+              chatflowid: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+              chatId: "98765432-10ab-cdef-9876-543210abcdef"
+              createdDate: "2023-06-15T15:45:30Z"
       '400':
         description: "Bad Request (e.g., missing required fields)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (request body not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: []
+      - ApiKeyAuth: []

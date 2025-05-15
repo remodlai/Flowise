@@ -14,22 +14,30 @@
           format: uuid
     responses:
       '200':
-        description: "Successfully retrieved leads. Returns an array of Lead objects."
+        description: "Successfully retrieved leads. Returns an array of Lead objects. Can be an empty array if no leads exist for the chatflow."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GetAllLeadsResponse"
+              $ref: "../../schemas/modules/LeadsSchemas.yaml#/components/schemas/GetAllLeadsResponse"
+            example:
+              - id: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                name: "John Doe"
+                email: "john.doe@example.com"
+                phone: "+15551234567"
+                chatflowid: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                chatId: "98765432-10ab-cdef-9876-543210abcdef"
+                createdDate: "2023-06-15T14:30:00Z"
       '412':
         description: "Precondition Failed (chatflowid not provided)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: []
+      - ApiKeyAuth: []

@@ -33,7 +33,7 @@ This document tracks the progress of our API documentation review process, ensur
 | get-upload-path | ✅ | ✅ | ✅ | ✅ | Updated schema references, added security requirements, improved documentation |
 | internal-chat-messages | ✅ | ✅ | ✅ | ✅ | Fixed schema references, added security requirements, enhanced query parameter documentation |
 | internal-predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with comprehensive streaming event documentation, including detailed examples of all event types and client-side implementation guidance |
-| leads | ⏳ | ⏳ | ⏳ | ⏳ | |
+| leads | ✅ | ✅ | ✅ | ✅ | Updated schema references, corrected security requirements, added detailed examples and implementation notes |
 | load-prompts | ⏳ | ⏳ | ⏳ | ⏳ | |
 | marketplaces | ⏳ | ⏳ | ⏳ | ⏳ | |
 | node-configs | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 21/47 (44.7%)
-- **Modules Pending**: 26/47 (55.3%)
+- **Modules Reviewed**: 22/47 (46.8%)
+- **Modules Pending**: 25/47 (53.2%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns
@@ -79,7 +79,7 @@ This document tracks the progress of our API documentation review process, ensur
 ## Next Steps
 
 1. Continue reviewing modules based on priority
-2. Focus on critical API endpoints next (leads, etc.)
+2. Focus on critical API endpoints next (load-prompts, marketplaces, etc.)
 3. Establish patterns to apply across similar endpoints
 4. Update all OpenAPI fragments to use consistent reference patterns
 

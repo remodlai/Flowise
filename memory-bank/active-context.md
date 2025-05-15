@@ -100,6 +100,7 @@
 - Verify that our schema references remain consistent with the implementation
 ## Current Session Notes
 
+- [3:53:15 PM] [Unknown User] Verified Leads Module Documentation: Reviewed and updated the leads module API documentation, ensuring that schema references use the correct relative path format, security requirements are properly specified, and documentation accurately reflects the implementation. Added detailed examples and implementation notes for better developer understanding.
 - [3:16:24 PM] [Unknown User] Decision Made: Standardized Streaming Event Documentation
 - [3:16:16 PM] [Unknown User] Enhanced Streaming Documentation: Updated the public predictions endpoint documentation to match the enhanced internal-predictions streaming documentation. Ensured consistency between both endpoints, providing detailed information about all SSE event types, their formats, and usage. Updated the API documentation review checklist to reflect these improvements.
 - [3:13:32 PM] [Unknown User] Enhanced Documentation: Expanded the internal-predictions streaming API documentation with comprehensive details on event types, implementation details, client-side handling, and edge cases. The updated documentation provides a complete reference for developers implementing clients that consume the streaming API.
