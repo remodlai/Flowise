@@ -12,6 +12,10 @@
 
 ## Update History
 
+- [2025-05-15 1:17:07 PM] [Unknown User] - Decision Made: Verified Chatflows-Uploads Module Documentation Accuracy
+- [2025-05-15 1:16:56 PM] [Unknown User] - Documentation Verification - Chatflows-Uploads Module: Thoroughly verified the chatflows-uploads module API documentation against actual implementation. Confirmed that the route registration ('/chatflows-uploads') matches file naming. Examined controller, service, and utility implementation (utilGetUploadsConfig) in detail, confirming the documentation accurately reflects the complex logic that determines upload capabilities. The endpoint analysis document is particularly comprehensive, capturing all aspects of the implementation's behavior including speech-to-text, RAG file uploads, and image uploads detection.
+- [2025-05-15 1:09:56 PM] [Unknown User] - Decision Made: Verified Chatflows Module Documentation Accuracy
+- [2025-05-15 1:09:46 PM] [Unknown User] - Documentation Verification - Chatflows Module: Verified the chatflows module API documentation. Following our new verification rule, confirmed that the route registration in routes/index.ts matches the file naming convention ('/chatflows'). All OpenAPI fragments and endpoint analysis documentation correctly use the registered route. The schema definitions in ChatflowsSchemas.yaml accurately reflect the entity structure.
 - [2025-05-15 1:05:00 PM] [Unknown User] - Decision Made: Correct Chat Messages API Paths to Match Actual Route Registration
 - [2025-05-15 1:04:48 PM] [Unknown User] - Documentation Correction - Revised Chat Messages URLs: Fixed URL path inconsistency in OpenAPI documentation for chat-messages module. Updated all fragments to use '/chatmessage/' (singular, no hyphen) instead of '/chat-messages/' to match the actual implemented route registration in routes/index.ts. This change ensures the documentation reflects the actual functional API endpoints.
 - [2025-05-15 1:01:36 PM] [Unknown User] - Decision Made: Standardize Chat-Messages API Paths in Documentation

@@ -84,20 +84,23 @@
 ## Ongoing Tasks
 
 - Continue reviewing remaining modules for API documentation accuracy
-- Check for path inconsistencies between documentation and implementation in other modules
-- Ensure all documented paths match actual registered routes in routes/index.ts
+- Apply thorough code implementation verification to each module
+- Ensure authentication requirements are explicitly documented in OpenAPI fragments
 ## Known Issues
 
-- Inconsistency between file naming ('chat-messages') and route registration ('/chatmessage') in the chat-messages module
-- Similar inconsistencies may exist in other modules
-- Need to verify actual route registrations rather than assuming file names reflect routes
+- Some OpenAPI fragments may have commented-out security sections that should be enabled
+- Need to verify detailed business logic implementation for each endpoint
 ## Next Steps
 
 - Review the next module in the documentation pipeline
-- Pay particular attention to how routes are registered in routes/index.ts for each module
-- Consider documenting file naming vs. route registration inconsistencies for potential future code standardization
+- Pay special attention to utility functions that contain complex business logic
+- Ensure all authentication requirements are properly documented
 ## Current Session Notes
 
+- [1:17:07 PM] [Unknown User] Decision Made: Verified Chatflows-Uploads Module Documentation Accuracy
+- [1:16:56 PM] [Unknown User] Documentation Verification - Chatflows-Uploads Module: Thoroughly verified the chatflows-uploads module API documentation against actual implementation. Confirmed that the route registration ('/chatflows-uploads') matches file naming. Examined controller, service, and utility implementation (utilGetUploadsConfig) in detail, confirming the documentation accurately reflects the complex logic that determines upload capabilities. The endpoint analysis document is particularly comprehensive, capturing all aspects of the implementation's behavior including speech-to-text, RAG file uploads, and image uploads detection.
+- [1:09:56 PM] [Unknown User] Decision Made: Verified Chatflows Module Documentation Accuracy
+- [1:09:46 PM] [Unknown User] Documentation Verification - Chatflows Module: Verified the chatflows module API documentation. Following our new verification rule, confirmed that the route registration in routes/index.ts matches the file naming convention ('/chatflows'). All OpenAPI fragments and endpoint analysis documentation correctly use the registered route. The schema definitions in ChatflowsSchemas.yaml accurately reflect the entity structure.
 - [1:05:00 PM] [Unknown User] Decision Made: Correct Chat Messages API Paths to Match Actual Route Registration
 - [1:04:48 PM] [Unknown User] Documentation Correction - Revised Chat Messages URLs: Fixed URL path inconsistency in OpenAPI documentation for chat-messages module. Updated all fragments to use '/chatmessage/' (singular, no hyphen) instead of '/chat-messages/' to match the actual implemented route registration in routes/index.ts. This change ensures the documentation reflects the actual functional API endpoints.
 - [1:01:36 PM] [Unknown User] Decision Made: Standardize Chat-Messages API Paths in Documentation

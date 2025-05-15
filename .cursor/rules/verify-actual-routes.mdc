@@ -1,0 +1,41 @@
+---
+description: 
+globs: memory-bank/api_documentation/**/*
+alwaysApply: false
+---
+# Rule: Verify Registered Routes Over File Names
+
+**Rule Description:**
+"When documenting API endpoints, the AI assistant (Cursor) MUST verify the actual route registration in `packages/server/src/routes/index.ts` rather than assuming routes based on file or directory names. This rule ensures that documentation accurately reflects the endpoints that will actually work when called by API consumers.
+
+## Core Requirements:
+
+1. **Registration is Authoritative:**
+   - The route registration in `routes/index.ts` is the SOLE source of truth for API paths
+   - File and directory naming conventions are SECONDARY to actual route registration
+   - In case of discrepancy, always document the registered route path
+
+2. **Mandatory Verification Steps:**
+   - For ANY module being documented, FIRST examine `routes/index.ts` to confirm the exact route registration
+   - Identify the router variable name and how it's registered (e.g., `router.use('/chatmessage', chatMessageRouter)`)
+   - Only after confirming the registered path, proceed with documenting endpoints
+
+3. **Documentation Accuracy Requirements:**
+   - All OpenAPI paths must begin with the EXACT registered route path
+   - All endpoint analysis documents must use paths that include the registered prefix
+   - Any references to endpoints in other documentation must use the registered path
+
+4. **Explicit Discrepancy Documentation:**
+   - When file naming differs from route registration, note this in a comment in the OpenAPI file
+   - Example: `# Note: While the file is named 'chat-messages', the registered route is '/chatmessage'`
+   - Consider adding such discrepancies to a list of potential code standardization issues
+
+5. **Client Code Validation:**
+   - When available, verify actual API client code (like in `packages/ui/src/api/`) to confirm paths used
+
+The AI's responsibility is to ensure documentation accurately reflects the routes that will actually work in the running application, providing a reliable reference for API consumers."
+
+**Key Aspects Enforced:**
+* **Registration-First Approach:** Verifying actual route registration before documenting
+* **Source of Truth Clarity:** Establishing routes/index.ts as the definitive reference
+* **Practical over Theoretical:** Ensuring documented paths will work when called

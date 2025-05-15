@@ -1,0 +1,52 @@
+---
+description: 
+globs: memory-bank/api_documentation/**/*
+alwaysApply: false
+---
+# Rule: Verify Code Implementation Against Documentation
+
+**Rule Description:**
+"When documenting API endpoints, the AI assistant (Cursor) MUST thoroughly examine the actual code implementation, not just route registration, to ensure all documentation accurately reflects the codebase. This rule expands on route verification to include validating request handling, business logic, and response formats.
+
+## Core Verification Requirements:
+
+1. **Complete Implementation Analysis:**
+   - Examine controller methods to understand parameter extraction and validation
+   - Study service methods to comprehend actual business logic execution
+   - Verify utility functions called by the service to understand data transformations
+   - Analyze entity definitions to confirm data structure expectations
+
+2. **Documentation Accuracy Checklist:**
+   - Request parameters (path, query, body) must match what the controller actually expects and uses
+   - Response structures must reflect actual returned objects from controller/service methods
+   - Authentication/authorization mechanisms must match middleware implementation
+   - Error handling must document all error cases explicitly handled in the code
+   - Documentation must capture conditional logic that affects responses (e.g., different response formats based on input)
+   - Performance implications (pagination, rate limiting) must be documented if implemented
+ 
+3. **Schema Validation Process:**
+   - Cross-check schema definitions against actual TypeScript interfaces/classes
+   - Verify required vs. optional properties based on actual code usage
+   - Confirm data types match implementation (including nullable fields)
+   - Ensure enums in documentation match actual code-defined enums
+   - Verify nested object structures against actual composition patterns
+
+4. **Business Logic Verification:**
+   - Document edge cases that are explicitly handled in code
+   - Capture state transitions or side effects caused by endpoints
+   - Note behavioral differences caused by environment variables or configuration
+   - Document integration with other systems/services if handled by the endpoint
+
+5. **Resolution of Discrepancies:**
+   - When documentation differs from implementation, ALWAYS update documentation to match code
+   - Flag significant logic that is undocumented for possible inclusion
+   - Never suggest code changes to match documentation - code is the source of truth
+   - When code behavior is unclear, seek clarification rather than making assumptions
+
+The AI's responsibility is to ensure thorough understanding of the actual implementation before finalizing documentation, treating the codebase as the definitive source of truth for all API behavior."
+
+**Key Aspects Enforced:**
+* **Implementation-First Documentation:** Ensuring docs reflect what the code actually does
+* **Comprehensive Code Review:** Examining all layers involved in request processing
+* **Accuracy in Technical Details:** Validating specific implementation details are captured
+* **No Assumptions:** Requiring verification of actual behavior rather than guessing
