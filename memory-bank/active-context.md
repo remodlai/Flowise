@@ -92,11 +92,26 @@
 - Need to verify detailed business logic implementation for each endpoint
 ## Next Steps
 
-- Review the next module in the documentation pipeline
-- Pay special attention to utility functions that contain complex business logic
-- Ensure all authentication requirements are properly documented
+- Continue verifying other API endpoints for consistency between implementation and documentation
+- Focus on ensuring response schemas accurately reflect actual service return types
 ## Current Session Notes
 
+- [1:31:08 PM] [Unknown User] Updated Credentials API Documentation: Fixed and updated all credentials API endpoint documentation to accurately reflect actual implementation. Made the following improvements: 1) Fixed schema references, 2) Added proper response object definitions, 3) Clarified conditional response formats (with/without encryptedData), 4) Added notes about route behavior for paths with both / and /:id, 5) Improved description of update process with plainDataObj merging.
+- [1:31:02 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/credentials/internalCredentialsUpdate.yaml
+- [1:30:48 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/credentials/internalCredentialsGetById.yaml
+- [1:30:40 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/credentials/internalCredentialsGetAll.yaml
+- [1:30:24 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/credentials/internalCredentialsDelete.yaml
+- [1:28:30 PM] [Unknown User] Decision Made: Credentials API Schemas Update
+- [1:28:22 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/credentials/internalCredentialsCreate.yaml
+- [1:28:08 PM] [Unknown User] File Update: Updated api_documentation/schemas/modules/CredentialsSchemas.yaml
+- [1:27:48 PM] [Unknown User] Analyzed Credentials API Module: Reviewed credential-related API endpoints and schema documentation. Verified that the implementation in controllers, services, and route registration matches the documented API surface, including parameter expectations, response formats, and schema definitions.
+- [1:26:32 PM] [Unknown User] Updated Components-Credentials-Icon Documentation: Corrected both the endpoint analysis markdown and OpenAPI fragment YAML to accurately reflect how the endpoint actually functions. Fixed response format (raw file instead of JSON with base64), updated content types (image/* formats), clarified that the root path will fail, and documented support for multiple image formats (.svg, .png, .jpg).
+- [1:26:26 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/components-credentials-icon/internalComponentsCredentialsIconGetByName.yaml
+- [1:26:14 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/components-credentials-icon/internalComponentsCredentialsIconGetByName.md
+- [1:25:08 PM] [Unknown User] Decision Made: Components-Credentials-Icon Documentation Correction
+- [1:25:01 PM] [Unknown User] Analyzed Components-Credentials-Icon Endpoint: Reviewed the implementation of the components-credentials-icon endpoint and identified discrepancies between documentation and code. The API documentation claims it returns a base64 data URI, but the actual implementation returns a file path via res.sendFile() in the controller.
+- [1:23:51 PM] [Unknown User] Decision Made: Components-Credentials Endpoint Response Verification
+- [1:23:44 PM] [Unknown User] Verified Components-Credentials Response Structure: Confirmed that the getAllComponentsCredentials service returns an array structure and the OpenAPI schema correctly defines it as an array of ComponentCredentialDefinition objects. The implementation in the service, controller handling, and client-side code all consistently treat this as an array response, matching the documented schema.
 - [1:17:07 PM] [Unknown User] Decision Made: Verified Chatflows-Uploads Module Documentation Accuracy
 - [1:16:56 PM] [Unknown User] Documentation Verification - Chatflows-Uploads Module: Thoroughly verified the chatflows-uploads module API documentation against actual implementation. Confirmed that the route registration ('/chatflows-uploads') matches file naming. Examined controller, service, and utility implementation (utilGetUploadsConfig) in detail, confirming the documentation accurately reflects the complex logic that determines upload capabilities. The endpoint analysis document is particularly comprehensive, capturing all aspects of the implementation's behavior including speech-to-text, RAG file uploads, and image uploads detection.
 - [1:09:56 PM] [Unknown User] Decision Made: Verified Chatflows Module Documentation Accuracy

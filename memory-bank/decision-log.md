@@ -183,3 +183,42 @@
   - API consumers will have clear understanding of authentication requirements
   - The detailed logic analysis in the endpoint documentation provides valuable insight into the complex upload capability detection process
   - The implementation details are thoroughly captured, making this a good reference for how to document complex business logic
+
+## Components-Credentials Endpoint Response Verification
+- **Date:** 2025-05-15 1:23:51 PM
+- **Author:** Unknown User
+- **Context:** Needed to verify if the components-credentials API response structure matched its OpenAPI documentation to ensure accuracy.
+- **Decision:** Confirmed that both the implementation and documentation are correct and consistent. The service returns an array of credential definitions, and the OpenAPI schema properly defines the response as an array of ComponentCredentialDefinition objects.
+- **Alternatives Considered:** 
+  - Update the OpenAPI schema if it incorrectly defined the response structure
+  - Modify the service implementation if it didn't match the documented schema
+- **Consequences:** 
+  - Documentation remains accurate for API consumers
+  - No changes needed to either implementation or documentation
+  - Increased confidence in the API documentation quality
+
+## Components-Credentials-Icon Documentation Correction
+- **Date:** 2025-05-15 1:25:08 PM
+- **Author:** Unknown User
+- **Context:** Documentation for the components-credentials-icon endpoint incorrectly states it returns a base64 data URI wrapped in a JSON object with a 'src' property. Examined actual implementation to determine correct behavior.
+- **Decision:** The documentation should be updated to reflect that the endpoint returns the actual file content (image/svg+xml, image/png, or image/jpg) directly using res.sendFile(), not a base64 data URI in a JSON object.
+- **Alternatives Considered:** 
+  - Keep current documentation despite inaccuracy
+  - Change implementation to match documentation
+- **Consequences:** 
+  - Documentation will accurately reflect actual API behavior
+  - Prevents confusion for API consumers
+  - Maintains documentation integrity
+
+## Credentials API Schemas Update
+- **Date:** 2025-05-15 1:28:30 PM
+- **Author:** Unknown User
+- **Context:** During analysis of the credentials API endpoints and schemas, needed to determine if the documentation matched the actual implementation and make any necessary updates while preserving all implementation details.
+- **Decision:** Updated the CredentialsSchemas.yaml and internalCredentialsCreate.yaml files to more accurately reflect the actual implementation. Used $ref to link to schema definitions and aligned field names with the TypeORM entity and interfaces used in the code.
+- **Alternatives Considered:** 
+  - Update controller/service implementation to match existing documentation
+  - Leave documentation as-is despite discrepancies
+- **Consequences:** 
+  - Documentation now accurately reflects the actual API behavior
+  - Schema references are properly linked between OpenAPI fragments
+  - Field naming is consistent with implemented interfaces
