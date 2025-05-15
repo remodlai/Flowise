@@ -14,7 +14,7 @@
 
 **Query Parameters:**
 *   `url` (string, required): The URL to fetch links from (must be URL-encoded).
-*   `relativeLinksMethod` (string, required): Method to use for finding relative links (`webCrawl` or `xmlScrape`).
+*   `relativeLinksMethod` (string, required, enum: `webCrawl`, `xmlScrape`): Method to use for finding relative links.
 *   `limit` (string, required): Maximum number of links to retrieve (will be parsed as integer).
 
 **Responses:**
@@ -25,5 +25,5 @@
       "links": ["https://example.com/page1", "https://example.com/page2", ...]
     }
     ```
-*   **`412 Precondition Failed`:** Missing required parameters.
-*   **`500 Internal Server Error`**
+*   **`412 Precondition Failed`:** Missing required parameters (url, relativeLinksMethod, or limit).
+*   **`500 Internal Server Error`:** Errors during link retrieval or other server issues.

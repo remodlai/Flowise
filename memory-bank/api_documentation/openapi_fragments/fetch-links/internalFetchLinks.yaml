@@ -1,6 +1,7 @@
 "/fetch-links/":
   get:
     summary: "INTERNAL: Fetch Links from URL"
+    description: "Retrieves a list of links from a specified URL using either web crawling or XML scraping methods."
     operationId: "internalFetchLinks"
     tags: ["Fetch Links", "InternalAPI"]
     parameters:
@@ -30,16 +31,18 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/FetchLinksResponse"
+              $ref: "../../schemas/modules/FetchLinksSchemas.yaml#/components/schemas/FetchLinksResponse"
       '412':
         description: "Precondition Failed - Missing required parameters."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []
