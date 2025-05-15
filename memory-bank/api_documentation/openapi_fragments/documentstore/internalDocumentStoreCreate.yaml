@@ -1,6 +1,7 @@
-"/document-stores/store":
+"/document-store/store":
   post:
     summary: "INTERNAL: Create Document Store"
+    description: "INTERNAL: Creates a new document store configuration entry."
     operationId: "internalDocumentStoreCreate"
     tags: ["Document Store", "InternalAPI"]
     requestBody:
@@ -8,21 +9,25 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/DocumentStoreCreateRequest" # To be defined
-            type: object
-            required: [name]
-            properties:
-              name: { type: string }
-              description: { type: string, nullable: true }
-              loaders: { type: string, description: "JSON string of loader configs", nullable: true }
-              vectorStoreConfig: { type: string, description: "JSON string", nullable: true }
-              embeddingConfig: { type: string, description: "JSON string", nullable: true }
-              recordManagerConfig: { type: string, description: "JSON string", nullable: true }
+            $ref: "../../schemas/modules/documentStoreSchemas.yaml#/components/schemas/CreateDocumentStoreRequestBody"
     responses:
       '200':
         description: "Document Store created."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DocumentStore" # To be defined
-      # ... other error responses
+              $ref: "../../schemas/modules/documentStoreSchemas.yaml#/components/schemas/DocumentStoreDTO"
+      '400':
+        description: "Bad Request (e.g., missing required fields)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

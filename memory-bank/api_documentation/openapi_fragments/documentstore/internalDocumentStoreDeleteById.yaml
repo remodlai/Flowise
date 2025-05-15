@@ -1,4 +1,4 @@
-"/document-stores/store/{id}":
+"/document-store/store/{id}":
   delete:
     summary: "INTERNAL: Delete Document Store By ID"
     description: "INTERNAL: Deletes a document store and all associated data (chunks, files, history)."
@@ -23,23 +23,24 @@
                 deleted:
                   type: integer
                   description: "Number of document store entities deleted (should be 1 if successful)."
+              required: [deleted]
       '404':
         description: "Document Store not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (ID not provided)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     # security:
     #   - InternalApiKeyAuth: []

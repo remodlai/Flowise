@@ -1,4 +1,4 @@
-"/document-stores/components/loaders":
+"/document-store/components/loaders":
   get:
     summary: "INTERNAL: Get Available Document Loader Components"
     description: "INTERNAL: Retrieves a list of all available document loader component definitions."
@@ -12,12 +12,12 @@
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/DocumentLoaderComponentDefinition"
+                $ref: "../../schemas/modules/documentStoreSchemas.yaml#/components/schemas/DocumentLoaderComponentDefinition"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     # security:
     #   - InternalApiKeyAuth: []

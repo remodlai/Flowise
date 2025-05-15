@@ -1,4 +1,4 @@
-"/document-stores/store/{id}":
+"/document-store/store/{id}":
   put:
     summary: "INTERNAL: Update Document Store By ID"
     description: "INTERNAL: Updates an existing document store configuration."
@@ -17,40 +17,31 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/DocumentStoreUpdateRequest" # To be defined (subset of DocumentStore entity)
-            type: object
-            properties:
-              name: { type: string, nullable: true }
-              description: { type: string, nullable: true }
-              loaders: { type: string, description: "JSON string of loader configs", nullable: true }
-              status: { $ref: "#/components/schemas/DocumentStoreStatusEnum", nullable: true }
-              vectorStoreConfig: { type: string, description: "JSON string", nullable: true }
-              embeddingConfig: { type: string, description: "JSON string", nullable: true }
-              recordManagerConfig: { type: string, description: "JSON string", nullable: true }
+            $ref: "../../schemas/modules/documentStoreSchemas.yaml#/components/schemas/UpdateDocumentStoreRequestBody"
     responses:
       '200':
         description: "Successfully updated document store."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DocumentStoreDTO" # As defined previously
+              $ref: "../../schemas/modules/documentStoreSchemas.yaml#/components/schemas/DocumentStoreDTO"
       '404':
         description: "Document Store not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (ID or body not provided)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     # security:
     #   - InternalApiKeyAuth: []

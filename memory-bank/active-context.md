@@ -96,6 +96,18 @@
 - Focus on ensuring response schemas accurately reflect actual service return types
 ## Current Session Notes
 
+- [2:26:40 PM] [Unknown User] Updated DocumentStore API Schemas and OpenAPI Fragments: Fixed and updated the DocumentStore API documentation to accurately reflect the actual implementation. Made the following improvements: 1) Fixed URL paths to use '/document-store/' instead of '/document-stores/', 2) Corrected the DocumentStoreStatusEnum values to match the implementation, 3) Added proper schema references between fragments and schema definitions, 4) Updated field types and nullability as defined in the interfaces, 5) Improved request and response bodies to match API behavior.
+- [2:26:32 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreUpsert.yaml
+- [2:26:09 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreUpdateById.yaml
+- [2:25:59 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreRefresh.yaml
+- [2:25:41 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetConfigs.yaml
+- [2:25:29 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetComponentLoaders.yaml
+- [2:25:21 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetById.yaml
+- [2:25:11 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreGetAll.yaml
+- [2:25:03 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreDeleteById.yaml
+- [2:24:53 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreCreate.yaml
+- [2:24:44 PM] [Unknown User] File Update: Updated api_documentation/schemas/modules/documentStoreSchemas.yaml
+- [2:06:10 PM] [Unknown User] Analyzed DocumentStore API Implementation: Examined routes, controllers, entities, and interface definitions for the documentstore module. Reviewed the implementation details to ensure OpenAPI fragments and schema definitions accurately reflect the API's actual behavior.
 - [1:31:08 PM] [Unknown User] Updated Credentials API Documentation: Fixed and updated all credentials API endpoint documentation to accurately reflect actual implementation. Made the following improvements: 1) Fixed schema references, 2) Added proper response object definitions, 3) Clarified conditional response formats (with/without encryptedData), 4) Added notes about route behavior for paths with both / and /:id, 5) Improved description of update process with plainDataObj merging.
 - [1:31:02 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/credentials/internalCredentialsUpdate.yaml
 - [1:30:48 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/credentials/internalCredentialsGetById.yaml

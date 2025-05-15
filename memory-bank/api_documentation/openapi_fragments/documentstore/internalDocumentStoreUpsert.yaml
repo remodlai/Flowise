@@ -1,4 +1,4 @@
-"/document-stores/upsert/{id}": # Path :id is storeId
+"/document-store/upsert/{id}": # Path :id is storeId
   post:
     summary: "INTERNAL: Upsert Documents to Store"
     description: |
@@ -87,29 +87,30 @@
                   nullable: true
                   description: "Job ID if the process is queued."
               additionalProperties: true # For other potential fields from vector store response
+              required: [result]
       '400':
         description: "Bad Request (e.g., invalid input, malformed JSON strings, missing storeId)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '404':
         description: "DocumentStore not found for the given storeId."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (e.g., storeId not provided adequately in path or body)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error during processing."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     # security:
     #   - InternalApiKeyAuth: []

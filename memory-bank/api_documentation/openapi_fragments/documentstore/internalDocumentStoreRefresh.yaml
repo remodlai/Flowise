@@ -1,4 +1,4 @@
-"/document-stores/refresh/{id}": # Path :id is storeId
+"/document-store/refresh/{id}": # Path :id is storeId
   post:
     summary: "INTERNAL: Refresh Document Store Loaders"
     description: "INTERNAL: Re-processes documents for a document store using its existing loader configurations, effectively refreshing its content in the vector store. ID in path is storeId."
@@ -15,7 +15,7 @@
     requestBody:
       required: true # body itself required for storeId if not in path
       content:
-        application/json: # Service expects IDocumentStoreRefreshData (items: IDocumentStoreUpsertData[])
+        application/json:
           schema:
             type: object
             properties:
@@ -32,8 +32,7 @@
                 type: string # Boolean as string
                 enum: ["true", "false"]
                 nullable: true
-              # Potentially other override fields if supported by refresh logic for IDocumentStoreUpsertData items
-              # e.g., vectorStore, embedding, recordManager as JSON strings.
+                description: "Whether to replace existing documents/chunks in the vector store."
     responses:
       '200':
         description: "Refresh process initiated or completed."
@@ -42,32 +41,40 @@
             schema:
               type: object 
               properties:
-                result: { type: string, example: "Successfully Upserted" }
-                jobId: { type: string, example: "queue-job-id", nullable: true }
+                result: 
+                  type: string
+                  example: "Successfully Upserted"
+                  description: "Status message from the refresh process."
+                jobId: 
+                  type: string
+                  example: "queue-job-id"
+                  nullable: true
+                  description: "Job ID if the process is queued."
               additionalProperties: true
+              required: [result]
       '400':
         description: "Bad Request."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '404':
         description: "DocumentStore not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (e.g., storeId not provided)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     # security:
     #   - InternalApiKeyAuth: []

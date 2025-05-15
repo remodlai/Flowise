@@ -1,4 +1,4 @@
-"/document-stores/store/{id}":
+"/document-store/store/{id}":
   get:
     summary: "INTERNAL: Get Document Store By ID"
     description: "INTERNAL: Retrieves a specific document store by ID, with enriched `whereUsed` info."
@@ -18,24 +18,24 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DocumentStoreDTO" # As defined previously
+              $ref: "../../schemas/modules/documentStoreSchemas.yaml#/components/schemas/DocumentStoreDTO"
       '404':
         description: "Document Store not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (ID not provided)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     # security:
     #   - InternalApiKeyAuth: []
