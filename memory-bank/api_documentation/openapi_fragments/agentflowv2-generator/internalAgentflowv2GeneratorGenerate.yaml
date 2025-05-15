@@ -6,6 +6,12 @@
       INTERNAL: Generates a Remodl Core AgentFlow V2 graph structure (nodes and edges) 
       based on a user's natural language question/request and a selected chat model configuration.
       It utilizes available Agent Flow nodes, tools, and marketplace templates to construct the flow.
+
+      Processing Modes:
+      - **Direct Mode:** In the default configuration, requests are processed immediately.
+      - **Queue Mode:** When `process.env.MODE === 'QUEUE'`, requests are added to a 'prediction' queue. 
+        The API still waits for the job to complete before responding, but this allows for better resource 
+        management and more stable behavior under load in production environments.
     operationId: "internalAgentflowv2GeneratorGenerate"
     tags: ["AgentFlowV2-Generator", "InternalAPI"]
     requestBody:
@@ -13,25 +19,28 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AgentflowV2RequestBody"
+            $ref: "../../schemas/modules/AgentflowV2GeneratorSchemas.yaml#/components/schemas/AgentflowV2RequestBody"
     responses:
       '200':
-        description: "AgentFlow V2 configuration generated successfully, or a parsing error object if validation failed."
+        description: |
+          AgentFlow V2 configuration generated successfully, or a parsing error object if validation failed.
+          Note that in queue mode, response times may vary based on queue load, though the endpoint
+          remains synchronous (waiting for job completion).
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AgentflowV2Response"
+              $ref: "../../schemas/modules/AgentflowV2GeneratorSchemas.yaml#/components/schemas/AgentflowV2Response"
       '400':
         description: "Bad Request (e.g., missing `question` or `selectedChatModel` in request body)."
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '500':
         description: "Internal Server Error during generation."
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
     security:
       - ApiKeyAuth: []

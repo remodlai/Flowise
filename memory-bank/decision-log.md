@@ -39,3 +39,44 @@
   - Provides strong, granular linkage for auditing and management.
   - Requires a new database migration and updates to API key creation logic.
   - Improves long-term maintainability and security posture of the integrated platform.
+
+## Predictions Endpoint Documentation Accuracy
+- **Date:** 2025-05-15 12:24:58 PM
+- **Author:** Unknown User
+- **Context:** Performed spot check of predictions endpoint documentation against its implementation
+- **Decision:** The existing documentation for the predictions endpoint is accurate and comprehensive, properly representing the actual implementation
+- **Alternatives Considered:** 
+  - Create updated documentation to fix inaccuracies
+  - Add missing schema elements
+  - Correct endpoint URL patterns
+- **Consequences:** 
+  - Documentation can be relied upon by API consumers
+  - No immediate updates needed for this endpoint's documentation
+
+## Components Credentials Endpoint Documentation Discrepancy
+- **Date:** 2025-05-15 12:27:00 PM
+- **Author:** Unknown User
+- **Context:** Spot check of components-credentials endpoint documentation revealed a mismatch between documented and actual response format
+- **Decision:** Update the OpenAPI fragment for GET /components-credentials/ to correctly specify an array response instead of an object response
+- **Alternatives Considered:** 
+  - Leave documentation as is
+  - Change implementation to match documentation
+  - Create alternative endpoint
+- **Consequences:** 
+  - Documentation will correctly reflect actual implementation
+  - API consumers will have accurate schema information
+  - Prevents integration issues for API users
+
+## AgentflowV2Generator Documentation Accuracy Assessment
+- **Date:** 2025-05-15 12:29:01 PM
+- **Author:** Unknown User
+- **Context:** Performed spot check of the agentflowv2-generator endpoint documentation by comparing actual implementation with existing documentation.
+- **Decision:** The existing documentation is mostly accurate but requires a few minor updates to ensure full alignment with the implementation.
+- **Alternatives Considered:** 
+  - Leave documentation unchanged
+  - Complete overhaul of documentation
+  - Remove incomplete parts of the documentation
+- **Consequences:** 
+  - Documentation will accurately reflect implementation
+  - API consumers will have correct expectations about request/response format
+  - Future maintenance will be easier with aligned documentation

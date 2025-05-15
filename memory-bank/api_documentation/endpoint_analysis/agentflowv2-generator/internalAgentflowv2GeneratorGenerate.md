@@ -14,6 +14,10 @@
 **Authentication:**
 *   Requires API Key (standard Remodl Core `Authorization` header mechanism assumed, TBC).
 
+**Processing Modes:**
+*   **Direct Mode:** In the default configuration, requests are processed immediately, and the response is returned after completion.
+*   **Queue Mode:** When `process.env.MODE === 'QUEUE'`, requests are instead added to a 'prediction' queue for asynchronous processing. The API call still waits for the job to complete before returning the response, but this allows for better resource management, parallel processing, and more stable behavior under load in production environments.
+
 **Request:**
 *   **Method:** `POST`
 *   **Path:** `/api/v1/agentflowv2-generator/generate`
@@ -51,9 +55,9 @@
             *   `description?` (string)
             *   `usecases?` (array of string)
             *   `nodes` (array of `NodeType` objects):
-                *   `NodeType`: `{ id: string, type: string, position: {x: number, y: number}, width: number, height: number, data?: any, ... }`
+                *   `NodeType`: `{ id: string, type: string, position: {x: number, y: number}, width: number, height: number, data?: any, selected?: boolean, positionAbsolute?: {x: number, y: number}, dragging?: boolean, parentNode?: string, ... }`
             *   `edges` (array of `EdgeType` objects):
-                *   `EdgeType`: `{ source: string, sourceHandle: string, target: string, targetHandle: string, id: string, data?: any, ... }`
+                *   `EdgeType`: `{ source: string, sourceHandle: string, target: string, targetHandle: string, id: string, type?: string, data?: { sourceColor?: string, targetColor?: string, edgeLabel?: string, isHumanInput?: boolean }, ... }`
         *   **Example Response Body (Structure):**
             ```json
             {
@@ -83,6 +87,15 @@
 3.  Service (`generateAgentflowv2`):
     a.  Gathers available Remodl Core Agent Flow nodes, tools, and marketplace templates.
     b.  Constructs a detailed system prompt using this information and the user's `question`.
-    c.  Calls `flowise-components.generateAgentflowv2_json` (or queues a job) with the prompt and selected chat model to generate the flow structure.
-    d.  Validates the generated structure against a Zod schema (`AgentFlowV2Type`).
+    c.  If in queue mode (`process.env.MODE === 'QUEUE'`):
+        i.  Adds a job to the 'prediction' queue with all necessary data.
+        ii. Waits for the job to complete and returns the result.
+    d.  If in direct mode:
+        i.  Calls `flowise-components.generateAgentflowv2_json` directly with the prompt and selected chat model.
+    e.  Validates the generated structure against a Zod schema (`AgentFlowV2Type`).
 4.  Controller returns the validated flow structure (nodes and edges) or a parsing error object.
+
+**Performance Considerations:**
+*   In production environments with the queue mode enabled, response times may vary based on queue load.
+*   The response still waits for the completion of the generated flow, which could be time-consuming depending on the complexity of the request and the selected chat model.
+*   For high-traffic production environments, consider implementing client-side timeout handling to manage potentially longer response times in queue mode.

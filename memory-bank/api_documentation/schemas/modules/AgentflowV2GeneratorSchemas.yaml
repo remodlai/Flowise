@@ -29,15 +29,117 @@ components:
     # For now, we assume they exist there or will be created/audited there.
     # Let's use placeholder names that we expect to exist in flowiseComponentSchemas.yaml or server/Interface.ts schemas.
 
-    AgentflowV2Node: # Placeholder, expecting to refine this to $ref to ReactFlowNode or similar
-      $ref: '../shared/flowiseComponentSchemas.yaml#/components/schemas/INodeData' 
-      # Ideally, this should be something like IReactFlowNode which includes position etc.
-      # INodeData is the 'data' part of IReactFlowNode.
-      # We will refine this reference after flowiseComponentSchemas.yaml is fully audited.
+    AgentflowV2Node:
+      type: object
+      required:
+        - id
+        - type
+        - position
+        - width
+        - height
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the node.
+        type:
+          type: string
+          description: Type of the node, indicating its functionality.
+        position:
+          type: object
+          required:
+            - x
+            - y
+          properties:
+            x:
+              type: number
+              description: X-coordinate position of the node.
+            y:
+              type: number
+              description: Y-coordinate position of the node.
+        width:
+          type: number
+          description: Width of the node.
+        height:
+          type: number
+          description: Height of the node.
+        selected:
+          type: boolean
+          nullable: true
+          description: Whether the node is currently selected in the UI.
+        positionAbsolute:
+          type: object
+          nullable: true
+          properties:
+            x:
+              type: number
+              description: Absolute X-coordinate position.
+            y:
+              type: number
+              description: Absolute Y-coordinate position.
+        dragging:
+          type: boolean
+          nullable: true
+          description: Whether the node is being dragged.
+        data:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Node-specific configuration data.
+        parentNode:
+          type: string
+          nullable: true
+          description: ID of parent node, when this node is nested, such as in iteration nodes.
 
-    AgentflowV2Edge: # Placeholder, expecting to refine this to $ref to ReactFlowEdge or similar
-      $ref: '../shared/flowiseComponentSchemas.yaml#/components/schemas/IReactFlowEdge' 
-      # Assuming IReactFlowEdge will be defined in flowiseComponentSchemas.yaml
+    AgentflowV2Edge:
+      type: object
+      required:
+        - source
+        - sourceHandle
+        - target
+        - targetHandle
+        - id
+      properties:
+        source:
+          type: string
+          description: ID of the source node for this edge.
+        sourceHandle:
+          type: string
+          description: Specific handle/port on the source node where the edge connects.
+        target:
+          type: string
+          description: ID of the target node for this edge.
+        targetHandle:
+          type: string
+          description: Specific handle/port on the target node where the edge connects.
+        id:
+          type: string
+          description: Unique identifier for the edge.
+        type:
+          type: string
+          nullable: true
+          description: Type of the edge, if applicable.
+        data:
+          type: object
+          nullable: true
+          properties:
+            sourceColor:
+              type: string
+              nullable: true
+              description: Color of the edge at its source.
+            targetColor:
+              type: string
+              nullable: true
+              description: Color of the edge at its target.
+            edgeLabel:
+              type: string
+              nullable: true
+              description: Label text to display on the edge.
+            isHumanInput:
+              type: boolean
+              nullable: true
+              description: Whether this edge represents input from a human.
+          additionalProperties: true
+          description: Edge-specific configuration data.
 
     AgentflowV2SuccessResponse:
       type: object
@@ -45,21 +147,23 @@ components:
         description:
           type: string
           nullable: true
+          description: A textual description of the generated agent flow.
         usecases:
           type: array
           items:
             type: string
           nullable: true
+          description: Potential use cases for this agent flow.
         nodes:
           type: array
           items:
-            # This should ideally be a schema representing a flow node, e.g., IReactFlowNode
-            $ref: '#/components/schemas/AgentflowV2Node' 
+            $ref: '#/components/schemas/AgentflowV2Node'
+          description: Array of node configurations for the flow.
         edges:
           type: array
           items:
-            # This should ideally be a schema representing a flow edge, e.g., IReactFlowEdge
             $ref: '#/components/schemas/AgentflowV2Edge'
+          description: Array of edge configurations that connect the nodes.
       required:
         - nodes
         - edges
