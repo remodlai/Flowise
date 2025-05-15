@@ -388,3 +388,18 @@
   - Ensured consistency between internal and public prediction endpoints
   - Established a pattern for documenting streaming events that can be applied to other endpoints
   - Provides a clear guide for client implementations consuming the streaming API
+
+## Comprehensive Documentation for Marketplaces Module
+- **Date:** 2025-05-15 4:15:49 PM
+- **Author:** Unknown User
+- **Context:** The marketplaces module had only one documented endpoint (GET /marketplaces/templates) but the implementation includes three additional endpoints for custom templates. A decision needed to be made about how thoroughly to document these endpoints.
+- **Decision:** Created complete documentation for all four endpoints in the marketplaces module, including detailed endpoint analysis markdown files, OpenAPI fragments with proper schema references, and comprehensive descriptions of implementation details. This ensures the API documentation accurately reflects the entire functionality of the marketplaces module.
+- **Alternatives Considered:** 
+  - Document only the existing GET /marketplaces/templates endpoint
+  - Create minimal documentation for the additional endpoints
+  - Skip this module for now and come back to it later
+- **Consequences:** 
+  - Improved API documentation coverage, now reflecting the full functionality of the marketplaces module
+  - Standardized schema references across all OpenAPI fragments
+  - Provided detailed implementation notes that help API consumers understand how the endpoints work
+  - Reached 51.1% completion milestone in the API documentation review process

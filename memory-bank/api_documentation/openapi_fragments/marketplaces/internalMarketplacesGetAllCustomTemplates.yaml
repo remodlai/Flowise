@@ -1,0 +1,21 @@
+"/marketplaces/custom":
+  get:
+    summary: "INTERNAL: Get All Custom Templates"
+    description: "INTERNAL: Retrieves all user-saved custom templates from the database. This includes templates created from existing chatflows or custom tools."
+    operationId: "internalMarketplacesGetAllCustomTemplates"
+    tags: ["Marketplaces", "InternalAPI"]
+    responses:
+      '200':
+        description: "Successfully retrieved all custom templates."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/MarketplacesSchemas.yaml#/components/schemas/GetAllCustomTemplatesResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

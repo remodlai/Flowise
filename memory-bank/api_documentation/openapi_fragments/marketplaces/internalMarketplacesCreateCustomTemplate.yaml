@@ -1,0 +1,33 @@
+"/marketplaces/custom":
+  post:
+    summary: "INTERNAL: Save Custom Template"
+    description: "INTERNAL: Saves a template to the database by either copying an existing chatflow or creating a custom tool template."
+    operationId: "internalMarketplacesCreateCustomTemplate"
+    tags: ["Marketplaces", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/MarketplacesSchemas.yaml#/components/schemas/SaveCustomTemplateRequestBody"
+    responses:
+      '200':
+        description: "Custom template successfully saved."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/MarketplacesSchemas.yaml#/components/schemas/CustomMarketplaceTemplateResponseItem"
+      '412':
+        description: "Precondition Failed - Missing required fields (body, name, or neither chatflowId nor tool provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

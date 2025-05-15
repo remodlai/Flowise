@@ -10,12 +10,12 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GetAllMarketplaceTemplatesResponse"
+              $ref: "../../schemas/modules/MarketplacesSchemas.yaml#/components/schemas/GetAllMarketplaceTemplatesResponse"
       '500':
         description: "Internal Server Error (e.g., error reading marketplace files)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: [] 
+      - ApiKeyAuth: [] 

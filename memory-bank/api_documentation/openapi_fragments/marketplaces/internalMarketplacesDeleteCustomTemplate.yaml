@@ -1,0 +1,35 @@
+"/marketplaces/custom/{id}":
+  delete:
+    summary: "INTERNAL: Delete Custom Template"
+    description: "INTERNAL: Deletes a specific custom template from the database by its ID."
+    operationId: "internalMarketplacesDeleteCustomTemplate"
+    tags: ["Marketplaces", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the custom template to delete."
+        schema:
+          type: string
+          format: uuid
+    responses:
+      '200':
+        description: "Custom template successfully deleted."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/modules/MarketplacesSchemas.yaml#/components/schemas/DeleteCustomTemplateResponse"
+      '412':
+        description: "Precondition Failed - ID not provided."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []
