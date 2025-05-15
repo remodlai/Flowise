@@ -84,9 +84,9 @@
 ## Ongoing Tasks
 
 - Continuing API documentation review and enhancement
-- Completed verification of leads module documentation
-- Updated schema references, security requirements, and examples for leads endpoints
-- Updated API documentation review checklist to reflect review progress
+- Completed verification of load-prompts module documentation
+- Updated schema references, security requirements, and examples for Langchain Hub integration
+- Updated API documentation review checklist to reflect progress (48.9% complete)
 ## Known Issues
 
 - Some OpenAPI fragments may need updating to use consistent reference patterns
@@ -95,11 +95,13 @@
 - Streaming responses need careful documentation of SSE event formats
 ## Next Steps
 
-- Continue reviewing and enhancing documentation for remaining API modules, starting with 'load-prompts'
+- Continue reviewing and enhancing documentation for remaining API modules, starting with 'marketplaces'
 - Apply consistent documentation patterns across similar endpoints
 - Ensure schema references remain consistent with the implementation
+- Document external dependencies more thoroughly
 ## Current Session Notes
 
+- [3:56:38 PM] [Unknown User] Verified Load-Prompts Module Documentation: Reviewed and updated the load-prompts module API documentation, ensuring that schema references use the correct relative path format, security requirements are properly specified, and documentation accurately reflects integration with Langchain Hub. Enhanced documentation with detailed examples of request/response formats and improved schema descriptions to cover different prompt template types.
 - [3:53:15 PM] [Unknown User] Verified Leads Module Documentation: Reviewed and updated the leads module API documentation, ensuring that schema references use the correct relative path format, security requirements are properly specified, and documentation accurately reflects the implementation. Added detailed examples and implementation notes for better developer understanding.
 - [3:16:24 PM] [Unknown User] Decision Made: Standardized Streaming Event Documentation
 - [3:16:16 PM] [Unknown User] Enhanced Streaming Documentation: Updated the public predictions endpoint documentation to match the enhanced internal-predictions streaming documentation. Ensured consistency between both endpoints, providing detailed information about all SSE event types, their formats, and usage. Updated the API documentation review checklist to reflect these improvements.

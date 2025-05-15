@@ -34,7 +34,7 @@ This document tracks the progress of our API documentation review process, ensur
 | internal-chat-messages | ✅ | ✅ | ✅ | ✅ | Fixed schema references, added security requirements, enhanced query parameter documentation |
 | internal-predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with comprehensive streaming event documentation, including detailed examples of all event types and client-side implementation guidance |
 | leads | ✅ | ✅ | ✅ | ✅ | Updated schema references, corrected security requirements, added detailed examples and implementation notes |
-| load-prompts | ⏳ | ⏳ | ⏳ | ⏳ | |
+| load-prompts | ✅ | ✅ | ✅ | ✅ | Updated schema references, enhanced documentation with detailed examples and implementation notes, clarified Langchain Hub integration |
 | marketplaces | ⏳ | ⏳ | ⏳ | ⏳ | |
 | node-configs | ⏳ | ⏳ | ⏳ | ⏳ | |
 | node-custom-functions | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 22/47 (46.8%)
-- **Modules Pending**: 25/47 (53.2%)
+- **Modules Reviewed**: 23/47 (48.9%)
+- **Modules Pending**: 24/47 (51.1%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns
@@ -75,11 +75,12 @@ This document tracks the progress of our API documentation review process, ensur
 4. **Storage Types**: Multiple storage types (JSON vs DB) sometimes not fully documented
 5. **Security Configuration**: Some endpoints used `InternalApiKeyAuth` instead of the correct `ApiKeyAuth` 
 6. **Streaming Responses**: Server-Sent Events (SSE) formats were not fully documented - this has been addressed for predictions endpoints
+7. **External Dependencies**: Integration with external services (like Langchain Hub) sometimes not fully documented
 
 ## Next Steps
 
 1. Continue reviewing modules based on priority
-2. Focus on critical API endpoints next (load-prompts, marketplaces, etc.)
+2. Focus on critical API endpoints next (marketplaces, node-configs, etc.)
 3. Establish patterns to apply across similar endpoints
 4. Update all OpenAPI fragments to use consistent reference patterns
 
