@@ -123,3 +123,33 @@
   - Reduces confusion for developers using the API
   - Preserves only factual information about the codebase
   - Any plans for these endpoints should be documented elsewhere if they are to be implemented in the future
+
+## Standardize Chat-Messages API Paths in Documentation
+- **Date:** 2025-05-15 1:01:36 PM
+- **Author:** Unknown User
+- **Context:** While reviewing the chat-messages module documentation, I discovered a URL path inconsistency. The actual implementation in the codebase uses '/chat-messages/' (plural with hyphen) for routes, but the OpenAPI documentation was using '/chatmessage/' (singular). Additionally, I found that the code in routes/index.ts actually uses '/chatmessage' to register the router, which does not match the actual route file name of 'chat-messages'.
+- **Decision:** Update all OpenAPI fragments and endpoint mapping documents to use '/chat-messages/' (plural with hyphen) to be consistent with the actual route implementation.
+- **Alternatives Considered:** 
+  - Keep documentation as '/chatmessage/' to match routes/index.ts registration
+  - Change both documentation and code to use a standardized format
+  - Document both path variants as valid
+- **Consequences:** 
+  - Documentation now matches route implementation in most files
+  - Noted potential issue in routes/index.ts that may need code change
+  - Improved consistency for API consumers
+  - Any clients using the '/chatmessage/' path may need to be updated if the server code is later standardized
+
+## Correct Chat Messages API Paths to Match Actual Route Registration
+- **Date:** 2025-05-15 1:05:00 PM
+- **Author:** Unknown User
+- **Context:** While reviewing the chat-messages module documentation, we identified a critical discrepancy. The router file is named 'chat-messages/index.ts' (plural with hyphen), but in routes/index.ts the router is registered as '/chatmessage' (singular, no hyphen). This means the actual functional API endpoint is '/api/v1/chatmessage/...' despite the file naming convention suggesting otherwise.
+- **Decision:** Revert all OpenAPI fragments and endpoint documentation to use '/chatmessage/' (singular, no hyphen) to match the actual route registration in routes/index.ts, ensuring that documentation reflects the actual functional API endpoints.
+- **Alternatives Considered:** 
+  - Keep documentation as '/chat-messages/' and suggest changing the route registration to match
+  - Document both path formats with a note about the inconsistency
+  - Create endpoints for both paths via an alias in the router registration
+- **Consequences:** 
+  - Documentation now correctly reflects the actual functional API endpoints
+  - Acknowledges the inconsistency in file naming vs. route registration
+  - Ensures API consumers use the correct path for successful requests
+  - May highlight a need for future code standardization, but prioritizes accurate documentation over idealistic representation

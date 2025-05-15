@@ -83,20 +83,27 @@
 
 ## Ongoing Tasks
 
-- Complete review of attachments module - corrected documentation by removing non-existent endpoints
 - Continue reviewing remaining modules for API documentation accuracy
-- Be vigilant about checking actual implementation vs. documentation for all endpoints
+- Check for path inconsistencies between documentation and implementation in other modules
+- Ensure all documented paths match actual registered routes in routes/index.ts
 ## Known Issues
 
-- Documentation mentioned non-existent routes in attachments module - now fixed
-- Similar issues may exist in other modules - need careful verification
+- Inconsistency between file naming ('chat-messages') and route registration ('/chatmessage') in the chat-messages module
+- Similar inconsistencies may exist in other modules
+- Need to verify actual route registrations rather than assuming file names reflect routes
 ## Next Steps
 
-- Continue review of next module
-- Ensure all documented endpoints actually exist in the codebase
-- Cross-check router files, controller files, and service implementations
+- Review the next module in the documentation pipeline
+- Pay particular attention to how routes are registered in routes/index.ts for each module
+- Consider documenting file naming vs. route registration inconsistencies for potential future code standardization
 ## Current Session Notes
 
+- [1:05:00 PM] [Unknown User] Decision Made: Correct Chat Messages API Paths to Match Actual Route Registration
+- [1:04:48 PM] [Unknown User] Documentation Correction - Revised Chat Messages URLs: Fixed URL path inconsistency in OpenAPI documentation for chat-messages module. Updated all fragments to use '/chatmessage/' (singular, no hyphen) instead of '/chat-messages/' to match the actual implemented route registration in routes/index.ts. This change ensures the documentation reflects the actual functional API endpoints.
+- [1:01:36 PM] [Unknown User] Decision Made: Standardize Chat-Messages API Paths in Documentation
+- [1:01:25 PM] [Unknown User] Documentation Correction - Chat Messages Module: Fixed URL path inconsistency in OpenAPI documentation for chat-messages module. Updated all fragments to use '/chat-messages/' (plural with hyphen) instead of '/chatmessage/' (singular) to match the actual implementation. Also updated endpoint mapping document to use correct paths.
+- [12:58:25 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/chat-messages/internalChatMessagesAbort.md
+- [12:58:11 PM] [Unknown User] File Update: Updated api_documentation/openapi_fragments/chat-messages/internalChatMessagesAbort.yaml
 - [12:55:51 PM] [Unknown User] Decision Made: Remove Incorrect API Documentation for Attachments Module
 - [12:55:41 PM] [Unknown User] Documentation Correction: Removed invalid documentation and OpenAPI fragments for non-existent GET and DELETE endpoints in the attachments module. Only the POST endpoint for file uploads is actually implemented in the codebase.
 - [12:40:46 PM] [Unknown User] Documentation Update: Updated the assistants endpoint OpenAPI fragment and schema to accurately reflect the implementation, fixing schema references, updating credential requirement, and correcting security configuration.

@@ -1,0 +1,88 @@
+"/chatmessage/abort/{chatflowid}/{chatid}":
+  put:
+    summary: "INTERNAL: Abort Chat Message Processing"
+    description: |
+      INTERNAL: Aborts an ongoing chat message processing operation for a specific chatflow and chat session.
+      This is particularly useful for stopping long-running operations like streaming responses.
+    operationId: "internalChatMessagesAbort"
+    tags: ["Chat Messages", "InternalAPI"]
+    parameters:
+      - name: chatflowid
+        in: path
+        required: true
+        description: "ID of the chatflow to abort."
+        schema:
+          type: string
+          format: uuid
+      - name: chatid
+        in: path
+        required: true
+        description: "ID of the chat session to abort."
+        schema:
+          type: string
+    responses:
+      '200':
+        description: "Chat message processing aborted successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AbortChatMessageResponse"
+      '412':
+        description: "Precondition Failed (chatflowid or chatid not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    security:
+      - InternalApiKeyAuth: []
+
+"/chatmessage/abort/":
+  put:
+    summary: "INTERNAL: Abort Chat Message Processing (Alternative Route)"
+    description: |
+      INTERNAL: Alternative route for aborting chat message processing.
+      Requires chatflowid and chatid to be provided in the request body.
+    operationId: "internalChatMessagesAbortAlt"
+    tags: ["Chat Messages", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              chatflowid:
+                type: string
+                format: uuid
+                description: "ID of the chatflow to abort."
+              chatid:
+                type: string
+                description: "ID of the chat session to abort."
+            required: ["chatflowid", "chatid"]
+    responses:
+      '200':
+        description: "Chat message processing aborted successfully."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AbortChatMessageResponse"
+      '412':
+        description: "Precondition Failed (chatflowid or chatid not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    security:
+      - InternalApiKeyAuth: []

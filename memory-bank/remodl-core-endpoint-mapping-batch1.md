@@ -59,15 +59,15 @@ This document contains the mapped endpoints for the first batch of 5 modules as 
   - **Service Method Hint:** (Likely `attachmentsService.createAttachment`)
 
 ## Module: chat-messages
-- **Endpoint:** `POST` `/api/v1/chatmessage/` (also handles `/:id`)
+- **Endpoint:** `POST` `/api/v1/chat-messages/` (also handles `/:id`)
   - **Controller Handler:** `chatMessageController.createChatMessage`
   - **Service Method Hint:** (Likely `chatMessageService.createChatMessage`)
-- **Endpoint:** `GET` `/api/v1/chatmessage/` (also handles `/:id`)
+- **Endpoint:** `GET` `/api/v1/chat-messages/` (also handles `/:id`)
   - **Controller Handler:** `chatMessageController.getAllChatMessages`
   - **Service Method Hint:** (Likely `chatMessageService.getAllChatMessages`)
-- **Endpoint:** `PUT` `/api/v1/chatmessage/abort/` (also handles `/:chatflowid/:chatid`)
+- **Endpoint:** `PUT` `/api/v1/chat-messages/abort/` (also handles `/:chatflowid/:chatid`)
   - **Controller Handler:** `chatMessageController.abortChatMessage`
   - **Service Method Hint:** (Likely `chatMessageService.abortChatMessage`)
-- **Endpoint:** `DELETE` `/api/v1/chatmessage/` (also handles `/:id`)
+- **Endpoint:** `DELETE` `/api/v1/chat-messages/` (also handles `/:id`)
   - **Controller Handler:** `chatMessageController.removeAllChatMessages`
   - **Service Method Hint:** (Likely `chatMessageService.removeAllChatMessages`)

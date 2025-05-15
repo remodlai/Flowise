@@ -1,4 +1,4 @@
-"/chatmessage/": # Base path for POST is singular
+"/chatmessage/": # Base path for POST matches the actual registered route
   post:
     summary: "INTERNAL: Add Chat Message"
     description: "INTERNAL: Adds a new chat message to a specified chatflow and chat session."
