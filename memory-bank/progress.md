@@ -12,6 +12,7 @@
 
 ## Update History
 
+- [2025-05-15 2:31:08 PM] [Unknown User] - Completed API Documentation Updates for Multiple Modules: Systematically reviewed and updated API documentation for credentials, documentstore, and executions modules. For each module: (1) Analyzed route registration, controller logic, and service implementations, (2) Fixed schema definitions, (3) Corrected endpoint paths and parameter formats, (4) Aligned documentation with actual implementation details, (5) Ensured proper references between OpenAPI fragments and schemas. This work ensures that the API documentation accurately reflects the codebase behavior.
 - [2025-05-15 2:29:44 PM] [Unknown User] - Decision Made: Executions API Documentation Updates
 - [2025-05-15 2:29:37 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsDeleteAllFiltered.yaml
 - [2025-05-15 2:29:28 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsDeleteById.yaml
