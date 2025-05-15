@@ -84,9 +84,9 @@
 ## Ongoing Tasks
 
 - Continuing API documentation review and enhancement
-- Enhanced both internal-predictions and predictions streaming endpoints with detailed event type documentation
-- Ensured consistency between internal and public prediction endpoints
-- Updated API documentation review checklist to reflect streaming documentation improvements
+- Completed verification of leads module documentation
+- Updated schema references, security requirements, and examples for leads endpoints
+- Updated API documentation review checklist to reflect review progress
 ## Known Issues
 
 - Some OpenAPI fragments may need updating to use consistent reference patterns
@@ -95,9 +95,9 @@
 - Streaming responses need careful documentation of SSE event formats
 ## Next Steps
 
-- Continue reviewing and enhancing documentation for remaining API modules, starting with 'leads'
-- Apply the streaming event documentation pattern to other SSE-based endpoints
-- Verify that our schema references remain consistent with the implementation
+- Continue reviewing and enhancing documentation for remaining API modules, starting with 'load-prompts'
+- Apply consistent documentation patterns across similar endpoints
+- Ensure schema references remain consistent with the implementation
 ## Current Session Notes
 
 - [3:53:15 PM] [Unknown User] Verified Leads Module Documentation: Reviewed and updated the leads module API documentation, ensuring that schema references use the correct relative path format, security requirements are properly specified, and documentation accurately reflects the implementation. Added detailed examples and implementation notes for better developer understanding.
