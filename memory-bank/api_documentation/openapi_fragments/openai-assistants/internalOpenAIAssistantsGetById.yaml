@@ -23,12 +23,8 @@
         description: "Successfully retrieved the OpenAI Assistant."
         content:
           application/json:
-            schema: # Enriched OpenAIAssistant schema
-              # While this uses OpenAIAssistant as a base, the tool_resources is modified.
-              # A more specific response schema like OpenAIAssistantEnrichedResponse might be better.
-              # For now, we indicate that the standard OpenAIAssistant schema applies, 
-              # with the understanding that tool_resources may contain additional resolved file data.
-              $ref: "#/components/schemas/OpenAIAssistant" 
+            schema:
+              $ref: "#/components/schemas/OpenAIAssistant"
       '404':
         description: "Credential or Assistant not found."
         content:
@@ -47,5 +43,5 @@
           application/json:
             schema:
               $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+    security:
+      - InternalApiKeyAuth: []

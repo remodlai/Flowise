@@ -1,0 +1,50 @@
+"/openai-assistants-files/upload/":
+  post:
+    summary: "INTERNAL: Upload Files for OpenAI Assistants"
+    description: "INTERNAL: Uploads files to OpenAI and makes them available for use with assistants."
+    operationId: "internalOpenAIAssistantFilesUpload"
+    tags: ["OpenAI Assistants", "Files", "InternalAPI"]
+    parameters:
+      - name: credential
+        in: query
+        required: true
+        description: "ID of the Remodl Core credential for the OpenAI API key."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              files:
+                type: array
+                items:
+                  type: string
+                  format: binary
+                description: "Files to upload for use with OpenAI assistants."
+    responses:
+      '200':
+        description: "Files successfully uploaded to OpenAI."
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/OpenAIFileObject"
+      '412':
+        description: "Precondition Failed (credential not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    security:
+      - InternalApiKeyAuth: [] 

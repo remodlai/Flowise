@@ -4,8 +4,81 @@ info:
   version: '1.0'
 components:
   schemas:
+    UploadFileSizeAndTypes:
+      type: object
+      description: Defines file size limits and accepted file types for uploads.
+      properties:
+        fileTypes:
+          type: array
+          items:
+            type: string
+          description: List of accepted file type mime strings.
+        maxUploadSize:
+          type: integer
+          description: Maximum allowed upload size in MB.
+      required:
+        - fileTypes
+        - maxUploadSize
+
+    UploadConfig:
+      type: object
+      description: Configuration for file upload capabilities of a chatflow.
+      properties:
+        isSpeechToTextEnabled:
+          type: boolean
+          description: Whether speech-to-text conversion is enabled for the chatflow.
+        isImageUploadAllowed:
+          type: boolean
+          description: Whether image uploads are allowed in the chatflow.
+        isRAGFileUploadAllowed:
+          type: boolean
+          description: Whether RAG (Retrieval Augmented Generation) file uploads are allowed.
+        imgUploadSizeAndTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/UploadFileSizeAndTypes'
+          description: Configuration for image upload size limits and accepted types.
+        fileUploadSizeAndTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/UploadFileSizeAndTypes'
+          description: Configuration for file upload size limits and accepted types.
+      required:
+        - isSpeechToTextEnabled
+        - isImageUploadAllowed
+        - isRAGFileUploadAllowed
+        - imgUploadSizeAndTypes
+        - fileUploadSizeAndTypes
+    
+    OverrideConfig:
+      type: object
+      description: Configuration override details for a specific node in the flow.
+      properties:
+        node:
+          type: string
+          description: Display name of the node.
+        nodeId:
+          type: string
+          description: Unique ID of the node.
+        label:
+          type: string
+          description: Label of the configuration parameter.
+        name:
+          type: string
+          description: Name of the configuration parameter.
+        type:
+          type: string
+          description: Type of the configuration parameter.
+      required:
+        - node
+        - nodeId
+        - label
+        - name
+        - type
+    
     FlowConfigResponse:
       type: object
+      description: Response containing flow configuration details.
       properties:
         chatbotConfig:
           type: object
@@ -17,18 +90,8 @@ components:
           description: "Parsed speechToText configuration from ChatFlow entity or empty object."
         uploadsConfig:
           $ref: "#/components/schemas/UploadConfig"
-    
-    UploadConfig:
-      type: object
-      properties:
-        acceptedMimeTypes:
+        availableConfigs:
           type: array
+          description: Array of available configuration overrides for the flow.
           items:
-            type: string
-          description: "Array of MIME types accepted for uploads."
-        maxUploads:
-          type: integer
-          description: "Maximum number of files that can be uploaded."
-        maxFileSize:
-          type: integer
-          description: "Maximum file size in bytes." 
+            $ref: '#/components/schemas/OverrideConfig' 

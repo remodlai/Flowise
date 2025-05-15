@@ -2491,31 +2491,25 @@
       "id": "08685f86-4e4a-4455-bef8-a0cb24920ce4",
       "name": "P3B.Fix.10: Create FlowConfigSchemas.yaml and Update Documentation",
       "description": "Create the missing FlowConfigSchemas.yaml file and ensure the flow-config module documentation is accurate. The schema file should define FlowConfigResponse and UploadConfig structures that match the actual service implementation.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-14T19:41:39.718Z",
-      "updatedAt": "2025-05-14T19:41:39.718Z",
-      "implementationGuide": "1. Create FlowConfigSchemas.yaml with proper schema definitions\n2. Ensure the Markdown documentation accurately describes the endpoint's parameters and response structure\n3. Update the OpenAPI fragment to reference the schema file properly\n4. Verify that the schema definitions match what's actually returned by the controller and service"
+      "updatedAt": "2025-05-14T20:24:17.232Z",
+      "implementationGuide": "1. Create FlowConfigSchemas.yaml with proper schema definitions\n2. Ensure the Markdown documentation accurately describes the endpoint's parameters and response structure\n3. Update the OpenAPI fragment to reference the schema file properly\n4. Verify that the schema definitions match what's actually returned by the controller and service",
+      "summary": "Successfully created the FlowConfigSchemas.yaml file with comprehensive schema definitions that accurately match the actual implementation. Defined four schemas: UploadFileSizeAndTypes (for file type and size information), UploadConfig (for upload capability configuration), OverrideConfig (for node configuration details), and FlowConfigResponse (for the overall response structure). Verified that the existing Markdown documentation and OpenAPI fragment correctly describe the endpoint and now properly reference the schemas. The FlowConfigResponse schema was specifically designed to match the actual structure described in the documentation, with chatbotConfig, speechToText, uploadsConfig, and availableConfigs properties.",
+      "completedAt": "2025-05-14T20:24:17.231Z"
     },
     {
       "id": "3672d92d-2465-4233-b1fc-35329a64d10e",
       "name": "P3B.Fix.11: Fix get-upload-file Parameter Type Mismatch",
       "description": "Correct the get-upload-file module documentation which currently shows path parameters while the actual implementation uses query parameters. Update both the Markdown documentation and OpenAPI fragment to accurately reflect the actual implementation.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [],
       "createdAt": "2025-05-14T19:41:39.718Z",
-      "updatedAt": "2025-05-14T19:41:39.718Z",
-      "implementationGuide": "1. Update the get-upload-file Markdown documentation to correctly describe query parameters instead of path parameters\n2. Update the OpenAPI fragment to define the parameters correctly as query parameters\n3. Ensure the parameters are documented with proper descriptions and requirements\n4. Verify the response content types and structure match the actual implementation"
-    },
-    {
-      "id": "11436306-fbe5-4d1d-863b-b7fad755b00a",
-      "name": "P3B.Fix.12: Fix get-upload-path Method Discrepancy",
-      "description": "Correct the get-upload-path module documentation which incorrectly shows a POST endpoint while the actual implementation uses GET with no parameters. Update documentation to reflect the actual implementation.",
-      "status": "待處理",
-      "dependencies": [],
-      "createdAt": "2025-05-14T19:41:39.718Z",
-      "updatedAt": "2025-05-14T19:41:39.718Z",
-      "implementationGuide": "1. Update the get-upload-path Markdown documentation to describe a GET endpoint with no parameters\n2. Update the OpenAPI fragment to use the correct HTTP method\n3. Ensure the response schema is correctly defined and referenced\n4. Verify that all documentation accurately reflects what's actually implemented in the controller"
+      "updatedAt": "2025-05-15T02:30:15.498Z",
+      "implementationGuide": "1. Update the get-upload-file Markdown documentation to correctly describe query parameters instead of path parameters\n2. Update the OpenAPI fragment to define the parameters correctly as query parameters\n3. Ensure the parameters are documented with proper descriptions and requirements\n4. Verify the response content types and structure match the actual implementation",
+      "summary": "After thorough investigation of the get-upload-file module, I verified that no changes are needed to fix the supposed parameter type mismatch. Contrary to the task description, both the Markdown documentation and OpenAPI fragment already correctly describe the parameters as query parameters, not path parameters. The router implementation defines a GET route at '/' with no path parameters, and the controller implementation confirms it uses query parameters (req.query.chatflowId, req.query.chatId, req.query.fileName). The documentation already accurately reflects the actual implementation, so the task is complete with no changes required.",
+      "completedAt": "2025-05-15T02:30:15.496Z"
     },
     {
       "id": "5a55da96-1fb8-4801-a534-b78a554726b2",
@@ -2739,6 +2733,241 @@
       "implementationGuide": "1. Create FetchLinksSchemas.yaml file in memory-bank/api_documentation/schemas/modules/ with appropriate schemas\n2. Define FetchLinksResponse schema matching the actual response structure from the service\n3. Add FetchLinksQueryParams schema for documentation completeness\n4. Verify that the OpenAPI fragment correctly references the new schema\n5. Check that all documentation accurately reflects the actual implementation",
       "verificationCriteria": "1. FetchLinksSchemas.yaml file exists in the correct location\n2. FetchLinksResponse schema accurately represents the actual response structure (status and links array)\n3. OpenAPI fragment properly references the schema definitions\n4. All documentation correctly describes the GET endpoint with query parameters",
       "analysisResult": "After thorough investigation of the fetch-links module, I've determined that there's a discrepancy in the task description. The existing documentation (both Markdown and OpenAPI fragment) already correctly describes a GET endpoint with query parameters, contrary to the statement that it shows a POST endpoint. The real issue is the missing FetchLinksSchemas.yaml file, which needs to be created to define the response schema referenced in the OpenAPI fragment. This file should include the FetchLinksResponse schema to match the actual service response structure with status and links properties."
+    },
+    {
+      "id": "3a7c65a0-01dc-4774-ac28-4f977cb422be",
+      "name": "Create FlowConfigSchemas.yaml and Update Documentation",
+      "description": "Create the missing FlowConfigSchemas.yaml file and ensure the flow-config module documentation is accurate. The schema file should define FlowConfigResponse and UploadConfig structures that match the actual service implementation.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-14T20:23:16.168Z",
+      "updatedAt": "2025-05-14T20:23:16.168Z",
+      "implementationGuide": "1. Create FlowConfigSchemas.yaml in memory-bank/api_documentation/schemas/modules/\n2. Define UploadFileSizeAndTypes schema with fileTypes (array) and maxUploadSize (number) properties\n3. Define UploadConfig schema with isSpeechToTextEnabled, isImageUploadAllowed, isRAGFileUploadAllowed, imgUploadSizeAndTypes, and fileUploadSizeAndTypes properties\n4. Define OverrideConfig schema with node, nodeId, label, name, and type properties\n5. Define FlowConfigResponse schema as the main response schema\n6. Verify that the schema definitions match what's actually returned by the service\n7. Confirm that the existing OpenAPI fragment correctly references the schema\n8. Verify that the Markdown documentation accurately describes the endpoint",
+      "analysisResult": "After thorough analysis of the flow-config module and its documentation, I found that the existing Markdown documentation and OpenAPI fragment correctly describe the endpoint. However, they reference schema definitions that don't exist yet. The solution is to create a FlowConfigSchemas.yaml file that accurately defines the schemas referenced in the documentation, particularly FlowConfigResponse, UploadConfig, and UploadFileSizeAndTypes, based on the actual implementation in the codebase."
+    },
+    {
+      "id": "77cbd1ab-cdc3-4543-9e18-1b9db03bdb33",
+      "name": "Fix get-upload-file Parameter Type Mismatch",
+      "description": "After thorough investigation of the get-upload-file module's documentation and implementation, I determined that no changes are needed. Contrary to the task description, both the Markdown documentation and OpenAPI fragment already correctly describe the parameters as query parameters, not path parameters.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:30:09.256Z",
+      "updatedAt": "2025-05-15T02:30:09.256Z",
+      "implementationGuide": "No changes are needed as the documentation is already correct:\n1. The router implementation defines a GET route at '/' with no path parameters\n2. The controller implementation confirms it uses query parameters (req.query.chatflowId, req.query.chatId, req.query.fileName)\n3. The Markdown documentation already correctly lists these under \"Query Parameters\"\n4. The OpenAPI fragment already correctly defines them with \"in: query\"\n\nTask description appears to have been based on incorrect information or the issue was fixed prior to this task execution.",
+      "analysisResult": "After thorough investigation of the get-upload-file module, I found that the task description contains an incorrect assumption. The documentation is already correct - both the Markdown documentation and OpenAPI fragment properly describe the parameters as query parameters, not path parameters. The implementation in the router and controller confirms it uses query parameters via req.query. No changes are needed as the documentation already accurately reflects the implementation."
+    },
+    {
+      "id": "11436306-fbe5-4d1d-863b-b7fad755b00a",
+      "name": "P3B.Fix.12: Fix get-upload-path Method Discrepancy",
+      "description": "After thorough verification of the get-upload-path module, I confirmed there is no discrepancy to fix. The documentation in internalGetUploadPath.md, the OpenAPI fragment, and the schema definition all correctly describe a GET endpoint with no parameters, which matches the actual implementation in routes/get-upload-path/index.ts.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-14T19:41:39.718Z",
+      "updatedAt": "2025-05-15T02:36:21.582Z",
+      "implementationGuide": "No actual implementation needed since the documentation already matches the implementation. The original task description incorrectly stated there was a discrepancy between the documentation (supposedly showing POST) and implementation (using GET). In reality, both already show GET correctly.",
+      "verificationCriteria": "Confirm that all documentation artifacts correctly describe a GET endpoint with no parameters, matching the actual implementation.",
+      "summary": "Task complete with no changes needed. Thorough verification of the get-upload-path module confirmed there is no discrepancy to fix. All documentation (Markdown file, OpenAPI fragment, and schema definition) already correctly describes a GET endpoint with no parameters, which matches the actual implementation in the router and controller files.",
+      "completedAt": "2025-05-15T02:36:21.581Z"
+    },
+    {
+      "id": "71b938fd-0cdd-46be-b952-c932a8fe200d",
+      "name": "P3B.Fix.14: Verify and Fix Batch 7 Module Documentation (openai-assistants-files)",
+      "description": "Perform a comprehensive verification of the openai-assistants-files module's documentation against implementation. Verify that HTTP methods, parameter types, schema references, and OpenAPI fragments are all accurate and consistent with the actual implementation. Address any discrepancies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:25.864Z",
+      "updatedAt": "2025-05-15T02:38:25.864Z",
+      "implementationGuide": "1. Examine routes/openai-assistants-files/index.ts to verify the HTTP methods and paths\n2. Check controllers/openai-assistants-files/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "088c2bf5-0262-47f7-a800-72999435d48e",
+      "name": "P3B.Fix.15: Verify and Fix Batch 7 Module Documentation (openai-assistants-vector-store)",
+      "description": "Perform a comprehensive verification of the openai-assistants-vector-store module's documentation against implementation. Identify and fix any discrepancies in HTTP methods, parameter types, schema references, or OpenAPI fragments compared to the actual implementation.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:25.864Z",
+      "updatedAt": "2025-05-15T02:38:25.864Z",
+      "implementationGuide": "1. Examine routes/openai-assistants-vector-store/index.ts to verify the HTTP methods and paths\n2. Check controllers/openai-assistants-vector-store/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "9914b403-22fe-4f93-80f0-5b73a5df73e7",
+      "name": "P3B.Fix.16: Verify and Fix Batch 7 Module Documentation (openai-realtime)",
+      "description": "Perform a comprehensive verification of the openai-realtime module's documentation against implementation. Ensure HTTP methods, parameter types, schema references, and OpenAPI fragments all accurately reflect the actual implementation. Correct any inconsistencies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:25.864Z",
+      "updatedAt": "2025-05-15T02:38:25.864Z",
+      "implementationGuide": "1. Examine routes/openai-realtime/index.ts to verify the HTTP methods and paths\n2. Check controllers/openai-realtime/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "0bd997cd-698a-44da-8b79-507fbf49c3f4",
+      "name": "P3B.Fix.17: Verify and Fix Batch 7 Module Documentation (ping)",
+      "description": "Perform a comprehensive verification of the ping module's documentation against implementation. Check that HTTP methods, parameter types, schema references, and OpenAPI fragments accurately reflect the actual implementation. Fix any inconsistencies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:38.863Z",
+      "updatedAt": "2025-05-15T02:38:38.863Z",
+      "implementationGuide": "1. Examine routes/ping/index.ts to verify the HTTP methods and paths\n2. Check controllers/ping/index.ts for parameter handling and response format\n3. Verify schema references in the OpenAPI fragments against any corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "edf638a9-426c-4c97-8d06-728bcac6d967",
+      "name": "P3B.Fix.18: Verify and Fix Batch 8 Module Documentation (predictions)",
+      "description": "Perform a comprehensive verification of the predictions module's documentation against implementation. Verify that HTTP methods, parameter types, schema references, and OpenAPI fragments are all accurate and consistent with the actual implementation. Address any discrepancies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:38.863Z",
+      "updatedAt": "2025-05-15T02:38:38.863Z",
+      "implementationGuide": "1. Examine routes/predictions/index.ts to verify the HTTP methods and paths\n2. Check controllers/predictions/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "7e860d17-e1bd-45b3-bb88-2b9c0a4c8c61",
+      "name": "P3B.Fix.19: Verify and Fix Batch 8 Module Documentation (prompts-lists)",
+      "description": "Perform a comprehensive verification of the prompts-lists module's documentation against implementation. Identify and fix any discrepancies in HTTP methods, parameter types, schema references, or OpenAPI fragments compared to the actual implementation.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:38.863Z",
+      "updatedAt": "2025-05-15T02:38:38.863Z",
+      "implementationGuide": "1. Examine routes/prompts-lists/index.ts to verify the HTTP methods and paths\n2. Check controllers/prompts-lists/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "1386d0b8-f922-43b6-9aa7-3af3b9b41494",
+      "name": "P3B.Fix.20: Verify and Fix Batch 8 Module Documentation (public-chatbots and public-chatflows)",
+      "description": "Perform a comprehensive verification of the public-chatbots and public-chatflows modules' documentation against implementation. Ensure HTTP methods, parameter types, schema references, and OpenAPI fragments all accurately reflect the actual implementation. Correct any inconsistencies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:38.863Z",
+      "updatedAt": "2025-05-15T02:38:38.863Z",
+      "implementationGuide": "1. Examine routes for both modules to verify the HTTP methods and paths\n2. Check controllers for parameter handling and response formats\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "5af1ea78-a3c9-493f-8189-1099d065caf9",
+      "name": "P3B.Fix.21: Verify and Fix Batch 8 Module Documentation (public-executions)",
+      "description": "Perform a comprehensive verification of the public-executions module's documentation against implementation. Check HTTP methods, parameter types, schema references, and OpenAPI fragments to ensure they accurately reflect the actual implementation. Fix any inconsistencies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:53.367Z",
+      "updatedAt": "2025-05-15T02:38:53.367Z",
+      "implementationGuide": "1. Examine routes/public-executions/index.ts to verify the HTTP methods and paths\n2. Check controllers/public-executions/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "994f9d28-a338-4d72-b17c-17bfe1957ddb",
+      "name": "P3B.Fix.22: Verify and Fix Batch 9 Module Documentation (stats)",
+      "description": "Perform a comprehensive verification of the stats module's documentation against implementation. Verify that HTTP methods, parameter types, schema references, and OpenAPI fragments are all accurate and consistent with the actual implementation. Address any discrepancies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:53.367Z",
+      "updatedAt": "2025-05-15T02:38:53.367Z",
+      "implementationGuide": "1. Examine routes/stats/index.ts to verify the HTTP methods and paths\n2. Check controllers/stats/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "b52c9edc-eda4-43a5-b89f-3fe55aa5873b",
+      "name": "P3B.Fix.23: Verify and Fix Batch 9 Module Documentation (tools)",
+      "description": "Perform a comprehensive verification of the tools module's documentation against implementation. Identify and fix any discrepancies in HTTP methods, parameter types, schema references, or OpenAPI fragments compared to the actual implementation.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:53.367Z",
+      "updatedAt": "2025-05-15T02:38:53.367Z",
+      "implementationGuide": "1. Examine routes/tools/index.ts to verify the HTTP methods and paths\n2. Check controllers/tools/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "f98b2b08-2c05-431a-bef4-f1f8cbc4622b",
+      "name": "P3B.Fix.24: Verify and Fix Batch 9 Module Documentation (upsert-history)",
+      "description": "Perform a comprehensive verification of the upsert-history module's documentation against implementation. Ensure HTTP methods, parameter types, schema references, and OpenAPI fragments all accurately reflect the actual implementation. Correct any inconsistencies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:53.367Z",
+      "updatedAt": "2025-05-15T02:38:53.367Z",
+      "implementationGuide": "1. Examine routes/upsert-history/index.ts to verify the HTTP methods and paths\n2. Check controllers/upsert-history/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "f8581dc0-592b-4f72-b347-2e147713b29c",
+      "name": "P3B.Fix.25: Verify and Fix Batch 9 Module Documentation (validation and variables)",
+      "description": "Perform a comprehensive verification of the validation and variables modules' documentation against implementation. Check HTTP methods, parameter types, schema references, and OpenAPI fragments to ensure they accurately reflect the actual implementation. Fix any inconsistencies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:39:15.615Z",
+      "updatedAt": "2025-05-15T02:39:15.615Z",
+      "implementationGuide": "1. Examine routes for both modules to verify the HTTP methods and paths\n2. Check controllers for parameter handling and response formats\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "81a5f741-5add-4f39-b2e2-ab8061912598",
+      "name": "P3B.Fix.26: Verify and Fix Batch 10 Module Documentation (vectors)",
+      "description": "Perform a comprehensive verification of the vectors module's documentation against implementation. Verify that HTTP methods, parameter types, schema references, and OpenAPI fragments are all accurate and consistent with the actual implementation. Address any discrepancies found.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:39:15.615Z",
+      "updatedAt": "2025-05-15T02:39:15.615Z",
+      "implementationGuide": "1. Examine routes/vectors/index.ts to verify the HTTP methods and paths\n2. Check controllers/vectors/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "886f7197-abc6-4231-b2db-e171357940ec",
+      "name": "P3B.Fix.27: Verify and Fix Batch 10 Module Documentation (verify and versions)",
+      "description": "Perform a comprehensive verification of the verify and versions modules' documentation against implementation. Identify and fix any discrepancies in HTTP methods, parameter types, schema references, or OpenAPI fragments compared to the actual implementation.",
+      "status": "待處理",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:39:15.615Z",
+      "updatedAt": "2025-05-15T02:39:15.615Z",
+      "implementationGuide": "1. Examine routes for both modules to verify the HTTP methods and paths\n2. Check controllers for parameter handling and response formats\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
+    },
+    {
+      "id": "54c0c857-8b9d-409b-b62b-1ee716f214c4",
+      "name": "P3B.Fix.28: Cross-Module OpenAPI Schema Reference Standardization",
+      "description": "Perform a final cross-module verification to ensure consistent schema reference patterns across all module documentation. Identify and standardize any inconsistent schema reference formats, file naming patterns, or documentation structures to ensure smooth integration into the root OpenAPI specification.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "f20727ce-7f04-4b18-9005-facfef0246e9"
+        },
+        {
+          "taskId": "71b938fd-0cdd-46be-b952-c932a8fe200d"
+        },
+        {
+          "taskId": "088c2bf5-0262-47f7-a800-72999435d48e"
+        },
+        {
+          "taskId": "9914b403-22fe-4f93-80f0-5b73a5df73e7"
+        },
+        {
+          "taskId": "0bd997cd-698a-44da-8b79-507fbf49c3f4"
+        },
+        {
+          "taskId": "edf638a9-426c-4c97-8d06-728bcac6d967"
+        },
+        {
+          "taskId": "7e860d17-e1bd-45b3-bb88-2b9c0a4c8c61"
+        },
+        {
+          "taskId": "1386d0b8-f922-43b6-9aa7-3af3b9b41494"
+        },
+        {
+          "taskId": "5af1ea78-a3c9-493f-8189-1099d065caf9"
+        },
+        {
+          "taskId": "994f9d28-a338-4d72-b17c-17bfe1957ddb"
+        },
+        {
+          "taskId": "b52c9edc-eda4-43a5-b89f-3fe55aa5873b"
+        },
+        {
+          "taskId": "f98b2b08-2c05-431a-bef4-f1f8cbc4622b"
+        }
+      ],
+      "createdAt": "2025-05-15T02:39:15.615Z",
+      "updatedAt": "2025-05-15T02:39:15.615Z",
+      "implementationGuide": "1. Review all OpenAPI fragments across all modules to identify patterns for schema references\n2. Establish and document the standard pattern for schema references (e.g., '#/components/schemas/SchemaName')\n3. Verify all OpenAPI fragments follow this pattern consistently\n4. Check for any schema references to non-existent schemas\n5. Ensure schema file naming is consistent (e.g., ModuleNameSchemas.yaml)\n6. Make corrections to achieve standardization where needed\n7. Document the standardization process and findings"
+    },
+    {
+      "id": "f20727ce-7f04-4b18-9005-facfef0246e9",
+      "name": "P3B.Fix.13: Verify and Fix Batch 7 Module Documentation (openai-assistants)",
+      "description": "Fix documentation issues in the openai-assistants module and create missing documentation for related endpoints in openai-assistants-files module. The specific issues to address include:\n\n1. Create Markdown documentation and OpenAPI fragments for two missing endpoints:\n   - POST /openai-assistants-files/download/ (uses getFileFromAssistant)\n   - POST /openai-assistants-files/upload/ (uses uploadAssistantFiles)\n\n2. Update schema references in existing OpenAPI fragments to consistently point to the schemas in openai_assistant_api/\n\n3. Uncomment security sections in OpenAPI fragments",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:25.864Z",
+      "updatedAt": "2025-05-15T02:47:51.836Z",
+      "implementationGuide": "1. Create necessary Markdown files and OpenAPI fragments for the missing endpoints in openai-assistants-files module\n\n2. For the existing OpenAPI fragments (internalOpenAIAssistantsListAll.yaml and internalOpenAIAssistantsGetById.yaml):\n   - Update schema references to point to the schemas in openai_assistant_api/\n   - Uncomment security sections\n\n3. Document the complete set of endpoints across both modules to ensure clarity",
+      "verificationCriteria": "1. All endpoints are properly documented with both Markdown files and OpenAPI fragments\n2. Schema references consistently point to schemas in openai_assistant_api/\n3. Security sections are properly uncommented\n4. Documentation accurately reflects actual implementation",
+      "summary": "Successfully completed verification and fixes for the openai-assistants module documentation. Created comprehensive Markdown documentation and OpenAPI fragments for two missing endpoints in the openai-assistants-files module (download and upload). Uncommented security sections in existing fragments and ensured schema references are consistent. Documentation now accurately reflects the actual implementation without changing any code.",
+      "completedAt": "2025-05-15T02:47:51.835Z"
     }
   ]
 }

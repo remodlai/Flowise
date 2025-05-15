@@ -1,0 +1,43 @@
+"/openai-assistants-files/download/":
+  post:
+    summary: "INTERNAL: Download Assistant File"
+    description: "INTERNAL: Downloads a file that has been previously uploaded to OpenAI and associated with an assistant."
+    operationId: "internalOpenAIAssistantFilesDownload"
+    tags: ["OpenAI Assistants", "Files", "InternalAPI"]
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [chatflowId, chatId, fileName]
+            properties:
+              chatflowId:
+                type: string
+                description: "ID of the chatflow."
+              chatId:
+                type: string
+                description: "ID of the chat session."
+              fileName:
+                type: string
+                description: "Name of the file to download."
+    responses:
+      '200':
+        description: "File content with appropriate Content-Disposition header."
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          '*/*':
+            schema:
+              type: string
+              format: binary
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+    security:
+      - InternalApiKeyAuth: [] 

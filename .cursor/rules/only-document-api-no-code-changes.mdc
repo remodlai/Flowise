@@ -1,0 +1,45 @@
+---
+description: 
+globs: memory-bank/api_documentation/**/*
+alwaysApply: false
+---
+# Rule: Document Actual API Implementation WITHOUT Code Changes
+
+**Rule Description:**
+"When working on API documentation tasks (OpenAPI fragments, Markdown documentation, schema definitions), the AI assistant MUST focus EXCLUSIVELY on documenting the ACTUAL implementation as it exists, regardless of whether the implementation appears suboptimal, inconsistent, or contains potential issues.
+
+## Core Principles:
+
+1. **Implementation Is Authoritative:**
+   - The EXISTING implementation is the sole source of truth
+   - Code in routers, controllers, and services defines what SHOULD be documented
+   - ANY discrepancy between documentation and code must be resolved by changing the documentation, NEVER by suggesting code changes
+
+2. **Documentation Accuracy Requirements:**
+   - HTTP methods must match exactly as defined in router files
+   - Parameter types (path, query, body) must reflect the actual controller implementation
+   - Response structures must document what the implementation actually returns
+   - Schema definitions must align with actual TypeScript interfaces/entities
+
+3. **Prohibited Actions:**
+   - NEVER suggest refactoring or improvements to the implementation code
+   - DO NOT use comments to indicate that implementation could be improved
+   - AVOID expressing opinions about implementation quality or consistency
+   - DO NOT add 'ideal' or 'recommended' alternatives in documentation
+   
+4. **Required Verification:**
+   - ALWAYS examine the actual implementation code (routes, controllers, services) first
+   - Create documentation that precisely reflects this implementation
+   - When encountering edge cases or unusual patterns, document them exactly as implemented
+
+5. **Direct Confirmation:**
+   - When encountering potentially problematic implementations, seek direct user confirmation about the actual behavior
+   - Use specific questions about implementation details rather than suggesting changes
+
+The AI's SOLE responsibility is to ensure documentation accurately reflects the implementation AS IS, treating the existing code as fixed and unchangeable. Documentation must adapt to the code, never the reverse."
+
+**Key Aspects Enforced:**
+
+* **Code-First Approach:** Implementation code is treated as unalterable and authoritative
+* **Documentation Adaptation:** All documentation changes must conform to existing implementation
+* **Strict Scope Limitation:** Tasks must focus solely on documentation accuracy, not code improvement
