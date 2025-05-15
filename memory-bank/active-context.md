@@ -83,23 +83,31 @@
 
 ## Ongoing Tasks
 
-- Continue systematic review and verification of remaining API documentation modules
-- Focus on the get-upload-path module next
-- Update the api-documentation-review-checklist.md as modules are verified
-- Ensure consistency in schema references across all modules
-- Prepare for integration into root OpenAPI specification once all modules are verified
+- Continuing API documentation review and enhancement
+- Enhanced both internal-predictions and predictions streaming endpoints with detailed event type documentation
+- Ensured consistency between internal and public prediction endpoints
+- Updated API documentation review checklist to reflect streaming documentation improvements
 ## Known Issues
 
 - Some OpenAPI fragments may need updating to use consistent reference patterns
 - Security section configuration needs standardization across all modules
-- Detailed schema documentation for nested objects is sometimes incomplete
+- Response schema documentation sometimes needs enhancement to reflect actual data formats
+- Streaming responses need careful documentation of SSE event formats
 ## Next Steps
 
-- Review the get-upload-path module next
-- Continue updating the checklist as modules are verified
-- Apply the same verification methodology to remaining modules
+- Continue reviewing and enhancing documentation for remaining API modules, starting with 'leads'
+- Apply the streaming event documentation pattern to other SSE-based endpoints
+- Verify that our schema references remain consistent with the implementation
 ## Current Session Notes
 
+- [3:16:24 PM] [Unknown User] Decision Made: Standardized Streaming Event Documentation
+- [3:16:16 PM] [Unknown User] Enhanced Streaming Documentation: Updated the public predictions endpoint documentation to match the enhanced internal-predictions streaming documentation. Ensured consistency between both endpoints, providing detailed information about all SSE event types, their formats, and usage. Updated the API documentation review checklist to reflect these improvements.
+- [3:13:32 PM] [Unknown User] Enhanced Documentation: Expanded the internal-predictions streaming API documentation with comprehensive details on event types, implementation details, client-side handling, and edge cases. The updated documentation provides a complete reference for developers implementing clients that consume the streaming API.
+- [3:08:52 PM] [Unknown User] Decision Made: Internal-Predictions Module Documentation and Streaming Response Format
+- [3:08:44 PM] [Unknown User] Updated Internal-Predictions Module Documentation: Created comprehensive documentation for the internal-predictions module, with particular focus on the streaming response format. Added a detailed endpoint analysis for the streaming version, created a new OpenAPI fragment for streaming responses, and enhanced the schema definitions with detailed types for all SSE events.
+- [3:03:17 PM] [Unknown User] Decision Made: Internal-Chat-Messages Module Documentation Verification
+- [3:03:10 PM] [Unknown User] Updated Internal-Chat-Messages Module Documentation: Verified internal-chat-messages module implementation and updated documentation. Fixed schema references to use relative paths, added security requirements, and enhanced documentation of query parameters and response structure. This module provides access to internal chat messages used for backend processing rather than user interactions.
+- [3:00:10 PM] [Unknown User] Decision Made: Get-Upload-Path Module Documentation Verification
 - [3:00:03 PM] [Unknown User] Updated Get-Upload-Path Module Documentation: Verified get-upload-path module implementation and updated documentation. Fixed schema references to use relative paths, added security requirements, and added details about the storage path determination logic. The module retrieves the server's storage path for file uploads based on environment variables or default locations.
 - [2:54:55 PM] [Unknown User] Decision Made: Flow-Config Module Documentation Verification
 - [2:54:49 PM] [Unknown User] Updated Flow-Config Module Documentation: Verified flow-config module implementation and updated documentation. Fixed schema references to use relative paths, added security requirements, and corrected the endpoint description to accurately reflect the implementation. The module retrieves available input parameter configurations from chatflow nodes.

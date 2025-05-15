@@ -189,3 +189,114 @@ components:
           type: object
           description: If the primary result is a JSON object instead of text, it will appear here.
           additionalProperties: true
+
+    StreamEventType:
+      type: string
+      description: "Type of event in the streaming SSE response."
+      enum:
+        - start
+        - token
+        - sourceDocuments
+        - artifacts
+        - usedTools
+        - calledTools
+        - fileAnnotations
+        - tool
+        - agentReasoning
+        - nextAgent
+        - agentFlowEvent
+        - agentFlowExecutedData
+        - nextAgentFlow
+        - action
+        - error
+        - metadata
+        - usageMetadata
+        - end
+
+    StreamEvent:
+      type: object
+      description: "A server-sent event in the streaming response."
+      properties:
+        event:
+          $ref: "#/components/schemas/StreamEventType"
+        data:
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+            - type: array
+              items:
+                type: object
+                additionalProperties: true
+      required:
+        - event
+        - data
+
+    AgentFlowStatus:
+      type: string
+      description: "Status of an agent flow or node execution."
+      enum:
+        - INPROGRESS
+        - FINISHED
+        - ERROR
+        - TERMINATED
+        - TIMEOUT
+        - STOPPED
+
+    NodeStatus:
+      type: object
+      description: "Status and metadata about a node's execution."
+      properties:
+        nodeId:
+          type: string
+          description: "ID of the node."
+        nodeLabel:
+          type: string
+          description: "Display label of the node."
+        status:
+          $ref: "#/components/schemas/AgentFlowStatus"
+      required:
+        - nodeId
+        - nodeLabel
+        - status
+
+    UsageMetadata:
+      type: object
+      description: "Token usage statistics for model calls."
+      properties:
+        input_tokens:
+          type: integer
+          description: "Number of input tokens."
+        output_tokens:
+          type: integer
+          description: "Number of output tokens."
+        total_tokens:
+          type: integer
+          description: "Total tokens used."
+        input_token_details:
+          type: object
+          description: "Detailed breakdown of input tokens."
+          properties:
+            audio:
+              type: integer
+              description: "Audio input tokens."
+            cache_read:
+              type: integer
+              description: "Tokens retrieved from cache."
+        output_token_details:
+          type: object
+          description: "Detailed breakdown of output tokens."
+          properties:
+            audio:
+              type: integer
+              description: "Audio output tokens."
+            reasoning:
+              type: integer
+              description: "Reasoning process tokens."
+        tool_call_tokens:
+          type: integer
+          description: "Tokens used in tool calls."
+      required:
+        - input_tokens
+        - output_tokens
+        - total_tokens

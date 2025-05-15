@@ -1,0 +1,82 @@
+"/internal-predictions/{id}":
+  post:
+    summary: "INTERNAL: Create Internal Prediction (Streamed)"
+    description: "INTERNAL: Executes a chatflow and returns a streamed response via Server-Sent Events (SSE). Used for real-time UI updates and streaming LLM responses."
+    operationId: "internalPredictionsCreateInternalStreaming"
+    tags: ["Predictions", "InternalAPI"]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: "ID of the Chatflow to execute."
+        schema:
+          type: string
+          format: uuid
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "../../schemas/modules/PredictionsSchemas.yaml#/components/schemas/InternalPredictionRequest"
+              - type: object
+                required: [streaming, chatId]
+                properties:
+                  streaming:
+                    type: boolean
+                    enum: [true]
+                    description: "Must be set to true to enable streaming."
+                  chatId:
+                    type: string
+                    description: "Required for streaming to identify the client connection."
+          example:
+            streaming: true
+            question: "What is the capital of France?"
+            chatId: "client-123456"
+    responses:
+      '200':
+        description: |
+          Server-Sent Events (SSE) stream containing execution progress and results.
+          Each event has the format: `message\ndata:{"event":"EVENT_TYPE","data":EVENT_DATA}\n\n`
+        content:
+          text/event-stream:
+            schema:
+              type: string
+              format: binary
+              description: "Stream of SSE events"
+            examples:
+              agentFlowEvent:
+                value: 'message\ndata:{"event":"agentFlowEvent","data":"INPROGRESS"}\n\n'
+                summary: "Flow execution status"
+              nextAgentFlow:
+                value: 'message\ndata:{"event":"nextAgentFlow","data":{"nodeId":"node_id","nodeLabel":"Node Label","status":"INPROGRESS"}}\n\n'
+                summary: "Node execution status"
+              token:
+                value: 'message\ndata:{"event":"token","data":"token_text"}\n\n'
+                summary: "Individual token from LLM"
+              metadata:
+                value: 'message\ndata:{"event":"metadata","data":{"chatId":"client-id","chatMessageId":"message-id","question":"user question"}}\n\n'
+                summary: "Session metadata"
+              end:
+                value: 'message\ndata:{"event":"end","data":"[DONE]"}\n\n'
+                summary: "End of stream marker"
+      '400':
+        description: "Bad Request (e.g., missing required chatId for streaming)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '404':
+        description: "Chatflow with the specified ID not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error during chatflow execution."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: [] 

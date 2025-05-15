@@ -52,10 +52,209 @@ This endpoint is the primary mechanism for executing a deployed Flowise chatflow
 *   **Success Response (Streaming - `text/event-stream`):**
     *   **Status Code:** `200 OK`
     *   **Content-Type:** `text/event-stream`
-    *   **Events:**
-        *   `event: metadata`: Sent initially with info like `chatId`.
-        *   Various chunk-related events depending on the specific nodes in the flow. Events are node-dependent and can include content updates, reasoning steps, tool use, and more.
-        *   `event: error`: Sent if an error occurs during streaming.
+    *   **SSE Headers:**
+        *   `Content-Type: text/event-stream`
+        *   `Cache-Control: no-cache`
+        *   `Connection: keep-alive`
+        *   `X-Accel-Buffering: no` (Prevents NGINX buffering)
+    *   **Stream Format:** Each event follows the SSE format pattern:
+        ```
+        message
+        data: {"event":"EVENT_TYPE","data":EVENT_DATA}
+        ```
+
+### Detailed SSE Event Types
+
+The streaming response includes various event types, each providing different information about the chatflow execution:
+
+#### Flow Control Events
+
+1. **`start`** - Signals the beginning of the stream
+   ```json
+   {"event":"start","data":"Execution started"}
+   ```
+
+2. **`agentFlowEvent`** - Overall process status updates
+   ```json
+   {"event":"agentFlowEvent","data":"INPROGRESS"}
+   {"event":"agentFlowEvent","data":"FINISHED"}
+   ```
+   * Possible statuses: `INPROGRESS`, `FINISHED`, `ERROR`, `TERMINATED`, `TIMEOUT`, `STOPPED`
+
+3. **`end`** - Signals the end of the stream
+   ```json
+   {"event":"end","data":"[DONE]"}
+   ```
+
+4. **`abort`** - Signals that the execution was aborted
+   ```json
+   {"event":"abort","data":"[DONE]"}
+   ```
+
+5. **`error`** - Error information if execution fails
+   ```json
+   {"event":"error","data":"Error message details"}
+   ```
+
+#### Node Execution Events
+
+1. **`nextAgentFlow`** - Node processing status updates
+   ```json
+   {"event":"nextAgentFlow","data":{"nodeId":"node_12345","nodeLabel":"LLM Node","status":"INPROGRESS"}}
+   {"event":"nextAgentFlow","data":{"nodeId":"node_12345","nodeLabel":"LLM Node","status":"FINISHED"}}
+   ```
+
+2. **`agentFlowExecutedData`** - Detailed execution data from completed nodes
+   ```json
+   {"event":"agentFlowExecutedData","data":[{
+     "nodeId":"node_12345",
+     "nodeLabel":"LLM Node",
+     "data":{"someOutput":"value"},
+     "previousNodeIds":[],
+     "status":"FINISHED"
+   }]}
+   ```
+
+#### Content Events
+
+1. **`token`** - Individual tokens from LLM streaming
+   ```json
+   {"event":"token","data":"Hello"}
+   {"event":"token","data":" world"}
+   ```
+
+2. **`sourceDocuments`** - RAG source references
+   ```json
+   {"event":"sourceDocuments","data":[{
+     "pageContent":"Document text",
+     "metadata":{
+       "source":"file.pdf",
+       "page":5
+     }
+   }]}
+   ```
+
+3. **`artifacts`** - Generated artifacts like images or files
+   ```json
+   {"event":"artifacts","data":[{
+     "name":"generated_image.png",
+     "type":"base64",
+     "data":"data:image/png;base64,..."
+   }]}
+   ```
+
+4. **`fileAnnotations`** - File annotations, especially from OpenAI Assistants
+   ```json
+   {"event":"fileAnnotations","data":[{
+     "fileId":"file_id",
+     "text":"Annotation text",
+     "startIndex":0,
+     "endIndex":100
+   }]}
+   ```
+
+#### Tool Usage Events
+
+1. **`calledTools`** - Information about tools called during execution
+   ```json
+   {"event":"calledTools","data":[{
+     "name":"calculator",
+     "input":{"expression":"2+2"},
+     "output":"4"
+   }]}
+   ```
+
+2. **`usedTools`** - Similar to calledTools but with different formatting
+   ```json
+   {"event":"usedTools","data":[{
+     "tool":"calculator",
+     "toolInput":{"expression":"2+2"},
+     "toolOutput":"4"
+   }]}
+   ```
+
+3. **`tool`** - Detailed tool execution information
+   ```json
+   {"event":"tool","data":{
+     "name":"calculator",
+     "description":"Performs calculations",
+     "parameters":{
+       "expression":"2+2"
+     },
+     "result":"4"
+   }}
+   ```
+
+4. **`action`** - Action information, especially from agent tools
+   ```json
+   {"event":"action","data":{
+     "id":"action_123",
+     "type":"web_search",
+     "parameters":{
+       "query":"Weather in New York"
+     }
+   }}
+   ```
+
+#### Agent Events
+
+1. **`agentReasoning`** - Agent reasoning/thought process
+   ```json
+   {"event":"agentReasoning","data":"I need to find information about France. I'll search for 'capital of France'."}
+   ```
+
+2. **`nextAgent`** - Information about the next agent in multi-agent flows
+   ```json
+   {"event":"nextAgent","data":{
+     "id":"agent_123",
+     "name":"Research Agent",
+     "description":"Performs research tasks"
+   }}
+   ```
+
+#### Metadata Events
+
+1. **`metadata`** - Session information and context
+   ```json
+   {"event":"metadata","data":{
+     "chatId":"client-123456",
+     "chatMessageId":"msg-789",
+     "question":"What is the capital of France?",
+     "sessionId":"sess-101112",
+     "memoryType":"buffer",
+     "followUpPrompts": ["Tell me more about Paris", "What is France known for?"],
+     "flowVariables": {"detected_intent": "geography_question"}
+   }}
+   ```
+
+2. **`usageMetadata`** - Token usage statistics
+   ```json
+   {"event":"usageMetadata","data":{
+     "input_tokens": 156,
+     "output_tokens": 42,
+     "total_tokens": 198,
+     "input_token_details": {
+       "audio": 0,
+       "cache_read": 0
+     },
+     "output_token_details": {
+       "audio": 0,
+       "reasoning": 0
+     },
+     "tool_call_tokens": 0
+   }}
+   ```
+
+### Streaming Implementation Notes
+
+* Not all chatflows support streaming; depends on node compatibility
+* Custom Function ending nodes do not support streaming
+* The `isStreamValid` property in the response indicates if streaming is supported
+* Token streaming is only available for models that support it
+* When in queue mode, streaming is handled via Redis pub/sub
+* Clients should implement reconnection logic for robust streaming
+* Event types will vary depending on the specific nodes in the flow
+
 *   **Error Responses (`application/json`):**
     *   **Status Codes:** 
         *   `400 Bad Request`: Missing or invalid parameters

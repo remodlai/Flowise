@@ -79,11 +79,62 @@
           text/event-stream:
             schema:
               type: string
-            description: >-
-              Server-Sent Events stream. Events include `metadata` and various content-related
-              events that depend on the specific nodes in the flow. The event types are
-              node-dependent and can include different formats for content updates,
-              reasoning steps, tool use, etc. Error events are sent if issues occur.
+              format: binary
+            description: |
+              Server-Sent Events (SSE) stream containing execution progress and results.
+              Each event has the format: `message\ndata:{"event":"EVENT_TYPE","data":EVENT_DATA}\n\n`
+              
+              The stream may include various event types depending on the chatflow:
+              
+              **Flow Control Events:**
+              - `start`: Signals the beginning of the stream
+              - `agentFlowEvent`: Overall process status (INPROGRESS, FINISHED, ERROR, etc.)
+              - `end`: Stream termination marker "[DONE]"
+              - `abort`: Signals aborted execution
+              - `error`: Error information if execution fails
+              
+              **Node Execution Events:**
+              - `nextAgentFlow`: Node processing status updates
+              - `agentFlowExecutedData`: Detailed execution data from completed nodes
+              
+              **Content Events:**
+              - `token`: Individual tokens from LLM (for real-time text generation)
+              - `sourceDocuments`: RAG source references from retrieval nodes
+              - `artifacts`: Generated artifacts like images or files
+              - `fileAnnotations`: File annotations, especially from OpenAI Assistants
+              
+              **Tool Usage Events:**
+              - `calledTools`: Information about tools called during execution
+              - `usedTools`: Similar to calledTools but with different formatting
+              - `tool`: Detailed tool execution information
+              - `action`: Action information, especially from agent tools
+              
+              **Agent Events:**
+              - `agentReasoning`: Agent reasoning/thought process
+              - `nextAgent`: Information about the next agent in multi-agent flows
+              
+              **Metadata Events:**
+              - `metadata`: Session information and context (sent at completion)
+              - `usageMetadata`: Token usage statistics
+            examples:
+              agentFlowEvent:
+                value: 'message\ndata:{"event":"agentFlowEvent","data":"INPROGRESS"}\n\n'
+                summary: "Flow execution status"
+              nextAgentFlow:
+                value: 'message\ndata:{"event":"nextAgentFlow","data":{"nodeId":"node_12345","nodeLabel":"LLM Node","status":"INPROGRESS"}}\n\n'
+                summary: "Node execution status"
+              token:
+                value: 'message\ndata:{"event":"token","data":"Hello world"}\n\n'
+                summary: "Individual token from LLM"
+              sourceDocuments:
+                value: 'message\ndata:{"event":"sourceDocuments","data":[{"pageContent":"Document text","metadata":{"source":"file.pdf","page":5}}]}\n\n'
+                summary: "RAG source documents"
+              metadata:
+                value: 'message\ndata:{"event":"metadata","data":{"chatId":"client-id","chatMessageId":"msg-789","question":"user question"}}\n\n'
+                summary: "Session metadata"
+              end:
+                value: 'message\ndata:{"event":"end","data":"[DONE]"}\n\n'
+                summary: "End of stream marker"
       '400':
         description: Bad Request (e.g., missing required fields, invalid input).
         content:

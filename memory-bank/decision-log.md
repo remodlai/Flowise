@@ -325,3 +325,66 @@
   - Fixed schema references improve consistency with documentation standards
   - Security requirements are properly documented
   - Progress on the review checklist increased to 38.3%
+
+## Get-Upload-Path Module Documentation Verification
+- **Date:** 2025-05-15 3:00:10 PM
+- **Author:** Unknown User
+- **Context:** The get-upload-path module documentation needed to be verified against the actual implementation. Schema references were using local references rather than relative file paths, and details about how the storage path was determined were missing.
+- **Decision:** Update the get-upload-path module documentation to accurately reflect the implementation that returns the server's storage path. Fix schema references to use relative paths, add security requirements, and include details about the storage path determination logic (based on env vars or default paths).
+- **Alternatives Considered:** 
+  - Leave schema references as local references
+  - Only fix schema references without adding implementation details
+  - Create a completely new documentation from scratch
+- **Consequences:** 
+  - Documentation now accurately reflects implementation
+  - Fixed schema references improve consistency with documentation standards
+  - Security requirements are properly documented
+  - Added details about storage path determination logic
+  - Progress on the review checklist increased to 40.4%
+
+## Internal-Chat-Messages Module Documentation Verification
+- **Date:** 2025-05-15 3:03:17 PM
+- **Author:** Unknown User
+- **Context:** The internal-chat-messages module documentation needed to be verified against the actual implementation. Schema references were using local component references rather than relative file paths, and query parameters were not fully documented.
+- **Decision:** Update the internal-chat-messages module documentation to accurately reflect the implementation that returns internal (system) chat messages. Fix schema references to use relative paths, add security requirements, and provide detailed documentation of query parameters and response structure.
+- **Alternatives Considered:** 
+  - Leave schema references as local references
+  - Only fix schema references without adding implementation details
+  - Keep minimal documentation of query parameters
+- **Consequences:** 
+  - Documentation now accurately reflects implementation
+  - Fixed schema references improve consistency with documentation standards
+  - Security requirements are properly documented
+  - Enhanced query parameter documentation helps API consumers understand filtering options
+  - Progress on the review checklist increased to 42.6%
+
+## Internal-Predictions Module Documentation and Streaming Response Format
+- **Date:** 2025-05-15 3:08:52 PM
+- **Author:** Unknown User
+- **Context:** The internal-predictions module documentation needed major enhancement, particularly for streaming responses. The existing documentation did not cover the Server-Sent Events (SSE) format or the various event types that can be received from the streaming API.
+- **Decision:** Create comprehensive documentation for the internal-predictions module, focusing on properly documenting the streaming response format with all possible event types. This includes creating a new endpoint analysis document for streaming, a new OpenAPI fragment specifically for the streaming endpoint, and enhancing schema definitions with detailed types for all SSE events.
+- **Alternatives Considered:** 
+  - Only document the non-streaming part of the API
+  - Add minimal documentation for streaming without detailed event types
+  - Add a note about streaming capability without detailed specifications
+- **Consequences:** 
+  - Complete documentation for both streaming and non-streaming API variants
+  - API consumers can properly understand and implement SSE event handling
+  - Enhanced schema definitions provide a reference for all possible event types
+  - Streaming-specific request requirements clearly documented
+  - Progress on the review checklist increased to 44.7%
+
+## Standardized Streaming Event Documentation
+- **Date:** 2025-05-15 3:16:24 PM
+- **Author:** Unknown User
+- **Context:** The API documentation for streaming endpoints (internal-predictions and predictions) needed significant enhancement to properly document all event types, their formats, and usage patterns. The existing documentation was minimal and lacked detailed examples.
+- **Decision:** Created a comprehensive documentation approach for Server-Sent Events (SSE) that categorizes events into logical groups (Flow Control, Node Execution, Content, Tool Usage, Agent, and Metadata), includes detailed examples of each event type, and provides client-side implementation guidance.
+- **Alternatives Considered:** 
+  - Document each event type individually without categorization
+  - Only document the most common event types without examples
+  - Create a separate common schema document for SSE events
+- **Consequences:** 
+  - Improved developer experience through comprehensive event documentation
+  - Ensured consistency between internal and public prediction endpoints
+  - Established a pattern for documenting streaming events that can be applied to other endpoints
+  - Provides a clear guide for client implementations consuming the streaming API

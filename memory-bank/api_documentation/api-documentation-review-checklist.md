@@ -31,8 +31,8 @@ This document tracks the progress of our API documentation review process, ensur
 | flow-config | ✅ | ✅ | ✅ | ✅ | Updated schema references, added security requirements, corrected implementation details |
 | get-upload-file | ✅ | ✅ | ✅ | ✅ | Verified to be accurate |
 | get-upload-path | ✅ | ✅ | ✅ | ✅ | Updated schema references, added security requirements, improved documentation |
-| internal-chat-messages | ⏳ | ⏳ | ⏳ | ⏳ | |
-| internal-predictions | ⏳ | ⏳ | ⏳ | ⏳ | |
+| internal-chat-messages | ✅ | ✅ | ✅ | ✅ | Fixed schema references, added security requirements, enhanced query parameter documentation |
+| internal-predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with comprehensive streaming event documentation, including detailed examples of all event types and client-side implementation guidance |
 | leads | ⏳ | ⏳ | ⏳ | ⏳ | |
 | load-prompts | ⏳ | ⏳ | ⏳ | ⏳ | |
 | marketplaces | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -47,7 +47,7 @@ This document tracks the progress of our API documentation review process, ensur
 | openai-assistants-vector-store | ⏳ | ⏳ | ⏳ | ⏳ | |
 | openai-realtime | ⏳ | ⏳ | ⏳ | ⏳ | |
 | ping | ⏳ | ⏳ | ⏳ | ⏳ | |
-| predictions | ✅ | ✅ | ✅ | ✅ | Verified to be accurate |
+| predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with detailed streaming event documentation that matches internal-predictions, ensuring consistency |
 | prompts-lists | ⏳ | ⏳ | ⏳ | ⏳ | |
 | public-chatbots | ⏳ | ⏳ | ⏳ | ⏳ | |
 | public-chatflows | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 19/47 (40.4%)
-- **Modules Pending**: 28/47 (59.6%)
+- **Modules Reviewed**: 21/47 (44.7%)
+- **Modules Pending**: 26/47 (55.3%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns
@@ -74,11 +74,12 @@ This document tracks the progress of our API documentation review process, ensur
 3. **Queue Mode**: Production mode (queue-based processing) sometimes not documented
 4. **Storage Types**: Multiple storage types (JSON vs DB) sometimes not fully documented
 5. **Security Configuration**: Some endpoints used `InternalApiKeyAuth` instead of the correct `ApiKeyAuth` 
+6. **Streaming Responses**: Server-Sent Events (SSE) formats were not fully documented - this has been addressed for predictions endpoints
 
 ## Next Steps
 
 1. Continue reviewing modules based on priority
-2. Focus on critical API endpoints next (chatflows, etc.)
+2. Focus on critical API endpoints next (leads, etc.)
 3. Establish patterns to apply across similar endpoints
 4. Update all OpenAPI fragments to use consistent reference patterns
 

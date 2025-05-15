@@ -17,7 +17,7 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/InternalPredictionRequest"
+            $ref: "../../schemas/modules/PredictionsSchemas.yaml#/components/schemas/InternalPredictionRequest"
     responses:
       '200':
         description: "Prediction executed successfully. Response structure is dynamic based on the chatflow output."
@@ -33,18 +33,18 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '404':
         description: "Chatflow with the specified ID not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error during chatflow execution."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: []
+      - ApiKeyAuth: []
