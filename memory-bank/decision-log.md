@@ -237,3 +237,61 @@
   - Included all supported query parameters
   - Added missing pagination support
   - Fixed parameter types (especially UUID format)
+
+## Update API Documentation Review Progress Statistics
+- **Date:** 2025-05-15 2:36:18 PM
+- **Author:** Unknown User
+- **Context:** The api-documentation-review-checklist.md file's summary statistics were out of sync with the actual progress tracked in the checklist table. The summary showed only 5/47 modules reviewed while the table indicated 14 modules had been fully reviewed.
+- **Decision:** Update the summary statistics in the API documentation review checklist to accurately reflect the current progress: 14/47 modules (29.8%) have been fully reviewed and verified.
+- **Alternatives Considered:** 
+  - Leave the statistics as-is and wait for a formal review checkpoint
+  - Recalculate module counts by examining all documentation files directly
+- **Consequences:** 
+  - Accurate progress tracking ensures better project management
+  - Provides clearer visibility into the documentation review project status
+  - Helps identify remaining work for prioritization
+
+## Export-Import Module Documentation Verification
+- **Date:** 2025-05-15 2:43:52 PM
+- **Author:** Unknown User
+- **Context:** The export-import module documentation needed to be verified against the actual implementation to ensure accuracy. The documentation did not match the actual implementation in several ways.
+- **Decision:** Update the export-import module documentation to accurately reflect the implementation, add security requirements, and mark it as verified in the checklist.
+- **Alternatives Considered:** 
+  - Leave the documentation as-is and mark it for future comprehensive update
+  - Only fix critical issues in the documentation
+  - Create entirely new documentation from scratch
+- **Consequences:** 
+  - Documentation now accurately reflects the implementation
+  - Users have correct information about request and response formats
+  - Security requirements are properly documented
+  - Progress on the review checklist has increased to 31.9%
+
+## Standardize Schema Reference Pattern in OpenAPI Fragments
+- **Date:** 2025-05-15 2:46:15 PM
+- **Author:** Unknown User
+- **Context:** There was an inconsistency in how schemas were referenced in OpenAPI fragment files. Some used relative file paths (../../schemas/modules/SchemaFile.yaml#/components/schemas/Schema) while others used local references (#/components/schemas/Schema).
+- **Decision:** Standardize on using relative file paths for all schema references in OpenAPI fragments and create a Cursor rule to enforce this pattern for future documentation work.
+- **Alternatives Considered:** 
+  - Use local references and combine schemas during documentation generation
+  - Use absolute paths with root identifiers
+  - Continue using mixed reference patterns
+- **Consequences:** 
+  - Ensures consistent schema reference across all modules
+  - Makes federation of OpenAPI fragments more reliable
+  - Centralizes schema definitions in dedicated files
+  - Provides clear guidance for future documentation work
+
+## Feedback Module Documentation Verification
+- **Date:** 2025-05-15 2:50:13 PM
+- **Author:** Unknown User
+- **Context:** The feedback module documentation needed to be verified and updated to match the actual implementation. Several issues were found including incorrect schema references, missing security requirements, and inaccurate field names.
+- **Decision:** Update the feedback module documentation to accurately reflect the implementation, fix schema references using relative paths, correct field names, add security requirements, and improve response documentation.
+- **Alternatives Considered:** 
+  - Leave incomplete documentation with incorrect references
+  - Only fix schema references without validating implementation details
+  - Completely rewrite documentation from scratch
+- **Consequences:** 
+  - Documentation now accurately reflects the implementation
+  - Consistent schema referencing patterns across modules
+  - Improved response documentation with specific error status codes
+  - Progress on the review checklist increased to 34.0%

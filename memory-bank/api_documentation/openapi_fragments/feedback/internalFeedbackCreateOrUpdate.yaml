@@ -1,6 +1,7 @@
 "/feedback/":
   post:
     summary: "INTERNAL: Create or Update Chat Message Feedback"
+    description: "Creates or updates feedback for a specific chat message. Validates that the message exists and that chatflow and chat IDs are consistent."
     operationId: "internalFeedbackCreateOrUpdate"
     tags: ["Feedback", "InternalAPI"]
     requestBody:
@@ -8,23 +9,31 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/CreateFeedbackRequestBody"
+            $ref: "../../schemas/modules/FeedbackSchemas.yaml#/components/schemas/CreateFeedbackRequestBody"
     responses:
       '200':
         description: "Feedback created or updated."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/FeedbackObject"
+              $ref: "../../schemas/modules/FeedbackSchemas.yaml#/components/schemas/FeedbackObject"
       '400':
-        description: "Bad Request - Missing required fields."
+        description: "Bad Request - Missing required fields or inconsistent data."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '404':
+        description: "Not Found - Message with given ID not found."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

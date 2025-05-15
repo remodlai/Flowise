@@ -1,0 +1,45 @@
+---
+description: 
+globs: memory-bank/api_documentation/**/*
+alwaysApply: false
+---
+# Rule: Consistent Schema Reference Patterns in OpenAPI Fragments
+
+**Rule Description:**
+"All OpenAPI fragment files in the `memory-bank/api_documentation/openapi_fragments` directory must use consistent schema reference patterns to ensure compatibility with future OpenAPI document federation. The reference pattern must use relative paths to the schema files rather than local references."
+
+## Reference Pattern Requirements:
+
+1. **Use Relative File Paths:** All schema references (`$ref`) must point to the actual schema file location using relative paths from the fragment file:
+
+   **CORRECT:**
+   ```yaml
+   $ref: "../../schemas/modules/ModuleNameSchemas.yaml#/components/schemas/SchemaName"
+   $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/CommonSchema"
+   ```
+
+   **INCORRECT:**
+   ```yaml
+   $ref: "#/components/schemas/SchemaName"
+   ```
+
+2. **Schema Organization:**
+   - Module-specific schemas should be referenced from `../../schemas/modules/ModuleNameSchemas.yaml`
+   - Shared schemas should be referenced from `../../schemas/shared/CommonSchemas.yaml` or other shared schema files
+   - Error responses should be referenced from `../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse`
+
+3. **Path Construction Rules:**
+   - Always use `../../schemas/` as the base path from any OpenAPI fragment
+   - Use `modules/` for module-specific schemas
+   - Use `shared/` for shared schemas
+   - Use consistent file naming pattern: `ModuleNameSchemas.yaml` (e.g., `AssistantSchemas.yaml`, `ChatflowsSchemas.yaml`)
+
+## Integration Considerations:
+
+This pattern ensures that:
+1. Schemas are maintained in separate files for better organization
+2. References will resolve correctly when fragments are combined into a complete OpenAPI specification
+3. Changes to schemas can be made in a single location without updating multiple fragments
+4. The documentation generation process can correctly resolve all references
+
+When adding new OpenAPI fragments or updating existing ones, ensure all schema references follow this pattern for consistency and future maintainability.

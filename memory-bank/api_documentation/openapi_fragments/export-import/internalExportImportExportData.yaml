@@ -7,17 +7,19 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ExportDataRequest"
+            $ref: "../../schemas/modules/export-importSchemas.yaml#/components/schemas/ExportDataRequest"
     responses:
       '200':
         description: "Data exported successfully."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ExportDataResponse"
+              $ref: "../../schemas/modules/export-importSchemas.yaml#/components/schemas/ExportDataResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

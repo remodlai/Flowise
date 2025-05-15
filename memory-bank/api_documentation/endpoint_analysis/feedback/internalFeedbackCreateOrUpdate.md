@@ -4,13 +4,14 @@
 
 **Operation ID:** `internalFeedbackCreateOrUpdate`
 
-**Description:** Creates or updates a feedback entry for a chat message. If feedback for the `messageId` and `chatId` already exists, it updates it; otherwise, it creates a new one.
+**Description:** Creates or updates a feedback entry for a chat message. If feedback for the `messageId` already exists, it updates it; otherwise, it creates a new one. Validates that the message exists and that chatflow ID and chat ID match the message.
 
 **Key Files:**
 * Router: `routes/feedback/index.ts`
-* Controller: `controllers/feedback/index.ts` (Handler: `createChatMessageFeedback`)
-* Service: `services/feedback/index.ts` (Method: `createChatMessageFeedback`)
+* Controller: `controllers/feedback/index.ts` (Handler: `createChatMessageFeedbackForChatflow`)
+* Service: `services/feedback/index.ts` (Method: `createChatMessageFeedbackForChatflow`)
 * Entity: `database/entities/ChatMessageFeedback.ts`
+* Validation: `services/feedback/validation.ts` (Method: `validateFeedbackForCreation`)
 
 **Authentication:** Requires API Key.
 
@@ -22,6 +23,7 @@
 *   `content?` (string, optional): Textual feedback content.
 
 **Responses:**
-*   **`201 Created` or `200 OK`:** Returns the created/updated `ChatMessageFeedback` entity.
-*   **`400 Bad Request`:** Missing required fields.
-*   **`500 Internal Server Error`** 
+*   **`200 OK`:** Returns the created/updated `ChatMessageFeedback` entity.
+*   **`400 Bad Request`:** Missing required fields or inconsistent data (e.g., messageId doesn't exist, or chatId/chatflowid don't match the message).
+*   **`404 Not Found`:** Message with given ID not found.
+*   **`500 Internal Server Error`:** Database error or other server issue. 

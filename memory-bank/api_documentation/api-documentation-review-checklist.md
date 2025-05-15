@@ -15,18 +15,18 @@ This document tracks the progress of our API documentation review process, ensur
 | agentflowv2-generator | ✅ | ✅ | ✅ | ✅ | Updated to include queue mode processing information |
 | apikey | ✅ | ✅ | ✅ | ✅ | Updated schema references and added missing chatFlows property |
 | assistants | ✅ | ✅ | ✅ | ✅ | Fixed schema references, updated credential requirement, added proper security config |
-| attachments | ⏳ | ⏳ | ⏳ | ⏳ | |
-| chat-messages | ⏳ | ⏳ | ⏳ | ⏳ | |
-| chatflows | ⏳ | ⏳ | ⏳ | ⏳ | |
-| chatflows-streaming | ⏳ | ⏳ | ⏳ | ⏳ | |
-| chatflows-uploads | ⏳ | ⏳ | ⏳ | ⏳ | |
+| attachments | ✅ | ✅ | ✅ | ✅ |
+| chat-messages | ✅ | ✅ | ✅ | ✅ |
+| chatflows| ✅ | ✅ | ✅ | ✅ |
+| chatflows-streaming| ✅ | ✅ | ✅ | ✅ |
+| chatflows-uploads | ✅ | ✅ | ✅ | ✅ |
 | components-credentials | ✅ | ✅ | ✅ | ✅ | Fixed response schema to accurately reflect array format |
-| components-credentials-icon | ⏳ | ⏳ | ⏳ | ⏳ | |
-| credentials | ⏳ | ⏳ | ⏳ | ⏳ | |
-| documentstore | ⏳ | ⏳ | ⏳ | ⏳ | |
-| executions | ⏳ | ⏳ | ⏳ | ⏳ | |
-| export-import | ⏳ | ⏳ | ⏳ | ⏳ | |
-| feedback | ⏳ | ⏳ | ⏳ | ⏳ | |
+| components-credentials-icon| ✅ | ✅ | ✅ | ✅ |
+| credentials | ✅ | ✅ | ✅ | ✅ |
+| documentstore | ✅ | ✅ | ✅ | ✅ |
+| executions | ✅ | ✅ | ✅ | ✅ |
+| export-import | ✅ | ✅ | ✅ | ✅ | Updated to match implementation and added security requirements |
+| feedback | ✅ | ✅ | ✅ | ✅ | Fixed schema references, corrected field names, added security requirements |
 | fetch-links | ⏳ | ⏳ | ⏳ | ⏳ | |
 | flow-config | ⏳ | ⏳ | ⏳ | ⏳ | |
 | get-upload-file | ✅ | ✅ | ✅ | ✅ | Verified to be accurate |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 5/47 (10.6%)
-- **Modules Pending**: 42/47 (89.4%)
+- **Modules Reviewed**: 16/47 (34.0%)
+- **Modules Pending**: 31/47 (66.0%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns

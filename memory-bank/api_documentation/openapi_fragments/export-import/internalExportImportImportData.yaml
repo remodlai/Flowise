@@ -8,23 +8,25 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ImportDataRequest"
+            $ref: "../../schemas/modules/export-importSchemas.yaml#/components/schemas/ImportDataRequest"
     responses:
       '200':
         description: "Data imported successfully."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ImportDataResponse"
+              $ref: "../../schemas/modules/export-importSchemas.yaml#/components/schemas/ImportDataResponse"
       '400':
         description: "Bad Request - Invalid import data format."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []
