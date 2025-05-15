@@ -9,10 +9,12 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/GetUploadPathResponse"
+              $ref: "../../schemas/modules/GetUploadPathSchemas.yaml#/components/schemas/GetUploadPathResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

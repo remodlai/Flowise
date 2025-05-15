@@ -28,9 +28,9 @@ This document tracks the progress of our API documentation review process, ensur
 | export-import | ✅ | ✅ | ✅ | ✅ | Updated to match implementation and added security requirements |
 | feedback | ✅ | ✅ | ✅ | ✅ | Fixed schema references, corrected field names, added security requirements |
 | fetch-links | ✅ | ✅ | ✅ | ✅ | Updated schema references, added security requirements |
-| flow-config | ⏳ | ⏳ | ⏳ | ⏳ | |
+| flow-config | ✅ | ✅ | ✅ | ✅ | Updated schema references, added security requirements, corrected implementation details |
 | get-upload-file | ✅ | ✅ | ✅ | ✅ | Verified to be accurate |
-| get-upload-path | ⏳ | ⏳ | ⏳ | ⏳ | |
+| get-upload-path | ✅ | ✅ | ✅ | ✅ | Updated schema references, added security requirements, improved documentation |
 | internal-chat-messages | ⏳ | ⏳ | ⏳ | ⏳ | |
 | internal-predictions | ⏳ | ⏳ | ⏳ | ⏳ | |
 | leads | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 17/47 (36.2%)
-- **Modules Pending**: 30/47 (63.8%)
+- **Modules Reviewed**: 19/47 (40.4%)
+- **Modules Pending**: 28/47 (59.6%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns

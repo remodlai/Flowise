@@ -12,6 +12,9 @@
 
 ## Update History
 
+- [2025-05-15 3:00:03 PM] [Unknown User] - Updated Get-Upload-Path Module Documentation: Verified get-upload-path module implementation and updated documentation. Fixed schema references to use relative paths, added security requirements, and added details about the storage path determination logic. The module retrieves the server's storage path for file uploads based on environment variables or default locations.
+- [2025-05-15 2:54:55 PM] [Unknown User] - Decision Made: Flow-Config Module Documentation Verification
+- [2025-05-15 2:54:49 PM] [Unknown User] - Updated Flow-Config Module Documentation: Verified flow-config module implementation and updated documentation. Fixed schema references to use relative paths, added security requirements, and corrected the endpoint description to accurately reflect the implementation. The module retrieves available input parameter configurations from chatflow nodes.
 - [2025-05-15 2:52:28 PM] [Unknown User] - Decision Made: Fetch-Links Module Documentation Verification
 - [2025-05-15 2:52:20 PM] [Unknown User] - Updated Fetch-Links Module Documentation: Verified fetch-links module implementation and updated documentation. Fixed schema references to use relative paths, added security requirements, enhanced error descriptions, and validated the overall accuracy of the endpoint analysis and schema.
 - [2025-05-15 2:50:13 PM] [Unknown User] - Decision Made: Feedback Module Documentation Verification

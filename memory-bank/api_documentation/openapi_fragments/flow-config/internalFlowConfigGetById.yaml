@@ -15,22 +15,24 @@
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/FlowConfigResponse"
+              $ref: "../../schemas/modules/FlowConfigSchemas.yaml#/components/schemas/FlowConfigResponse"
       '404':
         description: "Not Found - Chatflow with ID not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed - ID not provided."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

@@ -9,7 +9,7 @@
 **Key Files:**
 * Router: `routes/get-upload-path/index.ts`
 * Controller: `controllers/get-upload-path/index.ts` (Handler: `getPathForUploads`)
-* Function: `getStoragePath` from `flowise-components` (used to retrieve the configured path)
+* Function: `getStoragePath` from `flowise-components/src/storageUtils.ts` (used to retrieve the configured path)
 
 **Authentication:** Requires API Key.
 
@@ -22,4 +22,8 @@
       "storagePath": "/app/flowise/uploads"
     }
     ```
-*   **`500 Internal Server Error`**
+    The path is determined based on:
+    - The `BLOB_STORAGE_PATH` environment variable if set
+    - Otherwise, defaults to `~/.flowise/storage` (user home directory)
+    
+*   **`500 Internal Server Error`:** If any error occurs during retrieval.
