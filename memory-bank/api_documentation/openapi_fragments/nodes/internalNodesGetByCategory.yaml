@@ -1,6 +1,7 @@
 "/nodes/category/{name}":
   get:
     summary: "INTERNAL: Get Node Component Definitions by Category"
+    description: "INTERNAL: Retrieves definitions for all node components that belong to a specific category."
     operationId: "internalNodesGetByCategory"
     tags: ["Nodes", "InternalAPI"]
     parameters:
@@ -12,19 +13,24 @@
           type: string
     responses:
       '200':
-        description: "Success"
+        description: "Successfully retrieved node component definitions filtered by category."
         content:
           application/json:
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/NodeComponentDefinition"
+                $ref: "../../schemas/modules/NodesSchemas.yaml#/components/schemas/NodeComponentDefinition"
       '412':
         description: "Precondition Failed - category name not provided."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
-      '500': { $ref: "#/components/responses/InternalServerError" }
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: [] 
+      - ApiKeyAuth: [] 

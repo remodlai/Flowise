@@ -83,7 +83,7 @@
 
 ## Ongoing Tasks
 
-- Continue API documentation review process - next module is nodes
+- Continue API documentation review process - next module is nvidia-nim
 - Ensure all schema references in OpenAPI fragments use proper relative paths
 - Document endpoints comprehensively, including implementation details and edge cases
 ## Known Issues
@@ -94,12 +94,15 @@
 - Streaming responses need careful documentation of SSE event formats
 ## Next Steps
 
-- Review nodes module
-- Check for special error handling behaviors that should be documented
-- Continue to standardize security configuration across all endpoints
-- Ensure consistent schema organization and documentation
+- Continue API documentation review focusing on openai-assistants module next
+- Update review progress percentages after excluding unused modules
+- Look for other potential unused modules that could be excluded
 ## Current Session Notes
 
+- [4:49:05 PM] [Unknown User] Excluded unused API modules: Marked nvidia-nim and openai-realtime modules as excluded in the API documentation review checklist and removed related documentation files as these modules are not used in production.
+- [4:38:34 PM] [Unknown User] API Documentation Review: Nodes Module: Completed the review of the nodes module. Created missing endpoint analysis files for getNodeByName and getNodesByCategory endpoints. Updated all OpenAPI fragments with proper schema references and security configuration. Enhanced existing documentation with implementation details, including deep cloning behavior and error handling. Added a new recurring pattern to track: Missing Endpoint Documentation. Updated API documentation review checklist to reflect progress: now at 61.7% (29/47 modules).
+- [4:37:03 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/nodes/internalNodesGetByCategory.md
+- [4:36:48 PM] [Unknown User] File Update: Updated api_documentation/endpoint_analysis/nodes/internalNodesGetByName.md
 - [4:31:11 PM] [Unknown User] Decision Made: Documentation of Error Handling Behavior
 - [4:30:55 PM] [Unknown User] API Documentation Review: Node-load-methods Module: Completed the review of the node-load-methods module. Fixed schema references in the OpenAPI fragment and added proper security configuration. Enhanced the endpoint analysis with additional implementation notes to highlight the module reuse pattern (using the nodes module controller/service) and special error handling behavior (returning empty arrays for method execution errors). Added a new recurring pattern to track in our checklist: Error Handling Behavior. Updated API documentation review checklist to reflect progress: now at 59.6% (28/47 modules).
 - [4:27:55 PM] [Unknown User] Decision Made: Documentation of Module Reuse Patterns

@@ -1,15 +1,23 @@
 "/nodes/":
   get:
     summary: "INTERNAL: Get All Node Component Definitions"
+    description: "INTERNAL: Retrieves definitions for all available node components loaded in the application."
     operationId: "internalNodesGetAll"
     tags: ["Nodes", "InternalAPI"]
     responses:
       '200':
-        description: "Success"
+        description: "Successfully retrieved all node component definitions."
         content:
           application/json:
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/NodeComponentDefinition"
-      '500': { $ref: "#/components/responses/InternalServerError" }
+                $ref: "../../schemas/modules/NodesSchemas.yaml#/components/schemas/NodeComponentDefinition"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: []

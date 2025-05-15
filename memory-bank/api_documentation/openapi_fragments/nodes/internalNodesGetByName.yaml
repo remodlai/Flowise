@@ -1,6 +1,7 @@
 "/nodes/{name}":
   get:
     summary: "INTERNAL: Get Node Component Definition by Name"
+    description: "INTERNAL: Retrieves the definition for a specific node component by its name."
     operationId: "internalNodesGetByName"
     tags: ["Nodes", "InternalAPI"]
     parameters:
@@ -12,17 +13,28 @@
           type: string
     responses:
       '200':
-        description: "Success"
+        description: "Successfully retrieved the node component definition."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NodeComponentDefinition"
+              $ref: "../../schemas/modules/NodesSchemas.yaml#/components/schemas/NodeComponentDefinition"
       '412':
         description: "Precondition Failed - name not provided."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
-      '500': { $ref: "#/components/responses/InternalServerError" }
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '404':
+        description: "Node Not Found - specified node component name doesn't exist."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: [] 
+      - ApiKeyAuth: [] 
