@@ -12,6 +12,9 @@
 
 ## Update History
 
+- [2025-05-15 12:55:51 PM] [Unknown User] - Decision Made: Remove Incorrect API Documentation for Attachments Module
+- [2025-05-15 12:55:41 PM] [Unknown User] - Documentation Correction: Removed invalid documentation and OpenAPI fragments for non-existent GET and DELETE endpoints in the attachments module. Only the POST endpoint for file uploads is actually implemented in the codebase.
+- [2025-05-15 12:40:46 PM] [Unknown User] - Documentation Update: Updated the assistants endpoint OpenAPI fragment and schema to accurately reflect the implementation, fixing schema references, updating credential requirement, and correcting security configuration.
 - [2025-05-15 12:38:23 PM] [Unknown User] - Decision Made: Assistants Module Documentation Accuracy Assessment
 - [2025-05-15 12:38:14 PM] [Unknown User] - Spot Check Analysis: Conducting a comprehensive spot check of the assistants endpoint documentation against actual implementation.
 - [2025-05-15 12:36:16 PM] [Unknown User] - Documentation Update: Updated the apikey endpoint OpenAPI fragments and schemas to accurately reflect the implementation, fixing reference paths and adding the missing chatFlows property.

@@ -108,3 +108,18 @@
   - Documentation will accurately reflect implementation
   - API consumers will have correct expectations about request/response format
   - Future maintenance will be easier with aligned documentation
+
+## Remove Incorrect API Documentation for Attachments Module
+- **Date:** 2025-05-15 12:55:51 PM
+- **Author:** Unknown User
+- **Context:** During the review of the attachments module, we discovered that while the documentation and OpenAPI fragments claimed that GET and DELETE routes existed but were non-operational due to missing controller handlers, these routes weren't actually defined in the router file at all. Only the POST route for uploading files is actually implemented.
+- **Decision:** Remove all documentation and OpenAPI fragments for the non-existent GET and DELETE routes, leaving only documentation for the implemented POST route.
+- **Alternatives Considered:** 
+  - Keep documentation but mark as 'planned but not implemented'
+  - Create stubs for these endpoints to match documentation
+  - Leave documentation as is with 'non-operational' status
+- **Consequences:** 
+  - Documentation now accurately reflects actual implementation
+  - Reduces confusion for developers using the API
+  - Preserves only factual information about the codebase
+  - Any plans for these endpoints should be documented elsewhere if they are to be implemented in the future

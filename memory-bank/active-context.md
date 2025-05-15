@@ -83,22 +83,23 @@
 
 ## Ongoing Tasks
 
-- Continue API documentation review process using the newly created checklist
-- Focus on high-priority endpoints next
-- Ensure schema references are consistent across all OpenAPI fragments
+- Complete review of attachments module - corrected documentation by removing non-existent endpoints
+- Continue reviewing remaining modules for API documentation accuracy
+- Be vigilant about checking actual implementation vs. documentation for all endpoints
 ## Known Issues
 
-- Schema references use inconsistent patterns across modules
-- Some modules have missing OpenAPI fragments for implemented endpoints
-- nvidia-nim module has documented GET /models endpoint that doesn't exist in the implementation
+- Documentation mentioned non-existent routes in attachments module - now fixed
+- Similar issues may exist in other modules - need careful verification
 ## Next Steps
 
-- Begin systematic endpoint-by-endpoint verification of all API documentation
-- Create individual tasks for each endpoint's verification
-- Ensure all endpoints have accurate documentation that matches implementation
-- Prepare for final OpenAPI specification creation
+- Continue review of next module
+- Ensure all documented endpoints actually exist in the codebase
+- Cross-check router files, controller files, and service implementations
 ## Current Session Notes
 
+- [12:55:51 PM] [Unknown User] Decision Made: Remove Incorrect API Documentation for Attachments Module
+- [12:55:41 PM] [Unknown User] Documentation Correction: Removed invalid documentation and OpenAPI fragments for non-existent GET and DELETE endpoints in the attachments module. Only the POST endpoint for file uploads is actually implemented in the codebase.
+- [12:40:46 PM] [Unknown User] Documentation Update: Updated the assistants endpoint OpenAPI fragment and schema to accurately reflect the implementation, fixing schema references, updating credential requirement, and correcting security configuration.
 - [12:38:23 PM] [Unknown User] Decision Made: Assistants Module Documentation Accuracy Assessment
 - [12:38:14 PM] [Unknown User] Spot Check Analysis: Conducting a comprehensive spot check of the assistants endpoint documentation against actual implementation.
 - [12:36:16 PM] [Unknown User] Documentation Update: Updated the apikey endpoint OpenAPI fragments and schemas to accurately reflect the implementation, fixing reference paths and adding the missing chatFlows property.

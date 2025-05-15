@@ -14,7 +14,7 @@ This document tracks the progress of our API documentation review process, ensur
 |--------|-------------------|------------------|-------------------|--------|-------|
 | agentflowv2-generator | ✅ | ✅ | ✅ | ✅ | Updated to include queue mode processing information |
 | apikey | ✅ | ✅ | ✅ | ✅ | Updated schema references and added missing chatFlows property |
-| assistants | ⏳ | ⏳ | ⏳ | ⏳ | |
+| assistants | ✅ | ✅ | ✅ | ✅ | Fixed schema references, updated credential requirement, added proper security config |
 | attachments | ⏳ | ⏳ | ⏳ | ⏳ | |
 | chat-messages | ⏳ | ⏳ | ⏳ | ⏳ | |
 | chatflows | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 4/47 (8.5%)
-- **Modules Pending**: 43/47 (91.5%)
+- **Modules Reviewed**: 5/47 (10.6%)
+- **Modules Pending**: 42/47 (89.4%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns
@@ -73,11 +73,12 @@ This document tracks the progress of our API documentation review process, ensur
 2. **Response Structure**: Documentation sometimes doesn't match actual implementation response format (e.g., missing properties like chatFlows)
 3. **Queue Mode**: Production mode (queue-based processing) sometimes not documented
 4. **Storage Types**: Multiple storage types (JSON vs DB) sometimes not fully documented
+5. **Security Configuration**: Some endpoints used `InternalApiKeyAuth` instead of the correct `ApiKeyAuth` 
 
 ## Next Steps
 
 1. Continue reviewing modules based on priority
-2. Focus on critical API endpoints next (chatflows, assistants, etc.)
+2. Focus on critical API endpoints next (chatflows, etc.)
 3. Establish patterns to apply across similar endpoints
 4. Update all OpenAPI fragments to use consistent reference patterns
 
