@@ -19,24 +19,24 @@
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/ApiKeyWithCount"
+                $ref: "../../schemas/modules/ApiKeySchemas.yaml#/components/schemas/ApiKeyWithCount"
       '404':
         description: "API Key not found (more likely for JSON storage if ID invalid)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (e.g., missing id)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: []

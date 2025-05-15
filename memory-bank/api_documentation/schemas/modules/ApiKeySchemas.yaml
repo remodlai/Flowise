@@ -49,6 +49,23 @@ components:
         chatflowCount:
           type: integer
           description: Number of chatflows associated with this API key.
+        chatFlows:
+          type: array
+          description: Array of chatflows associated with this API key.
+          items:
+            type: object
+            properties:
+              flowName:
+                type: string
+                description: Name of the associated chatflow.
+              category:
+                type: string
+                description: Category of the associated chatflow.
+                nullable: true
+              updatedDate:
+                type: string
+                format: date-time
+                description: The date and time the chatflow was last updated.
         updatedDate:
           type: string
           format: date-time
@@ -58,6 +75,7 @@ components:
         - keyName
         - apiKey
         - chatflowCount
+        - chatFlows
         - updatedDate
 
     ApiKeyRequestBody:

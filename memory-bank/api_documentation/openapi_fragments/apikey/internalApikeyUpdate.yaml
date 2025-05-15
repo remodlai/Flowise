@@ -16,7 +16,7 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ApiKeyRequestBody"
+            $ref: "../../schemas/modules/ApiKeySchemas.yaml#/components/schemas/ApiKeyRequestBody"
     responses:
       '200':
         description: "API Key updated successfully. Returns the full list of all API keys."
@@ -25,24 +25,24 @@
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/ApiKeyWithCount"
+                $ref: "../../schemas/modules/ApiKeySchemas.yaml#/components/schemas/ApiKeyWithCount"
       '404':
         description: "API Key not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (e.g., missing id or keyName)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: []

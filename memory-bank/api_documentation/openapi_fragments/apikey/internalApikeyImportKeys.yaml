@@ -9,7 +9,7 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ApiKeyImportRequest"
+            $ref: "../../schemas/modules/ApiKeySchemas.yaml#/components/schemas/ApiKeyImportRequest"
     responses:
       '200':
         description: "API Keys imported successfully. Returns the full list of API keys."
@@ -18,18 +18,18 @@
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/ApiKey"
+                $ref: "../../schemas/modules/ApiKeySchemas.yaml#/components/schemas/ApiKeyWithCount"
       '412':
         description: "Precondition Failed (e.g., missing jsonFile)."
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '500':
         description: "Internal Server Error (e.g., invalid data URI, JSON parse error, import conflict)."
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
     security:
       - ApiKeyAuth: []

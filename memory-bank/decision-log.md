@@ -80,3 +80,31 @@
   - Documentation will accurately reflect implementation
   - API consumers will have correct expectations about request/response format
   - Future maintenance will be easier with aligned documentation
+
+## ApiKey Module Documentation Accuracy Assessment
+- **Date:** 2025-05-15 12:34:36 PM
+- **Author:** Unknown User
+- **Context:** Performed spot check of the apikey endpoint documentation by comparing actual implementation with existing documentation.
+- **Decision:** The existing documentation is mostly accurate but requires a few minor updates to ensure full alignment with the implementation.
+- **Alternatives Considered:** 
+  - Leave documentation unchanged
+  - Complete overhaul of documentation
+  - Remove incomplete parts of the documentation
+- **Consequences:** 
+  - Documentation will accurately reflect implementation
+  - API consumers will have correct expectations about request/response format
+  - Future maintenance will be easier with aligned documentation
+
+## Assistants Module Documentation Accuracy Assessment
+- **Date:** 2025-05-15 12:38:23 PM
+- **Author:** Unknown User
+- **Context:** Performed spot check of the assistants endpoint documentation by comparing actual implementation with existing documentation.
+- **Decision:** The existing documentation requires updates to address several discrepancies with the implementation, particularly with schema references and security configurations.
+- **Alternatives Considered:** 
+  - Leave documentation unchanged
+  - Complete overhaul of documentation
+  - Add only missing fields
+- **Consequences:** 
+  - Documentation will accurately reflect implementation
+  - API consumers will have correct expectations about request/response format
+  - Future maintenance will be easier with aligned documentation

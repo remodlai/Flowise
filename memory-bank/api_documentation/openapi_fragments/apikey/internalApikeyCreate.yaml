@@ -10,25 +10,25 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ApiKeyRequestBody"
+            $ref: "../../schemas/modules/ApiKeySchemas.yaml#/components/schemas/ApiKeyRequestBody"
     responses:
       '200': # Assuming 200 for successful creation based on controller
         description: "API Key created successfully. The apiSecret returned is the only time the plaintext secret is available."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ApiKey"
+              $ref: "../../schemas/modules/ApiKeySchemas.yaml#/components/schemas/ApiKey"
       '412':
         description: "Precondition Failed (e.g., missing keyName)."
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
     security:
       - ApiKeyAuth: []

@@ -12,31 +12,31 @@
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AssistantCreateRequest"
+            $ref: "../../schemas/modules/AssistantSchemas.yaml#/components/schemas/AssistantCreateRequest"
     responses:
       '200':
         description: "Assistant created/updated successfully. Returns the Remodl Core Assistant entity."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Assistant"
+              $ref: "../../schemas/modules/AssistantSchemas.yaml#/components/schemas/Assistant"
       '400':
         description: "Bad Request / Precondition Failed (e.g., missing body or details)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '404':
         description: "Credential not found."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error (OpenAI API error, DB error, etc.)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: []
+      - ApiKeyAuth: []

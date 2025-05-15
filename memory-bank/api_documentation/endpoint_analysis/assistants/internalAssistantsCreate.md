@@ -4,7 +4,7 @@
 **Operation ID:** `internalAssistantsCreate`
 **Description:** Creates a new Remodl Core Assistant.
 - If `type` is "CUSTOM", creates a local assistant record.
-- Otherwise (typically OpenAI type), it interacts with the OpenAI Assistants API to create or update an assistant, then stores its configuration in the Remodl Core database. The `details` field in the request body should be a JSON string representing the assistant's configuration. For OpenAI assistants, this mirrors OpenAI's Assistant object structure, including fields like `name`, `description`, `model`, `instructions`, `tools`, `tool_resources`, `temperature`, and `top_p`. Sensitive parts of `tool_resources` might be processed before sending to OpenAI.
+- Otherwise (typically OpenAI or Azure type), it interacts with the OpenAI Assistants API to create or update an assistant, then stores its configuration in the Remodl Core database. The `details` field in the request body should be a JSON string representing the assistant's configuration. For OpenAI assistants, this mirrors OpenAI's Assistant object structure, including fields like `name`, `description`, `model`, `instructions`, `tools`, `tool_resources`, `temperature`, and `top_p`. Sensitive parts of `tool_resources` might be processed before sending to OpenAI.
 
 **Key Files:**
 *   **Router:** `packages/server/src/routes/assistants/index.ts`
@@ -35,7 +35,7 @@
             *   `top_p?` (number, nullable)
     *   `credential` (string, format: uuid, required for non-CUSTOM type): ID of the credential (e.g., OpenAI API key) to use.
     *   `iconSrc?` (string, optional): URL for the assistant's icon.
-    *   `type?` (string, enum from `AssistantType`, e.g., `OPENAI`, `CUSTOM`): Type of assistant.
+    *   `type?` (string, enum from `AssistantType`, e.g., `OPENAI`, `CUSTOM`, `AZURE`): Type of assistant.
 *   **Example Request Body (OpenAI type):**
     ```json
     {
@@ -55,24 +55,24 @@
             *   `details` (string): JSON string of assistant configuration (includes OpenAI ID if applicable, and original `tool_resources`).
             *   `credential` (string, format: uuid): Credential ID used.
             *   `iconSrc?` (string, nullable)
-            *   `type?` (string, `AssistantType`)
+            *   `type?` (string, `AssistantType` enum: "CUSTOM", "OPENAI", "AZURE")
             *   `createdDate` (string, format: date-time)
             *   `updatedDate` (string, format: date-time)
 *   **`400 Bad Request` / `412 Precondition Failed`:**
     *   **Description:** Request body or required fields like `details` missing.
-    *   **Content (`application/json`):** Schema `$ref: '#/components/schemas/ErrorResponse'` (standard error object).
+    *   **Content (`application/json`):** Schema `$ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'` (standard error object).
 *   **`404 Not Found`:**
     *   **Description:** Specified `credential` not found.
-    *   **Content (`application/json`):** Schema `$ref: '#/components/schemas/ErrorResponse'`.
+    *   **Content (`application/json`):** Schema `$ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'`.
 *   **`500 Internal Server Error`:**
     *   **Description:** Error interacting with OpenAI API, database error, or other server-side issue.
-    *   **Content (`application/json`):** Schema `$ref: '#/components/schemas/ErrorResponse'`.
+    *   **Content (`application/json`):** Schema `$ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'`.
 
 **Core Logic Summary:**
 1. Controller validates `req.body`.
 2. Service parses `req.body.details`.
 3. If `type` is "CUSTOM", creates `Assistant` entity from `req.body` and saves to DB.
-4. If OpenAI type:
+4. If OpenAI/Azure type:
     a. Retrieves and decrypts credential.
     b. Initializes OpenAI client.
     c. Prepares tools and tool_resources (transforming some for OpenAI API).
