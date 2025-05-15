@@ -1,33 +1,30 @@
-/public-chatflows:
+/public-chatbots:
   get:
-    operationId: getSinglePublicChatflow
-    summary: Get a public chatflow by ID
+    operationId: getSinglePublicChatbotConfig
+    summary: Get public configuration for a chatbot
     description: >-
-      Retrieves a chatflow that has been marked as public by its ID.
-      This endpoint is used to access shared chatflows and their flow definitions.
+      Retrieves the public configuration for a specific chatbot (which is a Flowise chatflow).
+      This includes UI settings from the chatflow's `chatbotConfig`, file upload capabilities,
+      and the raw `flowData`. This endpoint is used by the embedded chatbot UI.
     tags:
-      - Public Chatflows
+      - Public Chatbots
     parameters:
       - name: id
         in: path
-        description: The ID of the chatflow to retrieve
+        description: The ID of the chatflow to retrieve public config for
         required: true
         schema:
           type: string
           format: uuid
     responses:
       '200':
-        description: Successfully retrieved the public chatflow
+        description: >-
+          Successfully retrieved the public chatbot configuration.
+          Returns either a configuration object or the string "OK" if no specific configuration is found.
         content:
           application/json:
             schema:
-              $ref: '../../schemas/modules/ChatflowsSchemas.yaml#/components/schemas/ChatflowResponse'
-      '401':
-        description: Chatflow exists but is not marked as public
-        content:
-          application/json:
-            schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/modules/PublicChatbotsSchemas.yaml#/components/schemas/PublicChatbotConfigResponse'
       '404':
         description: Chatflow with the specified ID not found
         content:
@@ -41,7 +38,7 @@
             schema:
               $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
       '500':
-        description: Internal server error
+        description: Error parsing chatbotConfig or other server-side issue
         content:
           application/json:
             schema:

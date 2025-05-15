@@ -1,4 +1,4 @@
-# API Endpoint Analysis: `POST /predictions/{id}`
+# API Endpoint Analysis: `POST /predictions/{id}` or `POST /predictions/`
 
 **Task ID:** `e91d9e76-99aa-4737-a23e-9603f163bb59`
 **Module:** `predictions`
@@ -18,9 +18,14 @@ This endpoint is the primary mechanism for executing a deployed Flowise chatflow
 ## Request Details
 
 *   **Method:** `POST`
-*   **Path:** `/predictions/{id}`
+*   **Path:** 
+    *   `/predictions/{id}` - Where ID is provided in the URL path
+    *   `/predictions/` - Where ID is provided in the request body
+*   **Middlewares:**
+    *   File upload middleware (via `getMulterStorage().array('files')`)
+    *   Rate limiter middleware (via `getRateLimiterMiddleware`)
 *   **Path Parameters:**
-    *   `id` (string, **required**): The unique identifier of the chatflow/agentflow to execute.
+    *   `id` (string, **required** if using path variant): The unique identifier of the chatflow/agentflow to execute. No specific format is enforced by the implementation, but typically uses UUID format.
 *   **Content-Type:**
     *   `application/json`: For standard requests without file uploads.
     *   `multipart/form-data`: Required if uploading files directly via the API request.
@@ -49,11 +54,15 @@ This endpoint is the primary mechanism for executing a deployed Flowise chatflow
     *   **Content-Type:** `text/event-stream`
     *   **Events:**
         *   `event: metadata`: Sent initially with info like `chatId`.
-        *   `event: chunk` (or similar): Streamed parts of the response text/data (node-dependent).
+        *   Various chunk-related events depending on the specific nodes in the flow. Events are node-dependent and can include content updates, reasoning steps, tool use, and more.
         *   `event: error`: Sent if an error occurs during streaming.
-        *   *(Other events specific to certain nodes might be emitted)*.
 *   **Error Responses (`application/json`):**
-    *   **Status Codes:** `400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found`, `429 Too Many Requests`, `500 Internal Server Error`.
+    *   **Status Codes:** 
+        *   `400 Bad Request`: Missing or invalid parameters
+        *   `403 Forbidden`: Origin not allowed (based on chatbotConfig.allowedOrigins)
+        *   `404 Not Found`: Chatflow not found
+        *   `429 Too Many Requests`: Rate limit exceeded (via rate limiter middleware)
+        *   `500 Internal Server Error`: Server processing error
     *   **Schema:** `$ref: '../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'`
 
 ## Processing Logic Summary
@@ -61,7 +70,7 @@ This endpoint is the primary mechanism for executing a deployed Flowise chatflow
 1.  Retrieves chatflow based on `{id}`.
 2.  Validates API key (if external request).
 3.  Checks domain origin against `chatbotConfig.allowedOrigins` (if configured).
-4.  Applies rate limiting.
+4.  Applies rate limiting via the rate limiter middleware.
 5.  Processes `req.body` (`incomingInput`) and `req.files` (form-data uploads).
 6.  Stores uploaded files (if any) and potentially performs speech-to-text.
 7.  Determines `chatId` and `sessionId`.
@@ -77,4 +86,4 @@ This endpoint is the primary mechanism for executing a deployed Flowise chatflow
 
 *   **API Key:** Required for external requests, validated against the chatflow's configuration.
 *   **Domain Origin Control:** Can restrict access based on `chatbotConfig.allowedOrigins`.
-*   **Rate Limiting:** Applied globally or per-chatflow based on configuration.
+*   **Rate Limiting:** Applied globally or per-chatflow based on configuration via the rate limiter middleware.

@@ -125,6 +125,68 @@ components:
         - name
         - flowData
 
+    ChatflowResponse:
+      type: object
+      description: Response returned when retrieving a chatflow.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the chatflow.
+        name:
+          type: string
+          description: Name of the chatflow.
+        flowData:
+          type: string
+          description: "Stringified JSON object representing the chatflow's nodes and edges."
+        deployed:
+          type: boolean
+          nullable: true
+          description: Indicates if the chatflow is currently deployed.
+        isPublic:
+          type: boolean
+          description: Indicates that the chatflow is publicly accessible (will be true for responses from public endpoints).
+        apikeyid:
+          type: string
+          nullable: true
+          description: Optional API key ID linked to this chatflow.
+        chatbotConfig:
+          type: string
+          nullable: true
+          description: "Stringified JSON object containing UI and behavioral configurations for the chatbot."
+        apiConfig:
+          type: string
+          nullable: true
+          description: "Stringified JSON object for API-specific configurations."
+        analytic:
+          type: string
+          nullable: true
+          description: "Stringified JSON object for analytics configurations."
+        speechToText:
+          type: string
+          nullable: true
+          description: "Stringified JSON object for speech-to-text service configurations."
+        followUpPrompts:
+          type: string
+          nullable: true
+          description: "Stringified JSON array for follow-up prompt suggestions."
+        category:
+          type: string
+          nullable: true
+          description: Category of the chatflow.
+        type:
+          $ref: '#/components/schemas/ChatflowTypeEnum'
+          nullable: true
+          description: The type of the chatflow.
+        createdDate:
+          type: string
+          format: date-time
+          description: Timestamp of when the chatflow was created.
+        updatedDate:
+          type: string
+          format: date-time
+          description: Timestamp of when the chatflow was last updated.
+
     GetAllChatflowsResponse:
       type: array
       items:

@@ -1,3 +1,4 @@
+# Path with ID in URL
 /predictions/{id}:
   post:
     operationId: createPrediction
@@ -7,16 +8,18 @@
       Accepts user input, overrides, history, and optional files.
       Returns a JSON response or streams Server-Sent Events (SSE).
       This is the primary endpoint for interacting with deployed flows.
+      Note: Requests are subject to rate limiting via the rate limiter middleware.
     tags:
       - Predictions
     parameters:
       - name: id
         in: path
         required: true
-        description: The unique identifier of the chatflow/agentflow to execute.
+        description: >-
+          The unique identifier of the chatflow/agentflow to execute.
+          No specific format is enforced, but typically uses UUID format.
         schema:
           type: string
-          format: uuid
     requestBody:
       description: Request payload containing user input, overrides, and options.
       required: true
@@ -77,22 +80,18 @@
             schema:
               type: string
             description: >-
-              Server-Sent Events stream. Events include `metadata`, `chunk` (or similar),
-              and `error`. The stream structure depends on the specific nodes in the flow.
+              Server-Sent Events stream. Events include `metadata` and various content-related
+              events that depend on the specific nodes in the flow. The event types are
+              node-dependent and can include different formats for content updates,
+              reasoning steps, tool use, etc. Error events are sent if issues occur.
       '400':
         description: Bad Request (e.g., missing required fields, invalid input).
         content:
           application/json:
             schema:
               $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
-      '401':
-        description: Unauthorized (e.g., invalid API key).
-        content:
-          application/json:
-            schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
       '403':
-        description: Forbidden (e.g., request origin not allowed).
+        description: Forbidden (e.g., request origin not allowed based on chatbotConfig.allowedOrigins).
         content:
           application/json:
             schema:
@@ -104,7 +103,7 @@
             schema:
               $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
       '429':
-        description: Too Many Requests (Rate limit exceeded).
+        description: Too Many Requests (Rate limit exceeded via rate limiter middleware).
         content:
           application/json:
             schema:
@@ -115,3 +114,56 @@
           application/json:
             schema:
               $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+
+# Alternative path with ID in body
+/predictions:
+  post:
+    operationId: createPredictionWithBodyId
+    summary: Execute Chatflow/Agentflow (ID in Body)
+    description: >-
+      Alternative endpoint that executes a specific chatflow or agentflow with the ID provided in the request body
+      instead of the URL path. Functions identically to the /predictions/{id} endpoint.
+      Subject to rate limiting via the rate limiter middleware.
+    tags:
+      - Predictions
+    requestBody:
+      description: Request payload containing user input, overrides, and options, including the chatflow/agentflow ID.
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '../../schemas/modules/PredictionsSchemas.yaml#/components/schemas/PredictionsRequestBody'
+              - type: object
+                properties:
+                  id:
+                    type: string
+                    description: The unique identifier of the chatflow/agentflow to execute.
+                required:
+                  - id
+        multipart/form-data:
+          schema:
+            allOf:
+              - $ref: '../../schemas/modules/PredictionsSchemas.yaml#/components/schemas/PredictionsRequestBody'
+              - type: object
+                properties:
+                  id:
+                    type: string
+                    description: The unique identifier of the chatflow/agentflow to execute.
+                  # Other field definitions omitted for brevity (see /predictions/{id} endpoint)
+                required:
+                  - id
+    responses:
+      # Response definitions omitted for brevity (identical to /predictions/{id} endpoint)
+      '200':
+        $ref: '#/predictions/{id}/post/responses/200'
+      '400':
+        $ref: '#/predictions/{id}/post/responses/400'
+      '403':
+        $ref: '#/predictions/{id}/post/responses/403'
+      '404':
+        $ref: '#/predictions/{id}/post/responses/404'
+      '429':
+        $ref: '#/predictions/{id}/post/responses/429'
+      '500':
+        $ref: '#/predictions/{id}/post/responses/500'
