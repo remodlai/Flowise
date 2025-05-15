@@ -9,61 +9,25 @@
       content:
         application/json:
           schema:
-            # $ref: "#/components/schemas/ChatFlowInput" # To be defined based on ChatFlow entity
-            type: object
-            required:
-              - name
-              - flowData
-            properties:
-              id:
-                type: string
-                format: uuid
-                nullable: true
-                description: "Optional existing Chatflow ID for updates."
-              name:
-                type: string
-                description: "Name of the chatflow."
-              flowData:
-                type: string
-                description: "JSON string of the ReactFlow graph. Can contain base64 file data."
-              deployed:
-                type: boolean
-                nullable: true
-              isPublic:
-                type: boolean
-                nullable: true
-              apikeyid:
-                type: string
-                nullable: true
-              chatbotConfig:
-                type: string
-                description: "JSON string of chatbot UI configuration."
-                nullable: true
-              category:
-                type: string
-                nullable: true
-              type:
-                type: string
-                # enum: from ChatflowType
-                nullable: true
+            $ref: "../../schemas/modules/ChatflowsSchemas.yaml#/components/schemas/ChatflowRequestBody"
     responses:
       '200':
         description: "Chatflow saved successfully."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ChatFlow" # To be defined based on ChatFlow entity
+              $ref: "../../schemas/modules/ChatflowsSchemas.yaml#/components/schemas/Chatflow"
       '412':
         description: "Precondition Failed (e.g., missing request body)."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: []
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    security:
+      - InternalApiKeyAuth: []
