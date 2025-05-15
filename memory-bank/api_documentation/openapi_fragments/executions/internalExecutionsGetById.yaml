@@ -1,19 +1,41 @@
 "/executions/{id}":
   get:
     summary: "INTERNAL: Get Execution By ID"
+    description: "INTERNAL: Retrieves a specific execution record by its ID. The executionData and action fields are parsed from JSON strings to objects before sending in the response."
     operationId: "internalExecutionsGetById"
     tags: ["Executions", "InternalAPI"]
     parameters:
       - name: id
         in: path
         required: true
-        description: "ID of the Execution record."
-        schema: { type: string, format: uuid }
+        description: "ID of the execution record to retrieve"
+        schema: 
+          type: string
+          format: uuid
     responses:
       '200':
-        description: "Success"
+        description: "Successfully retrieved the execution"
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ExecutionResponse" # Execution entity with parsed executionData & action
-      # ... other error responses
+              $ref: "../../schemas/modules/ExecutionsSchemas.yaml#/components/schemas/ExecutionResponse"
+      '404':
+        description: "Execution not found"
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '412':
+        description: "Precondition Failed (ID not provided)"
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error"
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

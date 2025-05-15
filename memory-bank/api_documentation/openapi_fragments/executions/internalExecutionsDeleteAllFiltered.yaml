@@ -1,21 +1,48 @@
 "/executions/":
   delete:
-    summary: "INTERNAL: Delete All Executions (Filtered)"
+    summary: "INTERNAL: Delete Multiple Executions"
+    description: "INTERNAL: Deletes multiple execution records, either by IDs in the request body or filtered by query parameters. Also updates related ChatMessage records to set executionId to null."
     operationId: "internalExecutionsDeleteAllFiltered"
     tags: ["Executions", "InternalAPI"]
     parameters:
       - name: agentflowId
         in: query
-        schema: { type: string, format: uuid }
+        description: "Filter executions to delete by agentflow ID"
+        schema: 
+          type: string
+          format: uuid
         required: false
-      - name: chatId # Maps to sessionId
+      - name: chatId
         in: query
-        schema: { type: string, format: uuid }
+        description: "Filter executions to delete by session ID (also called chatId in some contexts)"
+        schema: 
+          type: string
+          format: uuid
         required: false
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../../schemas/modules/ExecutionsSchemas.yaml#/components/schemas/DeleteExecutionsRequestBody"
     responses:
       '200':
-        description: "Success. Returns DeleteResult."
+        description: "Successfully deleted executions"
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/DeleteResult" }
-      # ... other error responses
+            schema:
+              $ref: "../../schemas/modules/ExecutionsSchemas.yaml#/components/schemas/DeleteResult"
+      '400':
+        description: "Bad Request - No execution IDs provided"
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error"
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
+    # security:
+    #   - InternalApiKeyAuth: []

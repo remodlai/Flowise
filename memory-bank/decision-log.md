@@ -222,3 +222,18 @@
   - Documentation now accurately reflects the actual API behavior
   - Schema references are properly linked between OpenAPI fragments
   - Field naming is consistent with implemented interfaces
+
+## Executions API Documentation Updates
+- **Date:** 2025-05-15 2:29:44 PM
+- **Author:** Unknown User
+- **Context:** Analyzed the executions API implementation to ensure OpenAPI fragments and schemas accurately reflect the actual code behavior.
+- **Decision:** Updated ExecutionsSchemas.yaml and all related OpenAPI fragments to match implementation, including adding missing schema definitions, correcting parameter types, and adding proper response definitions.
+- **Alternatives Considered:** 
+  - Keep existing documentation despite inaccuracies
+  - Create simplified documentation that excludes some parameters
+- **Consequences:** 
+  - Documentation now accurately reflects API implementation
+  - Added proper schema references between fragments
+  - Included all supported query parameters
+  - Added missing pagination support
+  - Fixed parameter types (especially UUID format)

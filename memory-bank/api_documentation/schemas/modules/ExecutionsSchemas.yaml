@@ -20,7 +20,7 @@ components:
           readOnly: true
         executionData:
           type: string # Stringified JSON
-          description: "Detailed data of the execution, likely a JSON string representing steps, inputs, outputs, and state."
+          description: "Detailed data of the execution, typically a JSON string representing steps, inputs, outputs, and state."
         state:
           $ref: '#/components/schemas/ExecutionStateEnum'
         agentflowId:
@@ -53,9 +53,6 @@ components:
           type: string
           format: date-time
           description: "Timestamp of when the execution stopped (finished, errored, terminated, etc.)."
-          # In entity it's not nullable, but logically it might be null until actually stopped.
-          # For API response, if it's always returned, keep as required. If it can be null, add nullable: true.
-          # Based on IExecution, it's not optional/nullable. So keeping it required.
       required:
         - id
         - executionData
@@ -65,6 +62,51 @@ components:
         - createdDate
         - updatedDate
         - stoppedDate
+
+    ExecutionResponse:
+      type: object
+      description: "Processed execution object with parsed executionData and action fields."
+      allOf:
+        - $ref: '#/components/schemas/ExecutionObject'
+      example:
+        id: "123e4567-e89b-12d3-a456-426614174000"
+        executionData: [{"nodeId": "1", "nodeLabel": "Start", "data": {"output": "Hello"}}]
+        state: "FINISHED"
+        agentflowId: "98765432-e89b-12d3-a456-426614174000"
+        sessionId: "abcdef12-e89b-12d3-a456-426614174000"
+        createdDate: "2023-01-01T12:00:00Z"
+        updatedDate: "2023-01-01T12:15:00Z"
+        stoppedDate: "2023-01-01T12:15:00Z"
+
+    DeleteResult:
+      type: object
+      description: "Result of a delete operation from TypeORM or a similar format."
+      properties:
+        success:
+          type: boolean
+          description: "Whether the delete operation was successful."
+        deletedCount:
+          type: integer
+          description: "Number of records that were deleted."
+      required:
+        - success
+        - deletedCount
+
+    PaginatedExecutionsResponse:
+      type: object
+      description: "Paginated response for executions."
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionObject'
+          description: "Array of execution records for the current page."
+        total:
+          type: integer
+          description: "Total number of execution records matching the query."
+      required:
+        - data
+        - total
 
     UpdateExecutionRequestBody:
       type: object
@@ -81,17 +123,15 @@ components:
           type: string
           description: "Updated action information (potentially stringified JSON)."
           nullable: true
-        isPublic: # Assuming this might be updatable
+        isPublic:
           type: boolean
           nullable: true
-        stoppedDate: # Less likely to be updated via PUT, but included for completeness if service allows
+        stoppedDate:
           type: string
           format: date-time
           nullable: true
-      # No specific fields are strictly required for a partial update via PUT.
-      # API might enforce at least one field.
 
-    DeleteExecutionsRequestBody: # For the bulk delete via POST body
+    DeleteExecutionsRequestBody:
       type: object
       description: "Request body for deleting multiple executions by their IDs."
       properties:
@@ -104,8 +144,3 @@ components:
           minItems: 1
       required:
         - executionIds
-
-    GetAllExecutionsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/ExecutionObject'

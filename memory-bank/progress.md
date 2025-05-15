@@ -12,6 +12,14 @@
 
 ## Update History
 
+- [2025-05-15 2:29:44 PM] [Unknown User] - Decision Made: Executions API Documentation Updates
+- [2025-05-15 2:29:37 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsDeleteAllFiltered.yaml
+- [2025-05-15 2:29:28 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsDeleteById.yaml
+- [2025-05-15 2:29:21 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsUpdate.yaml
+- [2025-05-15 2:29:13 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsGetById.yaml
+- [2025-05-15 2:29:05 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/executions/internalExecutionsGetAll.yaml
+- [2025-05-15 2:28:52 PM] [Unknown User] - File Update: Updated api_documentation/schemas/modules/ExecutionsSchemas.yaml
+- [2025-05-15 2:28:31 PM] [Unknown User] - Analyzed Executions API Implementation: Reviewed the implementation of Executions API including routes, controllers, services, and entities to verify and update schemas and OpenAPI fragments. Found several inconsistencies between documentation and actual implementation.
 - [2025-05-15 2:26:40 PM] [Unknown User] - Updated DocumentStore API Schemas and OpenAPI Fragments: Fixed and updated the DocumentStore API documentation to accurately reflect the actual implementation. Made the following improvements: 1) Fixed URL paths to use '/document-store/' instead of '/document-stores/', 2) Corrected the DocumentStoreStatusEnum values to match the implementation, 3) Added proper schema references between fragments and schema definitions, 4) Updated field types and nullability as defined in the interfaces, 5) Improved request and response bodies to match API behavior.
 - [2025-05-15 2:26:32 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreUpsert.yaml
 - [2025-05-15 2:26:09 PM] [Unknown User] - File Update: Updated api_documentation/openapi_fragments/documentstore/internalDocumentStoreUpdateById.yaml
