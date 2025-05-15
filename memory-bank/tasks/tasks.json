@@ -2770,26 +2770,6 @@
       "completedAt": "2025-05-15T02:36:21.581Z"
     },
     {
-      "id": "9914b403-22fe-4f93-80f0-5b73a5df73e7",
-      "name": "P3B.Fix.16: Verify and Fix Batch 7 Module Documentation (openai-realtime)",
-      "description": "Perform a comprehensive verification of the openai-realtime module's documentation against implementation. Ensure HTTP methods, parameter types, schema references, and OpenAPI fragments all accurately reflect the actual implementation. Correct any inconsistencies found.",
-      "status": "進行中",
-      "dependencies": [],
-      "createdAt": "2025-05-15T02:38:25.864Z",
-      "updatedAt": "2025-05-15T03:05:21.361Z",
-      "implementationGuide": "1. Examine routes/openai-realtime/index.ts to verify the HTTP methods and paths\n2. Check controllers/openai-realtime/index.ts for parameter handling\n3. Verify schema references in the OpenAPI fragments against the corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
-    },
-    {
-      "id": "0bd997cd-698a-44da-8b79-507fbf49c3f4",
-      "name": "P3B.Fix.17: Verify and Fix Batch 7 Module Documentation (ping)",
-      "description": "Perform a comprehensive verification of the ping module's documentation against implementation. Check that HTTP methods, parameter types, schema references, and OpenAPI fragments accurately reflect the actual implementation. Fix any inconsistencies found.",
-      "status": "待處理",
-      "dependencies": [],
-      "createdAt": "2025-05-15T02:38:38.863Z",
-      "updatedAt": "2025-05-15T02:38:38.863Z",
-      "implementationGuide": "1. Examine routes/ping/index.ts to verify the HTTP methods and paths\n2. Check controllers/ping/index.ts for parameter handling and response format\n3. Verify schema references in the OpenAPI fragments against any corresponding schema files\n4. Ensure Markdown documentation accurately describes the implementation\n5. Fix any discrepancies found, focusing on method consistency, parameter types, and schema references\n6. Ensure schema definitions are properly defined and referenced"
-    },
-    {
       "id": "edf638a9-426c-4c97-8d06-728bcac6d967",
       "name": "P3B.Fix.18: Verify and Fix Batch 8 Module Documentation (predictions)",
       "description": "Perform a comprehensive verification of the predictions module's documentation against implementation. Verify that HTTP methods, parameter types, schema references, and OpenAPI fragments are all accurate and consistent with the actual implementation. Address any discrepancies found.",
@@ -2975,6 +2955,32 @@
       "analysisResult": "After thorough verification of the openai-assistants-vector-store module, I found that there is no existing documentation for this module. The module includes seven endpoints for managing OpenAI assistant vector stores: creating, retrieving, listing, updating, deleting, uploading files to, and deleting files from vector stores. Comprehensive documentation including Markdown files, OpenAPI fragments, and schema definitions need to be created for this module.",
       "summary": "Created comprehensive documentation for the openai-assistants-vector-store module that accurately reflects the implementation. Generated Markdown documentation for all seven endpoints (create, get, list, update, delete, upload files, delete files), created corresponding OpenAPI fragments, and defined necessary schema definitions. Documentation includes HTTP methods, parameter requirements, request/response structures, error handling, and security considerations as per the implementation.",
       "completedAt": "2025-05-15T03:04:44.676Z"
+    },
+    {
+      "id": "9914b403-22fe-4f93-80f0-5b73a5df73e7",
+      "name": "P3B.Fix.16: Verify and Fix Batch 7 Module Documentation (openai-realtime)",
+      "description": "Create accurate documentation for the openai-realtime module to replace the existing incorrect documentation. The current documentation describes endpoints and functionality that don't exist in the actual implementation. Create comprehensive documentation that correctly describes the actual endpoints for retrieving and executing agent tools.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:25.864Z",
+      "updatedAt": "2025-05-15T03:09:07.553Z",
+      "implementationGuide": "1. Create new Markdown documentation files for the actual endpoints:\n   - GET /api/v1/openai-realtime/:id for getAgentTools\n   - POST /api/v1/openai-realtime/:id for executeAgentTool\n\n2. For each endpoint, document:\n   - HTTP method and path\n   - Required parameters (path, query, body)\n   - Response structure\n   - Error handling\n\n3. Create new OpenAPI fragments that accurately describe these endpoints\n\n4. Create or update schema definitions for request and response structures\n\n5. Add a note to the existing documentation (internalOpenAIRealtimeStreamEvents.md and its OpenAPI fragment) indicating that it describes functionality that doesn't exist in the current implementation\n\n6. Ensure all documentation follows the project's naming conventions and organization\n\n7. Submit comprehensive documentation that accurately reflects the actual implementation of the openai-realtime module",
+      "analysisResult": "After thorough verification of the openai-realtime module, I've found that the existing documentation doesn't match the actual implementation at all. The documentation describes a non-existent endpoint for SSE streaming of OpenAI assistant run events, while the actual implementation provides endpoints for retrieving and executing agent tools. The documentation needs to be completely redone to accurately reflect the actual implementation.",
+      "summary": "Created comprehensive and accurate documentation for the openai-realtime module, addressing the significant discrepancy between the existing documentation and actual implementation. Identified that the existing documentation described a non-existent SSE streaming endpoint, while the actual implementation provides endpoints for retrieving and executing agent tools. Created new Markdown documentation and OpenAPI fragments for the actual endpoints, defined appropriate schema definitions, and updated existing documentation with warnings to indicate it describes non-existent functionality. Documentation now accurately reflects the actual implementation.",
+      "completedAt": "2025-05-15T03:09:07.552Z"
+    },
+    {
+      "id": "0bd997cd-698a-44da-8b79-507fbf49c3f4",
+      "name": "P3B.Fix.17: Verify and Fix Batch 7 Module Documentation (ping)",
+      "description": "Perform a comprehensive verification of the ping module's documentation against implementation and fix the minor discrepancies found. Update the controller handler name, path format, and add missing information about error handling and status codes.",
+      "status": "已完成",
+      "dependencies": [],
+      "createdAt": "2025-05-15T02:38:38.863Z",
+      "updatedAt": "2025-05-15T03:12:50.193Z",
+      "implementationGuide": "1. Update the Markdown documentation (internalPingServer.md):\n   - Change controller handler reference from \"ping\" to \"getPing\"\n   - Standardize the path format (/api/v1/ping)\n   - Add information about error handling\n   - Ensure consistency in status code references\n\n2. Update the OpenAPI fragment (internalPingServer.yaml):\n   - Standardize the path format\n   - Ensure consistency with the updated Markdown documentation\n\n3. Submit the updated documentation files that accurately reflect the implementation",
+      "analysisResult": "After thorough verification of the ping module, I found a few minor discrepancies between the documentation and the actual implementation. The issues include incorrect controller handler name, path format inconsistencies, and missing information about error handling and status codes. These are all minor issues that need to be fixed to ensure complete accuracy.",
+      "summary": "Fixed minor discrepancies in the ping module documentation to ensure it accurately reflects the implementation. Updated both the Markdown file and OpenAPI fragment to: 1) correct the controller handler name from 'ping' to 'getPing', 2) standardize the path format, 3) add information about error handling, and 4) ensure consistency in status code references. The documentation now accurately describes the simple health check endpoint that returns 'pong' with a 200 status code.",
+      "completedAt": "2025-05-15T03:12:50.192Z"
     }
   ]
 }

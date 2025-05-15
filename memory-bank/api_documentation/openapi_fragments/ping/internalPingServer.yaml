@@ -1,4 +1,4 @@
-"/ping/":
+"/ping":
   get:
     summary: "INTERNAL: Server Health Check (Ping)"
     description: "INTERNAL: A simple health check endpoint that returns 'pong' if the server is responsive."
@@ -12,4 +12,10 @@
             schema:
               type: string
               example: "pong"
+      'default':
+        description: "Unexpected error."
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
     # No security typically applied to ping/health endpoints

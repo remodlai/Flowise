@@ -1,0 +1,92 @@
+paths:
+  /api/v1/openai-realtime/{id}:
+    post:
+      tags:
+        - OpenAI Realtime
+      summary: Execute Agent Tool
+      description: Executes a specific tool from an agent in a chatflow and returns the results.
+      operationId: executeAgentTool
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the chatflow containing the agent with tools.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ExecuteAgentToolRequest'
+      responses:
+        '200':
+          description: Output from the tool execution, along with any source documents and artifacts.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ExecuteAgentToolResponse'
+        '400':
+          description: Missing or invalid parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ErrorResponse'
+        '404':
+          description: Chatflow not found, agent with tools not found in the chatflow, or specific tool not found.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error during tool execution.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ErrorResponse'
+  /api/v1/openai-realtime:
+    post:
+      tags:
+        - OpenAI Realtime
+      summary: Execute Agent Tool (ID in Body)
+      description: Alternate endpoint for executing a specific tool from an agent in a chatflow, with the ID provided in the request body.
+      operationId: executeAgentToolWithBodyId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ExecuteAgentToolRequest'
+                - type: object
+                  properties:
+                    id:
+                      type: string
+                      description: The ID of the chatflow containing the agent with tools.
+                  required:
+                    - id
+      responses:
+        '200':
+          description: Output from the tool execution, along with any source documents and artifacts.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ExecuteAgentToolResponse'
+        '400':
+          description: Missing or invalid parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ErrorResponse'
+        '404':
+          description: Chatflow not found, agent with tools not found in the chatflow, or specific tool not found.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error during tool execution.
+          content:
+            application/json:
+              schema:
+                $ref: '../../schemas/modules/openai_assistant_api/AgentToolSchemas.yaml#/components/schemas/ErrorResponse'
