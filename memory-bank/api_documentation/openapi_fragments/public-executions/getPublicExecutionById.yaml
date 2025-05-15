@@ -18,9 +18,29 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/modules/ExecutionsSchemas.yaml#/components/schemas/ExecutionSchema"
+              $ref: "../../schemas/modules/ExecutionsSchemas.yaml#/components/schemas/ExecutionObject"
       '404':
         description: "Execution record not found or not public."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+
+"/public-executions/":
+  get:
+    summary: "PUBLIC: Get Single Public Execution Record (Root Path)"
+    description: "Alternative endpoint that maps to the same controller method as /public-executions/{id}. Will typically result in a 404 as the controller expects an ID parameter."
+    operationId: "getPublicExecutionById"
+    tags: ["Public Executions", "PublicAPI"]
+    responses:
+      '404':
+        description: "Execution record not found or no ID provided."
         content:
           application/json:
             schema:

@@ -34,7 +34,15 @@
 
 **Core Logic Summary:**
 1. Controller receives `chatflowid` and optional filters.
-2. Calls `statsService.getChatflowStats` with these parameters.
-3. Service calls `utilGetChatMessage` to fetch relevant messages based on filters (implicitly setting `feedback=true` if `feedbackTypes` are present).
-4. Service calculates `totalMessages`, `totalFeedback`, `positiveFeedback` from the fetched messages.
-5. Returns these stats as a JSON object. 
+2. Controller processes the optional query parameters:
+   - Parses `chatType` which can be a string, JSON array, or direct array
+   - Handles `startDate` and `endDate` as string parameters
+   - Processes `feedbackType` which requires special handling; the controller attempts to parse JSON and determine if THUMBS_UP, THUMBS_DOWN, or both are selected
+3. Calls `statsService.getChatflowStats` with these parameters.
+4. Service calls `utilGetChatMessage` to fetch relevant messages based on filters (implicitly setting `feedback=true` if `feedbackTypes` are present).
+5. Service calculates `totalMessages`, `totalFeedback`, `positiveFeedback` from the fetched messages.
+6. Returns these stats as a JSON object.
+
+**Additional Notes:**
+- The router also supports the path `/api/v1/stats/` (without an ID parameter), which maps to the same controller method. This will result in a 412 Precondition Failed error as the controller requires an ID parameter.
+- The `feedbackType` parameter can be provided in different formats (single string, array of strings, or JSON), and the controller includes logic to normalize these variations. 

@@ -19,9 +19,11 @@
         schema:
           oneOf:
             - type: string
+              enum: ["INTERNAL", "EXTERNAL"]
             - type: array
               items:
-                type: string # Ideally $ref ChatTypeEnum if defined globally
+                type: string
+                enum: ["INTERNAL", "EXTERNAL"]
       - name: startDate
         in: query
         description: "Start date for filtering messages (ISO8601)."
@@ -43,9 +45,11 @@
         schema:
           oneOf:
             - type: string
+              enum: ["THUMBS_UP", "THUMBS_DOWN"]
             - type: array
               items:
-                type: string # Ideally $ref ChatMessageRatingTypeEnum if defined globally
+                type: string
+                enum: ["THUMBS_UP", "THUMBS_DOWN"]
     responses:
       '200':
         description: "Successfully retrieved chatflow statistics."
@@ -65,5 +69,27 @@
           application/json:
             schema:
               $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
-    # security:
-    #   - InternalApiKeyAuth: [] 
+    security:
+      - ApiKeyAuth: []
+
+"/stats/":
+  get:
+    summary: "INTERNAL: Get Chatflow Statistics (Root Path)"
+    description: "Alternative endpoint that maps to the same controller method as /stats/{id}. Will typically result in a 412 error as the controller requires an ID parameter."
+    operationId: "getChatflowStats"
+    tags: ["Stats", "InternalAPI"]
+    responses:
+      '412':
+        description: "Precondition Failed (ID not provided)."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+      '500':
+        description: "Internal Server Error."
+        content:
+          application/json:
+            schema:
+              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+    security:
+      - ApiKeyAuth: [] 
