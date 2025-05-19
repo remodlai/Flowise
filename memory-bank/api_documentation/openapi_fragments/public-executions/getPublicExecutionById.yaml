@@ -1,7 +1,7 @@
 "/public-executions/{id}":
   get:
     summary: "PUBLIC: Get Single Public Execution Record"
-    description: "Retrieves a specific execution record by ID, if it's public. Credential details are redacted from executionData."
+    description: "Retrieves a specific execution record by ID, if it's public. Credential details are automatically redacted from executionData for security."
     operationId: "getPublicExecutionById"
     tags: ["Public Executions", "PublicAPI"]
     parameters:
@@ -24,18 +24,18 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
 
 "/public-executions/":
   get:
     summary: "PUBLIC: Get Single Public Execution Record (Root Path)"
-    description: "Alternative endpoint that maps to the same controller method as /public-executions/{id}. Will typically result in a 404 as the controller expects an ID parameter."
+    description: "Alternative endpoint that maps to the same controller method as /public-executions/{id}. Will typically result in a 404 error as the controller expects an ID parameter."
     operationId: "getPublicExecutionById"
     tags: ["Public Executions", "PublicAPI"]
     responses:
@@ -44,10 +44,10 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse" 
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse" 
