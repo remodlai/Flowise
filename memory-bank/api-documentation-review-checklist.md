@@ -55,7 +55,7 @@ This document tracks the progress of our API documentation review process, ensur
 | stats | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, enhanced endpoint analysis with detailed implementation notes focusing on parameter handling and error responses, and clarified dual path support with its limitations |
 | tools | ✅ | ✅ | ✅ | ✅ | Updated all OpenAPI fragments with ErrorResponse.yaml references, improved operation IDs to match controller methods, enhanced endpoint analysis documents with detailed implementation notes, better service method explanations, and entity field details |
 | upsert-history | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, added inline DeleteResult schema, enhanced endpoint analysis documents with detailed implementation notes, especially around query parameter handling and the PATCH method used for deletion |
-| validation | ⏳ | ⏳ | ⏳ | ⏳ | |
+| validation | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, corrected security configuration from InternalApiKeyAuth to ApiKeyAuth |
 | variables | ⏳ | ⏳ | ⏳ | ⏳ | |
 | vectors | ⏳ | ⏳ | ⏳ | ⏳ | |
 | verify | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 37/47 (78.7%)
-- **Modules Pending**: 5/47 (10.6%)
+- **Modules Reviewed**: 38/47 (80.9%)
+- **Modules Pending**: 4/47 (8.5%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 
