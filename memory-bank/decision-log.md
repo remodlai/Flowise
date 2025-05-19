@@ -575,3 +575,69 @@
   - Credentials always require an Organization
 - **Consequences:** 
   - None
+
+## Ownership Structure for Variable Table
+- **Date:** 2025-05-19 5:22:37 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** Variable entities will have a non-nullable `applicationId` only. Organization and User-specific values for variables will be handled at runtime via `overrideConfig`, not by direct ownership columns on the `variable` table.
+- **Alternatives Considered:** 
+  - Variables have org/user level scoping in DB
+  - Variables are global only
+- **Consequences:** 
+  - None
+
+## Ownership/Context Strategy for ChatMessage Table
+- **Date:** 2025-05-19 5:27:35 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** ChatMessage entities will NOT have direct platform ownership columns (applicationId, organizationId, userId for interacting user). Context will be derived via `ChatMessage.sessionId` linking to a platform-level session table (e.g., `platform_chat_sessions`) which holds this context. `ChatMessage.chatflowid` links to the ChatFlow for its ownership context.
+- **Alternatives Considered:** 
+  - Add direct ownership columns to ChatMessage
+  - No platform context for ChatMessage
+- **Consequences:** 
+  - None
+
+## Ownership/Context Strategy for Execution Table
+- **Date:** 2025-05-19 5:27:43 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** Execution entities will NOT have direct platform ownership columns for runtime/session context (applicationId, organizationId, interacting userId). This runtime context will be derived via `Execution.sessionId` linking to a platform-level session table. The `Execution.agentflowId` links to the ChatFlow for the chatflow's own ownership context (creator, parent application).
+- **Alternatives Considered:** 
+  - Add direct ownership columns for runtime context to Execution
+  - No platform context for Execution
+- **Consequences:** 
+  - None
+
+## Ownership Structure for CustomTemplate Table
+- **Date:** 2025-05-19 5:33:17 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** CustomTemplate entities will have a non-nullable `applicationId`, a nullable `organizationId` (to allow for app-global vs. org-specific templates), and a nullable creator `userId`.
+- **Alternatives Considered:** 
+  - CustomTemplates are only Application-scoped
+  - CustomTemplates are only globally scoped
+- **Consequences:** 
+  - None
+
+## Ownership Structure for ChatMessageFeedback Table
+- **Date:** 2025-05-19 5:36:00 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** ChatMessageFeedback entities will have a non-nullable `applicationId`, a nullable `organizationId`, and a nullable `userId` (for the user giving feedback). This allows direct platform-contextual querying of feedback.
+- **Alternatives Considered:** 
+  - Feedback only linked to message/chatflow
+  - Feedback has no platform context
+- **Consequences:** 
+  - None
+
+## Ownership Structure for Tool (Custom Tool) Table
+- **Date:** 2025-05-19 5:37:18 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** Custom Tool entities will have a non-nullable `applicationId` and a nullable creator `userId`. They will NOT have a direct `organizationId`; org-specific access/variations to be handled by application/chatflow logic.
+- **Alternatives Considered:** 
+  - Tools have direct org-level scoping
+  - Tools are only global
+- **Consequences:** 
+  - None

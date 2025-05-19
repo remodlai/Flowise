@@ -12,6 +12,17 @@
 
 ## Update History
 
+- [2025-05-19 5:37:29 PM] [Unknown User] - Defined Ownership Column Strategy for Tool Entity (Phase 2 Planning): Specified platform ownership columns for Tool (Custom Tool) table: `applicationId` (NOT NULL), `userId` (NULLABLE for creator). `organizationId` will not be added directly. Documented in system-patterns.md and decision-log.md.
+- [2025-05-19 5:37:18 PM] [Unknown User] - Decision Made: Ownership Structure for Tool (Custom Tool) Table
+- [2025-05-19 5:36:11 PM] [Unknown User] - Defined Ownership Column Strategy for ChatMessageFeedback Entity (Phase 2 Planning): Specified platform ownership columns for ChatMessageFeedback table: `applicationId` (NOT NULL), `organizationId` (NULLABLE), `userId` (NULLABLE - for feedback provider). Documented in system-patterns.md and decision-log.md.
+- [2025-05-19 5:36:00 PM] [Unknown User] - Decision Made: Ownership Structure for ChatMessageFeedback Table
+- [2025-05-19 5:33:41 PM] [Unknown User] - Defined Ownership Column Strategy for CustomTemplate Entity (Phase 2 Planning): Specified platform ownership columns for CustomTemplate table: `applicationId` (NOT NULL), `organizationId` (NULLABLE), `userId` (NULLABLE). This supports global, app-global, and org-specific templates. Documented in system-patterns.md and decision-log.md.
+- [2025-05-19 5:33:17 PM] [Unknown User] - Decision Made: Ownership Structure for CustomTemplate Table
+- [2025-05-19 5:27:51 PM] [Unknown User] - Defined Ownership/Context Strategy for ChatMessage & Execution Entities (Phase 2 Planning): Determined that ChatMessage and Execution tables will not get direct platform ownership columns for runtime session context; this context will be derived via sessionId linking to a platform-level session table. Documented in system-patterns.md and decision-log.md.
+- [2025-05-19 5:27:43 PM] [Unknown User] - Decision Made: Ownership/Context Strategy for Execution Table
+- [2025-05-19 5:27:35 PM] [Unknown User] - Decision Made: Ownership/Context Strategy for ChatMessage Table
+- [2025-05-19 5:22:46 PM] [Unknown User] - Defined Ownership Column Strategy for Variable Entity (Phase 2 Planning): Specified that the Variable table will only have `applicationId` (NOT NULL) for platform ownership. Org/User specific values will be handled via `overrideConfig`. Documented in system-patterns.md and decision-log.md.
+- [2025-05-19 5:22:37 PM] [Unknown User] - Decision Made: Ownership Structure for Variable Table
 - [2025-05-19 5:19:07 PM] [Unknown User] - Defined Ownership Column Strategy for Key Entities (Phase 2 Planning): Specified platform ownership columns (applicationId, organizationId, userId and their nullability) for ApiKey, ChatFlow, DocumentStore, and Credential tables as part of Phase 2 planning. These decisions are documented in system-patterns.md and decision-log.md.
 - [2025-05-19 5:18:54 PM] [Unknown User] - Decision Made: Ownership Structure for Credential Table
 - [2025-05-19 5:18:09 PM] [Unknown User] - Decision Made: Ownership Structure for DocumentStore Table

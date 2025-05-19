@@ -250,3 +250,34 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
         *   `applicationId`: **NOT NULLABLE**. Credentials will be associated with a specific platform Application.
         *   `organizationId`: **NULLABLE**. Allows for application-global credentials (NULL orgId) or organization-specific credentials within an application.
         *   `userId`: **NULLABLE**. Platform User who created/registered the credential.
+
+    *   **`Variable` Table (`variable`):**
+        *   `applicationId`: **NOT NULLABLE**. Variables are primarily application-scoped configurations. Application logic will ensure population, potentially using a default platform application ID if a variable is globally applicable across applications or is a system-level variable.
+        *   `organizationId`: **NOT to be added directly.** Organization-specific variations of a variable's value would be handled at runtime via `overrideConfig` rather than by having separate variable entries per organization for the same variable name within an application.
+        *   `userId`: **NOT to be added directly.** User-specific variable values would also be handled via `overrideConfig`. The `variable` table stores the template or default value for the application.
+
+    *   **`ChatMessage` Table (`chat_message`):**
+        *   **No direct `applicationId`, `organizationId`, or `userId` (for interacting user) columns.**
+        *   **Context Derivation:** The platform context (Application, Organization, interacting User) for a `chat_message` is derived via its `sessionId`.
+        *   The `sessionId` on `chat_message` will be linked to a record in a platform-level `platform_chat_sessions` table (managed by the Remodl AI Platform). This `platform_chat_sessions` table will hold the `platform_user_id`, `platform_organization_id`, and `platform_application_id` for that specific interaction session.
+        *   The `chat_message.chatflowid` links to the `ChatFlow` entity, which contains the `applicationId` of the chat flow itself and the `userId` of its creator (Platform User).
+
+    *   **`Execution` Table (`execution`):**
+        *   **No direct `applicationId`, `organizationId`, or `userId` (for interacting user) columns for the *runtime/session* context.**
+        *   **Context Derivation (Runtime/Session):** Similar to `ChatMessage`, the runtime platform context (Application, Organization, interacting User for that specific execution instance) is derived via its `sessionId` by linking to the `platform_chat_sessions` table.
+        *   **Context Derivation (Chatflow Ownership):** The `execution.agentflowId` (which is `chat_flow.id`) links to the `ChatFlow` entity. The `ChatFlow` entity will have its own `applicationId` (for the application it belongs to) and `userId` (for its creator), providing the ownership context of the flow being executed.
+
+    *   **`CustomTemplate` Table (`custom_template`):**
+        *   `applicationId`: **NOT NULLABLE**. A custom template is primarily scoped to an Application (either a specific one, or the default platform application ID for global templates).
+        *   `organizationId`: **NULLABLE**. If NULL, it's an application-global or truly global template. If populated, it's a template specific to that Organization within the context of the `applicationId`. This supports offering organization-specific template variations.
+        *   `userId`: **NULLABLE**. Represents the Platform User who created/uploaded the template. Can be NULL for system-provided templates.
+
+    *   **`ChatMessageFeedback` Table (`chat_message_feedback`):**
+        *   `applicationId`: **NOT NULLABLE**. Feedback is tied to the application context of the chat session.
+        *   `organizationId`: **NULLABLE**. Captures the organization context of the user providing feedback, if applicable.
+        *   `userId`: **NULLABLE**. Represents the Platform User (or an identifier for an end-user if your platform distinguishes them) who *provided* the feedback.
+
+    *   **`Tool` Table (Custom Tools):**
+        *   `applicationId`: **NOT NULLABLE**. Custom tools are scoped to a specific platform Application (or the default platform application for globally available tools).
+        *   `organizationId`: **NOT to be added directly.** Organization-specific tool variations or visibility would be managed by application logic or how tools are presented/selected within chatflows, rather than direct DB-level org scoping on the tool definition itself.
+        *   `userId`: **NULLABLE**. Represents the Platform User who created the custom tool. Can be NULL for system-provided/application-default tools.
