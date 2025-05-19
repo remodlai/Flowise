@@ -42,9 +42,9 @@ This document tracks the progress of our API documentation review process, ensur
 | node-load-methods | ✅ | ✅ | ✅ | ✅ | Fixed schema references, added security configuration, enhanced implementation notes to highlight module reuse and error handling behavior |
 | nodes | ✅ | ✅ | ✅ | ✅ | Created missing endpoint analysis files, updated OpenAPI fragments with proper schema references and security configuration, enhanced existing documentation with implementation details |
 | nvidia-nim | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
-| openai-assistants | ⏳ | ⏳ | ⏳ | ⏳ | |
-| openai-assistants-files | ⏳ | ⏳ | ⏳ | ⏳ | |
-| openai-assistants-vector-store | ⏳ | ⏳ | ⏳ | ⏳ | |
+| openai-assistants | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
+| openai-assistants-files | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
+| openai-assistants-vector-store | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
 | openai-realtime | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
 | ping | ⏳ | ⏳ | ⏳ | ⏳ | |
 | predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with detailed streaming event documentation that matches internal-predictions, ensuring consistency |
@@ -64,8 +64,8 @@ This document tracks the progress of our API documentation review process, ensur
 ## Review Process Summary
 
 - **Modules Reviewed**: 29/47 (61.7%)
-- **Modules Pending**: 16/47 (34.0%)
-- **Modules Excluded**: 2/47 (4.3%)
+- **Modules Pending**: 13/47 (27.7%)
+- **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 
 ## Recurring Issues & Patterns
