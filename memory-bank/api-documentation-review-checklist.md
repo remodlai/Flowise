@@ -48,7 +48,7 @@ This document tracks the progress of our API documentation review process, ensur
 | openai-realtime | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
 | ping | ✅ | ✅ | ✅ | ✅ | Updated OpenAPI fragment with proper schema references and enhanced documentation with implementation notes |
 | predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with detailed streaming event documentation that matches internal-predictions, ensuring consistency |
-| prompts-lists | ⏳ | ⏳ | ⏳ | ⏳ | |
+| prompts-lists | ✅ | ✅ | ✅ | ✅ | Updated path to match actual route registration, corrected schema references, and added security configuration |
 | public-chatbots | ⏳ | ⏳ | ⏳ | ⏳ | |
 | public-chatflows | ⏳ | ⏳ | ⏳ | ⏳ | |
 | public-executions | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 30/47 (63.8%)
-- **Modules Pending**: 12/47 (25.5%)
+- **Modules Reviewed**: 31/47 (66.0%)
+- **Modules Pending**: 11/47 (23.4%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 

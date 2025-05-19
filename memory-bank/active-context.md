@@ -94,11 +94,12 @@
 - Streaming responses need careful documentation of SSE event formats
 ## Next Steps
 
-- Continue API documentation review focusing on prompts-lists module next
-- Update review progress percentages to reflect completed ping module review
-- Consider documenting common patterns and best practices identified so far
+- Continue API documentation review focusing on public-chatbots module next
+- Update review progress percentages to 66.0% complete
+- Document the common discrepancy between route directory naming and actual endpoint registration
 ## Current Session Notes
 
+- [8:44:31 AM] [Unknown User] Completed review of prompts-lists module: Reviewed and updated the prompts-lists module documentation. Fixed the API path in documentation to match the actual route registration (/prompts-list), updated schema references to use proper relative paths, added security configuration, and enhanced documentation with implementation notes. Marked the module as reviewed in the checklist.
 - [8:41:42 AM] [Unknown User] Completed review of ping module: Reviewed and updated the ping module documentation. Updated the OpenAPI fragment to use proper schema references and enhanced the endpoint analysis document with more detailed implementation notes. Marked the module as reviewed in the checklist.
 - [5:01:59 PM] [Unknown User] Excluded additional unused API modules: Marked all OpenAI Assistants related modules (openai-assistants, openai-assistants-files, openai-assistants-vector-store) as excluded in the API documentation review checklist and removed related documentation files as these modules are not used in production.
 - [4:49:05 PM] [Unknown User] Excluded unused API modules: Marked nvidia-nim and openai-realtime modules as excluded in the API documentation review checklist and removed related documentation files as these modules are not used in production.

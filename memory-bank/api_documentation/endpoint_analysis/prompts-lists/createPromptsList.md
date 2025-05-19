@@ -1,4 +1,4 @@
-# API Endpoint Analysis: `POST /prompts-lists`
+# API Endpoint Analysis: `POST /prompts-list`
 
 **Task ID:** `b921b6cc-a76a-4731-877f-4e2f8e7eced6`
 **Module:** `prompts-lists`
@@ -15,24 +15,24 @@ Fetches a list of prompt repositories from the public Langchain Hub API (`api.hu
 ## Request Details
 
 *   **Method:** `POST`
-*   **Path:** `/prompts-lists`
+*   **Path:** `/prompts-list`
 *   **Content-Type:** `application/json`
-*   **Request Body Schema:** `$ref: '../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListRequestBody'`
+*   **Request Body Schema:** `$ref: '../../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListRequestBody'`
     *   `tags` (string, optional): Comma-separated tags for filtering.
 
 ## Response Details
 
 *   **Success Response (`application/json`):**
     *   **Status Code:** `200 OK`
-    *   **Schema:** `$ref: '../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListSuccessResponse'`
+    *   **Schema:** `$ref: '../../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListSuccessResponse'`
     *   **Contains:** `status: "OK"` and `repos`: an array of Langchain Hub repository objects (`LangchainHubRepo`).
 *   **Service Error Response (`application/json`):**
     *   **Status Code:** `200 OK` (Note: The controller returns 200 even if the service indicates an error)
-    *   **Schema:** `$ref: '../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListServiceErrorResponse'`
+    *   **Schema:** `$ref: '../../schemas/modules/PromptsListsSchemas.yaml#/components/schemas/PromptsListServiceErrorResponse'`
     *   **Contains:** `status: "ERROR"` and `repos: []`. This occurs if the call to the Langchain Hub API fails.
 *   **Other Error Responses (`application/json`):**
     *   **Status Code:** `500 Internal Server Error` (If an unexpected error occurs in the controller).
-    *   **Schema:** `$ref: '../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'`
+    *   **Schema:** `$ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'`
 
 ## Processing Logic Summary
 
@@ -46,4 +46,10 @@ Fetches a list of prompt repositories from the public Langchain Hub API (`api.hu
 
 ## Security & Authorization
 
-*   No specific authentication or authorization is applied at this endpoint level. Access relies on the overall security posture of the Flowise instance (e.g., global API key middleware if configured).
+*   Access to this endpoint requires an API key via the standard ApiKeyAuth middleware that is applied to all internal API endpoints.
+
+## Implementation Notes
+
+*   Despite the POST method, this endpoint doesn't create anything in the Flowise database - it simply proxies a request to Langchain Hub's API.
+*   The service handles errors from the Langchain Hub API by returning a 200 OK response with a specific error format, rather than propagating a standard error.
+*   The service has a TODO comment regarding adding pagination support and using offset & limit parameters.

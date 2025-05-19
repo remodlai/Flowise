@@ -1,10 +1,11 @@
-/prompts-lists:
+/prompts-list:
   post:
     operationId: createPromptsList
     summary: List Prompts from Langchain Hub
     description: Fetches a list of prompt repositories from the public Langchain Hub, with optional tag filtering.
     tags:
       - Prompts Lists
+      - InternalAPI
     requestBody:
       description: Optional tags for filtering prompts.
       required: false
@@ -44,4 +45,6 @@
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
+    security:
+      - ApiKeyAuth: []
