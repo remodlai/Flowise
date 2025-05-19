@@ -478,3 +478,41 @@
   - Documentation will more accurately reflect the actual implementation
   - API consumers will have correct paths to use in their integrations
   - We maintain a record of path discrepancies for potential future code standardization
+
+## Three-Phase Plan for Platform Architecture and API Key Integration
+- **Date:** 2025-05-19 1:53:32 PM
+- **Author:** Unknown User
+- **Context:** Platform Architecture Planning
+- **Decision:** Adopt a three-phase plan for Remodl Core database modifications and architectural refactoring: 1. Validate existing migrations on Supabase. 2. Implement API key ownership fields & migration. 3. Refactor core packages (server, ui, components) into private NPMs and establish a new Remodl-Platform repository.
+- **Alternatives Considered:** 
+  - Monolithic approach within existing repo
+  - Direct modification without phased testing
+- **Consequences:** 
+  - Clearer, staged approach to complex changes
+  - Reduced risk by validating steps incrementally
+  - Sets foundation for robust platform architecture
+
+## UI Decoupling from Core Component Types Confirmed
+- **Date:** 2025-05-19 1:53:39 PM
+- **Author:** Unknown User
+- **Context:** UI Architecture and Dependency Analysis
+- **Decision:** Confirmed that packages/ui primarily consumes API responses rather than having direct TypeScript import dependencies on packages/components for core data structures. This is favorable for decoupling.
+- **Alternatives Considered:** 
+  - UI directly importing from local components package
+  - UI relying on less-typed API data
+- **Consequences:** 
+  - UI is already designed to consume API data, simplifying transition to a packaged engine
+  - Future platform UI can optionally import types from a packaged @remodl/core-components for better type safety
+
+## Strategy for Platform-Contextual File Uploads and Correlation
+- **Date:** 2025-05-19 1:53:46 PM
+- **Author:** Unknown User
+- **Context:** Platform File Management Strategy with S3
+- **Decision:** A 'Storage Orchestration Service / File Bridge Service' and a 'PlatformFileRegistry' database table will be necessary to manage platform-contextual file uploads and correlate them with Remodl Core's single-bucket S3 storage and internal file references.
+- **Alternatives Considered:** 
+  - Remodl Core manages multi-bucket logic
+  - Platform UI directly uploads to Remodl Core's bucket
+- **Consequences:** 
+  - Centralizes platform-specific storage logic
+  - Keeps Remodl Core's storage model simple (single bucket)
+  - Enables platform-level tracking and auditing of files

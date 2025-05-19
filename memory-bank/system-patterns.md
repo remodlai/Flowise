@@ -162,4 +162,44 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
     *   **Lifecycle Management:** Enables the platform to manage the lifecycle of Remodl Core API keys based on platform events (e.g., user deactivation, application deletion).
     *   **Scoped Usage (Future Potential):** While the immediate change is about attribution, this lays the groundwork for potentially more granular, platform-driven authorization policies regarding how these keys can be used.
 -   **Implementation Timing:** This enhancement is planned as a subsequent task after the completion of the current high-priority API documentation efforts for Remodl Core.
--   **Migration Strategy:** The new columns will be added as nullable to ensure backward compatibility with existing API keys. A backfill strategy for existing keys may be considered later.
+-   **Migration Strategy:** 
+    -   The new columns (`userId`, `organizationId`, `applicationId`) will be added as nullable to the `ApiKey` entity and its corresponding `apikey` table. This ensures backward compatibility with existing API keys.
+    -   A new TypeORM migration will be generated for these schema changes.
+    -   **Phased Testing:**
+        1.  The existing Remodl Core migrations will first be tested for compatibility with the target Supabase PostgreSQL instance on a dedicated test branch.
+        2.  The new migration for API key ownership fields will then be generated and tested on a separate branch, ensuring all migrations (existing + new) apply cleanly.
+    -   A backfill strategy for populating ownership IDs for existing API keys may be considered at a later stage if deemed necessary.
+
+### 6.5.1. Related Consideration: Platform-Contextual File Management
+
+-   **Challenge:** Remodl Core currently uses a single S3 bucket (if S3 is configured) and its internal `UpsertHistory` table does not directly link uploaded files/upserts to platform-specific contexts like user, organization, or application IDs.
+-   **Proposed Solution: Storage Orchestration Service / File Bridge Service:**
+    -   A dedicated middleware or service layer will be developed as part of the Remodl AI Platform.
+    -   **Responsibilities:**
+        -   Receive file upload requests from the platform UI, which will include platform context (user ID, org ID, app ID) and potentially source file location (e.g., from a user-specific S3 bucket).
+        -   If necessary, fetch the file from its original platform-specific location.
+        -   Upload/transfer the file to Remodl Core's designated single S3 bucket, using the keying conventions expected by Remodl Core (e.g., `chatflowid/timestamp_filename.ext`).
+        -   Orchestrate API calls to Remodl Core (e.g., `/vectors/upsert`), using a Remodl Core API key that is linked (via the API Key Ownership enhancement) to the originating platform user/org/app.
+        -   **Maintain a `PlatformFileRegistry`:** This new database table (managed by the platform, likely in Supabase) will store metadata to correlate platform-contextualized uploads with their representation and usage within Remodl Core. It would track:
+            -   `platform_file_id`
+            -   `original_filename`
+            -   `platform_user_id`, `platform_organization_id`, `platform_application_id`
+            -   `source_s3_bucket` / `source_s3_key` (if applicable)
+            -   `remodl_core_chatflow_id`
+            -   `remodl_core_s3_bucket`, `remodl_core_s3_key`
+            -   `remodl_core_upsert_history_id` (optional link)
+            -   Timestamps, status, etc.
+    -   **Benefits:** This approach allows Remodl Core to maintain its simpler single-bucket storage model while enabling the platform to manage files with full multi-tenant context, traceability, and auditing. It decouples Remodl Core from the platform's specific storage organization.
+
+### 6.6. Platform Evolution: Private Packages and New Repository
+
+-   **Strategy:** To further decouple the Remodl AI Platform from the base Flowise codebase and facilitate independent evolution, the following steps are planned:
+    1.  **Integration & Staging Repository:** The current `Flowise` fork will serve as an integration point for upstream Flowise changes and as the source for building adapted core packages.
+    2.  **Private NPM Packages:**
+        *   `packages/server` will be adapted and published as `@remodl/core-engine`.
+        *   `packages/components` will be adapted and published as `@remodl/core-components`.
+        *   `packages/ui` will be duplicated and significantly customized, then published as `@remodl/platform-ui`.
+        *   These packages will be published to a private NPM registry (e.g., GitHub Packages).
+    3.  **New `Remodl-Platform` Repository:** A new, separate Git repository will house the primary Remodl AI Platform application(s). This new repository will consume the `@remodl/*` packages as versioned dependencies.
+    4.  **TypeScript Path Mapping/Aliasing:** Within the `Remodl-Platform` repository, TypeScript `paths` or bundler aliases will be used to allow for cleaner import paths (e.g., importing from `components` while actually using `@remodl/core-components`).
+-   **Benefits:** This approach provides maximum isolation, customization freedom for the platform, clear ownership, and independent release cycles, while still allowing for controlled incorporation of valuable upstream Flowise updates via the integration repository.

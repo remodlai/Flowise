@@ -1,246 +1,108 @@
 {
   "tasks": [
     {
-      "id": "1cf2cb64-ef5d-456c-8ea6-96518b425658",
-      "name": "API Documentation Verification - Root Task",
-      "description": "Lead and coordinate the comprehensive verification of all Remodl Core API documentation to ensure accuracy, completeness, and consistency before creating the federated OpenAPI specification. This task involves overseeing the module batch verification tasks, establishing consistent verification standards, and ensuring all aspects of the documentation (Markdown analysis, OpenAPI fragments, schema definitions) are thoroughly reviewed against the actual codebase implementation. Currently in progress, with verification of validation module already completed.",
-      "status": "待處理",
+      "id": "8913df80-f360-40a0-a248-6a0cad07d13b",
+      "name": "P1.1: Preparation - Branch Creation and Environment Variable Guidance",
+      "description": "Create a new Git branch for testing existing Remodl Core migrations on Supabase. Provide clear guidance to the user on the exact environment variables required for PostgreSQL connection (DATABASE_TYPE, DATABASE_HOST, DATABASE_PORT, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, PGSSLMODE) and where they should be set (e.g., packages/server/.env file).",
+      "status": "進行中",
       "dependencies": [],
-      "createdAt": "2025-05-15T15:52:56.928Z",
-      "updatedAt": "2025-05-19T13:33:24.551Z",
-      "implementationGuide": "1. First, establish the verification standards and checklist to be used across all module batches, ensuring it aligns with the OpenAPI strategy in system-patterns.md.\n2. Create a centralized issue tracking mechanism for documenting major issues that require discussion.\n3. Define a verification report template that will be used to document findings for each module/endpoint.\n4. Coordinate and monitor progress of the module batch verification tasks.\n5. Consolidate findings and issues from all batches upon completion.\n6. Ensure cross-module consistency across the entire documentation suite.\n7. Prepare a final report summarizing the verification results and readiness for OpenAPI specification federation.",
-      "verificationCriteria": "1. All module batch tasks have been completed and verified.\n2. Verification standards have been consistently applied across all batches.\n3. All major issues have been documented and resolved or flagged for discussion.\n4. The consolidated report provides a clear overview of the verification results.\n5. The documentation suite is deemed ready for federated OpenAPI specification creation.",
-      "analysisResult": "The API Documentation Verification requires a hierarchical approach due to the scale of the task (48 modules with approximately 150-200 endpoints). The structure follows three levels:\n\n1. Root Task: Overall coordination and standardization of the verification effort\n2. Module Batch Tasks: Logical grouping of related modules for manageable work packages\n3. Endpoint Tasks: Detailed verification of individual endpoints\n\nThis approach balances thoroughness with practicality while ensuring consistent verification standards across all endpoints."
-    },
-    {
-      "id": "fdeb7091-513a-44f5-a16f-4647cfe07d41",
-      "name": "Batch 1: Authentication & Security Module Verification",
-      "description": "Verify the documentation for authentication and security-related modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: apikey, verify, validation. Currently in progress, with validation module verification already completed.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:53:17.165Z",
-      "updatedAt": "2025-05-19T13:33:29.305Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., similar security mechanism documentation across auth-related modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "74b39b23-9fed-446e-97db-d7d05da415f0",
-      "name": "Batch 2: Core Flow Management Module Verification",
-      "description": "Verify the documentation for core flow management modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: chatflows, chatflows-streaming, chatflows-uploads, agentflowv2-generator, flow-config.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:53:17.165Z",
-      "updatedAt": "2025-05-15T15:53:17.165Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., consistent documentation of flow-related endpoints across modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "91aec69a-abb8-4da9-85e2-679be72eff50",
-      "name": "Batch 3: Content Management Module Verification",
-      "description": "Verify the documentation for content management and storage-related modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: documentstore, attachments, vectors, upsert-history, get-upload-file, get-upload-path.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:53:36.017Z",
-      "updatedAt": "2025-05-15T15:53:36.017Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., consistent documentation of storage-related operations across modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "e2750c52-ade9-45ce-b825-a7a06e6f2fa1",
-      "name": "Batch 4: AI Assistants Module Verification",
-      "description": "Verify the documentation for AI assistants and related modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: assistants, openai-assistants, openai-assistants-files, openai-assistants-vector-store, openai-realtime, nvidia-nim.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:53:36.017Z",
-      "updatedAt": "2025-05-15T15:53:36.017Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., consistent documentation of assistant-related endpoints across modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "0938b600-63bc-47fc-9671-06c0b450bcbc",
-      "name": "Batch 5: Node Management Module Verification",
-      "description": "Verify the documentation for node management and related modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: nodes, node-configs, node-custom-functions, node-icons, node-load-methods, components-credentials, components-credentials-icon.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:53:52.387Z",
-      "updatedAt": "2025-05-15T15:53:52.387Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., consistent documentation of node-related operations across modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "4088fc9f-997a-4bd0-9f72-54bcae085eb9",
-      "name": "Batch 6: Credentials & Configuration Module Verification",
-      "description": "Verify the documentation for credentials, configuration, and variables management modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: credentials, variables, versions, marketplaces, load-prompts.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:53:52.387Z",
-      "updatedAt": "2025-05-15T15:53:52.387Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., consistent documentation of configuration-related endpoints across modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "361d955b-aad4-4262-b9fe-de369f28c629",
-      "name": "Batch 7: Messaging & Communication Module Verification",
-      "description": "Verify the documentation for messaging and communication-related modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: chat-messages, internal-chat-messages, predictions, internal-predictions, feedback.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:54:09.640Z",
-      "updatedAt": "2025-05-15T15:54:09.640Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., consistent documentation of messaging-related endpoints across modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "c172e7db-f433-4742-ba08-e24a8b3990fc",
-      "name": "Batch 8: Utility & Miscellaneous Module Verification",
-      "description": "Verify the documentation for utility and miscellaneous modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: executions, export-import, fetch-links, leads, ping, prompts-lists, public-chatbots, public-chatflows, public-executions, stats, tools.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:54:09.640Z",
-      "updatedAt": "2025-05-15T15:54:09.640Z",
-      "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., consistent documentation of utility endpoints across modules).",
-      "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
-      "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
-    },
-    {
-      "id": "289c4698-ee9c-43fb-88b2-291713b8c959",
-      "name": "Endpoint Verification Task Template",
-      "description": "This task template defines the verification process for an individual API endpoint. When implementing level 3 tasks, each endpoint in each module will have a dedicated verification task based on this template. The task involves detailed review of the endpoint's documentation (Markdown analysis, OpenAPI fragment, schema references) and comparison with the actual code implementation to ensure accuracy, completeness, and consistency.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        }
-      ],
-      "createdAt": "2025-05-15T15:54:27.359Z",
-      "updatedAt": "2025-05-15T15:54:27.359Z",
-      "implementationGuide": "For a specific endpoint (e.g., 'internalApikeyCreate' in the 'apikey' module):\n\n1. **Documentation Review:**\n   - Read the Markdown analysis file in `memory-bank/api_documentation/endpoint_analysis/{module}/{operationId}.md`\n   - Read the OpenAPI fragment in `memory-bank/api_documentation/openapi_fragments/{module}/{operationId}.yaml`\n   - Identify all schema references in the OpenAPI fragment and locate them in the appropriate schema files\n\n2. **Code Implementation Review:**\n   - Read the route definition in `packages/server/src/routes/{module}/index.ts`\n   - Read the corresponding controller method(s)\n   - Read any service methods called by the controller\n   - Examine entity definitions and interfaces related to request/response bodies\n\n3. **Verification Checklist:**\n   - **HTTP Method:** Verify the HTTP method (GET, POST, PUT, DELETE) is correctly documented\n   - **Path:** Verify the API path is correctly documented\n   - **Parameters:** Verify all query, path, and header parameters are correctly documented\n   - **Request Body:** Verify the request body schema (if applicable) matches the actual implementation\n   - **Response Body:** Verify the response body schema matches the actual implementation\n   - **Security:** Verify security requirements are correctly documented\n   - **Error Responses:** Verify error responses are correctly documented\n\n4. **Issue Resolution:**\n   - For minor issues (typos, missing descriptions, etc.), make corrections directly to the Memory Bank files\n   - For major issues (incorrect schemas, missing endpoints, etc.), document in the verification report\n\n5. **Create Verification Report:**\n   - Document all findings, corrections made, and any issues that require further discussion\n   - Include a final assessment of the endpoint's documentation quality",
-      "verificationCriteria": "1. All aspects of the endpoint (HTTP method, path, parameters, request/response bodies, security) have been verified.\n2. Documentation (Markdown, OpenAPI fragment, schema references) accurately reflects the implementation code.\n3. All schema references are valid and point to existing schema definitions.\n4. Minor issues have been corrected; major issues are documented.\n5. The verification report is complete and detailed.",
-      "analysisResult": "The third level of the hierarchical verification approach involves detailed verification of individual endpoints. This task template defines the verification process for a single endpoint, which will be applied to all endpoints within each module batch. Each endpoint task will review the Markdown documentation, OpenAPI fragment, schema references, and actual code implementation to ensure accuracy, completeness, and consistency."
-    },
-    {
-      "id": "f836e151-d47d-4b70-9564-47201dd6671c",
-      "name": "Create Endpoint-Specific Verification Tasks",
-      "description": "For each module batch, create individual endpoint verification tasks based on the template. This involves examining the directories in endpoint_analysis and openapi_fragments to identify all endpoints within each module, and then creating a specific verification task for each endpoint following the verification template. This task ensures that every endpoint across all 48 modules is individually reviewed and verified.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "1cf2cb64-ef5d-456c-8ea6-96518b425658"
-        },
-        {
-          "taskId": "289c4698-ee9c-43fb-88b2-291713b8c959"
-        }
-      ],
-      "createdAt": "2025-05-15T15:54:43.388Z",
-      "updatedAt": "2025-05-15T15:54:43.388Z",
-      "implementationGuide": "For each module batch (Batches 1-8):\n\n1. **Identify All Endpoints in Each Module:**\n   - For each module in the batch, list all files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   - Each file (e.g., `internalApikeyCreate.md`) represents an endpoint to be verified\n\n2. **Create Individual Verification Tasks:**\n   - For each identified endpoint, create a subtask based on the 'Endpoint Verification Task Template'\n   - Name the task: 'Verify {operationId} Endpoint (Module: {module})'\n   - Set the dependency to the corresponding module batch task\n   - Include specific file paths for the endpoint's documentation and code implementation\n\n3. **Organize Tasks for Efficient Execution:**\n   - Group tasks by module within each batch\n   - Ensure no endpoints are missed\n   - Update the batch task to include a list of all endpoint tasks as dependencies\n\n4. **Track Task Creation Progress:**\n   - Document the completion of endpoint task creation for each module\n   - Ensure that all 48 modules and all their endpoints are covered",
-      "verificationCriteria": "1. All endpoints in all 48 modules have corresponding verification tasks.\n2. Each endpoint task is correctly based on the template.\n3. File paths and dependencies are accurately specified in each task.\n4. No duplication or omission of endpoints.\n5. All task dependencies are correctly configured.",
-      "analysisResult": "This task defines the process for creating individual endpoint verification tasks based on the template. It will be executed as part of each module batch verification to create the level 3 tasks for each endpoint in the module."
-    },
-    {
-      "id": "25b7c58a-43c1-49cf-89e5-8c37384f1ec7",
-      "name": "Finalize Documentation Verification and Prepare for OpenAPI Specification",
-      "description": "Consolidate findings from all module and endpoint verification tasks, prepare a final verification report, and ensure the documentation is ready for the creation of the federated OpenAPI specification. This task marks the completion of the entire API documentation verification process and serves as the final quality gate before proceeding to the OpenAPI specification federation.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "fdeb7091-513a-44f5-a16f-4647cfe07d41"
-        },
-        {
-          "taskId": "74b39b23-9fed-446e-97db-d7d05da415f0"
-        },
-        {
-          "taskId": "91aec69a-abb8-4da9-85e2-679be72eff50"
-        },
-        {
-          "taskId": "e2750c52-ade9-45ce-b825-a7a06e6f2fa1"
-        },
-        {
-          "taskId": "0938b600-63bc-47fc-9671-06c0b450bcbc"
-        },
-        {
-          "taskId": "4088fc9f-997a-4bd0-9f72-54bcae085eb9"
-        },
-        {
-          "taskId": "361d955b-aad4-4262-b9fe-de369f28c629"
-        },
-        {
-          "taskId": "c172e7db-f433-4742-ba08-e24a8b3990fc"
-        },
-        {
-          "taskId": "f836e151-d47d-4b70-9564-47201dd6671c"
-        }
-      ],
-      "createdAt": "2025-05-15T15:55:06.478Z",
-      "updatedAt": "2025-05-15T15:55:06.478Z",
-      "implementationGuide": "1. **Consolidate Verification Findings:**\n   - Review all module batch verification reports\n   - Compile a list of all corrections made during the verification process\n   - Compile a list of all major issues identified and their status\n\n2. **Cross-Module Consistency Check:**\n   - Verify naming conventions are consistent across all modules\n   - Verify schema reference patterns are consistent\n   - Verify security requirement specifications are consistent\n   - Identify and document any remaining inconsistencies\n\n3. **Documentation Readiness Assessment:**\n   - Verify all Markdown analysis files meet quality standards\n   - Verify all OpenAPI fragments are correctly formatted\n   - Verify all schema references are valid\n   - Ensure all required schemas are defined in appropriate schema files\n\n4. **Prepare Final Verification Report:**\n   - Summarize the verification process\n   - Document all findings, corrections, and outstanding issues\n   - Provide a clear assessment of documentation readiness\n   - Include recommendations for the OpenAPI specification federation process\n\n5. **Update Memory Bank Files:**\n   - Update `active-context.md` to reflect completion of the verification process\n   - Update `progress.md` to track this milestone\n   - Document any decisions made during the verification process in `decision-log.md`",
-      "verificationCriteria": "1. All module batch verification tasks have been completed successfully.\n2. All identified issues have been addressed or documented.\n3. Cross-module consistency has been verified.\n4. The final verification report is comprehensive and detailed.\n5. Memory Bank files have been updated to reflect the completion of the verification process.\n6. The documentation is deemed ready for OpenAPI specification federation.",
-      "analysisResult": "This task represents the final step in the hierarchical verification process, where findings from all modules and endpoints are consolidated and the documentation is prepared for OpenAPI specification federation."
-    },
-    {
-      "id": "98745f60-b757-4cc9-aa39-9ee8c0048234",
-      "name": "Fix Schema References in Validation Module OpenAPI Fragment",
-      "description": "Update error response schema references in the validation module's OpenAPI fragment from CommonSchemas.yaml to ErrorResponse.yaml for consistency with the rest of the API documentation.",
-      "status": "待處理",
-      "dependencies": [
-        {
-          "taskId": "fdeb7091-513a-44f5-a16f-4647cfe07d41"
-        }
-      ],
-      "createdAt": "2025-05-19T13:32:42.927Z",
-      "updatedAt": "2025-05-19T13:32:42.927Z",
+      "createdAt": "2025-05-19T18:04:10.425Z",
+      "updatedAt": "2025-05-19T18:05:07.792Z",
       "relatedFiles": [
         {
-          "path": "memory-bank/api_documentation/openapi_fragments/validation/checkFlowValidation.yaml",
-          "type": "TO_MODIFY",
-          "description": "OpenAPI fragment file that needs schema reference updates"
+          "path": "packages/server/.env.example",
+          "type": "REFERENCE",
+          "description": "Reference for typical environment variable names if it exists."
         },
         {
-          "path": "memory-bank/api_documentation/schemas/shared/ErrorResponse.yaml",
+          "path": "CONTRIBUTING.md",
           "type": "REFERENCE",
-          "description": "Target schema file that should be referenced"
+          "description": "Reference for documented environment variables."
         }
       ],
-      "implementationGuide": "1. Open the OpenAPI fragment file at `memory-bank/api_documentation/openapi_fragments/validation/checkFlowValidation.yaml`.\n2. Locate all instances (404, 412, and 500 error responses) where schema references point to `../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse`.\n3. Update each reference to use `../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse` instead.\n4. Verify that the updated references are correctly formatted and properly linked.\n5. Save the updated file.",
-      "verificationCriteria": "Verification is complete when all error response schema references in the checkFlowValidation.yaml file are updated to point to ErrorResponse.yaml instead of CommonSchemas.yaml, and the references are correctly formatted and working properly."
+      "implementationGuide": "1. Propose a branch name (e.g., feature/validate-pg-migrations-supabase) to the user and await confirmation or an alternative. 2. Upon confirmation, use `run_terminal_cmd` to execute `git branch [confirmed_branch_name]` and then `git checkout [confirmed_branch_name]`. 3. Formulate and present a clear, itemized list of PostgreSQL environment variables and instruct the user to configure them in their local environment for the `packages/server` to connect to their Supabase instance. Confirm with the user once they have set these variables.",
+      "verificationCriteria": "Git branch is successfully created and checked out. User confirms that the necessary PostgreSQL environment variables have been set in their local environment for the packages/server."
+    },
+    {
+      "id": "aa1ea31e-44aa-4f6b-8011-d5d3eba9c4bc",
+      "name": "P1.2: Investigation - Determine Migration Execution Method",
+      "description": "Investigate and determine the precise method for executing TypeORM migrations in the Remodl Core (Flowise) project. This involves checking for dedicated migration scripts in package.json and looking for automatic migration logic in DataSource or application startup files.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "8913df80-f360-40a0-a248-6a0cad07d13b"
+        }
+      ],
+      "createdAt": "2025-05-19T18:04:10.425Z",
+      "updatedAt": "2025-05-19T18:04:10.425Z",
+      "relatedFiles": [
+        {
+          "path": "packages/server/package.json",
+          "type": "TO_MODIFY",
+          "description": "Check for migration scripts."
+        },
+        {
+          "path": "packages/server/src/DataSource.ts",
+          "type": "REFERENCE",
+          "description": "Check for automatic migration configuration."
+        },
+        {
+          "path": "packages/server/src/index.ts",
+          "type": "REFERENCE",
+          "description": "Check for migration calls during startup."
+        }
+      ],
+      "implementationGuide": "1. Use `read_file` to inspect `packages/server/package.json`. Search for scripts related to TypeORM migrations (e.g., `db:migrate`, `typeorm:migration:run`, `migration:run`). 2. Use `read_file` to inspect `packages/server/src/DataSource.ts`. Look for `migrationsRun: true` in `DataSourceOptions` or any explicit calls to `.runMigrations()`. 3. If not found in `DataSource.ts`, use `read_file` to inspect `packages/server/src/index.ts` (or the main server startup file) to see if migrations are run during the application initialization sequence. 4. Document the findings: either the exact PNPM script to run migrations or confirmation that migrations are run automatically on startup.",
+      "verificationCriteria": "The exact command or startup behavior that triggers TypeORM migrations is identified and documented. If a script, the script name is known. If automatic, the relevant code section is identified."
+    },
+    {
+      "id": "14cc0958-2a50-4c6e-8d6b-d264ee6efff2",
+      "name": "P1.3: Execution & Verification - Run Migrations and Validate Schema (User-Assisted)",
+      "description": "Guide the user to execute the TypeORM migrations (based on the method determined in P1.2) against their Supabase PostgreSQL instance. Then, instruct the user to manually verify the database schema.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "aa1ea31e-44aa-4f6b-8011-d5d3eba9c4bc"
+        }
+      ],
+      "createdAt": "2025-05-19T18:04:10.425Z",
+      "updatedAt": "2025-05-19T18:04:10.425Z",
+      "relatedFiles": [
+        {
+          "path": "packages/server/src/database/migrations/postgres",
+          "type": "REFERENCE",
+          "description": "Directory containing the existing migrations to be validated."
+        }
+      ],
+      "implementationGuide": "1. Based on the findings from P1.2, provide the user with the exact command to run (e.g., `pnpm --filter flowise run [script_name]` or `pnpm --filter flowise dev`). 2. Instruct the user to execute this command in their terminal where the environment variables (from P1.1) are set. 3. Ask the user to monitor their console output for any TypeORM migration logs or error messages and report them back. 4. Instruct the user to connect to their Supabase PostgreSQL database instance (using pgAdmin, Supabase Studio, or psql) and verify: (a) The presence of all expected Flowise tables (e.g., chat_flow, api_key, credential, tool, variable, upsert_history, document_store). (b) That the table schemas (columns, types, constraints) generally match what is expected from the existing migration files in `packages/server/src/database/migrations/postgres`. 5. Await user confirmation of success or any issues encountered.",
+      "verificationCriteria": "User confirms that migrations have been executed. User confirms whether the database schema in Supabase appears correct and all expected tables are present. Any errors from the migration process are captured."
+    },
+    {
+      "id": "c84c7a05-73ea-4504-a8bd-e068375338c3",
+      "name": "P1.4: Documentation - Record Phase 1 Outcome",
+      "description": "Document the outcome of Phase 1 (validation of existing migrations on Supabase) in the Memory Bank.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "14cc0958-2a50-4c6e-8d6b-d264ee6efff2"
+        }
+      ],
+      "createdAt": "2025-05-19T18:04:10.425Z",
+      "updatedAt": "2025-05-19T18:04:10.425Z",
+      "relatedFiles": [
+        {
+          "path": "memory-bank/progress.md",
+          "type": "TO_MODIFY",
+          "description": "Log Phase 1 outcome."
+        },
+        {
+          "path": "memory-bank/active-context.md",
+          "type": "TO_MODIFY",
+          "description": "Update current status and next steps based on Phase 1 outcome."
+        }
+      ],
+      "implementationGuide": "1. Based on the user's feedback from P1.3: (a) If successful, log a success milestone in `progress.md` and update `active-context.md` to reflect completion of Phase 1 and readiness for Phase 2 planning. (b) If unsuccessful, log the issues encountered in `progress.md` and `active-context.md`, noting that Phase 1 requires debugging. 2. Use `mcp_memory-bank-mcp_track_progress` and `mcp_memory-bank-mcp_update_active_context` tools for these updates.",
+      "verificationCriteria": "Memory Bank (`progress.md`, `active-context.md`) is updated to accurately reflect the outcome of Phase 1, including any successes, failures, or errors encountered."
     }
   ]
 }
