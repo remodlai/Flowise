@@ -12,10 +12,10 @@
             schema:
               type: string
               example: "pong"
-      'default':
+      '500':
         description: "Unexpected error."
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     # No security typically applied to ping/health endpoints

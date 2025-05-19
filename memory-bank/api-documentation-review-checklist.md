@@ -46,7 +46,7 @@ This document tracks the progress of our API documentation review process, ensur
 | openai-assistants-files | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
 | openai-assistants-vector-store | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
 | openai-realtime | ❌ | ❌ | ❌ | ❌ | Excluded - Module not used in production |
-| ping | ⏳ | ⏳ | ⏳ | ⏳ | |
+| ping | ✅ | ✅ | ✅ | ✅ | Updated OpenAPI fragment with proper schema references and enhanced documentation with implementation notes |
 | predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with detailed streaming event documentation that matches internal-predictions, ensuring consistency |
 | prompts-lists | ⏳ | ⏳ | ⏳ | ⏳ | |
 | public-chatbots | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 29/47 (61.7%)
-- **Modules Pending**: 13/47 (27.7%)
+- **Modules Reviewed**: 30/47 (63.8%)
+- **Modules Pending**: 12/47 (25.5%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 
