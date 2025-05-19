@@ -115,6 +115,32 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
         *   Create an OpenAPI path item fragment YAML file, using `$ref` to link to the pre-defined schemas (e.g., `$ref: \'#/components/schemas/DocumentStoreDTO\'`).
 -   **Schema Detail:** All schemas must be fully defined, mapping TypeScript interfaces/classes/enums to their OpenAPI equivalents (types, formats, properties, required fields, enums, object structures, etc.). For truly dynamic parts *within* a defined schema (e.g., a specific `loaderConfig` object which varies greatly by loader type), `type: object` with `additionalProperties: true` can be used for that specific nested property, but the overall DTO or response object containing it must be fully structured. **The `description` field for such `additionalProperties: true` objects in the OpenAPI schema must clearly state that its structure is dynamic and context-dependent (e.g., \"Structure depends on the specific `loaderId` component\"). The Markdown analysis file for the endpoint should provide examples of common structures for these dynamic objects where possible.**
 
+#### 6.4.1. Common Schema Patterns and Conventions
+
+-   **ErrorResponse Schema:** All error responses should reference `../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse` rather than the older `CommonSchemas.yaml` implementation.
+
+-   **DeleteResult Schema:** For TypeORM DeleteResult objects (returned from delete operations), use inline schema definitions rather than external references:
+    ```yaml
+    schema:
+      type: object
+      description: "Standard TypeORM DeleteResult object."
+      properties:
+        raw:
+          type: array
+          items: {}
+          description: "Raw results returned by the database driver."
+        affected:
+          type: integer
+          nullable: true
+          description: "Number of rows affected by the delete operation."
+    ```
+    This approach is preferred because:
+    - It keeps the DeleteResult definition (which is not an error response) separate from ErrorResponse.yaml
+    - It provides self-contained documentation for the relatively simple DeleteResult structure
+    - It maintains consistency with existing modules that use this pattern (e.g., upsert-history, variables)
+
+-   **Authentication:** All secured endpoints should use `ApiKeyAuth` security scheme (not `InternalApiKeyAuth`).
+
 ### 6.5. Planned Enhancement: Remodl Core API Key Ownership Integration
 
 -   **Objective:** To establish a clear link between Remodl Core API keys and the Remodl AI Platform\'s entities (Users, Organizations, Applications) for improved auditing, management, and traceability.
