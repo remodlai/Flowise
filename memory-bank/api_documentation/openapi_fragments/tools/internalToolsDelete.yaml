@@ -2,7 +2,7 @@
   delete:
     summary: "INTERNAL: Delete Custom Tool"
     description: "INTERNAL: Deletes a specific custom tool definition by its ID."
-    operationId: "internalToolsDelete"
+    operationId: "deleteTool"
     tags: ["Tools", "InternalAPI"]
     parameters:
       - name: id
@@ -24,13 +24,13 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: []
 
@@ -38,7 +38,7 @@
   delete:
     summary: "INTERNAL: Delete Custom Tool (Root Path)"
     description: "INTERNAL: Alternative endpoint that maps to the same controller method as /tools/{id}. Will typically result in a 412 error as the controller expects an ID parameter."
-    operationId: "internalToolsDelete"
+    operationId: "deleteTool"
     tags: ["Tools", "InternalAPI"]
     responses:
       '412':
@@ -46,12 +46,12 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: [] 

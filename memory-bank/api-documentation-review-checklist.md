@@ -53,7 +53,7 @@ This document tracks the progress of our API documentation review process, ensur
 | public-chatflows | ✅ | ✅ | ✅ | ✅ | Updated schema references, marked ID as optional in the path (supporting both '/' and '/:id'), and added implementation notes about conditional ID requirement |
 | public-executions | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, enhanced documentation with implementation details about credential redaction, added notes about the dual paths support and potential error cases |
 | stats | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, enhanced endpoint analysis with detailed implementation notes focusing on parameter handling and error responses, and clarified dual path support with its limitations |
-| tools | ⏳ | ⏳ | ⏳ | ⏳ | |
+| tools | ✅ | ✅ | ✅ | ✅ | Updated all OpenAPI fragments with ErrorResponse.yaml references, improved operation IDs to match controller methods, enhanced endpoint analysis documents with detailed implementation notes, better service method explanations, and entity field details |
 | upsert-history | ⏳ | ⏳ | ⏳ | ⏳ | |
 | validation | ⏳ | ⏳ | ⏳ | ⏳ | |
 | variables | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 35/47 (74.5%)
-- **Modules Pending**: 7/47 (14.9%)
+- **Modules Reviewed**: 36/47 (76.6%)
+- **Modules Pending**: 6/47 (12.8%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 

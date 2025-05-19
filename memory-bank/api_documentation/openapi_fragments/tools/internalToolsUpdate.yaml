@@ -2,7 +2,7 @@
   put:
     summary: "INTERNAL: Update Custom Tool"
     description: "INTERNAL: Updates an existing custom tool definition."
-    operationId: "internalToolsUpdate"
+    operationId: "updateTool"
     tags: ["Tools", "InternalAPI"]
     parameters:
       - name: id
@@ -30,19 +30,19 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '412':
         description: "Precondition Failed (e.g., missing ID or body)."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: []
 
@@ -50,7 +50,7 @@
   put:
     summary: "INTERNAL: Update Custom Tool (Root Path)"
     description: "INTERNAL: Alternative endpoint that maps to the same controller method as /tools/{id}. Will typically result in a 412 error as the controller expects an ID parameter."
-    operationId: "internalToolsUpdate"
+    operationId: "updateTool"
     tags: ["Tools", "InternalAPI"]
     requestBody:
       required: true
@@ -64,12 +64,12 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: [] 

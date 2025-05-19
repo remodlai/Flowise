@@ -2,7 +2,7 @@
   post:
     summary: "INTERNAL: Create Custom Tool"
     description: "INTERNAL: Creates a new custom tool definition."
-    operationId: "internalToolsCreate"
+    operationId: "createTool"
     tags: ["Tools", "InternalAPI"]
     requestBody:
       required: true
@@ -22,12 +22,12 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: [] 
