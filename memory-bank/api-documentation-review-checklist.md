@@ -50,7 +50,7 @@ This document tracks the progress of our API documentation review process, ensur
 | predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with detailed streaming event documentation that matches internal-predictions, ensuring consistency |
 | prompts-lists | ✅ | ✅ | ✅ | ✅ | Updated path to match actual route registration, corrected schema references, and added security configuration |
 | public-chatbots | ✅ | ✅ | ✅ | ✅ | Fixed path to match actual route registration (/public-chatbotConfig), corrected schema references, and added implementation notes highlighting path parameter behavior |
-| public-chatflows | ⏳ | ⏳ | ⏳ | ⏳ | |
+| public-chatflows | ✅ | ✅ | ✅ | ✅ | Updated schema references, marked ID as optional in the path (supporting both '/' and '/:id'), and added implementation notes about conditional ID requirement |
 | public-executions | ⏳ | ⏳ | ⏳ | ⏳ | |
 | stats | ⏳ | ⏳ | ⏳ | ⏳ | |
 | tools | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 32/47 (68.1%)
-- **Modules Pending**: 10/47 (21.3%)
+- **Modules Reviewed**: 33/47 (70.2%)
+- **Modules Pending**: 9/47 (19.1%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 

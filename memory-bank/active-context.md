@@ -94,11 +94,12 @@
 - Streaming responses need careful documentation of SSE event formats
 ## Next Steps
 
-- Continue API documentation review focusing on public-chatflows module next
-- Update review progress percentages to 68.1% complete
-- Document the pattern of routes being registered with names different from their directory structure
+- Continue API documentation review focusing on public-executions module next
+- Update review progress percentages to 70.2% complete
+- Look for more patterns of routes with path definitions that don't align with implementation requirements
 ## Current Session Notes
 
+- [9:06:05 AM] [Unknown User] Completed review of public-chatflows module: Reviewed and updated the public-chatflows module documentation. Updated schema references to use proper paths to ErrorResponse.yaml, marked the ID parameter as optional in the path to reflect that the route supports both '/' and '/:id' patterns (while noting that the implementation requires an ID), added the PublicAPI tag, and enhanced the implementation notes to clarify the endpoint's behavior. Marked the module as reviewed in the checklist.
 - [9:03:37 AM] [Unknown User] Decision Made: API Path vs Directory Structure Documentation Approach
 - [9:03:24 AM] [Unknown User] Completed review of public-chatbots module: Reviewed and updated the public-chatbots module documentation. Fixed the API path to match the actual route registration (/public-chatbotConfig instead of /public-chatbots), updated schema references to use proper paths to ErrorResponse.yaml, updated parameter handling to reflect that the route supports both paths with and without ID, and added implementation notes about the path naming discrepancy. Marked the module as reviewed in the checklist.
 - [8:44:31 AM] [Unknown User] Completed review of prompts-lists module: Reviewed and updated the prompts-lists module documentation. Fixed the API path in documentation to match the actual route registration (/prompts-list), updated schema references to use proper relative paths, added security configuration, and enhanced documentation with implementation notes. Marked the module as reviewed in the checklist.

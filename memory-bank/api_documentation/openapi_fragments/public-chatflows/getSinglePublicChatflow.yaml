@@ -7,11 +7,12 @@
       This endpoint is used to access shared chatflows and their flow definitions.
     tags:
       - Public Chatflows
+      - PublicAPI
     parameters:
       - name: id
         in: path
         description: The ID of the chatflow to retrieve
-        required: true
+        required: false
         schema:
           type: string
           format: uuid
@@ -27,22 +28,22 @@
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '404':
         description: Chatflow with the specified ID not found
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '412':
-        description: ID parameter not provided
+        description: ID parameter not provided when required
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '500':
         description: Internal server error
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse' 
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse' 
