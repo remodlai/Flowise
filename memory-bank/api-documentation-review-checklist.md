@@ -57,14 +57,14 @@ This document tracks the progress of our API documentation review process, ensur
 | upsert-history | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, added inline DeleteResult schema, enhanced endpoint analysis documents with detailed implementation notes, especially around query parameter handling and the PATCH method used for deletion |
 | validation | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, corrected security configuration from InternalApiKeyAuth to ApiKeyAuth |
 | variables | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, updated DeleteResult schema to use inline object, corrected security configuration from InternalApiKeyAuth to ApiKeyAuth |
-| vectors | ⏳ | ⏳ | ⏳ | ⏳ | |
+| vectors | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas.yaml to ErrorResponse.yaml, corrected security configuration from InternalApiKeyAuth to ApiKeyAuth, verified both public and internal upsert endpoints documentation is accurate |
 | verify | ⏳ | ⏳ | ⏳ | ⏳ | |
 | versions | ⏳ | ⏳ | ⏳ | ⏳ | |
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 39/47 (83.0%)
-- **Modules Pending**: 3/47 (6.4%)
+- **Modules Reviewed**: 40/47 (85.1%)
+- **Modules Pending**: 2/47 (4.3%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 
