@@ -143,32 +143,25 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
 
 ### 6.5. Planned Enhancement: Remodl Core API Key Ownership Integration
 
--   **Objective:** To establish a clear link between Remodl Core API keys and the Remodl AI Platform\'s entities (Users, Organizations, Applications) for improved auditing, management, and traceability.
+-   **Objective:** To establish a clear link between Remodl Core API keys and the Remodl AI Platform's entities, primarily the `Application`, for improved auditing, management, and traceability.
 -   **Context:** The Remodl AI Platform uses Supabase (JWT-based) for user authentication. Remodl Core (this engine) uses its own API key system (opaque tokens verified against salted hashes).
--   **Proposed Change:**
-    1.  **Modify `ApiKey` Entity & Table:** Add the following nullable fields to the `packages/server/src/database/entities/ApiKey.ts` entity and its corresponding `apikey` table in the Remodl Core database (via a new TypeORM migration):
-        *   `userId: string | null` (or `uuid`, to match platform User IDs)
-        *   `organizationId: string | null` (or `uuid`, to match platform Organization IDs)
-        *   `applicationId: string | null` (or `uuid`, to match platform Application IDs)
-    2.  **Update API Key Creation:**
-        *   Modify `apikeyService.createApiKey` and the `POST /api/v1/apikey` controller endpoint to accept these new owner IDs in the request body.
-        *   When the Remodl AI Platform backend requests the creation of a Remodl Core API key (e.g., for a new Application or a specific user need), it will provide these IDs.
-    3.  **Update API Key Management (Platform Side):**
-        *   The Remodl AI Platform backend will be responsible for managing these ownership links.
-        *   It will use these IDs to select the appropriate Remodl Core API key when making calls to Remodl Core on behalf of a user, organization, or application.
+-   **Refined `ApiKey` Entity & Table Strategy:**
+    1.  **Core Linkage:** Each Remodl Core `ApiKey` will be fundamentally linked to a single Remodl AI Platform `Application`.
+    2.  **Entity Modification (`packages/server/src/database/entities/ApiKey.ts`):**
+        *   `id`: Ensure type is `uuid` (e.g., `@PrimaryGeneratedColumn('uuid')`), aligning with database migration.
+        *   `applicationId` (uuid, **NOT NULLABLE**): This field will store the ID of the Remodl AI Platform Application to which this `ApiKey` grants access. This is the primary platform context for the key.
+        *   `organizationId` (uuid, **NULLABLE**): May store the ID of the platform organization that owns the application or provisioned the key (for administrative tracking).
+        *   `userId` (uuid, **NULLABLE**): May store the ID of the platform user who created or is responsible for this specific `ApiKey` instance (for administrative tracking).
+        *   `createdDate`: Add `@CreateDateColumn()` for audit purposes.
+    3.  **Runtime Context for Operations:** The specific `platform_user_id` and `platform_organization_id` for an individual operation executed using an `ApiKey` will be passed dynamically by the calling service (e.g., API Gateway or platform backend) into Remodl Core, typically within the `overrideConfig` payload of the request. Remodl Core services will use these runtime values for finer-grained data scoping and logging.
+    4.  **API Key Creation Endpoint (`POST /api/v1/apikey`):** This endpoint in Remodl Core will be updated to accept `applicationId` (mandatory) and optionally `organizationId` and `userId` (for administrative linkage of the key itself) in the request body.
 -   **Benefits:**
-    *   **Traceability:** Allows actions performed using a Remodl Core API key to be traced back to a specific platform user, organization, or application.
-    *   **Auditing:** Enhances audit logs with platform-level context.
-    *   **Lifecycle Management:** Enables the platform to manage the lifecycle of Remodl Core API keys based on platform events (e.g., user deactivation, application deletion).
-    *   **Scoped Usage (Future Potential):** While the immediate change is about attribution, this lays the groundwork for potentially more granular, platform-driven authorization policies regarding how these keys can be used.
+    *   **Clear Application Scoping for Keys:** Each `ApiKey` unambiguously belongs to one Platform Application.
+    *   **Dynamic Operational Context:** Allows a single application `ApiKey` to be used for operations initiated by different users and organizations within that application's scope, with the specific user/org context provided per-request.
+    *   **Traceability & Auditing:** Enables better tracking of API key usage back to applications and, indirectly through runtime context, to specific users/orgs.
 -   **Implementation Timing:** This enhancement is planned as a subsequent task after the completion of the current high-priority API documentation efforts for Remodl Core.
--   **Migration Strategy:** 
-    -   The new columns (`userId`, `organizationId`, `applicationId`) will be added as nullable to the `ApiKey` entity and its corresponding `apikey` table. This ensures backward compatibility with existing API keys.
-    -   A new TypeORM migration will be generated for these schema changes.
-    -   **Phased Testing:**
-        1.  The existing Remodl Core migrations will first be tested for compatibility with the target Supabase PostgreSQL instance on a dedicated test branch.
-        2.  The new migration for API key ownership fields will then be generated and tested on a separate branch, ensuring all migrations (existing + new) apply cleanly.
-    -   A backfill strategy for populating ownership IDs for existing API keys may be considered at a later stage if deemed necessary.
+-   **Migration Strategy:**
+    -   The new `applicationId`, `organizationId`, and `userId` columns (and `createdDate`) will be added to the `ApiKey` entity and its corresponding `apikey` table. `applicationId` will be NOT NULL, while `organizationId` and `userId` will be NULLABLE.
 
 ### 6.5.1. Related Consideration: Platform-Contextual File Management
 
@@ -203,3 +196,57 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
     3.  **New `Remodl-Platform` Repository:** A new, separate Git repository will house the primary Remodl AI Platform application(s). This new repository will consume the `@remodl/*` packages as versioned dependencies.
     4.  **TypeScript Path Mapping/Aliasing:** Within the `Remodl-Platform` repository, TypeScript `paths` or bundler aliases will be used to allow for cleaner import paths (e.g., importing from `components` while actually using `@remodl/core-components`).
 -   **Benefits:** This approach provides maximum isolation, customization freedom for the platform, clear ownership, and independent release cycles, while still allowing for controlled incorporation of valuable upstream Flowise updates via the integration repository.
+
+### 6.7. Platform Context Propagation into Chat Flows
+
+-   **Objective:** To enable Remodl Core chat flows to be aware of the specific Remodl AI Platform end-user interacting with them, allowing for personalized and context-aware behavior within the flow.
+-   **Pattern:**
+    1.  **Platform User Authentication:** The end-user authenticates with the Remodl AI Platform UI (e.g., via Supabase Auth), obtaining a platform-specific JWT containing user claims.
+    2.  **JWT via `overrideConfig`:** When the platform UI or its backend/API Gateway initiates a Remodl Core chat flow execution (e.g., via `POST /api/v1/predictions/{chatflow_id}`), it includes the end-user's JWT string within the `overrideConfig` payload (e.g., `overrideConfig: { "user_platform_jwt": "eyJ..." }`). This call to Remodl Core is authenticated using a Remodl Core API Key (machine-to-machine).
+    3.  **Chat Flow Processing:**
+        *   An input node within the chat flow is configured to receive the `user_platform_jwt` value from `overrideConfig`.
+        *   This JWT string is then passed to a "Custom Function" node within the chat flow.
+        *   The Custom Function node contains JavaScript logic to:
+            *   Decode the JWT payload (e.g., using a library like `jwt-decode`).
+            *   Extract relevant claims (e.g., platform user ID, roles, preferences).
+            *   Make these claims available as outputs for use by downstream nodes in the chat flow.
+-   **Benefits:**
+    *   Allows chat flows to personalize responses or behavior based on the platform user.
+    *   Enables chat flows to make decisions or fetch further user-specific data by leveraging the extracted claims.
+    *   Maintains a separation of concerns: Remodl Core authenticates the calling service via its API key, while the JWT provides end-user context for the flow's internal logic.
+-   **Security Considerations:**
+    *   **JWT Verification:** The primary validation (signature check, expiry, etc.) of the end-user's JWT should ideally occur at the API Gateway or the platform backend *before* the JWT is passed to Remodl Core.
+    *   If the Custom Function node within Flowise needs to *re-verify* the JWT signature (for defense-in-depth), it would require secure access to the appropriate public key or shared secret, which needs careful management within the custom function's execution environment. For many use cases, relying on the upstream (gateway/platform backend) validation is sufficient, and the custom function only decodes the already validated token.
+    *   Sensitive claims extracted from the JWT should be handled carefully within the chat flow and not unnecessarily exposed or logged.
+-   **Caveat:** This pattern is the current design decision and may be updated or refined as the platform evolves.
+
+### 6.8. Data Tenancy Strategy for Core Remodl Engine Entities
+
+-   **Objective:** To ensure that key data entities within Remodl Core can be associated with platform-level contexts such as `Application`, `Organization`, and `User (Platform User / Creator)`, enabling multi-tenancy, proper data scoping, and contextual filtering.
+-   **General Approach:** Add `applicationId` (uuid), `organizationId` (uuid), and `userId` (uuid) columns to relevant Remodl Core tables. The nullability of `organizationId` and `userId` will depend on the specific entity and its relationship to these contexts. The `applicationId` on these entities will generally be non-nullable (potentially defaulting to a generic platform application ID if no specific app context is available during creation, with this default being handled by application logic).
+
+-   **Specific Entity Decisions:**
+
+    *   **`ApiKey` Table (`apikey`):**
+        *   `applicationId`: **NOT NULLABLE**. Links the `ApiKey` to a specific Remodl AI Platform Application. This is its primary platform scope.
+        *   `organizationId`: **NULLABLE**. Can represent the organization that owns the application or provisioned the key (for administrative tracking).
+        *   `userId`: **NULLABLE**. Can represent the platform user who created/owns this `ApiKey` instance (for administrative tracking).
+        *   `id` column type to be aligned to `uuid` (from `varchar(20)` in entity) to match migration.
+        *   `createdDate` column to be added (via `@CreateDateColumn()`).
+        *   *Runtime operational context* (specific user/org for a given API call) is passed via `overrideConfig`, not stored directly on the `ApiKey` for every call.
+
+    *   **`ChatFlow` Table (`chat_flow`):**
+        *   `applicationId`: **NOT NULLABLE**. Every chat flow belongs to a platform Application. Application logic will ensure population, using a default platform application ID (`3b702f3b-5749-4bae-a62e-fb967921ab80`) if no other context is available.
+        *   `organizationId`: **NOT to be added directly.** A chat flow's organizational context is derived through its parent Application's association with an Organization.
+        *   `userId`: **NULLABLE**. Represents the Platform User who created the chat flow. Can be NULL for system/template flows.
+        *   The existing `apikeyid` column's role needs to be considered in light of these changes (potential deprecation or repurposing for audit).
+
+    *   **`DocumentStore` Table (`document_store`):**
+        *   `applicationId`: **NOT NULLABLE**. Must belong to a platform Application.
+        *   `organizationId`: **NULLABLE**. If NULL, it's a universal/global store for the application. If populated, it's specific to that organization within the application.
+        *   `userId`: **NULLABLE**. Platform User who created/manages this document store configuration.
+
+    *   **`Credential` Table (`credential`):**
+        *   `applicationId`: **NOT NULLABLE**. Credentials will be associated with a specific platform Application.
+        *   `organizationId`: **NULLABLE**. Allows for application-global credentials (NULL orgId) or organization-specific credentials within an application.
+        *   `userId`: **NULLABLE**. Platform User who created/registered the credential.

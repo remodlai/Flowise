@@ -516,3 +516,62 @@
   - Centralizes platform-specific storage logic
   - Keeps Remodl Core's storage model simple (single bucket)
   - Enables platform-level tracking and auditing of files
+
+## Pattern for Passing Platform User JWT to Chat Flows via overrideConfig
+- **Date:** 2025-05-19 4:27:38 PM
+- **Author:** Unknown User
+- **Context:** Propagating Platform User Context to Remodl Core Chat Flows
+- **Decision:** Platform end-user context (via JWT) will be passed into Remodl Core chat flows using the `overrideConfig` parameter. A Custom Function node within the chat flow will decode the JWT to extract claims for use in flow logic. Primary JWT validation is expected to occur at the API Gateway or platform backend before calling Remodl Core.
+- **Alternatives Considered:** 
+  - Remodl Core directly handles platform user sessions
+  - No end-user context passed to chat flows
+- **Consequences:** 
+  - Enables personalized chat flow behavior based on platform user
+  - Maintains separation of auth concerns (Remodl Core API key vs. Platform JWT)
+  - Requires careful JWT handling (verification strategy, secure claim usage)
+
+## Refined Design for ApiKey Table Platform Context Linkage
+- **Date:** 2025-05-19 4:56:51 PM
+- **Author:** Unknown User
+- **Context:** Remodl Core ApiKey Entity Design for Platform Integration
+- **Decision:** Remodl Core ApiKey entity will have a non-nullable `applicationId`. `userId` and `organizationId` fields on the ApiKey entity will be nullable (for key admin/origin tracking). Runtime user/org context for operations will be passed via `overrideConfig`.
+- **Alternatives Considered:** 
+  - ApiKey stores full runtime user/org context
+  - ApiKey has no platform-specific context
+- **Consequences:** 
+  - Clear primary link of ApiKey to a Platform Application
+  - Enables dynamic passing of user/org context for operations via overrideConfig
+  - Simplifies ApiKey management, focusing its direct scope
+
+## Ownership Structure for ChatFlow Table
+- **Date:** 2025-05-19 5:17:59 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** ChatFlow entities will have a non-nullable `applicationId` and a nullable creator `userId`. They will NOT have a direct `organizationId`; org context is derived via the Application.
+- **Alternatives Considered:** 
+  - ChatFlow has direct organizationId
+  - ChatFlow ownership only via ApiKey
+- **Consequences:** 
+  - None
+
+## Ownership Structure for DocumentStore Table
+- **Date:** 2025-05-19 5:18:09 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** DocumentStore entities will have a non-nullable `applicationId`, a nullable `organizationId` (to support app-global vs. org-specific stores), and a nullable creator `userId`.
+- **Alternatives Considered:** 
+  - DocumentStore only linked to Application
+  - DocumentStore always requires an Organization
+- **Consequences:** 
+  - None
+
+## Ownership Structure for Credential Table
+- **Date:** 2025-05-19 5:18:54 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** Credential entities will have a non-nullable `applicationId`, a nullable `organizationId` (for app-global vs. org-specific credentials), and a nullable creator `userId`.
+- **Alternatives Considered:** 
+  - Credentials only linked to Application
+  - Credentials always require an Organization
+- **Consequences:** 
+  - None

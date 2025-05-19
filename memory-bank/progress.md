@@ -12,6 +12,12 @@
 
 ## Update History
 
+- [2025-05-19 5:19:07 PM] [Unknown User] - Defined Ownership Column Strategy for Key Entities (Phase 2 Planning): Specified platform ownership columns (applicationId, organizationId, userId and their nullability) for ApiKey, ChatFlow, DocumentStore, and Credential tables as part of Phase 2 planning. These decisions are documented in system-patterns.md and decision-log.md.
+- [2025-05-19 5:18:54 PM] [Unknown User] - Decision Made: Ownership Structure for Credential Table
+- [2025-05-19 5:18:09 PM] [Unknown User] - Decision Made: Ownership Structure for DocumentStore Table
+- [2025-05-19 5:17:59 PM] [Unknown User] - Decision Made: Ownership Structure for ChatFlow Table
+- [2025-05-19 4:56:51 PM] [Unknown User] - Decision Made: Refined Design for ApiKey Table Platform Context Linkage
+- [2025-05-19 4:27:38 PM] [Unknown User] - Decision Made: Pattern for Passing Platform User JWT to Chat Flows via overrideConfig
 - [2025-05-19 3:38:09 PM] [Unknown User] - Phase 1 (Validate Existing Migrations on Supabase) Successfully Completed: Remodl Core's existing TypeORM migrations were successfully executed against the target Supabase PostgreSQL instance. All standard tables were created, and initial data write tests passed, confirming baseline database compatibility.
 - [2025-05-19 3:38:03 PM] [Unknown User] - Task Execution Plan Articulated for P1.4: Detailed plan for P1.4 (Documentation - Record Phase 1 Outcome) formulated via `process_thought`. Plan involves updating progress.md and active-context.md to reflect successful completion of Phase 1.
 - [2025-05-19 3:35:38 PM] [Unknown User] - Task Execution Plan Articulated for P1.3: Detailed plan for P1.3 (Execution & Verification - Run Migrations and Validate Schema (User-Assisted)) formulated via `process_thought`. Plan focuses on formalizing user confirmation of migration execution and schema validity in Supabase.
