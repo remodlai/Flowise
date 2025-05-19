@@ -16,12 +16,20 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/DeleteResultSchema"
+              type: object
+              properties:
+                raw:
+                  type: array
+                  items: {}
+                  description: "Raw database response (typically empty for successful deletes)"
+                affected:
+                  type: integer
+                  description: "Number of records affected by the delete operation"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: [] 

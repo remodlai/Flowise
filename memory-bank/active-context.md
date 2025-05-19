@@ -94,11 +94,12 @@
 - Streaming responses need careful documentation of SSE event formats
 ## Next Steps
 
-- Continue API documentation review focusing on upsert-history module next
-- Update review progress percentages to 76.6% complete
-- Document the trend of controller methods properly validating ID parameters but not providing proper error handling for invalid UUID formats
+- Continue API documentation review focusing on validation module next
+- Update review progress percentages to 78.7% complete
+- Document the unconventional use of PATCH method for deletion operations in the codebase
 ## Current Session Notes
 
+- [9:26:40 AM] [Unknown User] Completed review of upsert-history module: Reviewed and updated the upsert-history module documentation. Updated schema references from CommonSchemas to ErrorResponse.yaml, added an inline DeleteResult schema to replace the reference to CommonSchemas.yaml, enhanced endpoint analysis documents with detailed implementation notes about date range query handling and the unconventional use of PATCH method for deletion. Added examples and clarified parameter usage. Marked the module as reviewed in the checklist.
 - [9:23:26 AM] [Unknown User] Completed review of tools module: Reviewed and updated the tools module documentation. Updated all OpenAPI fragments to use ErrorResponse.yaml instead of CommonSchemas.yaml for error responses, improved operation IDs to match the actual controller method names, enhanced the endpoint analysis document with more detailed implementation notes on service methods, controller validations, and entity field descriptions. Documented the registration of both path formats and how they are handled in the implementation. Marked the module as reviewed in the checklist.
 - [9:12:32 AM] [Unknown User] Completed review of stats module: Reviewed and updated the stats module documentation. Updated schema references from CommonSchemas to ErrorResponse.yaml, enhanced the endpoint analysis document with detailed implementation notes focusing on parameter handling, error responses, and internal implementation details. Added details about the dual path support and its limitations, and more clearly documented how the module processes feedback types. Marked the module as reviewed in the checklist.
 - [9:08:55 AM] [Unknown User] Completed review of public-executions module: Reviewed and updated the public-executions module documentation. Updated schema references from CommonSchemas to ErrorResponse.yaml, enhanced endpoint analysis with implementation details about credential redaction, added specific notes about the dual paths support ('/public-executions/' and '/public-executions/{id}'), and documented the potential error cases when no ID is provided. Marked the module as reviewed in the checklist.

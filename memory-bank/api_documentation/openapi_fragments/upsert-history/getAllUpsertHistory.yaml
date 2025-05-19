@@ -48,7 +48,7 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: []
 
@@ -95,6 +95,6 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
       - ApiKeyAuth: [] 
