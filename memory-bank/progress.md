@@ -12,6 +12,8 @@
 
 ## Update History
 
+- [2025-05-19 9:03:37 AM] [Unknown User] - Decision Made: API Path vs Directory Structure Documentation Approach
+- [2025-05-19 9:03:24 AM] [Unknown User] - Completed review of public-chatbots module: Reviewed and updated the public-chatbots module documentation. Fixed the API path to match the actual route registration (/public-chatbotConfig instead of /public-chatbots), updated schema references to use proper paths to ErrorResponse.yaml, updated parameter handling to reflect that the route supports both paths with and without ID, and added implementation notes about the path naming discrepancy. Marked the module as reviewed in the checklist.
 - [2025-05-19 8:44:31 AM] [Unknown User] - Completed review of prompts-lists module: Reviewed and updated the prompts-lists module documentation. Fixed the API path in documentation to match the actual route registration (/prompts-list), updated schema references to use proper relative paths, added security configuration, and enhanced documentation with implementation notes. Marked the module as reviewed in the checklist.
 - [2025-05-19 8:41:42 AM] [Unknown User] - Completed review of ping module: Reviewed and updated the ping module documentation. Updated the OpenAPI fragment to use proper schema references and enhanced the endpoint analysis document with more detailed implementation notes. Marked the module as reviewed in the checklist.
 - [2025-05-15 5:01:59 PM] [Unknown User] - Excluded additional unused API modules: Marked all OpenAI Assistants related modules (openai-assistants, openai-assistants-files, openai-assistants-vector-store) as excluded in the API documentation review checklist and removed related documentation files as these modules are not used in production.

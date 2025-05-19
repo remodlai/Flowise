@@ -464,3 +464,17 @@
   - Improved expectations for error scenarios
   - Added a new category of issues to track (Error Handling Behavior) in our review checklist
   - Identified a pattern to look for in other modules
+
+## API Path vs Directory Structure Documentation Approach
+- **Date:** 2025-05-19 9:03:37 AM
+- **Author:** Unknown User
+- **Context:** We have identified a recurring pattern in the Flowise codebase where the actual API endpoint registration (in routes/index.ts) often differs from the directory structure (e.g., public-chatbots module registers as /public-chatbotConfig). This can lead to documentation errors if not properly tracked.
+- **Decision:** Document both the directory/module name and the actual registered path in the API documentation, and prioritize the registered path in OpenAPI fragments since that's what API consumers will use.
+- **Alternatives Considered:** 
+  - Only use directory/module names in documentation
+  - Rename API paths to match directory structure
+  - Create redirects/aliases for mismatched paths
+- **Consequences:** 
+  - Documentation will more accurately reflect the actual implementation
+  - API consumers will have correct paths to use in their integrations
+  - We maintain a record of path discrepancies for potential future code standardization

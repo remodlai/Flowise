@@ -49,7 +49,7 @@ This document tracks the progress of our API documentation review process, ensur
 | ping | ✅ | ✅ | ✅ | ✅ | Updated OpenAPI fragment with proper schema references and enhanced documentation with implementation notes |
 | predictions | ✅ | ✅ | ✅ | ✅ | Enhanced with detailed streaming event documentation that matches internal-predictions, ensuring consistency |
 | prompts-lists | ✅ | ✅ | ✅ | ✅ | Updated path to match actual route registration, corrected schema references, and added security configuration |
-| public-chatbots | ⏳ | ⏳ | ⏳ | ⏳ | |
+| public-chatbots | ✅ | ✅ | ✅ | ✅ | Fixed path to match actual route registration (/public-chatbotConfig), corrected schema references, and added implementation notes highlighting path parameter behavior |
 | public-chatflows | ⏳ | ⏳ | ⏳ | ⏳ | |
 | public-executions | ⏳ | ⏳ | ⏳ | ⏳ | |
 | stats | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 31/47 (66.0%)
-- **Modules Pending**: 11/47 (23.4%)
+- **Modules Reviewed**: 32/47 (68.1%)
+- **Modules Pending**: 10/47 (21.3%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 

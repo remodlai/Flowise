@@ -1,4 +1,4 @@
-/public-chatbots:
+/public-chatbotConfig:
   get:
     operationId: getSinglePublicChatbotConfig
     summary: Get public configuration for a chatbot
@@ -8,11 +8,12 @@
       and the raw `flowData`. This endpoint is used by the embedded chatbot UI.
     tags:
       - Public Chatbots
+      - PublicAPI
     parameters:
       - name: id
         in: path
         description: The ID of the chatflow to retrieve public config for
-        required: true
+        required: false
         schema:
           type: string
           format: uuid
@@ -30,16 +31,16 @@
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '412':
-        description: ID parameter not provided
+        description: ID parameter not provided for a request that requires it
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse'
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse'
       '500':
         description: Error parsing chatbotConfig or other server-side issue
         content:
           application/json:
             schema:
-              $ref: '../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse' 
+              $ref: '../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse' 
