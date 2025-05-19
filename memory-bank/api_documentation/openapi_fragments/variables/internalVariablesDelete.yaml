@@ -18,18 +18,28 @@
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/DeleteResultSchema"
+              type: object
+              description: "Standard TypeORM DeleteResult object."
+              properties:
+                raw:
+                  type: array
+                  items: {}
+                  description: "Raw results returned by the database driver."
+                affected:
+                  type: integer
+                  nullable: true
+                  description: "Number of rows affected by the delete operation."
       '412':
         description: "Precondition Failed (ID not provided)."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
       '500':
         description: "Internal Server Error."
         content:
           application/json:
             schema:
-              $ref: "../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse"
+              $ref: "../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse"
     security:
-      - InternalApiKeyAuth: [] 
+      - ApiKeyAuth: [] 
