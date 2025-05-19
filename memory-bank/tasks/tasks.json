@@ -3,11 +3,11 @@
     {
       "id": "1cf2cb64-ef5d-456c-8ea6-96518b425658",
       "name": "API Documentation Verification - Root Task",
-      "description": "Lead and coordinate the comprehensive verification of all Remodl Core API documentation to ensure accuracy, completeness, and consistency before creating the federated OpenAPI specification. This task involves overseeing the module batch verification tasks, establishing consistent verification standards, and ensuring all aspects of the documentation (Markdown analysis, OpenAPI fragments, schema definitions) are thoroughly reviewed against the actual codebase implementation.",
+      "description": "Lead and coordinate the comprehensive verification of all Remodl Core API documentation to ensure accuracy, completeness, and consistency before creating the federated OpenAPI specification. This task involves overseeing the module batch verification tasks, establishing consistent verification standards, and ensuring all aspects of the documentation (Markdown analysis, OpenAPI fragments, schema definitions) are thoroughly reviewed against the actual codebase implementation. Currently in progress, with verification of validation module already completed.",
       "status": "待處理",
       "dependencies": [],
       "createdAt": "2025-05-15T15:52:56.928Z",
-      "updatedAt": "2025-05-15T15:52:56.928Z",
+      "updatedAt": "2025-05-19T13:33:24.551Z",
       "implementationGuide": "1. First, establish the verification standards and checklist to be used across all module batches, ensuring it aligns with the OpenAPI strategy in system-patterns.md.\n2. Create a centralized issue tracking mechanism for documenting major issues that require discussion.\n3. Define a verification report template that will be used to document findings for each module/endpoint.\n4. Coordinate and monitor progress of the module batch verification tasks.\n5. Consolidate findings and issues from all batches upon completion.\n6. Ensure cross-module consistency across the entire documentation suite.\n7. Prepare a final report summarizing the verification results and readiness for OpenAPI specification federation.",
       "verificationCriteria": "1. All module batch tasks have been completed and verified.\n2. Verification standards have been consistently applied across all batches.\n3. All major issues have been documented and resolved or flagged for discussion.\n4. The consolidated report provides a clear overview of the verification results.\n5. The documentation suite is deemed ready for federated OpenAPI specification creation.",
       "analysisResult": "The API Documentation Verification requires a hierarchical approach due to the scale of the task (48 modules with approximately 150-200 endpoints). The structure follows three levels:\n\n1. Root Task: Overall coordination and standardization of the verification effort\n2. Module Batch Tasks: Logical grouping of related modules for manageable work packages\n3. Endpoint Tasks: Detailed verification of individual endpoints\n\nThis approach balances thoroughness with practicality while ensuring consistent verification standards across all endpoints."
@@ -15,7 +15,7 @@
     {
       "id": "fdeb7091-513a-44f5-a16f-4647cfe07d41",
       "name": "Batch 1: Authentication & Security Module Verification",
-      "description": "Verify the documentation for authentication and security-related modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: apikey, verify, validation.",
+      "description": "Verify the documentation for authentication and security-related modules to ensure accuracy, completeness, and consistency with the actual implementation. This batch includes the following modules: apikey, verify, validation. Currently in progress, with validation module verification already completed.",
       "status": "待處理",
       "dependencies": [
         {
@@ -23,7 +23,7 @@
         }
       ],
       "createdAt": "2025-05-15T15:53:17.165Z",
-      "updatedAt": "2025-05-15T15:53:17.165Z",
+      "updatedAt": "2025-05-19T13:33:29.305Z",
       "implementationGuide": "1. For each module in the batch:\n   a. Review all Markdown analysis files in `memory-bank/api_documentation/endpoint_analysis/{module}/`\n   b. Review all OpenAPI fragments in `memory-bank/api_documentation/openapi_fragments/{module}/`\n   c. Verify schema definitions in `memory-bank/api_documentation/schemas/modules/` related to these modules\n   d. Examine actual implementation code in `packages/server/src/routes/{module}/index.ts` and related controllers/services\n2. For each endpoint within each module, perform detailed verification using the established verification standards (from the root task).\n3. Make minor corrections directly to Memory Bank files as needed.\n4. Document major issues that require discussion in the issue tracking mechanism.\n5. Create a verification report for each module documenting the findings.\n6. Ensure cross-module consistency within the batch (e.g., similar security mechanism documentation across auth-related modules).",
       "verificationCriteria": "1. All endpoints in each module have been thoroughly reviewed.\n2. Documentation (Markdown, OpenAPI fragments, schemas) accurately reflects the implementation code.\n3. Consistency in documentation approach across related modules is maintained.\n4. Minor issues have been corrected; major issues are documented.\n5. Verification reports are complete and detailed.\n6. All schema references are valid and point to existing schema definitions.",
       "analysisResult": "The module batch verification tasks group related modules based on functional similarity to create manageable work packages. Each batch is responsible for verifying 5-7 modules and ensuring cross-module consistency within related functionality domains."
@@ -214,6 +214,33 @@
       "implementationGuide": "1. **Consolidate Verification Findings:**\n   - Review all module batch verification reports\n   - Compile a list of all corrections made during the verification process\n   - Compile a list of all major issues identified and their status\n\n2. **Cross-Module Consistency Check:**\n   - Verify naming conventions are consistent across all modules\n   - Verify schema reference patterns are consistent\n   - Verify security requirement specifications are consistent\n   - Identify and document any remaining inconsistencies\n\n3. **Documentation Readiness Assessment:**\n   - Verify all Markdown analysis files meet quality standards\n   - Verify all OpenAPI fragments are correctly formatted\n   - Verify all schema references are valid\n   - Ensure all required schemas are defined in appropriate schema files\n\n4. **Prepare Final Verification Report:**\n   - Summarize the verification process\n   - Document all findings, corrections, and outstanding issues\n   - Provide a clear assessment of documentation readiness\n   - Include recommendations for the OpenAPI specification federation process\n\n5. **Update Memory Bank Files:**\n   - Update `active-context.md` to reflect completion of the verification process\n   - Update `progress.md` to track this milestone\n   - Document any decisions made during the verification process in `decision-log.md`",
       "verificationCriteria": "1. All module batch verification tasks have been completed successfully.\n2. All identified issues have been addressed or documented.\n3. Cross-module consistency has been verified.\n4. The final verification report is comprehensive and detailed.\n5. Memory Bank files have been updated to reflect the completion of the verification process.\n6. The documentation is deemed ready for OpenAPI specification federation.",
       "analysisResult": "This task represents the final step in the hierarchical verification process, where findings from all modules and endpoints are consolidated and the documentation is prepared for OpenAPI specification federation."
+    },
+    {
+      "id": "98745f60-b757-4cc9-aa39-9ee8c0048234",
+      "name": "Fix Schema References in Validation Module OpenAPI Fragment",
+      "description": "Update error response schema references in the validation module's OpenAPI fragment from CommonSchemas.yaml to ErrorResponse.yaml for consistency with the rest of the API documentation.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "fdeb7091-513a-44f5-a16f-4647cfe07d41"
+        }
+      ],
+      "createdAt": "2025-05-19T13:32:42.927Z",
+      "updatedAt": "2025-05-19T13:32:42.927Z",
+      "relatedFiles": [
+        {
+          "path": "memory-bank/api_documentation/openapi_fragments/validation/checkFlowValidation.yaml",
+          "type": "TO_MODIFY",
+          "description": "OpenAPI fragment file that needs schema reference updates"
+        },
+        {
+          "path": "memory-bank/api_documentation/schemas/shared/ErrorResponse.yaml",
+          "type": "REFERENCE",
+          "description": "Target schema file that should be referenced"
+        }
+      ],
+      "implementationGuide": "1. Open the OpenAPI fragment file at `memory-bank/api_documentation/openapi_fragments/validation/checkFlowValidation.yaml`.\n2. Locate all instances (404, 412, and 500 error responses) where schema references point to `../../schemas/shared/CommonSchemas.yaml#/components/schemas/ErrorResponse`.\n3. Update each reference to use `../../schemas/shared/ErrorResponse.yaml#/components/schemas/ErrorResponse` instead.\n4. Verify that the updated references are correctly formatted and properly linked.\n5. Save the updated file.",
+      "verificationCriteria": "Verification is complete when all error response schema references in the checkFlowValidation.yaml file are updated to point to ErrorResponse.yaml instead of CommonSchemas.yaml, and the references are correctly formatted and working properly."
     }
   ]
 }
