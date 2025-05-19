@@ -52,7 +52,7 @@ This document tracks the progress of our API documentation review process, ensur
 | public-chatbots | ✅ | ✅ | ✅ | ✅ | Fixed path to match actual route registration (/public-chatbotConfig), corrected schema references, and added implementation notes highlighting path parameter behavior |
 | public-chatflows | ✅ | ✅ | ✅ | ✅ | Updated schema references, marked ID as optional in the path (supporting both '/' and '/:id'), and added implementation notes about conditional ID requirement |
 | public-executions | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, enhanced documentation with implementation details about credential redaction, added notes about the dual paths support and potential error cases |
-| stats | ⏳ | ⏳ | ⏳ | ⏳ | |
+| stats | ✅ | ✅ | ✅ | ✅ | Updated schema references from CommonSchemas to ErrorResponse.yaml, enhanced endpoint analysis with detailed implementation notes focusing on parameter handling and error responses, and clarified dual path support with its limitations |
 | tools | ⏳ | ⏳ | ⏳ | ⏳ | |
 | upsert-history | ⏳ | ⏳ | ⏳ | ⏳ | |
 | validation | ⏳ | ⏳ | ⏳ | ⏳ | |
@@ -63,8 +63,8 @@ This document tracks the progress of our API documentation review process, ensur
 
 ## Review Process Summary
 
-- **Modules Reviewed**: 34/47 (72.3%)
-- **Modules Pending**: 8/47 (17.0%)
+- **Modules Reviewed**: 35/47 (74.5%)
+- **Modules Pending**: 7/47 (14.9%)
 - **Modules Excluded**: 5/47 (10.6%)
 - **Modules With Issues**: 0/47 (0%)
 
