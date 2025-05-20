@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+The process thought tool provided by a Shrimp Task Manager is a self-reflection tool that allows you to sequentially and in a guided manner work through complex processes as we begin the execution of a given task. 
+
+It is a requirement to call this at least once—but oftentimes multiple times—by setting nextThought true in order to actually correctly think through these complex situations. You should not be verbosely telling the user what your thought is; you should be using that within the content and context of the process thought tool and then analyzing the response that tool provides until you have completed your series of process thought calls. 
