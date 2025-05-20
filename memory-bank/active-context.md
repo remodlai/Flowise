@@ -83,17 +83,23 @@
 
 ## Ongoing Tasks
 
-- Apply tactical fixes to service methods for all 9 entities to default new ownership columns (applicationId, userId, organizationId) to prevent NOT NULL constraint violations. First was ChatFlow, 8 remain.
+- Major Ongoing Initiative: Platform Architecture Refactor (Phase 3 - Staged)
+-   Step 3.1: Create new `remodl-core-platform` Git repository & populate from current `feature/platform-data-ownership-fields` branch. This new repo will be a monorepo.
+-   Step 3.2: Within the new `remodl-core-platform` repo, refactor/develop `packages/remodl-platform-ui` (admin/dev UI) and make necessary internal code changes (e.g., `credentialId` refactor in `packages/server` and `components`).
+-   Step 3.3: Implement API Gateway (Zuplo) to manage platform authentication, context extraction, and routing to the `server` component of `remodl-core-platform` and other platform services.
+-   Step 3.4: Refactor Remodl Core service layer within `remodl-core-platform`'s `packages/server` to remove tactical fixes and utilize platform context passed by API Gateway for data creation and scoping.
+-   (Phase 1: DB Validation on test-tables - COMPLETED)
+-   (Phase 2: DB Schema Changes for Ownership - COMPLETED & Validated on test-tables and Sam DB)
 ## Known Issues
 
 - Temporary tactical fixes in service layer are technical debt and MUST be removed/refactored in Phase 3 with proper platform context propagation.
 ## Next Steps
 
-- 1. Identify and apply tactical fixes to service methods for ApiKey, DocumentStore, Credential, Variable, CustomTemplate, ChatMessageFeedback, Tool, UpsertHistory.
-- 2. After fixes, conduct basic CRUD testing for these entities on the 'Sam' database.
-- 3. Then, begin detailed planning for Phase 3: Architectural Refactoring for Private Packages.
+- Begin detailed planning for Phase 3, Step 1: Create the new `remodl-core-platform` Git repository and populate it with the current codebase from the `feature/platform-data-ownership-fields` branch.
 ## Current Session Notes
 
+- [3:10:48 PM] [Unknown User] Finalized Strategy for Phase 3: Dedicated Monorepo for Remodl Core Platform: Decided that Phase 3 will involve creating a new, separate Git monorepo ('remodl-core-platform') containing the adapted server, components, and a new platform admin UI (remodl-platform-ui). These will use workspace linking, not internal NPM packaging. Future end-user apps will be in other repos and interact via API Gateway.
+- [2:55:44 PM] [Unknown User] Refined Plan for Phase 3: Architectural Refactor: Revised Phase 3 into a more granular, sequential plan: 1. Create new Remodl-Platform repo. 2. Implement private NPM package strategy for Remodl Core. 3. Implement API Gateway. 4. Refactor Remodl Core service layer to use platform context. This provides a clearer roadmap for the architectural evolution.
 - [2:45:59 PM] [Unknown User] Commenced Tactical Service Layer Fixes (Pre-Phase 3): Phase 2 (DB schema changes for ownership) complete and validated on test-tables, and migrations run on Sam DB. Now applying temporary fixes to service layer methods to inject default ownership field values (e.g., DEFAULT_PLATFORM_APP_ID) to prevent NOT NULL constraint violations when creating entities. This unblocks testing before full Phase 3 service layer refactor for platform context propagation.
 - [2:45:52 PM] [Unknown User] Decision Made: Tactical Defaulting of Ownership Fields in Service Layer (Pre-Phase 3)
 - [1:19:35 PM] [Unknown User] Phase 2 (Implement API Key & Data Ownership Migrations) Successfully Completed: All planned Remodl Core entity modifications (9 tables + ApiKey) and new TypeORM migrations (bootstrap for platform placeholders, main ownership fields) have been implemented. These changes were successfully validated on the 'test-tables' Supabase PostgreSQL instance. The Remodl Core database schema now includes the necessary columns to support platform data tenancy.
