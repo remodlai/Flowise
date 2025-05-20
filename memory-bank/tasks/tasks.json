@@ -3,11 +3,11 @@
     {
       "id": "f5386303-0bda-420c-9959-ed002324c7cc",
       "name": "P2.1: Branch Creation & Bootstrap Migration Implementation",
-      "description": "Create a new Git branch for Phase 2. Generate and implement the initial TypeORM bootstrap migration (e.g., 0000...-EnsurePlatformPrerequisites.ts) to create minimal placeholder versions of platform tables (`applications`, `organizations`, `user_profiles`, `user_sessions`) using `CREATE TABLE IF NOT EXISTS`.",
-      "status": "待處理",
+      "description": "Create a new Git branch for Phase 2 (e.g., `feature/platform-data-ownership-fields`). Generate and implement the initial TypeORM bootstrap migration (e.g., `0000...-EnsurePlatformPrerequisites.ts`). This migration will use `CREATE TABLE IF NOT EXISTS` to create minimal placeholder versions of essential platform tables: `public.applications` (id uuid PK, name text NOT NULL DEFAULT 'Default Application'), `public.organizations` (id uuid PK, name text NOT NULL DEFAULT 'Default Organization'), `public.user_profiles` (id uuid PK, user_auth_id uuid UNIQUE NOT NULL, email text - where `user_auth_id` links to `auth.users.id`), and `public.user_sessions` (id uuid PK, remodl_core_session_id text UNIQUE, platform_user_id uuid, platform_organization_id uuid, platform_application_id uuid, remodl_core_chat_flow_id uuid, timestamps, status). This ensures foundational tables for platform context exist for development and testing Remodl Core's new ownership features.",
+      "status": "進行中",
       "dependencies": [],
       "createdAt": "2025-05-20T14:53:48.036Z",
-      "updatedAt": "2025-05-20T14:53:48.036Z",
+      "updatedAt": "2025-05-20T15:16:47.047Z",
       "relatedFiles": [
         {
           "path": "packages/server/src/database/migrations/postgres/",
@@ -15,7 +15,7 @@
           "description": "Directory for new bootstrap migration file."
         }
       ],
-      "implementationGuide": "1. Propose branch name `feature/platform-data-ownership-fields`. On confirmation, create and checkout branch using git commands. 2. Generate new empty migration file named starting with '0000000000000-EnsurePlatformPrerequisites' using TypeORM CLI. 3. Edit the `up()` method of this migration to add `CREATE TABLE IF NOT EXISTS` SQL for `public.applications` (id uuid PK, name text), `public.organizations` (id uuid PK, name text), `public.user_profiles` (id uuid PK, user_auth_id uuid UNIQUE), and `public.user_sessions` (id uuid PK, remodl_core_session_id text UNIQUE, platform_user_id uuid, platform_organization_id uuid, platform_application_id uuid, remodl_core_chat_flow_id uuid, plus timestamps). Ensure `down()` method is empty or cautious. 4. Commit the new migration file.",
+      "implementationGuide": "1. Confirm branch name `feature/platform-data-ownership-fields` and base branch (default to `remodel-v2-base`) with the user. 2. Upon confirmation, use `run_terminal_cmd` to execute `git checkout [base_branch]`, then `git branch feature/platform-data-ownership-fields`, then `git checkout feature/platform-data-ownership-fields`. 3. Use `run_terminal_cmd` to generate a new empty migration file named starting with `0000000000000-EnsurePlatformPrerequisites` (e.g., `pnpm --filter flowise typeorm:migration-generate src/database/migrations/postgres/0000000000000-EnsurePlatformPrerequisites`). 4. Use `read_file` to get the content of the new migration. 5. Use `edit_file` to populate the `up()` method of this migration file with the correct `CREATE TABLE IF NOT EXISTS` SQL statements for `public.applications`, `public.organizations`, `public.user_profiles` (including `user_auth_id uuid UNIQUE NOT NULL`), and `public.user_sessions` (with all specified minimal columns like `remodl_core_session_id`, `platform_user_id`, `platform_organization_id`, `platform_application_id`, `remodl_core_chat_flow_id`, and relevant timestamps/status). Ensure the `down()` method is empty or contains only commented-out, cautious `DROP TABLE` statements. 6. Use `run_terminal_cmd` to `git add` the new migration file. 7. Use `run_terminal_cmd` to `git commit -m \"feat: Add bootstrap migration for platform prerequisite tables (applications, organizations, user_profiles, user_sessions)\"`.",
       "verificationCriteria": "New git branch created. Bootstrap migration file created, populated with `CREATE TABLE IF NOT EXISTS` for four platform placeholder tables, and committed."
     },
     {

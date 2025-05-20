@@ -696,3 +696,14 @@
   - Remodl Core creating full authoritative platform tables
 - **Consequences:** 
   - None
+
+## Refined Minimal Schema for `user_profiles` in Bootstrap Migration
+- **Date:** 2025-05-20 11:14:44 AM
+- **Author:** Unknown User
+- **Context:** Remodl Core Database Migration Strategy for Platform Integration
+- **Decision:** The initial Remodl Core bootstrap migration will create `public.user_profiles` (if not exists) with `id uuid PK` and `user_auth_id uuid UNIQUE NOT NULL` (to link to `auth.users.id`) and a placeholder `email text` column. This aligns better with Supabase conventions and provides a clear link for `userId` fields in Remodl Core tables.
+- **Alternatives Considered:** 
+  - Bootstrap migration creates a very generic user_profiles table
+  - Bootstrap migration does not create user_profiles table at all
+- **Consequences:** 
+  - None
