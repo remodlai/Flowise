@@ -281,3 +281,35 @@ To facilitate AI-assisted development and maintain a clear understanding of proj
         *   `applicationId`: **NOT NULLABLE**. Custom tools are scoped to a specific platform Application (or the default platform application for globally available tools).
         *   `organizationId`: **NOT to be added directly.** Organization-specific tool variations or visibility would be managed by application logic or how tools are presented/selected within chatflows, rather than direct DB-level org scoping on the tool definition itself.
         *   `userId`: **NULLABLE**. Represents the Platform User who created the custom tool. Can be NULL for system-provided/application-default tools.
+
+    *   **`UpsertHistory` Table (`upsert_history`):**
+        *   `applicationId`: **NOT NULLABLE**. Represents the platform Application context *for which the data was upserted*. This is passed by the calling service (e.g., API Gateway/platform backend) and might differ from the `applicationId` of the `chatflowid` on the record if generic/template flows are used for upsertion across different applications.
+        *   `organizationId`: **NULLABLE**. Represents the specific platform Organization context if the upserted data is organization-specific. Passed by the calling service. Can be NULL if the upsert is for application-global data.
+        *   `userId`: **NULLABLE**. Represents the platform User who *initiated* the upsert action. Passed by the calling service. Can be NULL for system-initiated upserts.
+        *   The existing `chatflowid` column links to the (potentially internal/utility) chat flow definition that executed the upsert pipeline.
+
+-   **Prerequisite for Platform Tables:** Remodl Core migrations that add platform-specific foreign key-like columns (e.g., `applicationId`) logically depend on the existence of corresponding platform tables (e.g., `public.applications`) in the target database.
+    -   **Bootstrap Migration (Development/Initial Setup):** To facilitate smoother initial development and testing, Remodl Core will include a very early TypeORM migration (e.g., `0000000000000-EnsurePlatformPrerequisites.ts`). This migration will:
+        -   Check for the existence of `public.applications`, `public.organizations`, `public.user_profiles`, and the crucial `public.user_sessions` (or `platform_chat_sessions`) table.
+        -   If a table does not exist, it will be created using `CREATE TABLE IF NOT EXISTS` with a minimal viable schema (e.g., `id uuid PRIMARY KEY`, essential name/identifier columns like `name` or `email`, and key foreign key-like columns for `user_sessions`).
+        -   This is purely a bootstrapping mechanism for development and does **not** replace the platform's own authoritative schema management for these tables.
+    -   **Authoritative Schema Management:** The complete and authoritative schema for platform-specific tables (`applications`, `organizations`, `user_profiles`, `user_sessions`, etc.) **must be managed by the Remodl AI Platform's own migration system** (e.g., Supabase CLI migrations), not by Remodl Core's TypeORM migrations.
+    -   **Foreign Key Constraints:** Initially, columns like `applicationId` in Remodl Core tables, and logical links like `sessionId` to `user_sessions`, will be simple types without database-level FOREIGN KEY constraints to the platform tables. This maintains looser coupling during schema evolution. Application logic will enforce referential integrity.
+
+### 6.9. Platform-Side Session Context Management Table (`user_sessions` or `platform_chat_sessions`)
+
+-   **Objective:** To correlate Remodl Core `sessionId`s (found in `chat_message` and `execution` tables) with the specific Remodl AI Platform `User`, `Organization`, and `Application` involved in that interactive session.
+-   **Responsibility & Creation:** While critical for Remodl Core's contextual data derivation, the authoritative schema for this table is managed by the Remodl AI Platform's own schema migrations (e.g., Supabase CLI). However, to ensure development and testing viability, the Remodl Core initial bootstrap migration (see 6.8 Prerequisite) will execute a `CREATE TABLE IF NOT EXISTS public.user_sessions (...)` with a minimal viable schema if it's missing.
+-   **Essential Columns (Conceptual - to be defined authoritatively by platform migrations):**
+    *   `id` (uuid, PK for this session record)
+    *   `remodl_core_session_id` (text or uuid, indexed, unique for active sessions): Stores the `sessionId` from Remodl Core.
+    *   `platform_user_id` (uuid, FK to platform's user table, NOT NULL): The authenticated platform user for this session.
+    *   `platform_organization_id` (uuid, FK to platform's organization table, NOT NULL): The organization context for this session.
+    *   `platform_application_id` (uuid, FK to platform's application table, NOT NULL): The application context for this session.
+    *   `remodl_core_chat_flow_id` (uuid, FK to Remodl Core's `chat_flow.id`, NOT NULL): The specific chat flow this session is interacting with.
+    *   `session_start_time` (timestamp with time zone, `default now()`, NOT NULL)
+    *   `last_activity_time` (timestamp with time zone, `default now()`)
+    *   `status` (text, e.g., 'active', 'ended', 'expired', `default 'active'`)
+    *   `metadata` (jsonb, NULLABLE): For other session-specific data.
+-   **Workflow:** The platform backend/API Gateway is responsible for creating/updating records in this table when a user session starts and interacts with a Remodl Core chat flow, linking the Remodl Core `sessionId` to the full platform context.
+-   **Benefit:** Enables derivation of full platform context for `ChatMessage` and `Execution` records via their `sessionId` without needing to add redundant ownership columns directly to those high-volume Remodl Core tables.

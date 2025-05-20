@@ -641,3 +641,58 @@
   - Tools are only global
 - **Consequences:** 
   - None
+
+## Ownership/Context Strategy for UpsertHistory Table
+- **Date:** 2025-05-19 5:49:38 PM
+- **Author:** Unknown User
+- **Context:** Data Tenancy Model for Remodl Core Entities
+- **Decision:** UpsertHistory entities will have a non-nullable `applicationId` (for the data's target app context), a nullable `organizationId` (for org-specific data context), and a nullable `userId` (for the initiator of the upsert). This provides direct context for the upsert event itself.
+- **Alternatives Considered:** 
+  - UpsertHistory only derives context from chatflowid
+  - UpsertHistory has no platform context
+- **Consequences:** 
+  - None
+
+## Bootstrap Migration for Platform Table Prerequisites
+- **Date:** 2025-05-20 10:34:42 AM
+- **Author:** Unknown User
+- **Context:** Remodl Core Database Migration Strategy for Platform Integration
+- **Decision:** Remodl Core will include an initial TypeORM migration (e.g., 0000...-EnsurePlatformPrerequisites.ts) to run first. This migration will use `CREATE TABLE IF NOT EXISTS` to create minimal placeholder versions of essential platform tables (`applications`, `organizations`, `user_profiles`) if they are missing. This is a developer bootstrap measure; authoritative schema management for these tables remains with the platform's dedicated migration tools (e.g., Supabase CLI). Remodl Core's new ownership columns will not initially have hard FK constraints to these platform tables.
+- **Alternatives Considered:** 
+  - Manual pre-creation of platform tables by user
+  - Remodl Core startup script checks and warns only
+- **Consequences:** 
+  - None
+
+## Strategy for Platform-Level Session Context Table and Linking
+- **Date:** 2025-05-20 10:41:00 AM
+- **Author:** Unknown User
+- **Context:** Data Tenancy and Contextualization Strategy
+- **Decision:** A platform-level `user_sessions` (or `platform_chat_sessions`) table will be created and managed by platform migrations (e.g., Supabase CLI). This table will link Remodl Core's `sessionId` to `platform_user_id`, `platform_organization_id`, and `platform_application_id`. Remodl Core's `ChatMessage` and `Execution` tables will rely on this external table via their `sessionId` for full runtime platform context, instead of having these platform IDs added directly to them.
+- **Alternatives Considered:** 
+  - Adding all platform context fields directly to ChatMessage/Execution tables
+  - No session-to-platform context linking
+- **Consequences:** 
+  - None
+
+## Expanded Bootstrap Migration to Include Minimal User Sessions Table
+- **Date:** 2025-05-20 10:42:31 AM
+- **Author:** Unknown User
+- **Context:** Remodl Core Database Migration Strategy for Platform Integration
+- **Decision:** The initial Remodl Core bootstrap migration (e.g., 0000...-EnsurePlatformPrerequisites.ts) will be expanded. In addition to `applications`, `organizations`, and `user_profiles`, it will also use `CREATE TABLE IF NOT EXISTS` to create a minimal placeholder for the `public.user_sessions` (or `platform_chat_sessions`) table if it's missing. This ensures all structurally linked tables for tenancy and session context are present in a skeletal form for development. Authoritative schema management for all these platform tables remains with the platform's dedicated migration tools.
+- **Alternatives Considered:** 
+  - Platform tables created only by platform migrations
+  - Remodl Core startup script checks and warns only
+- **Consequences:** 
+  - None
+
+## Expanded Bootstrap Migration to Include Minimal User Sessions Table & Clarify Minimal Schema
+- **Date:** 2025-05-20 10:45:18 AM
+- **Author:** Unknown User
+- **Context:** Remodl Core Database Migration Strategy for Platform Integration
+- **Decision:** The initial Remodl Core bootstrap migration will ensure minimal placeholder versions of `applications`, `organizations`, `user_profiles`, AND `user_sessions` tables are created using `CREATE TABLE IF NOT EXISTS` if they are missing. This is for dev bootstrap only; authoritative schema management for these tables is the platform's responsibility via its own migration tools (e.g., Supabase CLI).
+- **Alternatives Considered:** 
+  - Platform tables managed solely by platform migrations with no Remodl Core awareness
+  - Remodl Core creating full authoritative platform tables
+- **Consequences:** 
+  - None
