@@ -1,116 +1,155 @@
 {
   "tasks": [
     {
-      "id": "8913df80-f360-40a0-a248-6a0cad07d13b",
-      "name": "P1.1: Preparation - Branch Creation and Environment Variable Guidance",
-      "description": "Create a new Git branch for testing existing Remodl Core migrations on Supabase. Provide clear guidance to the user on the exact environment variables required for PostgreSQL connection (DATABASE_TYPE, DATABASE_HOST, DATABASE_PORT, DATABASE_NAME, DATABASE_USER, DATABASE_PASSWORD, PGSSLMODE) and where they should be set (e.g., packages/server/.env file).",
-      "status": "已完成",
+      "id": "f5386303-0bda-420c-9959-ed002324c7cc",
+      "name": "P2.1: Branch Creation & Bootstrap Migration Implementation",
+      "description": "Create a new Git branch for Phase 2. Generate and implement the initial TypeORM bootstrap migration (e.g., 0000...-EnsurePlatformPrerequisites.ts) to create minimal placeholder versions of platform tables (`applications`, `organizations`, `user_profiles`, `user_sessions`) using `CREATE TABLE IF NOT EXISTS`.",
+      "status": "待處理",
       "dependencies": [],
-      "createdAt": "2025-05-19T18:04:10.425Z",
-      "updatedAt": "2025-05-19T19:31:35.460Z",
+      "createdAt": "2025-05-20T14:53:48.036Z",
+      "updatedAt": "2025-05-20T14:53:48.036Z",
       "relatedFiles": [
         {
-          "path": "packages/server/.env.example",
-          "type": "REFERENCE",
-          "description": "Reference for typical environment variable names if it exists."
-        },
-        {
-          "path": "CONTRIBUTING.md",
-          "type": "REFERENCE",
-          "description": "Reference for documented environment variables."
+          "path": "packages/server/src/database/migrations/postgres/",
+          "type": "CREATE",
+          "description": "Directory for new bootstrap migration file."
         }
       ],
-      "implementationGuide": "1. Propose a branch name (e.g., feature/validate-pg-migrations-supabase) to the user and await confirmation or an alternative. 2. Upon confirmation, use `run_terminal_cmd` to execute `git branch [confirmed_branch_name]` and then `git checkout [confirmed_branch_name]`. 3. Formulate and present a clear, itemized list of PostgreSQL environment variables and instruct the user to configure them in their local environment for the `packages/server` to connect to their Supabase instance. Confirm with the user once they have set these variables.",
-      "verificationCriteria": "Git branch is successfully created and checked out. User confirms that the necessary PostgreSQL environment variables have been set in their local environment for the packages/server.",
-      "summary": "Phase 1 preparations complete: Branch 'feature/validate-pg-migrations-supabase' created and checked out. User confirmed PostgreSQL environment variables for Supabase are set in packages/server/.env. Ready to proceed with investigating migration execution method.",
-      "completedAt": "2025-05-19T19:31:35.460Z"
+      "implementationGuide": "1. Propose branch name `feature/platform-data-ownership-fields`. On confirmation, create and checkout branch using git commands. 2. Generate new empty migration file named starting with '0000000000000-EnsurePlatformPrerequisites' using TypeORM CLI. 3. Edit the `up()` method of this migration to add `CREATE TABLE IF NOT EXISTS` SQL for `public.applications` (id uuid PK, name text), `public.organizations` (id uuid PK, name text), `public.user_profiles` (id uuid PK, user_auth_id uuid UNIQUE), and `public.user_sessions` (id uuid PK, remodl_core_session_id text UNIQUE, platform_user_id uuid, platform_organization_id uuid, platform_application_id uuid, remodl_core_chat_flow_id uuid, plus timestamps). Ensure `down()` method is empty or cautious. 4. Commit the new migration file.",
+      "verificationCriteria": "New git branch created. Bootstrap migration file created, populated with `CREATE TABLE IF NOT EXISTS` for four platform placeholder tables, and committed."
     },
     {
-      "id": "aa1ea31e-44aa-4f6b-8011-d5d3eba9c4bc",
-      "name": "P1.2: Investigation - Determine Migration Execution Method",
-      "description": "Investigate and determine the precise method for executing TypeORM migrations in the Remodl Core (Flowise) project. This involves checking for dedicated migration scripts in package.json and looking for automatic migration logic in DataSource or application startup files.",
-      "status": "已完成",
+      "id": "e7761dac-4b1c-4515-8401-3b8adfa7a8c3",
+      "name": "P2.2: Core Entity Modifications for Ownership",
+      "description": "Modify all 10 specified Remodl Core TypeORM entity files to add new platform ownership columns (`applicationId`, `organizationId`, `userId`) and update `ApiKey` entity as per `system-patterns.md` section 6.8.",
+      "status": "待處理",
       "dependencies": [
         {
-          "taskId": "8913df80-f360-40a0-a248-6a0cad07d13b"
+          "taskId": "f5386303-0bda-420c-9959-ed002324c7cc"
         }
       ],
-      "createdAt": "2025-05-19T18:04:10.425Z",
-      "updatedAt": "2025-05-19T19:33:59.561Z",
+      "createdAt": "2025-05-20T14:53:48.036Z",
+      "updatedAt": "2025-05-20T14:53:48.036Z",
       "relatedFiles": [
         {
-          "path": "packages/server/package.json",
+          "path": "packages/server/src/database/entities/ApiKey.ts",
           "type": "TO_MODIFY",
-          "description": "Check for migration scripts."
+          "description": "Modify ApiKey entity."
         },
         {
-          "path": "packages/server/src/DataSource.ts",
-          "type": "REFERENCE",
-          "description": "Check for automatic migration configuration."
+          "path": "packages/server/src/database/entities/ChatFlow.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify ChatFlow entity."
         },
         {
-          "path": "packages/server/src/index.ts",
-          "type": "REFERENCE",
-          "description": "Check for migration calls during startup."
+          "path": "packages/server/src/database/entities/DocumentStore.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify DocumentStore entity."
+        },
+        {
+          "path": "packages/server/src/database/entities/Credential.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify Credential entity."
+        },
+        {
+          "path": "packages/server/src/database/entities/Variable.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify Variable entity."
+        },
+        {
+          "path": "packages/server/src/database/entities/CustomTemplate.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify CustomTemplate entity."
+        },
+        {
+          "path": "packages/server/src/database/entities/ChatMessageFeedback.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify ChatMessageFeedback entity."
+        },
+        {
+          "path": "packages/server/src/database/entities/Tool.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify Tool entity."
+        },
+        {
+          "path": "packages/server/src/database/entities/UpsertHistory.ts",
+          "type": "TO_MODIFY",
+          "description": "Modify UpsertHistory entity."
         }
       ],
-      "implementationGuide": "1. Use `read_file` to inspect `packages/server/package.json`. Search for scripts related to TypeORM migrations (e.g., `db:migrate`, `typeorm:migration:run`, `migration:run`). 2. Use `read_file` to inspect `packages/server/src/DataSource.ts`. Look for `migrationsRun: true` in `DataSourceOptions` or any explicit calls to `.runMigrations()`. 3. If not found in `DataSource.ts`, use `read_file` to inspect `packages/server/src/index.ts` (or the main server startup file) to see if migrations are run during the application initialization sequence. 4. Document the findings: either the exact PNPM script to run migrations or confirmation that migrations are run automatically on startup.",
-      "verificationCriteria": "The exact command or startup behavior that triggers TypeORM migrations is identified and documented. If a script, the script name is known. If automatic, the relevant code section is identified.",
-      "summary": "Successfully determined migration execution methods. Primary: Migrations run automatically on server startup due to an explicit `AppDataSource.runMigrations()` call in `packages/server/src/index.ts` after DataSource initialization. Secondary: An explicit script `pnpm --filter flowise typeorm:migration-run` is also available in `packages/server/package.json`.",
-      "completedAt": "2025-05-19T19:33:59.561Z"
+      "implementationGuide": "For each of the 10 entities (`ApiKey`, `ChatFlow`, `DocumentStore`, `Credential`, `Variable`, `CustomTemplate`, `ChatMessageFeedback`, `Tool`, `UpsertHistory` in `packages/server/src/database/entities/`): 1. Read entity file. 2. Edit to add `@Column` decorators for `applicationId`, `organizationId`, `userId` with correct types/nullability per `system-patterns.md` 6.8. 3. For `ApiKey.ts`, also change `id` to `@PrimaryGeneratedColumn(\"uuid\")` and add `@CreateDateColumn() createdDate: Date;`. 4. Commit all entity changes.",
+      "verificationCriteria": "All 10 entity files updated with correct ownership columns, types, nullability, and `ApiKey` specific changes, then committed."
     },
     {
-      "id": "14cc0958-2a50-4c6e-8d6b-d264ee6efff2",
-      "name": "P1.3: Execution & Verification - Run Migrations and Validate Schema (User-Assisted)",
-      "description": "Guide the user to execute the TypeORM migrations (based on the method determined in P1.2) against their Supabase PostgreSQL instance. Then, instruct the user to manually verify the database schema.",
-      "status": "已完成",
+      "id": "57ffefd7-2f8e-4769-975d-b12489a9b675",
+      "name": "P2.3: Main Ownership Migration - Generation & Refinement",
+      "description": "Generate the main TypeORM migration for all entity changes. Critically review and manually refine the generated SQL to correctly handle adding `NOT NULL` columns with defaults to existing tables in the \"Sam\" database.",
+      "status": "待處理",
       "dependencies": [
         {
-          "taskId": "aa1ea31e-44aa-4f6b-8011-d5d3eba9c4bc"
+          "taskId": "e7761dac-4b1c-4515-8401-3b8adfa7a8c3"
         }
       ],
-      "createdAt": "2025-05-19T18:04:10.425Z",
-      "updatedAt": "2025-05-19T19:37:16.044Z",
+      "createdAt": "2025-05-20T14:53:48.036Z",
+      "updatedAt": "2025-05-20T14:53:48.036Z",
       "relatedFiles": [
         {
-          "path": "packages/server/src/database/migrations/postgres",
-          "type": "REFERENCE",
-          "description": "Directory containing the existing migrations to be validated."
+          "path": "packages/server/src/database/migrations/postgres/",
+          "type": "CREATE",
+          "description": "Directory for new ownership migration file."
         }
       ],
-      "implementationGuide": "1. Based on the findings from P1.2, provide the user with the exact command to run (e.g., `pnpm --filter flowise run [script_name]` or `pnpm --filter flowise dev`). 2. Instruct the user to execute this command in their terminal where the environment variables (from P1.1) are set. 3. Ask the user to monitor their console output for any TypeORM migration logs or error messages and report them back. 4. Instruct the user to connect to their Supabase PostgreSQL database instance (using pgAdmin, Supabase Studio, or psql) and verify: (a) The presence of all expected Flowise tables (e.g., chat_flow, api_key, credential, tool, variable, upsert_history, document_store). (b) That the table schemas (columns, types, constraints) generally match what is expected from the existing migration files in `packages/server/src/database/migrations/postgres`. 5. Await user confirmation of success or any issues encountered.",
-      "verificationCriteria": "User confirms that migrations have been executed. User confirms whether the database schema in Supabase appears correct and all expected tables are present. Any errors from the migration process are captured.",
-      "summary": "User confirmed that all tables were created properly in the Supabase 'test-tables' project after migrations ran on server startup. User also performed initial testing and confirmed tables write data as expected. Phase 1 validation of existing migrations is successful.",
-      "completedAt": "2025-05-19T19:37:16.044Z"
+      "implementationGuide": "1. Generate main ownership migration using TypeORM CLI (e.g., `AddPlatformOwnershipFields`). 2. Read the new migration file. 3. Meticulously review SQL. 4. Edit the `up()` method: for each new `NOT NULL` column on existing tables, ensure a 3-step SQL process (ADD NULLable, UPDATE with default, ALTER to NOT NULL). Verify `ApiKey.id` and `createdDate` changes. Ensure `down()` method is correct. 5. Commit refined migration.",
+      "verificationCriteria": "Main ownership migration file created and SQL refined for safe application to existing tables with data. Changes committed."
     },
     {
-      "id": "c84c7a05-73ea-4504-a8bd-e068375338c3",
-      "name": "P1.4: Documentation - Record Phase 1 Outcome",
-      "description": "Document the outcome of Phase 1 (validation of existing migrations on Supabase) in the Memory Bank.",
-      "status": "已完成",
+      "id": "c5f7c218-a7ee-42e3-a7a2-d46525f5b26e",
+      "name": "P2.4: Migration Execution & Validation (User-Assisted)",
+      "description": "Guide the user to run all TypeORM migrations against the \"Sam\" Supabase project and validate the schema changes.",
+      "status": "待處理",
       "dependencies": [
         {
-          "taskId": "14cc0958-2a50-4c6e-8d6b-d264ee6efff2"
+          "taskId": "57ffefd7-2f8e-4769-975d-b12489a9b675"
         }
       ],
-      "createdAt": "2025-05-19T18:04:10.425Z",
-      "updatedAt": "2025-05-19T19:38:32.886Z",
+      "createdAt": "2025-05-20T14:53:48.036Z",
+      "updatedAt": "2025-05-20T14:53:48.036Z",
+      "relatedFiles": [
+        {
+          "path": "packages/server/.env",
+          "type": "REFERENCE",
+          "description": "Reference for DB connection."
+        }
+      ],
+      "implementationGuide": "1. User confirms .env points to \"Sam\" DB. 2. Instruct user to run all migrations (e.g., `pnpm --filter flowise typeorm:migration:run`). 3. User monitors console. 4. Use `mcp_supabase-db_list_tables` for \"Sam\" project. 5. Guide user schema validation: check placeholder tables, new columns in 9 Remodl Core tables, `ApiKey` structure updates. 6. Await user confirmation.",
+      "verificationCriteria": "User confirms successful migration execution on \"Sam\" DB. Schema changes (new columns, ApiKey structure, placeholder tables) are verified via `list_tables` and user inspection."
+    },
+    {
+      "id": "fc0d1c97-25da-4b62-be7c-8f6328af0d01",
+      "name": "P2.5: Documentation - Record Phase 2 Outcome",
+      "description": "Document the outcome of Phase 2 (Implementation of API Key & Data Ownership Migrations) in the Memory Bank.",
+      "status": "待處理",
+      "dependencies": [
+        {
+          "taskId": "c5f7c218-a7ee-42e3-a7a2-d46525f5b26e"
+        }
+      ],
+      "createdAt": "2025-05-20T14:53:48.036Z",
+      "updatedAt": "2025-05-20T14:53:48.036Z",
       "relatedFiles": [
         {
           "path": "memory-bank/progress.md",
           "type": "TO_MODIFY",
-          "description": "Log Phase 1 outcome."
+          "description": "Log Phase 2 outcome."
         },
         {
           "path": "memory-bank/active-context.md",
           "type": "TO_MODIFY",
-          "description": "Update current status and next steps based on Phase 1 outcome."
+          "description": "Update current status and next steps."
         }
       ],
-      "implementationGuide": "1. Based on the user's feedback from P1.3: (a) If successful, log a success milestone in `progress.md` and update `active-context.md` to reflect completion of Phase 1 and readiness for Phase 2 planning. (b) If unsuccessful, log the issues encountered in `progress.md` and `active-context.md`, noting that Phase 1 requires debugging. 2. Use `mcp_memory-bank-mcp_track_progress` and `mcp_memory-bank-mcp_update_active_context` tools for these updates.",
-      "verificationCriteria": "Memory Bank (`progress.md`, `active-context.md`) is updated to accurately reflect the outcome of Phase 1, including any successes, failures, or errors encountered.",
-      "summary": "Successfully documented the completion of Phase 1 (Validate Existing Migrations on Supabase) in progress.md and updated active-context.md to reflect readiness for Phase 2.",
-      "completedAt": "2025-05-19T19:38:32.886Z"
+      "implementationGuide": "1. Based on P2.4 outcome: If successful, log success in `progress.md` & update `active-context.md` for Phase 3. If unsuccessful, log issues & note Phase 2 needs debugging. 2. Use Memory Bank tools for updates.",
+      "verificationCriteria": "Memory Bank (`progress.md`, `active-context.md`) accurately reflects Phase 2 outcome."
     }
   ]
 }
