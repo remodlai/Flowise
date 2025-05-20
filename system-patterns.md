@@ -1,0 +1,7 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+-   **General Approach:** Add `applicationId` (uuid), `organizationId` (uuid), and `userId` (uuid) columns to relevant Remodl Core tables. The nullability of `organizationId` and `userId` will depend on the specific entity and its relationship to these contexts. The `applicationId` on these entities will generally be non-nullable (potentially defaulting to a generic platform application ID if no specific app context is available during creation, with this default being handled by application logic).
+
+    -   **Transitional Service Layer Handling (Pre-Phase 3):** To prevent `NOT NULL` constraint violations when creating entities via existing API endpoints (before the service layer is fully updated in Phase 3 to accept platform context from the API Gateway), the `create` or `save` methods in the Remodl Core service layer for entities with a new non-nullable `applicationId` will be tactically modified. These methods will temporarily inject `process.env.DEFAULT_PLATFORM_APP_ID` (or a hardcoded fallback like `'3b702f3b-5749-4bae-a62e-fb967921ab80'`) if an `applicationId` is not already present on the incoming entity data. Similarly, new nullable `userId` or `organizationId` fields will be defaulted to `null` if not provided. This is a temporary measure and will be replaced by proper context propagation in Phase 3.
+
+-   **Specific Entity Decisions:** 

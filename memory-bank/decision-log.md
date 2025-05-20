@@ -707,3 +707,16 @@
   - Bootstrap migration does not create user_profiles table at all
 - **Consequences:** 
   - None
+
+## Tactical Defaulting of Ownership Fields in Service Layer (Pre-Phase 3)
+- **Date:** 2025-05-20 2:45:52 PM
+- **Author:** Unknown User
+- **Context:** After successfully migrating the database (Phase 2) to include new NOT NULL `applicationId` columns (and other nullable ownership fields) on several Remodl Core entities, attempting to create these entities via existing API endpoints will cause NOT NULL constraint violations because the current service layer does not yet supply these new fields. Phase 3 will involve refactoring the service layer and API gateway to properly propagate platform context.
+- **Decision:** Apply tactical, temporary modifications to the `create` or `save` methods in the Remodl Core service layer for all entities that received a new non-nullable `applicationId`. These methods will inject a default `applicationId` (from `process.env.DEFAULT_PLATFORM_APP_ID` or a hardcoded fallback) if one is not provided. New nullable `userId` and `organizationId` fields will be defaulted to `null` if not provided by the (current, unmodified) client/API calls. This will unblock testing and basic functionality until Phase 3 is implemented.
+- **Alternatives Considered:** 
+  - Leave service layer untouched and wait for Phase 3 (would block current testing).
+  - Make all new ownership columns nullable temporarily at DB level (defeats purpose of NOT NULL constraint).
+- **Consequences:** 
+  - Allows continued testing and basic operation of creating entities with the new schema.
+  - Introduces temporary technical debt in the service layer that MUST be removed during Phase 3.
+  - Ensures data integrity for `applicationId` by providing a default value.

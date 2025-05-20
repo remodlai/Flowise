@@ -83,26 +83,19 @@
 
 ## Ongoing Tasks
 
-- Major Ongoing Initiative: Platform Architecture Refactor & API Key Ownership
-- Phase 1: Validate Existing Migrations on Supabase (COMPLETED)
--   - P1.1: Preparation - Branch Creation and Environment Variable Guidance (COMPLETED)
--   - P1.2: Investigation - Determine Migration Execution Method (COMPLETED)
--   - P1.3: Execution & Verification - Run Migrations and Validate Schema (COMPLETED)
--   - P1.4: Documentation - Record Phase 1 Outcome (COMPLETED)
-- Phase 2: Implement API Key Ownership Migrations (PENDING)
-- Phase 3: Architectural Refactoring for Private Packages (PENDING)
+- Apply tactical fixes to service methods for all 9 entities to default new ownership columns (applicationId, userId, organizationId) to prevent NOT NULL constraint violations. First was ChatFlow, 8 remain.
 ## Known Issues
 
-- Build Error: `ChatFlow` entity/interface temporarily changed `applicationId` AND `userId` to optional to allow build to pass before migration P2.3 runs. This MUST be reverted to non-optional (userId to string|null, applicationId to string) after P2.4 is complete.
+- Temporary tactical fixes in service layer are technical debt and MUST be removed/refactored in Phase 3 with proper platform context propagation.
 ## Next Steps
 
-- Begin planning and execution of Phase 2: Implement API Key Ownership Migrations (create new branch, modify ApiKey entity, generate new migration, test).
-- Consolidate all OpenAPI fragments into a complete OpenAPI specification file.
-- Consider creating a summary report of patterns and standards used across all APIs.
-- Check/audit consistency of schema definitions and references across modules.
-- Plan for maintaining and updating API documentation as the codebase evolves.
+- 1. Identify and apply tactical fixes to service methods for ApiKey, DocumentStore, Credential, Variable, CustomTemplate, ChatMessageFeedback, Tool, UpsertHistory.
+- 2. After fixes, conduct basic CRUD testing for these entities on the 'Sam' database.
+- 3. Then, begin detailed planning for Phase 3: Architectural Refactoring for Private Packages.
 ## Current Session Notes
 
+- [2:45:59 PM] [Unknown User] Commenced Tactical Service Layer Fixes (Pre-Phase 3): Phase 2 (DB schema changes for ownership) complete and validated on test-tables, and migrations run on Sam DB. Now applying temporary fixes to service layer methods to inject default ownership field values (e.g., DEFAULT_PLATFORM_APP_ID) to prevent NOT NULL constraint violations when creating entities. This unblocks testing before full Phase 3 service layer refactor for platform context propagation.
+- [2:45:52 PM] [Unknown User] Decision Made: Tactical Defaulting of Ownership Fields in Service Layer (Pre-Phase 3)
 - [1:19:35 PM] [Unknown User] Phase 2 (Implement API Key & Data Ownership Migrations) Successfully Completed: All planned Remodl Core entity modifications (9 tables + ApiKey) and new TypeORM migrations (bootstrap for platform placeholders, main ownership fields) have been implemented. These changes were successfully validated on the 'test-tables' Supabase PostgreSQL instance. The Remodl Core database schema now includes the necessary columns to support platform data tenancy.
 - [1:19:27 PM] [Unknown User] Task Execution Plan Articulated for P2.5: Detailed plan for P2.5 (Documentation - Record Phase 2 Outcome) formulated via `process_thought`. Plan includes updating `progress.md` and `active-context.md` to reflect successful completion of Phase 2, readiness for Phase 3, and noting the need to revert temporary optional fields in ChatFlow entity/interface later.
 - [1:02:59 PM] [Unknown User] Task Execution Plan Articulated for P2.4: Detailed plan for P2.4 (Migration Execution & Validation on `test-tables`) formulated via `process_thought`. Plan covers user confirmation of .env for `test-tables`, migration execution command, console monitoring, and AI/user validation of schema changes including new placeholder tables and ownership columns.
