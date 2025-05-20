@@ -57,6 +57,18 @@ const DOCUMENT_STORE_BASE_FOLDER = 'docustore'
 const createDocumentStore = async (newDocumentStore: DocumentStore) => {
     try {
         const appServer = getRunningExpressApp()
+
+        // Tactical Fix for new ownership columns:
+        if (!newDocumentStore.applicationId) {
+            newDocumentStore.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80';
+        }
+        if (newDocumentStore.organizationId === undefined) {
+            newDocumentStore.organizationId = null;
+        }
+        if (newDocumentStore.userId === undefined) {
+            newDocumentStore.userId = null;
+        }
+
         const documentStore = appServer.AppDataSource.getRepository(DocumentStore).create(newDocumentStore)
         const dbResponse = await appServer.AppDataSource.getRepository(DocumentStore).save(documentStore)
         return dbResponse

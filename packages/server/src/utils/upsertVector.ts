@@ -182,6 +182,12 @@ export const executeUpsert = async ({
         result.chatflowid = chatflowid
         const newUpsertHistory = new UpsertHistory()
         Object.assign(newUpsertHistory, result)
+
+        // Tactical Fix for new ownership columns:
+        newUpsertHistory.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80';
+        newUpsertHistory.organizationId = null; // Default to null if not explicitly passed
+        newUpsertHistory.userId = null; // Default to null if not explicitly passed
+        
         const upsertHistory = appDataSource.getRepository(UpsertHistory).create(newUpsertHistory)
         await appDataSource.getRepository(UpsertHistory).save(upsertHistory)
     }

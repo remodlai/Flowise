@@ -75,16 +75,26 @@ const createApiKey = async (keyName: string) => {
             const keys = await addAPIKey_json(keyName)
             return await addChatflowsCount(keys)
         } else if (_apikeysStoredInDb()) {
-            const apiKey = generateAPIKey()
-            const apiSecret = generateSecretHash(apiKey)
+            const apiKeyVal = generateAPIKey()
+            const apiSecret = generateSecretHash(apiKeyVal)
             const appServer = getRunningExpressApp()
-            const newKey = new ApiKey()
-            newKey.id = randomBytes(16).toString('hex')
-            newKey.apiKey = apiKey
-            newKey.apiSecret = apiSecret
-            newKey.keyName = keyName
-            const key = appServer.AppDataSource.getRepository(ApiKey).create(newKey)
-            await appServer.AppDataSource.getRepository(ApiKey).save(key)
+            const newApiKey = new ApiKey()
+            newApiKey.apiKey = apiKeyVal
+            newApiKey.apiSecret = apiSecret
+            newApiKey.keyName = keyName
+
+            if (!newApiKey.applicationId) {
+                newApiKey.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80';
+            }
+            if (newApiKey.organizationId === undefined) {
+                newApiKey.organizationId = null;
+            }
+            if (newApiKey.userId === undefined) {
+                newApiKey.userId = null;
+            }
+
+            const keyEntity = appServer.AppDataSource.getRepository(ApiKey).create(newApiKey)
+            await appServer.AppDataSource.getRepository(ApiKey).save(keyEntity)
             return getAllApiKeys()
         } else {
             throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `UNKNOWN APIKEY_STORAGE_TYPE`)

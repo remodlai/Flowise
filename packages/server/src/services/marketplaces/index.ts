@@ -174,30 +174,41 @@ const saveCustomTemplate = async (body: any): Promise<any> => {
         const customTemplate = new CustomTemplate()
         Object.assign(customTemplate, body)
 
+        if (!customTemplate.applicationId) {
+            customTemplate.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80';
+        }
+        if (customTemplate.organizationId === undefined) {
+            customTemplate.organizationId = null;
+        }
+        if (customTemplate.userId === undefined) {
+            customTemplate.userId = null;
+        }
+
         if (body.chatflowId) {
             const chatflow = await chatflowsService.getChatflowById(body.chatflowId)
             const flowData = JSON.parse(chatflow.flowData)
             const { framework, exportJson } = _generateExportFlowData(flowData)
             flowDataStr = JSON.stringify(exportJson)
             customTemplate.framework = framework
+            derivedFramework = framework;
         } else if (body.tool) {
             const flowData = {
                 iconSrc: body.tool.iconSrc,
                 schema: body.tool.schema,
                 func: body.tool.func
             }
-            customTemplate.framework = ''
             customTemplate.type = 'Tool'
             flowDataStr = JSON.stringify(flowData)
         }
-        customTemplate.framework = derivedFramework
-        if (customTemplate.usecases) {
-            customTemplate.usecases = JSON.stringify(customTemplate.usecases)
+        if (customTemplate.usecases && typeof customTemplate.usecases !== 'string') { 
+            customTemplate.usecases = JSON.stringify(customTemplate.usecases);
         }
-        const entity = appServer.AppDataSource.getRepository(CustomTemplate).create(customTemplate)
-        entity.flowData = flowDataStr
-        const flowTemplate = await appServer.AppDataSource.getRepository(CustomTemplate).save(entity)
-        return flowTemplate
+        
+        const entity = appServer.AppDataSource.getRepository(CustomTemplate).create(customTemplate); 
+        entity.flowData = flowDataStr; 
+
+        const flowTemplate = await appServer.AppDataSource.getRepository(CustomTemplate).save(entity);
+        return flowTemplate;
     } catch (error) {
         throw new InternalFlowiseError(
             StatusCodes.INTERNAL_SERVER_ERROR,

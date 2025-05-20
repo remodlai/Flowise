@@ -13,6 +13,16 @@ const createTool = async (requestBody: any): Promise<any> => {
         const appServer = getRunningExpressApp()
         const newTool = new Tool()
         Object.assign(newTool, requestBody)
+
+        // Tactical Fix for new ownership columns:
+        if (!newTool.applicationId) {
+            newTool.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80';
+        }
+        if (newTool.userId === undefined) {
+            newTool.userId = null; // creator
+        }
+        // No organizationId on Tool entity as per design
+
         const tool = await appServer.AppDataSource.getRepository(Tool).create(newTool)
         const dbResponse = await appServer.AppDataSource.getRepository(Tool).save(tool)
         await appServer.telemetry.sendTelemetry('tool_created', {

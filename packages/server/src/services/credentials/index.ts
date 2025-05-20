@@ -11,6 +11,18 @@ const createCredential = async (requestBody: any) => {
     try {
         const appServer = getRunningExpressApp()
         const newCredential = await transformToCredentialEntity(requestBody)
+
+        // Tactical Fix for new ownership columns:
+        if (!newCredential.applicationId) {
+            newCredential.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80';
+        }
+        if (newCredential.organizationId === undefined) {
+            newCredential.organizationId = null;
+        }
+        if (newCredential.userId === undefined) {
+            newCredential.userId = null;
+        }
+
         const credential = await appServer.AppDataSource.getRepository(Credential).create(newCredential)
         const dbResponse = await appServer.AppDataSource.getRepository(Credential).save(credential)
         return dbResponse

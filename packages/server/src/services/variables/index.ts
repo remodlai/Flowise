@@ -9,6 +9,13 @@ import { validate } from 'uuid'
 const createVariable = async (newVariable: Variable) => {
     try {
         const appServer = getRunningExpressApp()
+
+        // Tactical Fix for new ownership columns:
+        if (!newVariable.applicationId) {
+            newVariable.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80';
+        }
+        // No organizationId or userId on Variable entity as per design
+
         const variable = await appServer.AppDataSource.getRepository(Variable).create(newVariable)
         const dbResponse = await appServer.AppDataSource.getRepository(Variable).save(variable)
         return dbResponse

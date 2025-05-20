@@ -187,6 +187,20 @@ const getChatflowById = async (chatflowId: string): Promise<any> => {
 const saveChatflow = async (newChatFlow: ChatFlow): Promise<any> => {
     try {
         const appServer = getRunningExpressApp()
+
+        // Tactical Fix: Ensure platform ownership fields are set
+        // applicationId should come from validated ApiKey context or platform request context in the future.
+        // For now, using default from env if not present on the incoming object.
+        if (!newChatFlow.applicationId) {
+            newChatFlow.applicationId = process.env.DEFAULT_PLATFORM_APP_ID || '3b702f3b-5749-4bae-a62e-fb967921ab80'; // Fallback if env var not set
+        }
+        // userId (creator) should come from the authenticated platform user context.
+        // For now, if not present, set to null (as it's nullable in DB).
+        if (newChatFlow.userId === undefined) { // Check for undefined specifically
+            newChatFlow.userId = null;
+        }
+        // Note: organizationId is not directly on ChatFlow as per our design.
+
         let dbResponse: ChatFlow
         if (containsBase64File(newChatFlow)) {
             // we need a 2-step process, as we need to save the chatflow first and then update the file paths
