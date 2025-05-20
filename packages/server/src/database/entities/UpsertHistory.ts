@@ -19,4 +19,13 @@ export class UpsertHistory implements IUpsertHistory {
 
     @CreateDateColumn()
     date: Date
+
+    @Column({ type: 'uuid' })
+    applicationId: string;
+
+    @Column({ type: 'uuid', nullable: true })
+    organizationId: string | null;
+
+    @Column({ type: 'uuid', nullable: true })
+    userId: string | null;
 }

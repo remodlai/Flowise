@@ -1,9 +1,9 @@
-import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn, UpdateDateColumn, CreateDateColumn } from 'typeorm'
 import { IApiKey } from '../../Interface'
 
 @Entity('apikey')
 export class ApiKey implements IApiKey {
-    @PrimaryColumn({ type: 'varchar', length: 20 })
+    @PrimaryGeneratedColumn('uuid')
     id: string
 
     @Column({ type: 'text' })
@@ -14,6 +14,18 @@ export class ApiKey implements IApiKey {
 
     @Column({ type: 'text' })
     keyName: string
+
+    @Column({ type: 'uuid' })
+    applicationId: string;
+
+    @Column({ type: 'uuid', nullable: true })
+    organizationId: string | null;
+
+    @Column({ type: 'uuid', nullable: true })
+    userId: string | null;
+
+    @CreateDateColumn({ type: 'timestamp' })
+    createdDate: Date;
 
     @Column({ type: 'timestamp' })
     @UpdateDateColumn()

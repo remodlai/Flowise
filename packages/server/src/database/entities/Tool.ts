@@ -32,4 +32,10 @@ export class Tool implements ITool {
     @Column({ type: 'timestamp' })
     @UpdateDateColumn()
     updatedDate: Date
+
+    @Column({ type: 'uuid' })
+    applicationId: string
+
+    @Column({ type: 'uuid', nullable: true })
+    userId: string | null
 }

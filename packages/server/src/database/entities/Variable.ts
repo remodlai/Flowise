@@ -23,4 +23,7 @@ export class Variable implements IVariable {
     @Column({ type: 'timestamp' })
     @UpdateDateColumn()
     updatedDate: Date
+
+    @Column({ type: 'uuid' })
+    applicationId: string;
 }
