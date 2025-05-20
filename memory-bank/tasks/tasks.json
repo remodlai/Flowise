@@ -88,14 +88,14 @@
       "id": "57ffefd7-2f8e-4769-975d-b12489a9b675",
       "name": "P2.3: Main Ownership Migration - Generation & Refinement",
       "description": "Generate the main TypeORM migration for all entity changes. Critically review and manually refine the generated SQL to correctly handle adding `NOT NULL` columns with defaults to existing tables in the \"Sam\" database.",
-      "status": "進行中",
+      "status": "已完成",
       "dependencies": [
         {
           "taskId": "e7761dac-4b1c-4515-8401-3b8adfa7a8c3"
         }
       ],
       "createdAt": "2025-05-20T14:53:48.036Z",
-      "updatedAt": "2025-05-20T15:29:32.968Z",
+      "updatedAt": "2025-05-20T16:53:49.768Z",
       "relatedFiles": [
         {
           "path": "packages/server/src/database/migrations/postgres/",
@@ -104,20 +104,22 @@
         }
       ],
       "implementationGuide": "1. Generate main ownership migration using TypeORM CLI (e.g., `AddPlatformOwnershipFields`). 2. Read the new migration file. 3. Meticulously review SQL. 4. Edit the `up()` method: for each new `NOT NULL` column on existing tables, ensure a 3-step SQL process (ADD NULLable, UPDATE with default, ALTER to NOT NULL). Verify `ApiKey.id` and `createdDate` changes. Ensure `down()` method is correct. 5. Commit refined migration.",
-      "verificationCriteria": "Main ownership migration file created and SQL refined for safe application to existing tables with data. Changes committed."
+      "verificationCriteria": "Main ownership migration file created and SQL refined for safe application to existing tables with data. Changes committed.",
+      "summary": "User has confirmed that the main ownership migration file (1747755034134-AddPlatformOwnershipFields.ts) was manually refined and committed to include all necessary SQL changes for adding ownership columns to 9 entities and updating the ApiKey table, including handling for NOT NULL constraints on existing tables. This completes the core 'refinement' action of this task.",
+      "completedAt": "2025-05-20T16:53:49.767Z"
     },
     {
       "id": "c5f7c218-a7ee-42e3-a7a2-d46525f5b26e",
       "name": "P2.4: Migration Execution & Validation (User-Assisted)",
       "description": "Guide the user to run all TypeORM migrations against the \"Sam\" Supabase project and validate the schema changes.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [
         {
           "taskId": "57ffefd7-2f8e-4769-975d-b12489a9b675"
         }
       ],
       "createdAt": "2025-05-20T14:53:48.036Z",
-      "updatedAt": "2025-05-20T14:53:48.036Z",
+      "updatedAt": "2025-05-20T17:18:35.867Z",
       "relatedFiles": [
         {
           "path": "packages/server/.env",
@@ -126,7 +128,9 @@
         }
       ],
       "implementationGuide": "1. User confirms .env points to \"Sam\" DB. 2. Instruct user to run all migrations (e.g., `pnpm --filter flowise typeorm:migration:run`). 3. User monitors console. 4. Use `mcp_supabase-db_list_tables` for \"Sam\" project. 5. Guide user schema validation: check placeholder tables, new columns in 9 Remodl Core tables, `ApiKey` structure updates. 6. Await user confirmation.",
-      "verificationCriteria": "User confirms successful migration execution on \"Sam\" DB. Schema changes (new columns, ApiKey structure, placeholder tables) are verified via `list_tables` and user inspection."
+      "verificationCriteria": "User confirms successful migration execution on \"Sam\" DB. Schema changes (new columns, ApiKey structure, placeholder tables) are verified via `list_tables` and user inspection.",
+      "summary": "Successfully executed all migrations (bootstrap and ownership) on the 'test-tables' Supabase project. Verification via `list_tables` confirms: 1. Placeholder platform tables (applications, organizations, user_profiles, user_sessions) were created. 2. All 9 targeted Remodl Core tables now have the new ownership columns (applicationId, organizationId, userId) with correct types and nullability. 3. The ApiKey table correctly reflects its id as uuid and the new createdDate column. The schema changes align with the plan for Phase 2.",
+      "completedAt": "2025-05-20T17:18:35.866Z"
     },
     {
       "id": "fc0d1c97-25da-4b62-be7c-8f6328af0d01",
@@ -273,14 +277,14 @@
       "id": "c1922baa-a95a-4d68-9e43-d9cae9097170",
       "name": "Commit Refined Migration",
       "description": "Commit the refined migration file to the repository, ensuring the commit message clearly describes the purpose and approach of the migration.",
-      "status": "待處理",
+      "status": "已完成",
       "dependencies": [
         {
           "taskId": "cd839061-051e-4612-bf0f-9ee312c1e2a7"
         }
       ],
       "createdAt": "2025-05-20T15:59:14.818Z",
-      "updatedAt": "2025-05-20T15:59:14.818Z",
+      "updatedAt": "2025-05-20T16:50:45.258Z",
       "relatedFiles": [
         {
           "path": "packages/server/src/database/migrations/postgres/[timestamp]-AddPlatformOwnershipFields.ts",
@@ -290,7 +294,9 @@
       ],
       "implementationGuide": "1. Verify once more that the migration file is correctly refined\n2. Stage the migration file:\n   ```\n   git add packages/server/src/database/migrations/postgres/[timestamp]-AddPlatformOwnershipFields.ts\n   ```\n3. Commit with a descriptive message:\n   ```\n   git commit -m \"Add refined migration for platform ownership fields with safe NOT NULL handling\"\n   ```\n4. If needed, push to the remote branch:\n   ```\n   git push origin feature/platform-data-ownership-fields\n   ```",
       "verificationCriteria": "Migration file successfully committed to the repository with a clear commit message explaining the changes.",
-      "analysisResult": "Task P2.3 (Main Ownership Migration - Generation & Refinement) requires generating and then refining a TypeORM migration to add platform ownership fields to 9 entities. The key challenge is adding NOT NULL columns to existing tables with data, particularly applicationId, and handling the ApiKey.id change from varchar(20) to UUID. The migration must follow a 3-step process for NOT NULL columns: add as nullable, update with defaults, alter to add NOT NULL constraint. For ApiKey.id, a complex PK type change requires temporary columns and data migration. The migration must also ensure the down() method properly reverses all changes in the correct order."
+      "analysisResult": "Task P2.3 (Main Ownership Migration - Generation & Refinement) requires generating and then refining a TypeORM migration to add platform ownership fields to 9 entities. The key challenge is adding NOT NULL columns to existing tables with data, particularly applicationId, and handling the ApiKey.id change from varchar(20) to UUID. The migration must follow a 3-step process for NOT NULL columns: add as nullable, update with defaults, alter to add NOT NULL constraint. For ApiKey.id, a complex PK type change requires temporary columns and data migration. The migration must also ensure the down() method properly reverses all changes in the correct order.",
+      "summary": "User confirmed that the migration file was committed manually. Marking as complete.",
+      "completedAt": "2025-05-20T16:50:45.257Z"
     }
   ]
 }

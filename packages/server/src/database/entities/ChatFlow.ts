@@ -43,11 +43,11 @@ export class ChatFlow implements IChatFlow {
     @Column({ nullable: true, type: 'text' })
     type?: ChatflowType
 
-    @Column({ type: 'uuid' })
-    applicationId: string
+    @Column({ type: 'uuid', nullable: true })
+    applicationId?: string
 
     @Column({ type: 'uuid', nullable: true })
-    userId: string | null
+    userId?: string | null
 
     @Column({ type: 'timestamp' })
     @CreateDateColumn()

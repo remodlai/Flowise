@@ -93,10 +93,7 @@
 - Phase 3: Architectural Refactoring for Private Packages (PENDING)
 ## Known Issues
 
-- Some OpenAPI fragments may need updating to use consistent reference patterns
-- Security section configuration needs standardization across all modules
-- Response schema documentation sometimes needs enhancement to reflect actual data formats
-- Streaming responses need careful documentation of SSE event formats
+- Build Error: `ChatFlow` entity/interface temporarily changed `applicationId` AND `userId` to optional to allow build to pass before migration P2.3 runs. This MUST be reverted to non-optional (userId to string|null, applicationId to string) after P2.4 is complete.
 ## Next Steps
 
 - Begin planning and execution of Phase 2: Implement API Key Ownership Migrations (create new branch, modify ApiKey entity, generate new migration, test).
@@ -106,6 +103,8 @@
 - Plan for maintaining and updating API documentation as the codebase evolves.
 ## Current Session Notes
 
+- [1:02:59 PM] [Unknown User] Task Execution Plan Articulated for P2.4: Detailed plan for P2.4 (Migration Execution & Validation on `test-tables`) formulated via `process_thought`. Plan covers user confirmation of .env for `test-tables`, migration execution command, console monitoring, and AI/user validation of schema changes including new placeholder tables and ownership columns.
+- [12:43:45 PM] [Unknown User] Task Execution Plan Articulated: For task c1922baa (Commit Refined Migration), acknowledged via process_thought that the user has already committed the migration file manually. Will verify the task as complete without executing the actual git commands.
 - [12:26:58 PM] [Unknown User] Task Execution Plan Articulated: Detailed plan for adding comments and reviewing the migration (task cd839061) formulated via process_thought. Identified the need for comprehensive file-level comments explaining the migration purpose and approach, section-level comments to group related operations, explicit transaction handling for improved safety, and a thorough review of the migration for correctness.
 - [12:21:57 PM] [Unknown User] Task Execution Plan Articulated: Detailed plan for modifying the remaining entity migration SQL (task df075002) formulated via process_thought. Identified 8 entities requiring the 3-step process for NOT NULL applicationId columns and planned a systematic approach to modify both the up() and down() methods for each entity, ensuring data integrity and safe migrations.
 - [12:18:49 PM] [Unknown User] Task Execution Plan Articulated: Detailed plan for modifying the ApiKey table migration SQL for task d0a371e7 formulated via process_thought. Discovered that contrary to task description, ApiKey.id was already a UUID, so our focus is on properly implementing the 3-step process for adding NOT NULL applicationId column: add as nullable, update with default values, then add constraint. Also ensuring the down() method correctly reverses operations.

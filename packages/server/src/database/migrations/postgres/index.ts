@@ -29,8 +29,11 @@ import { AddArtifactsToChatMessage1726156258465 } from './1726156258465-AddArtif
 import { AddFollowUpPrompts1726666309552 } from './1726666309552-AddFollowUpPrompts'
 import { AddTypeToAssistant1733011290987 } from './1733011290987-AddTypeToAssistant'
 import { AddExecutionEntity1738090872625 } from './1738090872625-AddExecutionEntity'
+import { EnsurePlatformPrerequisites1747754325787 } from './1747754325787-0000000000000-EnsurePlatformPrerequisites'
+import { AddPlatformOwnershipFields1747756806169 } from './1747756806169-AddPlatformOwnershipFields'
 
 export const postgresMigrations = [
+    EnsurePlatformPrerequisites1747754325787,
     Init1693891895163,
     ModifyChatFlow1693995626941,
     ModifyChatMessage1693996694528,
@@ -61,5 +64,6 @@ export const postgresMigrations = [
     AddArtifactsToChatMessage1726156258465,
     AddFollowUpPrompts1726666309552,
     AddTypeToAssistant1733011290987,
-    AddExecutionEntity1738090872625
+    AddExecutionEntity1738090872625,
+    AddPlatformOwnershipFields1747756806169
 ]
