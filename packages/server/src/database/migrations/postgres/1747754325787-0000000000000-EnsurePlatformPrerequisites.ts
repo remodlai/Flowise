@@ -25,7 +25,7 @@ export class EnsurePlatformPrerequisites1747754325787 implements MigrationInterf
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS public.user_profiles (
                 id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-                user_auth_id uuid UNIQUE NOT NULL, -- This will store the auth.users.id
+                user_id uuid UNIQUE NOT NULL, -- Changed from user_auth_id to user_id
                 email text UNIQUE,
                 first_name text,
                 last_name text,
@@ -34,13 +34,13 @@ export class EnsurePlatformPrerequisites1747754325787 implements MigrationInterf
                 created_at timestamptz DEFAULT now(),
                 updated_at timestamptz DEFAULT now()
             );
-            CREATE INDEX IF NOT EXISTS idx_user_profiles_user_auth_id ON public.user_profiles (user_auth_id);
+            CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON public.user_profiles (user_id); -- Changed from user_auth_id
         `);
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS public.user_sessions (
                 id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
                 remodl_core_session_id text UNIQUE,
-                platform_user_id uuid NOT NULL, -- Logically REFERENCES public.user_profiles(user_auth_id)
+                platform_user_id uuid NOT NULL, -- This should logically reference user_profiles.user_id (which is auth.users.id)
                 platform_organization_id uuid, -- Logically REFERENCES public.organizations(id)
                 platform_application_id uuid NOT NULL, -- Logically REFERENCES public.applications(id)
                 remodl_core_chat_flow_id uuid, -- Logically REFERENCES Remodl Core's chat_flow(id)
