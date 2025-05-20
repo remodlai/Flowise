@@ -12,6 +12,7 @@
 
 ## Update History
 
+- [2025-05-20 11:22:40 AM] [Unknown User] - Task Execution Plan Articulated for P2.2: Detailed plan for P2.2 (Core Entity Modifications for Ownership) formulated via `process_thought`. Plan involves sequentially editing 10 entity files to add specified ownership columns and update ApiKey entity, then committing changes.
 - [2025-05-20 11:17:30 AM] [Unknown User] - Task Execution Plan Articulated for Updated P2.1: Detailed plan for updated P2.1 (Branch Creation & Comprehensive Bootstrap Migration) formulated via `process_thought`. Plan includes creating the branch and generating/populating the bootstrap migration for all four placeholder platform tables (`applications`, `organizations`, `user_profiles`, `user_sessions`).
 - [2025-05-20 11:14:56 AM] [Unknown User] - Refined Bootstrap Migration for `user_profiles` Table (Phase 2 Planning): Updated the planned bootstrap migration to ensure `user_profiles` placeholder includes `user_auth_id uuid UNIQUE NOT NULL` for linking to `auth.users.id`. This is based on inspecting the existing 'Sam' project schema. Documented in system-patterns.md and decision-log.md.
 - [2025-05-20 11:14:44 AM] [Unknown User] - Decision Made: Refined Minimal Schema for `user_profiles` in Bootstrap Migration
