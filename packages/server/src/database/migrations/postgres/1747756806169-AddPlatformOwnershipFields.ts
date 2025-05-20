@@ -25,7 +25,13 @@ export class AddPlatformOwnershipFields1747756806169 implements MigrationInterfa
         await queryRunner.query(`ALTER TABLE "upsert_history" ADD "applicationId" uuid NOT NULL`);
         await queryRunner.query(`ALTER TABLE "upsert_history" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "upsert_history" ADD "userId" uuid`);
-        await queryRunner.query(`ALTER TABLE "apikey" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "apikey" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "apikey" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "apikey" ALTER COLUMN "applicationId" SET NOT NULL`);
+        // Add other columns (these can remain as is since they're nullable or have defaults)
         await queryRunner.query(`ALTER TABLE "apikey" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "apikey" ADD "userId" uuid`);
         await queryRunner.query(`ALTER TABLE "apikey" ADD "createdDate" TIMESTAMP NOT NULL DEFAULT now()`);
@@ -137,6 +143,9 @@ export class AddPlatformOwnershipFields1747756806169 implements MigrationInterfa
         await queryRunner.query(`ALTER TABLE "apikey" DROP COLUMN "createdDate"`);
         await queryRunner.query(`ALTER TABLE "apikey" DROP COLUMN "userId"`);
         await queryRunner.query(`ALTER TABLE "apikey" DROP COLUMN "organizationId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "apikey" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "apikey" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "upsert_history" DROP COLUMN "userId"`);
         await queryRunner.query(`ALTER TABLE "upsert_history" DROP COLUMN "organizationId"`);
