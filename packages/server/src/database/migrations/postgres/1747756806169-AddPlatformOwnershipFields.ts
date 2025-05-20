@@ -8,21 +8,56 @@ export class AddPlatformOwnershipFields1747756806169 implements MigrationInterfa
         await queryRunner.query(`DROP INDEX "public"."IDX_e76bae1780b77e56aab1h2asd4"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_e213b811b01405a42309a6a410"`);
         await queryRunner.query(`DROP INDEX "public"."IDX_f56c36fe42894d57e5c664d230"`);
-        await queryRunner.query(`ALTER TABLE "chat_flow" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "chat_flow" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "chat_flow" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "chat_flow" ALTER COLUMN "applicationId" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "chat_flow" ADD "userId" uuid`);
-        await queryRunner.query(`ALTER TABLE "credential" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "credential" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "credential" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "credential" ALTER COLUMN "applicationId" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "credential" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "credential" ADD "userId" uuid`);
-        await queryRunner.query(`ALTER TABLE "tool" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "tool" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "tool" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "tool" ALTER COLUMN "applicationId" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "tool" ADD "userId" uuid`);
-        await queryRunner.query(`ALTER TABLE "variable" ADD "applicationId" uuid NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "document_store" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "variable" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "variable" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "variable" ALTER COLUMN "applicationId" SET NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "document_store" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "document_store" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "document_store" ALTER COLUMN "applicationId" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "document_store" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "document_store" ADD "userId" uuid`);
-        await queryRunner.query(`ALTER TABLE "chat_message_feedback" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "chat_message_feedback" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "chat_message_feedback" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "chat_message_feedback" ALTER COLUMN "applicationId" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "chat_message_feedback" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "chat_message_feedback" ADD "userId" uuid`);
-        await queryRunner.query(`ALTER TABLE "upsert_history" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "upsert_history" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "upsert_history" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "upsert_history" ALTER COLUMN "applicationId" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "upsert_history" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "upsert_history" ADD "userId" uuid`);
         // Add applicationId as nullable first
@@ -35,7 +70,12 @@ export class AddPlatformOwnershipFields1747756806169 implements MigrationInterfa
         await queryRunner.query(`ALTER TABLE "apikey" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "apikey" ADD "userId" uuid`);
         await queryRunner.query(`ALTER TABLE "apikey" ADD "createdDate" TIMESTAMP NOT NULL DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "custom_template" ADD "applicationId" uuid NOT NULL`);
+        // Add applicationId as nullable first
+        await queryRunner.query(`ALTER TABLE "custom_template" ADD "applicationId" uuid`);
+        // Update existing rows with default application ID
+        await queryRunner.query(`UPDATE "custom_template" SET "applicationId" = '3b702f3b-5749-4bae-a62e-fb967921ab80'`);
+        // Add NOT NULL constraint
+        await queryRunner.query(`ALTER TABLE "custom_template" ALTER COLUMN "applicationId" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "custom_template" ADD "organizationId" uuid`);
         await queryRunner.query(`ALTER TABLE "custom_template" ADD "userId" uuid`);
         await queryRunner.query(`ALTER TABLE "execution" ALTER COLUMN "stoppedDate" SET NOT NULL`);
@@ -139,6 +179,9 @@ export class AddPlatformOwnershipFields1747756806169 implements MigrationInterfa
         await queryRunner.query(`ALTER TABLE "execution" ALTER COLUMN "stoppedDate" DROP NOT NULL`);
         await queryRunner.query(`ALTER TABLE "custom_template" DROP COLUMN "userId"`);
         await queryRunner.query(`ALTER TABLE "custom_template" DROP COLUMN "organizationId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "custom_template" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "custom_template" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "apikey" DROP COLUMN "createdDate"`);
         await queryRunner.query(`ALTER TABLE "apikey" DROP COLUMN "userId"`);
@@ -149,20 +192,41 @@ export class AddPlatformOwnershipFields1747756806169 implements MigrationInterfa
         await queryRunner.query(`ALTER TABLE "apikey" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "upsert_history" DROP COLUMN "userId"`);
         await queryRunner.query(`ALTER TABLE "upsert_history" DROP COLUMN "organizationId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "upsert_history" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "upsert_history" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "chat_message_feedback" DROP COLUMN "userId"`);
         await queryRunner.query(`ALTER TABLE "chat_message_feedback" DROP COLUMN "organizationId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "chat_message_feedback" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "chat_message_feedback" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "document_store" DROP COLUMN "userId"`);
         await queryRunner.query(`ALTER TABLE "document_store" DROP COLUMN "organizationId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "document_store" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "document_store" DROP COLUMN "applicationId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "variable" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "variable" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "tool" DROP COLUMN "userId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "tool" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "tool" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "credential" DROP COLUMN "userId"`);
         await queryRunner.query(`ALTER TABLE "credential" DROP COLUMN "organizationId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "credential" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "credential" DROP COLUMN "applicationId"`);
         await queryRunner.query(`ALTER TABLE "chat_flow" DROP COLUMN "userId"`);
+        // Remove NOT NULL constraint first
+        await queryRunner.query(`ALTER TABLE "chat_flow" ALTER COLUMN "applicationId" DROP NOT NULL`);
+        // Then drop the column
         await queryRunner.query(`ALTER TABLE "chat_flow" DROP COLUMN "applicationId"`);
         await queryRunner.query(`CREATE INDEX "IDX_f56c36fe42894d57e5c664d230" ON "chat_message_feedback" ("chatflowid") `);
         await queryRunner.query(`CREATE INDEX "IDX_e213b811b01405a42309a6a410" ON "document_store_file_chunk" ("storeId") `);
