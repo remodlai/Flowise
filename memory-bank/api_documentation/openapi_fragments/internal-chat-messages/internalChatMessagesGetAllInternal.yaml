@@ -1,8 +1,8 @@
 "/internal-chat-messages/{id}":
   get:
-    summary: "INTERNAL: Get All Internal Chat Messages for a Chatflow"
+    summary: "Get All Internal Chat Messages for a Chatflow"
     operationId: "internalChatMessagesGetAllInternal"
-    tags: ["Chat Messages", "InternalAPI"]
+    tags: ["Chat Messages"]
     parameters:
       - name: id
         in: path

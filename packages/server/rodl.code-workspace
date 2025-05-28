@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "../../../RemodlPlatform"
+		},
+		{
+			"path": "../../../cf-workers"
+		},
+		{
+			"path": "../../../remodl-api"
+		},
+		{
+			"name": "remodl-next",
+			"path": "../../../remodl-next"
+		}
+	],
+	"settings": {}
+}
