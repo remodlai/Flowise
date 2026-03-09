@@ -34,3 +34,12 @@ If you like to persist your data (flows, logs, apikeys, credentials), set these 
 -   BLOB_STORAGE_PATH=/root/.flowise/storage
 
 Flowise also support different environment variables to configure your instance. Read [more](https://docs.flowiseai.com/environment-variables)
+
+## Building from Source
+
+If you want to build the images for worker and main from scratch:
+
+1. Create `.env` file and specify the required variables (refer to `.env.example`)
+2. `docker compose -f docker-compose-queue-source.yml up -d`
+3. Open [http://localhost:3000](http://localhost:3000)
+4. You can bring the containers down by `docker compose -f docker-compose-queue-source.yml stop`
